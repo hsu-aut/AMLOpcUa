@@ -17,6 +17,8 @@ used under its own license, referenced below.
 | OPC UA base NodeSet `Opc.Ua.NodeSet2.xml`, from [UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset) | 1.05.07 (2026-05-01) | OPC Foundation MIT License 1.00 | 2005-2026 The OPC Foundation, Inc. |
 | OPC UA for Devices NodeSet `Opc.Ua.Di.NodeSet2.xml`, from UA-Nodeset | 1.05.0 (2025-11-15) | OPC Foundation MIT License 1.00 | 2005-2024 The OPC Foundation, Inc. |
 
+| AutomationML object reference attribute types, `libraries/AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml` | 1.1.1-beta | AutomationML e.V. (object reference attribute types by Rainer Drath) | Embedded unmodified into `OpcUaAml.Core.dll` and copied into documents that get a VDI 3682 link, because the AutomationML Editor does not load libraries through a file reference. The same file is available through the library manager of the AutomationML Editor. |
+
 Test fixtures in `dotnet/OpcUaAml.Tests/Fixtures/` are further NodeSets and
 AML libraries from UA-Nodeset (tags `UA-1.05.05-2025-06-30`,
 `DI-1.04.0-2022-11-03`, `UAFX-1.00.04-2026-07-22`), under the same license.

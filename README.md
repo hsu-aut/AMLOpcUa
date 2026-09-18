@@ -6,6 +6,11 @@ OPC UA information models in AutomationML.
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A
 - Instances of UA types with their Mandatory children and chosen Optional
   children, and a check of instances against their types
+- Running servers: browse, take nodes into the document, bind, read and
+  watch values, and serve the document itself as an OPC UA server
+- Diagrams of UA types and instances (OPC 10000-3 notation, SVG export),
+  UA Cloud Library import, instance updates after a type change, and links
+  from a VDI 3682 process description to OPC UA objects and methods
 - Command line tool `uaaml` with the same functions
 - Structural comparison of AML class libraries, used as the test oracle
 
@@ -27,7 +32,8 @@ AMLPetriNet.
 | `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
-| `docs/` | Import ([import.md](docs/import.md)), instances and checks ([instances.md](docs/instances.md)) |
+| `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
+| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [servers](docs/server.md), [diagram](docs/diagram.md), [VDI 3682](docs/vdi3682.md) |
 
 ## Build
 
