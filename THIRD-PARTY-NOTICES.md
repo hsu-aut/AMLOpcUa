@@ -16,6 +16,8 @@ used under its own license, referenced below.
 |---|---|---|---|
 | OPC UA base NodeSet `Opc.Ua.NodeSet2.xml`, from [UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset) | 1.05.07 (2026-05-01) | OPC Foundation MIT License 1.00 | 2005-2026 The OPC Foundation, Inc. |
 | OPC UA for Devices NodeSet `Opc.Ua.Di.NodeSet2.xml`, from UA-Nodeset | 1.05.0 (2025-11-15) | OPC Foundation MIT License 1.00 | 2005-2024 The OPC Foundation, Inc. |
+| AML base types NodeSet `Opc.Ua.AMLBaseTypes.NodeSet2.xml`, from the unit tests of [AML-UA-XSLT](https://github.com/AutomationML/AML-UA-XSLT) (commit a144dcc) | 1.00 (2016-02-22) | OPC Foundation MIT License 1.00 (file header); repository MIT | 2005-2021 The OPC Foundation, Inc.; 2021 AutomationML e.V. |
+| AML standard libraries NodeSet `Opc.Ua.AMLStandardLibraries.NodeSet2.xml`, generated from `1_AMLBaseLibraries.aml` of AML-UA-XSLT | 2.2.0 (2026-01-01) | MIT | 2021 AutomationML e.V. (libraries) |
 
 | AutomationML object reference attribute types, `libraries/AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml` | 1.1.1-beta | AutomationML e.V. (object reference attribute types by Rainer Drath) | Embedded unmodified into `OpcUaAml.Core.dll` and copied into documents that get a VDI 3682 link, because the AutomationML Editor does not load libraries through a file reference. The same file is available through the library manager of the AutomationML Editor. |
 

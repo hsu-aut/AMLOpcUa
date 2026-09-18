@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://opcfoundation.org/UA/AML/1_AMLBaseLibraries.aml</Uri>
+    <Uri>http://opcfoundation.org/UA/AML/</Uri>
+    <Uri>http://opcfoundation.org/UA/AML/AutomationMLInterfaceClassLib</Uri>
+    <Uri>http://opcfoundation.org/UA/AML/AutomationMLBaseRoleClassLib</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://opcfoundation.org/UA/AML/AutomationMLInterfaceClassLib" Version="2.2.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z" />
+    </Model>
+    <Model ModelUri="http://opcfoundation.org/UA/AML/AutomationMLBaseRoleClassLib" Version="2.2.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z" />
+    </Model>
+    <Model ModelUri="http://opcfoundation.org/UA/AML/1_AMLBaseLibraries.aml" Version="0.0.0" PublicationDate="2026-01-01T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/AutomationMLInterfaceClassLib" Version="2.2.0" PublicationDate="2026-01-01T00:00:00Z" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/AutomationMLBaseRoleClassLib" Version="2.2.0" PublicationDate="2026-01-01T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="SByte">i=2</Alias>
+    <Alias Alias="Byte">i=3</Alias>
+    <Alias Alias="Int16">i=4</Alias>
+    <Alias Alias="UInt16">i=5</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
+    <Alias Alias="Int64">i=8</Alias>
+    <Alias Alias="UInt64">i=9</Alias>
+    <Alias Alias="Float">i=10</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="DateTime">i=13</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="ByteString">i=15</Alias>
+    <Alias Alias="Guid">i=14</Alias>
+    <Alias Alias="XmlElement">i=16</Alias>
+    <Alias Alias="NodeId">i=17</Alias>
+    <Alias Alias="ExpandedNodeId">i=18</Alias>
+    <Alias Alias="QualifiedName">i=20</Alias>
+    <Alias Alias="LocalizedText">i=21</Alias>
+    <Alias Alias="StatusCode">i=19</Alias>
+    <Alias Alias="Structure">i=22</Alias>
+    <Alias Alias="Number">i=26</Alias>
+    <Alias Alias="Integer">i=27</Alias>
+    <Alias Alias="UInteger">i=28</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasEventSource">i=36</Alias>
+    <Alias Alias="HasNotifier">i=48</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="HasEncoding">i=38</Alias>
+    <Alias Alias="HasDescription">i=39</Alias>
+    <Alias Alias="FolderType">i=61</Alias>
+    <Alias Alias="BaseDataVariableType">i=63</Alias>
+    <Alias Alias="Duration">i=290</Alias>
+    <Alias Alias="CAEXObjectType">ns=2;i=1001</Alias>
+    <Alias Alias="CAEXFileType">ns=2;i=1005</Alias>
+    <Alias Alias="CAEXConstraintType">ns=2;i=2000</Alias>
+    <Alias Alias="CAEXNominalScaledConstraintType">ns=2;i=2001</Alias>
+    <Alias Alias="CAEXOrdinalScaledConstraintType">ns=2;i=2002</Alias>
+    <Alias Alias="CAEXUnknownConstraintType">ns=2;i=2003</Alias>
+    <Alias Alias="CAEXRequiredValue">ns=2;i=2004</Alias>
+    <Alias Alias="CAEXRequiredMinValue">ns=2;i=2005</Alias>
+    <Alias Alias="CAEXRequiredMaxValue">ns=2;i=2006</Alias>
+    <Alias Alias="CAEXRequirements">ns=2;i=2007</Alias>
+    <Alias Alias="AMLBaseVariableType">ns=2;i=3001</Alias>
+    <Alias Alias="HasAMLRoleReference">ns=2;i=4001</Alias>
+    <Alias Alias="HasAMLInternalLink">ns=2;i=4002</Alias>
+    <Alias Alias="HasAMLReferenceType">ns=2;i=4003</Alias>
+    <Alias Alias="IsAMLMirroredAs">ns=2;i=4004</Alias>
+    <Alias Alias="HasAMLConstraint">ns=2;i=4005</Alias>
+    <Alias Alias="HasAMLRequirement">ns=2;i=4006</Alias>
+    <Alias Alias="CAEXFile_AutomationMLInstanceHierarchies">ns=2;i=5005</Alias>
+    <Alias Alias="CAEXFile_AutomationMLFiles">ns=2;i=5006</Alias>
+    <Alias Alias="CAEXFile_InterfaceClassLibs">ns=2;i=5008</Alias>
+    <Alias Alias="CAEXFile_RoleClassLibs">ns=2;i=5009</Alias>
+    <Alias Alias="CAEXFile_SystemUnitClassLibs">ns=2;i=5010</Alias>
+    <Alias Alias="CAEXFile_AttributeTypeLibs">ns=2;i=5011</Alias>
+  </Aliases>
+  <!-- CAEXFile -->
+  <UAObject NodeId="ns=1;s=CAEXFile" BrowseName="1:CAEXFile">
+    <DisplayName>1_AMLBaseLibraries.aml</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">CAEXFileType</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_FileName</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_SchemaVersion</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_SuperiorStandardVersion</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_AdditionalInformation</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_SourceDocumentInformation</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_AutomationMLFiles</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;s=CAEXFile_FileName" BrowseName="1:FileName" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+    <DisplayName>FileName</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>1_AMLBaseLibraries.aml</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;s=CAEXFile_SchemaVersion" BrowseName="1:SchemaVersion" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+    <DisplayName>SchemaVersion</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>3.0</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;s=CAEXFile_SuperiorStandardVersion" BrowseName="1:SuperiorStandardVersion" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+    <DisplayName>SuperiorStandardVersion</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>AutomationML 2.1</uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;s=CAEXFile_AdditionalInformation" BrowseName="1:AutomationMLVersion" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+    <DisplayName>AutomationMLVersion</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String><![CDATA[<AdditionalInformation AutomationMLVersion="2.0" />]]></uax:String>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;s=CAEXFile_SourceDocumentInformation" BrowseName="1:SourceDocumentInformation" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+    <DisplayName>SourceDocumentInformation</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String><![CDATA[<SourceDocumentInformation OriginName="AutomationML Editor" OriginID="916578CA-FE0D-474E-A4FC-9E1719892369" OriginVersion="6.4.2.18" LastWritingDateTime="2026-01-16T13:26:59.4759772+01:00" OriginVendor="AutomationML e.V." OriginVendorURL="www.AutomationML.org" OriginRelease="6.4.2.18" OriginProjectTitle="unspecified" OriginProjectID="unspecified" />]]></uax:String>
+    </Value>
+  </UAVariable>
+  <!-- InstanceHierarchies -->
+  <!-- InterfaceClassLibs -->
+  <UAObject NodeId="ns=1;s=InterfaceClassLibs" BrowseName="1:InterfaceClassLibs" ParentNodeId="ns=1;s=CAEXFile">
+    <DisplayName>InterfaceClassLibs</DisplayName>
+    <Description>Standard Automation Markup Language Interface Class Library</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=InterfaceClassLib</Reference>
+    </References>
+  </UAObject>
+  <!-- InterfaceClassLib AutomationMLInterfaceClassLib -->
+  <UAObject NodeId="ns=3;s=InterfaceClassLib" BrowseName="AutomationMLInterfaceClassLib">
+    <DisplayName>AutomationMLInterfaceClassLib</DisplayName>
+    <Documentation>Standard Automation Markup Language Interface Class Library</Documentation>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=3;s=InterfaceClassLib_Version</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_InterfaceClassLibs</Reference>
+      <Reference ReferenceType="Organizes">ns=3;s=AutomationMLBaseInterface</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=3;s=InterfaceClassLib_Version" BrowseName="3:Version" ParentNodeId="ns=3;s=InterfaceClassLib" DataType="String">
+    <DisplayName>Version</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>2.2.0</uax:String>
+    </Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=3;s=AutomationMLBaseInterface" BrowseName="AutomationMLBaseInterface">
+    <DisplayName>AutomationMLBaseInterface</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=InterfaceClassLib</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">CAEXObjectType</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=Order" BrowseName="Order">
+    <DisplayName>Order</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=Order_Direction</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=3;s=Order_Direction" BrowseName="3:Direction" ParentNodeId="ns=3;s=Order" DataType="String">
+    <DisplayName>Direction</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=Order</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=3;s=PortConnector" BrowseName="PortConnector">
+    <DisplayName>PortConnector</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=InterlockingConnector" BrowseName="InterlockingConnector">
+    <DisplayName>InterlockingConnector</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=PPRConnector" BrowseName="PPRConnector">
+    <DisplayName>PPRConnector</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=ExternalDataConnector" BrowseName="ExternalDataConnector">
+    <DisplayName>ExternalDataConnector</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasComponent">ns=3;s=ExternalDataConnector_refURI</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=3;s=ExternalDataConnector_refURI" BrowseName="3:refURI" ParentNodeId="ns=3;s=ExternalDataConnector" DataType="QualifiedName">
+    <DisplayName>refURI</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=3;s=ExternalDataConnector</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=3;s=COLLADAInterface" BrowseName="COLLADAInterface">
+    <DisplayName>COLLADAInterface</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=ExternalDataConnector</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=ExternalDataConnector</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=PLCopenXMLInterface" BrowseName="PLCopenXMLInterface">
+    <DisplayName>PLCopenXMLInterface</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=ExternalDataConnector</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=ExternalDataConnector</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=Communication" BrowseName="Communication">
+    <DisplayName>Communication</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=AutomationMLBaseInterface</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=3;s=SignalInterface" BrowseName="SignalInterface">
+    <DisplayName>SignalInterface</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=3;s=Communication</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=3;s=Communication</Reference>
+    </References>
+  </UAObjectType>
+  <!-- RoleClassLibs -->
+  <UAObject NodeId="ns=1;s=RoleClassLibs" BrowseName="1:RoleClassLibs" ParentNodeId="ns=1;s=CAEXFile">
+    <DisplayName>RoleClassLibs</DisplayName>
+    <Description>Automation Markup Language base role class library</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes">ns=4;s=RoleClassLib</Reference>
+    </References>
+  </UAObject>
+  <!-- RoleClassLib AutomationMLBaseRoleClassLib -->
+  <UAObject NodeId="ns=4;s=RoleClassLib" BrowseName="AutomationMLBaseRoleClassLib">
+    <DisplayName>AutomationMLBaseRoleClassLib</DisplayName>
+    <Documentation>Automation Markup Language base role class library</Documentation>
+    <References>
+      <Reference ReferenceType="HasProperty">ns=4;s=RoleClassLib_Version</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_RoleClassLibs</Reference>
+      <Reference ReferenceType="Organizes">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=4;s=RoleClassLib_Version" BrowseName="4:Version" ParentNodeId="ns=4;s=RoleClassLib" DataType="String">
+    <DisplayName>Version</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>2.2.0</uax:String>
+    </Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=4;s=AutomationMLBaseRole" BrowseName="AutomationMLBaseRole">
+    <DisplayName>AutomationMLBaseRole</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=RoleClassLib</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">CAEXObjectType</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=Group" BrowseName="Group">
+    <DisplayName>Group</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Group_AssociatedFacet</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=4;s=Group_AssociatedFacet" BrowseName="4:AssociatedFacet" ParentNodeId="ns=4;s=Group" DataType="String">
+    <DisplayName>AssociatedFacet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Group</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=4;s=Facet" BrowseName="Facet">
+    <DisplayName>Facet</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=Port" BrowseName="Port">
+    <DisplayName>Port</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Port_Direction</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Port_Cardinality</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Port_Category</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s={9942bd9c-c19d-44e4-a197-11b9edf264e7}</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=4;s=Port_Direction" BrowseName="4:Direction" ParentNodeId="ns=4;s=Port" DataType="String">
+    <DisplayName>Direction</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Port</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=4;s=Port_Cardinality" BrowseName="4:Cardinality" ParentNodeId="ns=4;s=Port">
+    <DisplayName>Cardinality</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Port</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Port_Cardinality_MinOccur</Reference>
+      <Reference ReferenceType="HasComponent">ns=4;s=Port_Cardinality_MaxOccur</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=4;s=Port_Cardinality_MinOccur" BrowseName="4:MinOccur" ParentNodeId="ns=4;s=Port_Cardinality" DataType="UInt32">
+    <DisplayName>MinOccur</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Port_Cardinality</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=4;s=Port_Cardinality_MaxOccur" BrowseName="4:MaxOccur" ParentNodeId="ns=4;s=Port_Cardinality" DataType="UInt32">
+    <DisplayName>MaxOccur</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Port_Cardinality</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=4;s=Port_Category" BrowseName="4:Category" ParentNodeId="ns=4;s=Port" DataType="String">
+    <DisplayName>Category</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=4;s=Port</Reference>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=4;s={9942bd9c-c19d-44e4-a197-11b9edf264e7}" BrowseName="4:ConnectionPoint" ParentNodeId="ns=4;s=Port">
+    <DisplayName>ConnectionPoint</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=3;s=PortConnector</Reference>
+      <Reference ReferenceType="HasProperty">ns=4;s=9942bd9c-c19d-44e4-a197-11b9edf264e7_AML_ID</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=4;s=9942bd9c-c19d-44e4-a197-11b9edf264e7_AML_ID" BrowseName="4:AML_ID" ParentNodeId="ns=4;s={9942bd9c-c19d-44e4-a197-11b9edf264e7}" DataType="String">
+    <DisplayName>AML_ID</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+    </References>
+    <Value>
+      <uax:String>{9942bd9c-c19d-44e4-a197-11b9edf264e7}</uax:String>
+    </Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=4;s=Resource" BrowseName="Resource">
+    <DisplayName>Resource</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=Product" BrowseName="Product">
+    <DisplayName>Product</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=Process" BrowseName="Process">
+    <DisplayName>Process</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=Structure" BrowseName="Structure">
+    <DisplayName>Structure</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=ProductStructure" BrowseName="ProductStructure">
+    <DisplayName>ProductStructure</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=Structure</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=Structure</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=ProcessStructure" BrowseName="ProcessStructure">
+    <DisplayName>ProcessStructure</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=Structure</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=Structure</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=ResourceStructure" BrowseName="ResourceStructure">
+    <DisplayName>ResourceStructure</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=Structure</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=Structure</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=4;s=PropertySet" BrowseName="PropertySet">
+    <DisplayName>PropertySet</DisplayName>
+    <References>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=4;s=AutomationMLBaseRole</Reference>
+    </References>
+  </UAObjectType>
+  <!-- SystemUnitClassLibs -->
+  <!-- AttributeTypeLibs -->
+</UANodeSet>
