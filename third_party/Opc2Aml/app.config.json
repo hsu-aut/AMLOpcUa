@@ -1,0 +1,8 @@
+{
+    "TraceConfiguration": {
+        "OutputFilePath": "Opc2Aml.report.txt",
+        "DeleteOnLoad": true,
+        // None, Error, Information, Debug
+        "LogLevel": "Information"
+    }
+}

@@ -1,0 +1,25 @@
+# Opc2Aml, vendored
+
+| | |
+|---|---|
+| Upstream | https://github.com/OPCF-Members/Opc2Aml |
+| Commit | `9d8fa9617f41bf76dd4036f4da369826a9d214ac` (2026-01-13, "139 invalid parent node (#149)") |
+| License | MIT, see [LICENSE](LICENSE) |
+| Included | The library project only: `*.cs`, `Opc2Aml.csproj`, `Properties/`, `UANodeSet.xsd`, `app.config.json`, `README.md`, `LICENSE`. Not the console (`Opc2AmlConsole/`) or the tests (`SystemTest/`). |
+
+Opc2Aml is not published on NuGet and is used here as a library, so the source
+is part of this repository. Every change to it is a numbered patch in
+[`../patches/`](../patches), marked `AMLOpcUa patch NNNN` in the code, so it
+can be reported upstream and reapplied after an update.
+
+| Patch | Why |
+|---|---|
+| 0001 skip unresolvable non-hierarchical references | DI 1.05.0 made `ConnectsTo` non-hierarchical. The placeholders `<CPIdentifier>` (under `NetworkType`) and `<NetworkIdentifier>` (under `ConnectionPointType`) are attached to their type only through it, so Opc2Aml finds no element for the reference and throws a `NullReferenceException` for every NodeSet that depends on DI 1.05.0. The patch skips such a reference and reports it in a new `NodeSetToAML.Warnings` list. |
+| 0002 OPC UA stack 1.5.378 under MIT | Opc2Aml references OPC UA .NET Standard 1.5.375.443, published under the OPC Foundation's dual license (RCL/GPL 2.0). 1.5.378 is the first release under MIT. It seals `ExpandedNodeId`, from which `AmlExpandedNodeId` derived; the class now wraps one. IDs are unchanged: the test `Class_IDs_are_identical_to_the_published_library` compares them with the libraries the OPC Foundation generated with 1.5.375. |
+
+## Updating
+
+1. Copy the library files of the new upstream commit over this folder.
+2. Apply the patches in order (`git apply ../patches/NNNN-*.patch` from this
+   folder); drop a patch that upstream has made unnecessary.
+3. Run `dotnet test dotnet/OpcUaAml.Tests`, update the commit above.
