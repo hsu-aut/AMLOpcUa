@@ -2,6 +2,7 @@
 // can be done here too, so it can be scripted and tested without the editor.
 
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Checks;
 using OpcUaAml.Compare;
 using OpcUaAml.Export;
@@ -46,6 +47,33 @@ public static class Program
             --date             PublicationDate of the generated models (default: now)
             --xslt-compatible  reproduce the XSLT output exactly, bugs included
 
+        uaaml browse <endpoint> [<nsu=...;s=...>] [--secure] [--accept]
+            Children of a node of a running server (Objects when omitted).
+
+        uaaml mirror <endpoint> <node> <doc.aml> [--hierarchy <name>] [--depth <n>] [--secure] [--accept] [-o <out.aml>]
+            Take the node and the nodes below it into the document, with NodeIds,
+            UA types (where the document holds them) and current values.
+
+        uaaml snapshot <endpoint> <doc.aml> [--secure] [--accept] [-o <out.aml>]
+            Read the current value of every bound element and DataVariable.
+
+        uaaml serve <doc.aml> [--port <n>]
+            Serve the document's instance hierarchies as an OPC UA server until Enter.
+
+        uaaml diagram <doc.aml> (--type <name|path> | --instance <name|id>) [--depth <n>] -o <out.svg>
+            Draw a UA type or an instance as SVG.
+
+        uaaml upgrade <doc.aml> [-o <out.aml>]
+            Add the Mandatory children that updated types now declare.
+
+        uaaml link <doc.aml> --from <element> --to <element> [-o <out.aml>]
+            Link a VDI 3682 TechnicalResource to a UA object or a ProcessOperator
+            to a UA method (elements by name or ID).
+
+        uaaml cloud search <keywords...> (--user <u> --password <p> | --api-key <k>)
+        uaaml cloud download <id> <folder> (--user <u> --password <p> | --api-key <k>)
+            Search the UA Cloud Library, or download a model with the models it requires.
+
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
             --skeleton   libraries, classes, derivation and child elements only
@@ -76,6 +104,14 @@ public static class Program
                 "types" => TypesCommand(rest),
                 "instantiate" => InstantiateCommand(rest),
                 "check" => CheckCommand(rest),
+                "browse" => Run(BrowseCommand(rest)),
+                "mirror" => Run(MirrorCommand(rest)),
+                "snapshot" => Run(SnapshotCommand(rest)),
+                "serve" => Run(ServeCommand(rest)),
+                "diagram" => DiagramCommand(rest),
+                "upgrade" => UpgradeCommand(rest),
+                "link" => LinkCommand(rest),
+                "cloud" => Run(CloudCommand(rest)),
                 _ => Fail($"Unknown command '{args[0]}'.\n\n{Usage}"),
             };
         }
@@ -84,6 +120,11 @@ public static class Program
             return Fail(ex.Message);
         }
         catch (InstantiationException ex)
+        {
+            return Fail(ex.Message);
+        }
+        catch (Exception ex) when (ex is OpcUaAml.Server.UaConnectionException or OpcUaAml.Links.LinkException
+                                   or OpcUaAml.NodeSets.CloudLibraryException or OpcUaAml.Addressing.AddressingException)
         {
             return Fail(ex.Message);
         }
@@ -269,6 +310,144 @@ public static class Program
         var errors = findings.Count(f => f.Severity == Severity.Error);
         Console.WriteLine($"{errors} error(s), {findings.Count - errors} warning(s).");
         return errors == 0 ? 0 : 1;
+    }
+
+    private static int Run(Task<int> task) => task.GetAwaiter().GetResult();
+
+    private static OpcUaAml.Server.UaConnectOptions Connect(Options o, string endpoint) => new()
+    {
+        EndpointUrl = endpoint,
+        UseSecurity = o.Has("--secure"),
+        AcceptUntrustedServerCertificates = o.Has("--accept"),
+    };
+
+    private static async Task<int> BrowseCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--accept" });
+        if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("browse needs an endpoint and optionally a node.");
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var node = o.Positional.Count == 2 ? OpcUaAml.Addressing.UaNodeAddress.Parse(o.Positional[1], client.NamespaceTable) : null;
+        foreach (var item in await client.BrowseAsync(node))
+            Console.WriteLine($"{item.NodeClass,-9} {item.BrowseName,-30} {item.Address}");
+        return 0;
+    }
+
+    private static async Task<int> MirrorCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--hierarchy", "--depth", "-o" }, flags: new[] { "--secure", "--accept" });
+        if (o.Positional.Count != 3) throw new ArgumentException("mirror needs an endpoint, a node and a document.");
+        var doc = Documents.Load(o.Positional[2]);
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var address = OpcUaAml.Addressing.UaNodeAddress.Parse(o.Positional[1], client.NamespaceTable);
+        var start = new OpcUaAml.Server.UaBrowseItem(address, address.Identifier, address.Identifier, "Object", null, "Organizes");
+        var ihName = o.One("--hierarchy") ?? "OpcUaServer";
+        var ih = doc.CAEXFile.InstanceHierarchy[ihName] ?? doc.CAEXFile.InstanceHierarchy.Append(ihName);
+        var depth = int.TryParse(o.One("--depth"), out var d) ? d : 3;
+        var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorAsync(client, start, ih, new OpcUaAml.Server.MirrorOptions { Depth = depth });
+        Documents.Save(doc, o.One("-o") ?? o.Positional[2]);
+        Console.WriteLine($"{result.Nodes} node(s), {result.Typed} typed{(result.Truncated ? ", truncated" : "")}.");
+        return 0;
+    }
+
+    private static async Task<int> SnapshotCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--secure", "--accept" });
+        if (o.Positional.Count != 2) throw new ArgumentException("snapshot needs an endpoint and a document.");
+        var doc = Documents.Load(o.Positional[1]);
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var result = await OpcUaAml.Server.ValueSnapshot.ApplyAsync(doc, client);
+        foreach (var p in result.Problems) Console.Error.WriteLine("warning: " + p);
+        Documents.Save(doc, o.One("-o") ?? o.Positional[1]);
+        Console.WriteLine(result + ".");
+        return result.Failed == 0 ? 0 : 1;
+    }
+
+    private static async Task<int> ServeCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--port" }, flags: Array.Empty<string>());
+        var doc = Documents.Load(o.SinglePositional("document"));
+        var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port });
+        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}. Press Enter to stop.");
+        Console.ReadLine();
+        return 0;
+    }
+
+    private static int DiagramCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--type", "--instance", "--depth", "-o" }, flags: Array.Empty<string>());
+        var doc = Documents.Load(o.SinglePositional("document"));
+        SystemUnitClassType root = o.One("--instance") is { } inst
+            ? FindElement(doc, inst)
+            : ResolveType(doc, o.One("--type") ?? throw new ArgumentException("--type or --instance is required."));
+        var depth = int.TryParse(o.One("--depth"), out var d) ? d : 3;
+        var output = o.One("-o") ?? throw new ArgumentException("-o <out.svg> is required.");
+        var diagram = OpcUaAml.Diagram.DiagramLayout.Apply(OpcUaAml.Diagram.DiagramBuilder.Build(root, depth));
+        File.WriteAllText(output, OpcUaAml.Diagram.SvgWriter.Write(diagram));
+        Console.WriteLine($"{diagram.Nodes.Count} node(s) written to {Path.GetFullPath(output)}");
+        return 0;
+    }
+
+    private static int UpgradeCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o" }, flags: Array.Empty<string>());
+        var file = o.SinglePositional("document");
+        var doc = Documents.Load(file);
+        var changes = InstanceUpgrader.UpgradeDocument(doc);
+        foreach (var c in changes) Console.WriteLine($"Added {c.Added} to {c.ElementPath}");
+        Documents.Save(doc, o.One("-o") ?? file);
+        Console.WriteLine($"{changes.Count} child(ren) added.");
+        return 0;
+    }
+
+    private static int LinkCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--from", "--to", "-o" }, flags: Array.Empty<string>());
+        var file = o.SinglePositional("document");
+        var doc = Documents.Load(file);
+        var from = FindElement(doc, o.One("--from") ?? throw new ArgumentException("--from is required."));
+        var to = FindElement(doc, o.One("--to") ?? throw new ArgumentException("--to is required."));
+        var kind = OpcUaAml.Links.Vdi3682Links.FpdElements(doc, OpcUaAml.Links.FpdKind.ProcessOperator).Any(e => e.ID == from.ID)
+            ? OpcUaAml.Links.FpdKind.ProcessOperator : OpcUaAml.Links.FpdKind.TechnicalResource;
+        var attr = OpcUaAml.Links.Vdi3682Links.Link(from, to, kind);
+        Documents.Save(doc, o.One("-o") ?? file);
+        Console.WriteLine($"{from.Name}.{attr.Name} = {to.Name}");
+        return 0;
+    }
+
+    private static async Task<int> CloudCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--user", "--password", "--api-key" }, flags: Array.Empty<string>());
+        if (o.Positional.Count < 2) throw new ArgumentException("cloud needs 'search <keywords>' or 'download <id> <folder>'.");
+        var client = new CloudLibraryClient(new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+            o.One("--user"), o.One("--password"), o.One("--api-key"));
+        switch (o.Positional[0])
+        {
+            case "search":
+                foreach (var m in await client.SearchAsync(o.Positional.Skip(1)))
+                    Console.WriteLine($"{m.Identifier,8}  {m.NamespaceUri,-60} {m.Version} {m.PublicationDate:yyyy-MM-dd}  {m.Title}");
+                return 0;
+            case "download" when o.Positional.Count == 3 && int.TryParse(o.Positional[1], out var id):
+                var folder = o.Positional[2];
+                var catalog = NodeSetCatalog.Create(new[] { folder });
+                foreach (var f in await client.DownloadWithDependenciesAsync(id, folder, catalog)) Console.WriteLine(f);
+                return 0;
+            default:
+                throw new ArgumentException("cloud needs 'search <keywords>' or 'download <id> <folder>'.");
+        }
+    }
+
+    private static InternalElementType FindElement(CAEXDocument doc, string nameOrId)
+    {
+        var all = doc.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()).ToList();
+        var matches = all.Where(e => e.ID == nameOrId).ToList();
+        if (matches.Count == 0) matches = all.Where(e => e.Name == nameOrId).ToList();
+        return matches.Count switch
+        {
+            1 => matches[0],
+            0 => throw new ArgumentException($"No element '{nameOrId}' in the instance hierarchies."),
+            _ => throw new ArgumentException($"'{nameOrId}' is ambiguous; give the element's ID."),
+        };
     }
 
     private static int Fail(string message)
