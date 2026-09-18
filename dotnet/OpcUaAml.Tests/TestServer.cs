@@ -1,0 +1,134 @@
+using Opc.Ua;
+using Opc.Ua.Configuration;
+using Opc.Ua.Server;
+
+namespace OpcUaAml.Tests;
+
+/// <summary>
+/// An OPC UA server in the test process, on a free port, with a small address
+/// space in <see cref="Namespace"/>:
+/// <code>
+/// Objects/Plant (folder)
+///   Pump1 (object)   Speed: Double 12.5, Running: Boolean true, Label: String "Pump 1"
+///     Motor (object) Temperature: Int32 42, Samples: Int32[] {1, 2, 3}
+/// </code>
+/// </summary>
+public sealed class TestServer : IAsyncLifetime
+{
+    public const string Namespace = "http://example.org/Plant/";
+
+    private ApplicationInstance? _app;
+    private PlantServer? _server;
+
+    public string EndpointUrl { get; private set; } = "";
+    public string PkiRoot { get; } = Path.Combine(Path.GetTempPath(), "amlopcua-test-pki-" + Guid.NewGuid().ToString("N")[..8]);
+
+    public async Task InitializeAsync()
+    {
+        var port = FreePort();
+        EndpointUrl = $"opc.tcp://localhost:{port}/AMLOpcUaTest";
+        _app = new ApplicationInstance { ApplicationName = "AMLOpcUaTestServer", ApplicationType = ApplicationType.Server };
+        var config = await _app.Build("urn:localhost:AMLOpcUaTestServer", "uri:test:AMLOpcUaTestServer")
+            .AsServer(new[] { EndpointUrl })
+            .AddUnsecurePolicyNone()
+            .AddSignAndEncryptPolicies()
+            .AddSecurityConfiguration("CN=AMLOpcUaTestServer", Path.Combine(PkiRoot, "server"))
+            .SetAutoAcceptUntrustedCertificates(true)
+            .CreateAsync();
+        await _app.CheckApplicationInstanceCertificatesAsync(false, null);
+        _server = new PlantServer();
+        await _app.StartAsync(_server);
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (_server != null) await _server.StopAsync();
+        try { Directory.Delete(PkiRoot, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+
+    private static int FreePort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private sealed class PlantServer : StandardServer
+    {
+        protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration) =>
+            new(server, configuration, null, new PlantNodeManager(server, configuration));
+    }
+
+    private sealed class PlantNodeManager : CustomNodeManager2
+    {
+        public PlantNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+            : base(server, configuration, Namespace) { }
+
+        public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
+        {
+            lock (Lock)
+            {
+                var ns = NamespaceIndexes[0];
+                var plant = new FolderState(null)
+                {
+                    NodeId = new NodeId("Plant", ns),
+                    BrowseName = new QualifiedName("Plant", ns),
+                    DisplayName = "Plant",
+                    TypeDefinitionId = ObjectTypeIds.FolderType,
+                };
+                plant.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
+                if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out var refs))
+                    externalReferences[ObjectIds.ObjectsFolder] = refs = new List<IReference>();
+                refs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, plant.NodeId));
+
+                var pump = Object(plant, "Pump1", ns);
+                Variable(pump, "Speed", ns, DataTypeIds.Double, 12.5);
+                Variable(pump, "Running", ns, DataTypeIds.Boolean, true);
+                Variable(pump, "Label", ns, DataTypeIds.String, "Pump 1");
+                var motor = Object(pump, "Motor", ns);
+                Variable(motor, "Temperature", ns, DataTypeIds.Int32, 42);
+                var samples = Variable(motor, "Samples", ns, DataTypeIds.Int32, new[] { 1, 2, 3 });
+                samples.ValueRank = ValueRanks.OneDimension;
+
+                AddPredefinedNode(SystemContext, plant);
+            }
+        }
+
+        private static BaseObjectState Object(NodeState parent, string name, ushort ns)
+        {
+            var o = new BaseObjectState(parent)
+            {
+                NodeId = new NodeId($"{parent.NodeId.Identifier}.{name}", ns),
+                BrowseName = new QualifiedName(name, ns),
+                DisplayName = name,
+                TypeDefinitionId = ObjectTypeIds.BaseObjectType,
+                ReferenceTypeId = ReferenceTypeIds.Organizes,
+            };
+            parent.AddChild(o);
+            return o;
+        }
+
+        private static BaseDataVariableState Variable(NodeState parent, string name, ushort ns, NodeId dataType, object value)
+        {
+            var v = new BaseDataVariableState(parent)
+            {
+                NodeId = new NodeId($"{parent.NodeId.Identifier}.{name}", ns),
+                BrowseName = new QualifiedName(name, ns),
+                DisplayName = name,
+                TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+                ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                DataType = dataType,
+                ValueRank = ValueRanks.Scalar,
+                AccessLevel = AccessLevels.CurrentRead,
+                UserAccessLevel = AccessLevels.CurrentRead,
+                Value = value,
+                StatusCode = StatusCodes.Good,
+                Timestamp = DateTime.UtcNow,
+            };
+            parent.AddChild(v);
+            return v;
+        }
+    }
+}
