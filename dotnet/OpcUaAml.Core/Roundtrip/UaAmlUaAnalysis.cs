@@ -11,16 +11,15 @@ public static class UaAmlUaAnalysis
 {
     public const string AmlNamespace = "http://opcfoundation.org/UA/AML/";
 
-    /// <summary>Children the export adds to describe the AML side, not part of the UA model.</summary>
-    private static readonly HashSet<string> Bookkeeping = new(StringComparer.Ordinal)
+    public static IReadOnlyList<Criterion> Analyze(UaGraph original, UaGraph roundtrip, string modelUri,
+        IEnumerable<UaGraph>? requiredModels = null)
     {
-        "AML_ID", "Version", "NodeId", "BrowseName", "DisplayName", "Description", "ValueRank", "Value", "IsAbstract",
-        "ArrayDimensions", "AccessLevel", "MinimumSamplingInterval", "EventNotifier", "WriteMask", "Symmetric", "InverseName",
-        "Copyright", "AdditionalInformation", "RefSemantic",
-    };
+        // Names of nodes that neither document contains: the UA base model and
+        // the models the original requires, such as DI.
+        var names = new Dictionary<string, string>(BaseNames.Value, StringComparer.Ordinal);
+        foreach (var model in requiredModels ?? Enumerable.Empty<UaGraph>())
+            foreach (var n in model.Nodes.Values) names.TryAdd(n.Id, n.BrowseName);
 
-    public static IReadOnlyList<Criterion> Analyze(UaGraph original, UaGraph roundtrip, string modelUri)
-    {
         var sucNs = AmlNamespace + "SUC_" + modelUri;
         var atlNs = AmlNamespace + "ATL_" + modelUri;
         var iclNs = AmlNamespace + "ICL_" + modelUri;
@@ -53,13 +52,17 @@ public static class UaAmlUaAnalysis
             nodeClass.Add(rt.NodeClass == t.NodeClass, $"{t.BrowseName} ({t.NodeClass[2..]} -> {rt.NodeClass[2..]})");
             var oSuper = original.Supertype(t);
             var rSuper = roundtrip.Supertype(rt);
-            supertype.Add(oSuper != null && rSuper != null && NameOf(original, oSuper) == NameOf(roundtrip, rSuper),
-                $"{t.BrowseName} ({(oSuper == null ? "-" : NameOf(original, oSuper))} -> {(rSuper == null ? "-" : NameOf(roundtrip, rSuper))})");
+            supertype.Add(oSuper != null && rSuper != null && NameOf(names, original, oSuper) == NameOf(names, roundtrip, rSuper),
+                $"{t.BrowseName} ({(oSuper == null ? "-" : NameOf(names, original, oSuper))} -> {(rSuper == null ? "-" : NameOf(names, roundtrip, rSuper))})");
             nodeId.Add(RecoveredNodeId(roundtrip, rt) == Identifier(t.Id), t.BrowseName);
 
             var rtChildren = roundtrip.Children(rt, "HasComponent", "HasProperty", "HasOrderedComponent")
-                .Where(c => !Bookkeeping.Contains(c.BrowseName) && !c.BrowseName.Contains(';'))
-                .GroupBy(c => c.BrowseName).ToDictionary(g => g.Key, g => g.First());
+                .Where(c => !c.BrowseName.Contains(';'))
+                // The export names the properties it adds for the AML side
+                // "<owner>_<name>" (AML_ID, Version, ...); a declaration of the
+                // same name, such as FX CM's Version, is the other node.
+                .GroupBy(c => c.BrowseName)
+                .ToDictionary(g => g.Key, g => g.OrderBy(c => c.Id.EndsWith("_" + c.BrowseName, StringComparison.Ordinal)).First());
             foreach (var d in original.Children(t, "HasComponent", "HasProperty", "HasOrderedComponent")
                          .Where(d => d.NamespaceUri == modelUri))
             {
@@ -70,8 +73,8 @@ public static class UaAmlUaAnalysis
                 if (rd == null) continue;
 
                 declClass.Add(rd.NodeClass == d.NodeClass, $"{path} ({d.NodeClass[2..]} -> {rd.NodeClass[2..]})");
-                var oType = TypeDefinitionName(original, d);
-                var rType = TypeDefinitionName(roundtrip, rd);
+                var oType = TypeDefinitionName(names, original, d);
+                var rType = TypeDefinitionName(names, roundtrip, rd);
                 if (oType != null) declType.Add(oType == rType, $"{path} ({oType} -> {rType ?? "-"})");
 
                 var rule = original.ModellingRuleOf(d);
@@ -107,22 +110,19 @@ public static class UaAmlUaAnalysis
                        dataTypes, dataTypesNative, refTypes, refTypesNative }.Select(t => t.ToCriterion()).ToList();
     }
 
-    /// <summary>A node's name; for nodes the document does not contain, the standard name of a base model id.</summary>
-    private static string NameOf(UaGraph g, UaGraphNode n) =>
-        n.NodeClass != "?" ? n.BrowseName : StandardName(n.Id) ?? n.Id;
+    /// <summary>A node's name; for nodes the document does not contain, its name in the base or a required model.</summary>
+    private static string NameOf(IReadOnlyDictionary<string, string> names, UaGraph g, UaGraphNode n) =>
+        n.NodeClass != "?" ? n.BrowseName : names.GetValueOrDefault(n.Id) ?? n.Id;
 
-    private static string? TypeDefinitionName(UaGraph g, UaGraphNode n)
+    private static string? TypeDefinitionName(IReadOnlyDictionary<string, string> names, UaGraph g, UaGraphNode n)
     {
         var target = n.References.FirstOrDefault(r => r.Type == "HasTypeDefinition" && r.IsForward)?.Target;
         if (target == null) return null;
         if (g.Get(target) is { } t) return t.BrowseName;
-        return StandardName(target) ?? target[(target.IndexOf('|') + 1)..].Replace("s=", "");
+        return names.GetValueOrDefault(target) ?? target[(target.IndexOf('|') + 1)..].Replace("s=", "");
     }
 
-    private static string? StandardName(string id) =>
-        id.StartsWith(UaGraph.Ua + "|", StringComparison.Ordinal) && BaseNames.Value.TryGetValue(id[(UaGraph.Ua.Length + 1)..], out var n) ? n : null;
-
-    /// <summary>BrowseNames of the UA base model, from the bundled NodeSet.</summary>
+    /// <summary>BrowseNames of the UA base model, from the bundled NodeSet, by graph id.</summary>
     private static readonly Lazy<Dictionary<string, string>> BaseNames = new(() =>
     {
         var names = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -134,7 +134,7 @@ public static class UaAmlUaAnalysis
             if (reader.NodeType != System.Xml.XmlNodeType.Element || !reader.LocalName.StartsWith("UA", StringComparison.Ordinal)) continue;
             var nodeId = reader.GetAttribute("NodeId");
             var browse = reader.GetAttribute("BrowseName");
-            if (nodeId != null && browse != null) names[nodeId] = browse;
+            if (nodeId != null && browse != null) names[UaGraph.Ua + "|" + nodeId] = browse;
         }
         return names;
     });

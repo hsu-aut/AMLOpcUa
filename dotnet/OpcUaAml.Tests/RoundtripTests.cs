@@ -64,6 +64,19 @@ public class RoundtripTests
     }
 
     [Fact]
+    public void Names_from_required_models_and_declarations_named_like_AML_properties_are_matched()
+    {
+        // FX CM types reference DI types (FunctionalGroupType, LockingServicesType)
+        // and declare a Property "Version", a name the export also uses for AML.
+        var report = RoundtripRunner.UaAmlUa(Fixtures.Path("uafx", "opc.ua.fx.cm.nodeset2.xml"),
+            NodeSetCatalog.Create(new[] { Fixtures.Path("uafx") }));
+
+        Assert.True(report.Completed, report.Error);
+        foreach (var name in new[] { "Supertype kept", "Instance declarations present, by name", "Declaration keeps its type definition" })
+            Assert.Equal(C(report, name).Total, C(report, name).Kept);
+    }
+
+    [Fact]
     public void A_report_renders_as_a_markdown_table()
     {
         var report = new RoundtripReport("x.aml", RoundtripRunner.ChainB,

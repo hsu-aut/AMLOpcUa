@@ -35,7 +35,7 @@ public static class RoundtripRunner
             var exported = NodeSetExporter.Export(conversion.Document, new NodeSetExportOptions { PublicationDate = new DateTime(2026, 1, 1) });
 
             step = "analysis";
-            var criteria = UaAmlUaAnalysis.Analyze(UaGraph.Load(nodeSetPath), UaGraph.Load(exported), modelUri);
+            var criteria = UaAmlUaAnalysis.Analyze(UaGraph.Load(nodeSetPath), UaGraph.Load(exported), modelUri, RequiredGraphs(info, catalog));
             return new RoundtripReport(subject, ChainA, criteria, null, null, watch.Elapsed, notes);
         }
         catch (Exception ex)
@@ -83,6 +83,20 @@ public static class RoundtripRunner
         {
             try { work.Delete(true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>The models a NodeSet requires, transitively, without the UA base model.</summary>
+    private static IEnumerable<UaGraph> RequiredGraphs(NodeSetInfo root, NodeSetCatalog catalog)
+    {
+        var seen = new HashSet<string>(root.Models.Select(m => m.Model.ModelUri), StringComparer.Ordinal) { UaGraph.Ua };
+        var queue = new Queue<NodeSetInfo>(new[] { root });
+        while (queue.Count > 0)
+            foreach (var req in queue.Dequeue().Models.SelectMany(m => m.RequiredModels))
+                if (seen.Add(req.ModelUri) && catalog.Find(req.ModelUri) is { } provider)
+                {
+                    queue.Enqueue(provider);
+                    yield return UaGraph.Load(provider.FilePath);
+                }
     }
 
     private static string Describe(Exception ex)
