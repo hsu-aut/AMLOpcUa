@@ -74,6 +74,11 @@ public static class Program
         uaaml cloud download <id> <folder> (--user <u> --password <p> | --api-key <k>)
             Search the UA Cloud Library, or download a model with the models it requires.
 
+        uaaml roundtrip <file>... [--search <dir>]... [-o <report.md>]
+            Run each file through both mappings and back and report what survives:
+            a NodeSet (.xml) UA -> AML (Annex A) -> UA (AML-UA-XSLT rules),
+            an AML document (.aml) AML -> UA (AML-UA-XSLT rules) -> AML (Annex A).
+
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
             --skeleton   libraries, classes, derivation and child elements only
@@ -104,6 +109,7 @@ public static class Program
                 "types" => TypesCommand(rest),
                 "instantiate" => InstantiateCommand(rest),
                 "check" => CheckCommand(rest),
+                "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
@@ -448,6 +454,33 @@ public static class Program
             0 => throw new ArgumentException($"No element '{nameOrId}' in the instance hierarchies."),
             _ => throw new ArgumentException($"'{nameOrId}' is ambiguous; give the element's ID."),
         };
+    }
+
+    private static int RoundtripCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--search", "-o" }, flags: Array.Empty<string>());
+        if (o.Positional.Count == 0) throw new ArgumentException("roundtrip needs at least one file.");
+        var report = new System.Text.StringBuilder();
+        report.AppendLine("# Round trip report").AppendLine();
+        var failed = 0;
+        foreach (var file in o.Positional)
+        {
+            var catalog = NodeSetCatalog.Create(o.All("--search"));
+            var result = Path.GetExtension(file).Equals(".xml", StringComparison.OrdinalIgnoreCase)
+                ? OpcUaAml.Roundtrip.RoundtripRunner.UaAmlUa(file, catalog)
+                : OpcUaAml.Roundtrip.RoundtripRunner.AmlUaAml(file, catalog);
+            if (!result.Completed) failed++;
+            Console.WriteLine($"{result.Subject}: " + (result.Completed
+                ? string.Join(", ", result.Criteria.Where(c => c.Total > 0).Select(c => $"{c.Name} {c.Kept}/{c.Total}"))
+                : $"stopped at {result.FailedStep}: {result.Error}"));
+            report.AppendLine(result.ToMarkdown());
+        }
+        if (o.One("-o") is { } output)
+        {
+            File.WriteAllText(output, report.ToString());
+            Console.WriteLine($"Report written to {Path.GetFullPath(output)}");
+        }
+        return failed == 0 ? 0 : 1;
     }
 
     private static int Fail(string message)
