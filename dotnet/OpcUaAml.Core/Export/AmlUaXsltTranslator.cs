@@ -481,6 +481,29 @@ internal sealed partial class AmlUaXsltTranslator
         return i < 0 ? "" : s[(i + sep.Length)..];
     }
 
+    /// <summary>
+    /// The library of a class path. D13: CAEX 3.0 writes a path whose parts
+    /// contain '/' with brackets, "[SUC_http://x/]/[Type]"; the XSLT splits at
+    /// the first '/' and gets "[SUC_http:". Every library OPC 10000-83 Annex A
+    /// generates is named after a namespace URI, so without this no class of
+    /// such a library resolves.
+    /// </summary>
+    private string PathLib(string path)
+    {
+        if (_compat || !path.StartsWith('[')) return Before(path, "/");
+        var end = path.IndexOf("]/", StringComparison.Ordinal);
+        return end > 0 ? path[1..end] : path.Trim('[', ']');
+    }
+
+    /// <summary>The class part of a path, "A/B" for "[Lib]/[A]/[B]" (D13).</summary>
+    private string PathRest(string path)
+    {
+        if (_compat || !path.StartsWith('[')) return After(path, "/");
+        var end = path.IndexOf("]/", StringComparison.Ordinal);
+        if (end < 0) return "";
+        return string.Join("/", path[(end + 2)..].Split("]/[").Select(s => s.Trim('[', ']')));
+    }
+
     /// <summary>replace($s, '.*/(.*)', '$1'): the part after the last slash.</summary>
     private static string LastSegment(string s)
     {

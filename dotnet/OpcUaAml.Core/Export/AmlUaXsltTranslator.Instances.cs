@@ -296,7 +296,7 @@ internal sealed partial class AmlUaXsltTranslator
         var dataType = DataTypeOf(attribute);
         var refAttributeType = Attr(attribute, "RefAttributeType");
         var attrAliasName = After(refAttributeType, "@");
-        var attrLibName = Before(refAttributeType, "/");
+        var attrLibName = PathLib(refAttributeType);
         var amlAttributeType = attrLibName != "" ? GetClass(refAttributeType) : ClassLookup.None;
         var attrLibId = NamespaceIdByName(attrLibName);
 
@@ -390,7 +390,7 @@ internal sealed partial class AmlUaXsltTranslator
         var interfaceNodeId = FormatRef(ObjectName(ei, ei), nsId);
         var refBaseClassPath = Attr(ei, "RefBaseClassPath");
         var icAliasName = After(refBaseClassPath, "@");
-        var icLibName = Before(refBaseClassPath, "/");
+        var icLibName = PathLib(refBaseClassPath);
         var icContent = icLibName != "" && refBaseClassPath != "AutomationMLInterfaceClassLib/AutomationMLBaseInterface"
             ? GetClass(refBaseClassPath) : ClassLookup.None;
         var libNsId = NamespaceIdByName(icLibName);
@@ -490,7 +490,7 @@ internal sealed partial class AmlUaXsltTranslator
         if (e.Attribute("RefBaseSystemUnitPath") is { } refBaseSystemUnitPath)
         {
             var path = refBaseSystemUnitPath.Value;
-            var sucLibName = Before(path, "/");
+            var sucLibName = PathLib(path);
             var sucAliasName = After(path, "@");
             var sucContent = sucLibName != "" ? GetClass(path) : ClassLookup.None;
             var mirror = IsMirrorPath(path) ? path : "";
@@ -510,7 +510,7 @@ internal sealed partial class AmlUaXsltTranslator
         {
             var refBase = role.Attribute("RefBaseRoleClassPath")?.Value;
             var refRole = role.Attribute("RefRoleClassPath")?.Value;
-            var rcLibName = Before(refBase ?? "", "/") + Before(refRole ?? "", "/");
+            var rcLibName = PathLib(refBase ?? "") + PathLib(refRole ?? "");
             var rcAliasName = After(refBase ?? "", "@") + After(refRole ?? "", "@");
             const string baseRole = "AutomationMLBaseRoleClassLib/AutomationMLBaseRole";
             var rcContent = new List<ClassLookup>();

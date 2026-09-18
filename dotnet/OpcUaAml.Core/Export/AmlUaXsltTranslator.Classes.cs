@@ -48,8 +48,8 @@ internal sealed partial class AmlUaXsltTranslator
     private ClassLookup FindClass(string path)
     {
         _librariesByName ??= _root.DescendantsAndSelf().Where(e => LibraryKinds.Contains(L(e))).ToLookup(e => (L(e), Attr(e, "Name")));
-        var libName = Before(path, "/");
-        var subPath = After(path, "/");
+        var libName = PathLib(path);
+        var subPath = PathRest(path);
         XElement? current = null;
         if (libName != "")
         {
@@ -166,7 +166,7 @@ internal sealed partial class AmlUaXsltTranslator
         string superType;
         if (basePath != "" && !basePath.Contains('/')) superType = $"ns={nsId};s={NoSpaceUnlessCompat(basePath)}";
         else if (basePath.Contains('@')) superType = After(basePath, "@");
-        else if (basePath != "") superType = $"ns={NamespaceIdByName(Before(basePath, "/"))};s={RemoveSpace(baseClass.Name)}";
+        else if (basePath != "") superType = $"ns={NamespaceIdByName(PathLib(basePath))};s={RemoveSpace(baseClass.Name)}";
         else if (L(cls) == "SystemUnitClass" && name != "AutomationMLBaseSystemUnit") superType = "CAEXObjectType";
         else if (L(cls) == "RoleClass" && name != "AutomationMLBaseRole") superType = "AutomationMLBaseRoleClassLib/AutomationMLBaseRole";
         else if (L(cls) == "InterfaceClass" && name != "AutomationMLBaseInterface") superType = "AutomationMLInterfaceClassLib/AutomationMLBaseInterface";
