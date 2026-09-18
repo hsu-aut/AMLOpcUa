@@ -310,6 +310,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
             : $"This document uses CAEX {doc.CAEXFile.SchemaVersion}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).";
 
+        RefreshDiagramSources();
         NamespaceList.ItemsSource = usable
             ? NamespaceOverview.Of(doc!).Select(n => new NamespaceRow(
                 n.NamespaceUri, n.ModelVersion ?? "", n.PublicationDate?.ToString("yyyy-MM-dd") ?? "", n.Libraries.Count)).ToList()

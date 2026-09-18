@@ -172,5 +172,24 @@
                 <TextBlock x:Name="ServerStateText" Grid.Row="3" Foreground="Gray" Margin="0,4,0,0"/>
             </Grid>
         </TabItem>
+        <TabItem Header="Diagram" x:Name="DiagramTab">
+            <DockPanel Margin="4">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button x:Name="DiagramExportButton" DockPanel.Dock="Right" Content="Export SVG…" Width="90" Margin="4,0,0,0" Click="DiagramExportButton_Click"/>
+                    <Slider x:Name="DiagramZoom" DockPanel.Dock="Right" Width="110" Minimum="0.3" Maximum="2" Value="1" ValueChanged="DiagramZoom_Changed"
+                            ToolTip="Zoom" VerticalAlignment="Center" Margin="8,0"/>
+                    <Button x:Name="DiagramShowButton" DockPanel.Dock="Right" Content="Show" Width="70" Click="DiagramShowButton_Click"/>
+                    <TextBox x:Name="DiagramDepthBox" DockPanel.Dock="Right" Text="3" Width="30" Margin="4,0" ToolTip="Depth"/>
+                    <TextBlock DockPanel.Dock="Right" Text="depth" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    <ComboBox x:Name="DiagramSourceBox" DockPanel.Dock="Right" Width="320" Margin="4,0" ToolTip="Type or instance to draw"/>
+                    <TextBox x:Name="DiagramSearchBox" TextChanged="DiagramSearchBox_TextChanged" ToolTip="Filter types and instances by name"/>
+                </DockPanel>
+                <TextBlock x:Name="DiagramInfo" DockPanel.Dock="Bottom" Foreground="Gray" Margin="0,4,0,0"
+                           Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types)."/>
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White">
+                    <Canvas x:Name="DiagramCanvas"/>
+                </ScrollViewer>
+            </DockPanel>
+        </TabItem>
     </TabControl>
 </aml:PluginViewBase>
