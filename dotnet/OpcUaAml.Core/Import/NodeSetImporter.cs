@@ -1,0 +1,115 @@
+// UA to AML according to OPC 10000-83 Annex A, by way of Opc2Aml.
+//
+// Opc2Aml writes an .amlx container next to a path it is given. This class
+// runs it against a private temporary folder, reads the container back and
+// hands out the CAEX document, so callers never see the file round trip.
+
+using Aml.Engine.AmlObjects;
+using Aml.Engine.CAEX;
+using MarkdownProcessor;
+using OpcUaAml.NodeSets;
+
+namespace OpcUaAml.Import;
+
+public sealed class ImportException : Exception
+{
+    public ImportException(string message, Exception? inner = null) : base(message, inner) { }
+}
+
+/// <summary>The libraries generated for one NodeSet.</summary>
+public sealed record ConversionResult(
+    CAEXDocument Document,
+    NodeSetInfo NodeSet,
+    IReadOnlyList<string> LoadedModels,
+    IReadOnlyList<string> Warnings,
+    TimeSpan Duration);
+
+public static class NodeSetImporter
+{
+    /// <summary>
+    /// Converts one NodeSet into a CAEX 3.0 document holding the AML libraries
+    /// of Annex A: the metamodel libraries and one ATL/ICL/RCL/SUC library per
+    /// model, the model itself and everything it requires.
+    /// </summary>
+    /// <exception cref="ImportException">
+    /// The file is not a NodeSet, a required model is missing from the catalog,
+    /// or Opc2Aml failed.
+    /// </exception>
+    public static ConversionResult Convert(string nodeSetPath, NodeSetCatalog catalog)
+    {
+        var fullPath = Path.GetFullPath(nodeSetPath);
+        var info = NodeSetInfo.TryRead(fullPath)
+            ?? throw new ImportException($"'{nodeSetPath}' is not an OPC UA NodeSet (no UANodeSet root element).");
+        if (info.Models.Count == 0)
+            throw new ImportException($"'{nodeSetPath}' declares no model, so its namespace cannot be identified.");
+
+        var missing = catalog.MissingDependencies(info);
+        if (missing.Count > 0)
+        {
+            var list = string.Join(", ", missing.Select(m => m.ModelUri));
+            throw new ImportException(
+                $"'{Path.GetFileName(nodeSetPath)}' requires models that are not available: {list}. " +
+                "Add a folder that contains their NodeSet files.");
+        }
+
+        var loaded = new List<string>();
+        var manager = new ModelManager();
+        manager.ModelRequired += (_, e) =>
+        {
+            var provider = catalog.Find(e.ModelUri);
+            if (provider == null)
+                throw new ImportException($"Opc2Aml asked for model '{e.ModelUri}', which the catalog does not know.");
+            e.ModelFilePath = provider.FilePath;
+            loaded.Add(e.ModelUri);
+        };
+
+        var workDir = Directory.CreateTempSubdirectory("opcuaaml-");
+        var started = DateTime.UtcNow;
+        try
+        {
+            // Opc2Aml names the container after the path it is given and stores
+            // the root document inside under that file name.
+            var baseName = Path.Combine(workDir.FullName, SafeFileName(Path.GetFileNameWithoutExtension(fullPath)));
+            var converter = new NodeSetToAML(manager);
+            try
+            {
+                converter.CreateAML(fullPath, baseName);
+            }
+            catch (ImportException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new ImportException($"Opc2Aml failed on '{Path.GetFileName(nodeSetPath)}': {ex.Message}", ex);
+            }
+
+            var document = ReadContainer(baseName + ".amlx");
+            return new ConversionResult(document, info, loaded, converter.Warnings.ToList(), DateTime.UtcNow - started);
+        }
+        finally
+        {
+            try { workDir.Delete(recursive: true); }
+            catch (IOException) { /* a scanner holding the file; the OS cleans temp */ }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    /// <summary>Reads the root CAEX document of an .amlx container.</summary>
+    public static CAEXDocument ReadContainer(string amlxPath)
+    {
+        using var container = new AutomationMLContainer(amlxPath, FileMode.Open, FileAccess.Read);
+        var root = container.RootDocumentStream()
+            ?? throw new ImportException($"'{amlxPath}' has no root AML document.");
+        using var copy = new MemoryStream();
+        root.CopyTo(copy);
+        copy.Position = 0;
+        return CAEXDocument.LoadFromStream(copy);
+    }
+
+    private static string SafeFileName(string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+        return name;
+    }
+}

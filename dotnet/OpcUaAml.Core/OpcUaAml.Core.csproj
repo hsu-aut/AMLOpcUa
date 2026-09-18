@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>OpcUaAml</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aml.Engine" Version="[4.*, 5.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\third_party\Opc2Aml\Opc2Aml.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The UA base NodeSet and DI ship with every build: an import always
+         needs the base model, and DI is required by most companion specs. -->
+    <None Include="..\..\nodesets\*.xml" Link="nodesets\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
