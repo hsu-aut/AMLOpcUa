@@ -162,6 +162,10 @@
                     <Separator/>
                     <Button x:Name="SnapshotButton" Content="Read current values" Click="SnapshotButton_Click"
                             ToolTip="Read the value of every bound element and DataVariable of this server into the document."/>
+                    <Separator/>
+                    <Button x:Name="WatchButton" Content="Watch" Click="WatchButton_Click"
+                            ToolTip="Add the selected variable to the live list below (subscription, not written into the document)."/>
+                    <Button x:Name="UnwatchButton" Content="Clear watch list" Click="UnwatchButton_Click"/>
                 </ToolBar>
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
@@ -173,7 +177,19 @@
                     <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
                     <TextBox x:Name="NodeDetails" Grid.Column="2" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
                 </Grid>
-                <TextBlock x:Name="ServerStateText" Grid.Row="3" Foreground="Gray" Margin="0,4,0,0"/>
+                <StackPanel Grid.Row="3">
+                    <ListView x:Name="WatchList" MaxHeight="160" Margin="0,4,0,0" Visibility="Collapsed">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Node" Width="320" DisplayMemberBinding="{Binding Node}"/>
+                                <GridViewColumn Header="Value" Width="200" DisplayMemberBinding="{Binding Value}"/>
+                                <GridViewColumn Header="Status" Width="120" DisplayMemberBinding="{Binding Status}"/>
+                                <GridViewColumn Header="Received" Width="90" DisplayMemberBinding="{Binding Received}"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <TextBlock x:Name="ServerStateText" Foreground="Gray" Margin="0,4,0,0"/>
+                </StackPanel>
             </Grid>
         </TabItem>
         <TabItem Header="Diagram" x:Name="DiagramTab">

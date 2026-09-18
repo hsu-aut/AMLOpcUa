@@ -16,6 +16,28 @@ namespace Aml.Editor.Plugin.OpcUa;
 public partial class OpcUaPlugin : ISupportsSelection
 {
     private UaClient? _client;
+    private IAsyncDisposable? _watch;
+    private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
+
+    /// <summary>A row of the live list; updated from the subscription thread through the dispatcher.</summary>
+    public sealed class WatchRow : System.ComponentModel.INotifyPropertyChanged
+    {
+        public required UaNodeAddress Address { get; init; }
+        public required string Node { get; init; }
+        public string Value { get; private set; } = "";
+        public string Status { get; private set; } = "";
+        public string Received { get; private set; } = "";
+
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+        public void Update(UaReadResult r)
+        {
+            Value = r.ValueText ?? "";
+            Status = r.Status;
+            Received = DateTime.Now.ToString("HH:mm:ss");
+            PropertyChanged?.Invoke(this, new(null));
+        }
+    }
 
     /// <summary>Asks the editor to select an element in its tree (after mirroring or binding).</summary>
     public event EventHandler<SelectionEventArgs>? Selected;
@@ -95,8 +117,46 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    private async void WatchButton_Click(object sender, RoutedEventArgs e)
+    {
+        var node = SelectedNode;
+        if (node == null || _client == null || node.NodeClass != "Variable") return;
+        if (_watchRows.Any(r => r.Address == node.Address)) return;
+        _watchRows.Add(new WatchRow { Address = node.Address, Node = node.DisplayName + "   " + node.Address.Identifier });
+        await RestartWatchAsync();
+    }
+
+    private async void UnwatchButton_Click(object sender, RoutedEventArgs e)
+    {
+        _watchRows.Clear();
+        await RestartWatchAsync();
+    }
+
+    /// <summary>One subscription for the whole list, recreated when the list changes.</summary>
+    private async Task RestartWatchAsync()
+    {
+        if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
+        WatchList.ItemsSource = _watchRows;
+        WatchList.Visibility = _watchRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (_client == null || _watchRows.Count == 0) return;
+        var rows = _watchRows.ToDictionary(r => r.Address);
+        try
+        {
+            _watch = await _client.WatchAsync(rows.Keys.ToList(), r =>
+                Dispatcher.BeginInvoke(() => { if (rows.TryGetValue(r.Address, out var row)) row.Update(r); }));
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Watching failed", ex);
+            SetStatus("Watching failed: " + ex.Message);
+        }
+    }
+
     private async Task DisconnectAsync()
     {
+        if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
+        _watchRows.Clear();
+        WatchList.Visibility = Visibility.Collapsed;
         var client = _client;
         _client = null;
         AddressTree.Items.Clear();
@@ -248,6 +308,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         MirrorButton.IsEnabled = hasNode && SelectedNode!.NodeClass != "Method";
         BindButton.IsEnabled = hasNode;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
+        WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
+        UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
         ServerStateText.Text = connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.";
     }
 }
