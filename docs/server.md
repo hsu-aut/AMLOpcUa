@@ -21,6 +21,10 @@ Checked against real files: all 268 OPCUAItems of the ZVEI stirred reactor MTP
 (Siemens TIA), all 174 of the WAGO MTP from p2o-lab/MTPPy, and the DataVariable
 example of the AutomationML e.V. (these files are not part of the repository).
 
+The export turns a DataVariable into an `AMLOpcUaConnectionType` variable of
+the AML base types, so the exported NodeSet still names the node and the
+server it was bound to ([export](export.md), D16).
+
 ## Client
 
 `UaClient` wraps the OPC Foundation .NET Standard stack:
