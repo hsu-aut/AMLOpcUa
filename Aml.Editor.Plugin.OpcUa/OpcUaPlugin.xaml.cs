@@ -13,8 +13,10 @@ using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.WPFBase;
 using Aml.Engine.CAEX;
 using Microsoft.Win32;
+using OpcUaAml.Checks;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
+using OpcUaAml.Types;
 
 namespace Aml.Editor.Plugin.OpcUa;
 
@@ -196,6 +198,72 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
+    private void InstanceButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || _busy) return;
+
+        var window = new InstanceWindow(document) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true || window.SelectedType == null) return;
+
+        try
+        {
+            var chosen = window.ChosenOptional;
+            var result = TypeInstantiator.Instantiate(window.SelectedType, window.InstanceName, new InstantiationOptions
+            {
+                IncludeOptional = chosen.Contains,
+                AllowAbstract = true,
+            });
+            var ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
+                     ?? document.CAEXFile.InstanceHierarchy.Append(window.HierarchyName);
+            ih.InternalElement.Insert(result.Instance, asFirst: false);
+
+            var message = $"Created '{result.Instance.Name}' ({window.SelectedType.Name}) in '{ih.Name}' with {result.Included.Count} children.";
+            PluginLog.Info(message);
+            if (result.OmittedPlaceholders.Count > 0)
+                PluginLog.Info("Placeholders to fill by hand: " + string.Join(", ", result.OmittedPlaceholders));
+            if (UaTypes.IsAbstract(window.SelectedType))
+                PluginLog.Warn($"'{window.SelectedType.Name}' is abstract; OPC UA only instantiates concrete subtypes.");
+
+            var saved = _settings.SaveAfterImport && EditorSaver.TrySaveActiveDocument();
+            SetStatus(message + (saved ? " Saved." : " Press Ctrl+S to save."));
+        }
+        catch (InstantiationException ex)
+        {
+            PluginLog.Error(ex.Message);
+            SetStatus(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Creating the instance failed", ex);
+            SetStatus("Creating the instance failed: " + ex.Message);
+        }
+    }
+
+    private void CheckButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null) return;
+        try
+        {
+            var findings = AnnexAChecker.Check(document);
+            FindingList.ItemsSource = findings;
+            var errors = findings.Count(f => f.Severity == Severity.Error);
+            CheckSummary.Text = findings.Count == 0
+                ? $"No findings in {document.CAEXFile.InstanceHierarchy.Count} instance hierarch{(document.CAEXFile.InstanceHierarchy.Count == 1 ? "y" : "ies")}."
+                : $"{errors} error(s), {findings.Count - errors} warning(s). Rules: "
+                  + string.Join("; ", findings.Select(f => f.Rule).Distinct().OrderBy(r => r).Select(r => $"{r} {Rules.Descriptions[r]}"));
+            Tabs.SelectedItem = CheckTab;
+            PluginLog.Info($"Check: {errors} error(s), {findings.Count - errors} warning(s).");
+            SetStatus($"Check: {errors} error(s), {findings.Count - errors} warning(s).");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Check failed", ex);
+            SetStatus("Check failed: " + ex.Message);
+        }
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
@@ -231,6 +299,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
 
         ImportButton.IsEnabled = usable && !_busy;
+        InstanceButton.IsEnabled = usable && !_busy;
+        CheckButton.IsEnabled = doc != null && !_busy;
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Placeholder.Text = doc == null
             ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
@@ -247,6 +317,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _busy = busy;
         Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         ImportButton.IsEnabled = !busy && _document != null;
+        InstanceButton.IsEnabled = !busy && _document != null;
+        CheckButton.IsEnabled = !busy && _document != null;
         FoldersButton.IsEnabled = !busy;
         if (status != null) SetStatus(status);
     }

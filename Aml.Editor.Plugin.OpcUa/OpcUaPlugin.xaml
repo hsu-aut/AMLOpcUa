@@ -8,7 +8,7 @@
     mc:Ignorable="d"
     d:DesignHeight="500" d:DesignWidth="800">
 
-    <TabControl>
+    <TabControl x:Name="Tabs">
         <TabItem Header="OPC UA">
             <Grid>
                 <Grid.RowDefinitions>
@@ -39,6 +39,21 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE8B7;"/>
                             <TextBlock Text="NodeSet folders…" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Separator/>
+                    <Button x:Name="InstanceButton" Click="InstanceButton_Click"
+                            ToolTip="Create an instance of a UA type with its Mandatory children and the Optional children you choose.">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="#20A040"/>
+                            <TextBlock Text="New instance…" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="CheckButton" Click="CheckButton_Click"
+                            ToolTip="Check the instance hierarchies against their UA types (Mandatory children, placeholders, reference pairs).">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="#E08020"/>
+                            <TextBlock Text="Check" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Separator/>
@@ -96,6 +111,22 @@
                     </StatusBarItem>
                 </StatusBar>
             </Grid>
+        </TabItem>
+        <TabItem Header="Check" x:Name="CheckTab">
+            <DockPanel Margin="4">
+                <TextBlock DockPanel.Dock="Top" x:Name="CheckSummary" Margin="0,0,0,4" TextWrapping="Wrap"
+                           Text="Run Check to verify the instances against their UA types."/>
+                <ListView x:Name="FindingList">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Severity" Width="70" DisplayMemberBinding="{Binding Severity}"/>
+                            <GridViewColumn Header="Rule" Width="60" DisplayMemberBinding="{Binding Rule}"/>
+                            <GridViewColumn Header="Element" Width="260" DisplayMemberBinding="{Binding ElementPath}"/>
+                            <GridViewColumn Header="Finding" Width="480" DisplayMemberBinding="{Binding Message}"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
         </TabItem>
     </TabControl>
 </aml:PluginViewBase>
