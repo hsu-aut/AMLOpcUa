@@ -2,9 +2,11 @@
 // can be done here too, so it can be scripted and tested without the editor.
 
 using Aml.Engine.CAEX;
+using OpcUaAml.Checks;
 using OpcUaAml.Compare;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
+using OpcUaAml.Types;
 
 namespace OpcUaAml.Tool;
 
@@ -23,6 +25,19 @@ public static class Program
             document, which is overwritten unless -o names another file. Without
             --into, -o is required and receives a new document.
             --keep   keep libraries the document already has instead of replacing them
+
+        uaaml types <doc.aml> [--filter <text>] [--abstract]
+            The UA types (SystemUnitClasses of SUC_ libraries) in a document.
+
+        uaaml instantiate <doc.aml> --type <name|path> --name <name> [--hierarchy <name>]
+                          [--optional <a,b/c|all>] [--allow-abstract] [-o <out.aml>]
+            Create an instance with every Mandatory child and the chosen Optional
+            children (paths relative to the instance) in the instance hierarchy
+            (created if missing, default "OpcUaInstances").
+
+        uaaml check <doc.aml>
+            Check the instance hierarchies against their UA types. Exits with 1
+            when there are errors.
 
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
@@ -48,10 +63,17 @@ public static class Program
                 "info" => Info(rest),
                 "import" => Import(rest),
                 "compare" => CompareCommand(rest),
+                "types" => TypesCommand(rest),
+                "instantiate" => InstantiateCommand(rest),
+                "check" => CheckCommand(rest),
                 _ => Fail($"Unknown command '{args[0]}'.\n\n{Usage}"),
             };
         }
         catch (ImportException ex)
+        {
+            return Fail(ex.Message);
+        }
+        catch (InstantiationException ex)
         {
             return Fail(ex.Message);
         }
@@ -126,6 +148,82 @@ public static class Program
             Console.WriteLine($"{count,7}  {key}");
         Console.WriteLine($"{diffs.Count} difference(s).");
         return diffs.Count == 0 ? 0 : 1;
+    }
+
+    private static int TypesCommand(List<string> args)
+    {
+        var options = Options.Parse(args, valued: new[] { "--filter" }, flags: new[] { "--abstract" });
+        var doc = Documents.Load(options.SinglePositional("document"));
+        var filter = options.One("--filter");
+        var count = 0;
+        foreach (var (path, type) in UaTypes.AllTypes(doc))
+        {
+            var isAbstract = UaTypes.IsAbstract(type);
+            if (isAbstract && !options.Has("--abstract")) continue;
+            if (filter != null && !path.Contains(filter, StringComparison.OrdinalIgnoreCase)) continue;
+            Console.WriteLine((isAbstract ? "(abstract) " : "") + path);
+            count++;
+        }
+        Console.WriteLine($"{count} type(s).");
+        return 0;
+    }
+
+    private static int InstantiateCommand(List<string> args)
+    {
+        var options = Options.Parse(args,
+            valued: new[] { "--type", "--name", "--hierarchy", "--optional", "-o" },
+            flags: new[] { "--allow-abstract" });
+        var file = options.SinglePositional("document");
+        var doc = Documents.Load(file);
+        var typeArg = options.One("--type") ?? throw new ArgumentException("--type is required.");
+        var name = options.One("--name") ?? throw new ArgumentException("--name is required.");
+
+        var type = ResolveType(doc, typeArg);
+        var optional = options.One("--optional");
+        var chosen = optional == null ? new HashSet<string>()
+            : optional.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
+        var result = TypeInstantiator.Instantiate(type, name, new InstantiationOptions
+        {
+            IncludeOptional = p => optional == "all" || chosen.Contains(p),
+            AllowAbstract = options.Has("--allow-abstract"),
+        });
+
+        var hierarchyName = options.One("--hierarchy") ?? "OpcUaInstances";
+        var ih = doc.CAEXFile.InstanceHierarchy[hierarchyName] ?? doc.CAEXFile.InstanceHierarchy.Append(hierarchyName);
+        ih.InternalElement.Insert(result.Instance, asFirst: false);
+
+        Console.WriteLine($"Created '{name}' of {type.Name} in '{hierarchyName}': {result.Included.Count} children.");
+        if (result.OmittedOptional.Count > 0)
+            Console.WriteLine($"Optional, not created: {string.Join(", ", result.OmittedOptional)}");
+        if (result.OmittedPlaceholders.Count > 0)
+            Console.WriteLine($"Placeholders, add concrete children as needed: {string.Join(", ", result.OmittedPlaceholders)}");
+        var output = options.One("-o") ?? file;
+        Documents.Save(doc, output);
+        Console.WriteLine($"Written to {Path.GetFullPath(output)}");
+        return 0;
+    }
+
+    private static SystemUnitFamilyType ResolveType(Aml.Engine.CAEX.CAEXDocument doc, string typeArg)
+    {
+        if (UaTypes.Resolve(doc, typeArg) is { } byPath) return byPath;
+        var matches = UaTypes.AllTypes(doc).Where(t => t.Type.Name == typeArg).ToList();
+        return matches.Count switch
+        {
+            1 => matches[0].Type,
+            0 => throw new ArgumentException($"No UA type named '{typeArg}' in the document."),
+            _ => throw new ArgumentException($"'{typeArg}' is ambiguous; give the path: {string.Join(", ", matches.Select(m => m.Path))}"),
+        };
+    }
+
+    private static int CheckCommand(List<string> args)
+    {
+        var options = Options.Parse(args, valued: Array.Empty<string>(), flags: Array.Empty<string>());
+        var doc = Documents.Load(options.SinglePositional("document"));
+        var findings = AnnexAChecker.Check(doc);
+        foreach (var f in findings) Console.WriteLine(f);
+        var errors = findings.Count(f => f.Severity == Severity.Error);
+        Console.WriteLine($"{errors} error(s), {findings.Count - errors} warning(s).");
+        return errors == 0 ? 0 : 1;
     }
 
     private static int Fail(string message)
