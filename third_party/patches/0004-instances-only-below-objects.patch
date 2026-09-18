@@ -1,0 +1,24 @@
+diff --git a/NodeSetToAML.cs b/NodeSetToAML.cs
+index 2fa701d..ac074e8 100644
+--- a/NodeSetToAML.cs
++++ b/NodeSetToAML.cs
+@@ -3910,6 +3910,19 @@ namespace MarkdownProcessor
+                 {
+                     if (reference.IsForward == true)
+                     {
++                        // AMLOpcUa patch 0004: only instances are instances. A
++                        // folder below Objects may organize ObjectTypes or other
++                        // type nodes (the AutomationML file view of OPC 30040 and
++                        // AML-UA-XSLT does); they have no type definition and are
++                        // handled by the type libraries, not here.
++                        var candidate = FindNode<UANode>(reference.TargetId);
++                        if (candidate != null &&
++                            candidate.NodeClass != NodeClass.Object &&
++                            candidate.NodeClass != NodeClass.Variable &&
++                            candidate.NodeClass != NodeClass.Method)
++                        {
++                            continue;
++                        }
+                         if (m_modelManager.IsTypeOf(reference.ReferenceTypeId, HierarchicalNodeId) == true )
+                         {
+                             string refURI = m_modelManager.FindModelUri(reference.ReferenceTypeId);
