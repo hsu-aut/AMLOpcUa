@@ -114,8 +114,12 @@
         </TabItem>
         <TabItem Header="Check" x:Name="CheckTab">
             <DockPanel Margin="4">
-                <TextBlock DockPanel.Dock="Top" x:Name="CheckSummary" Margin="0,0,0,4" TextWrapping="Wrap"
-                           Text="Run Check to verify the instances against their UA types."/>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button x:Name="UpgradeButton" DockPanel.Dock="Right" Content="Add missing Mandatory children" Click="UpgradeButton_Click"
+                            ToolTip="After importing a newer version of a companion specification: add the Mandatory children the types now declare. Nothing existing is changed."/>
+                    <TextBlock x:Name="CheckSummary" TextWrapping="Wrap" VerticalAlignment="Center"
+                               Text="Run Check to verify the instances against their UA types."/>
+                </DockPanel>
                 <ListView x:Name="FindingList">
                     <ListView.View>
                         <GridView>

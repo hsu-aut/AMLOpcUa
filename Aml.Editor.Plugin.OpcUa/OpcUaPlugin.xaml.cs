@@ -268,6 +268,20 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
+    private void UpgradeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null) return;
+        var changes = InstanceUpgrader.UpgradeDocument(document);
+        foreach (var c in changes) PluginLog.Info($"Added '{c.Added}' to {c.ElementPath}.");
+        var message = changes.Count == 0
+            ? "All instances already have the Mandatory children of their types."
+            : $"Added {changes.Count} Mandatory child(ren) to {changes.Select(c => c.ElementPath).Distinct().Count()} instance(s). Press Ctrl+S to save.";
+        SetStatus(message);
+        CheckButton_Click(sender, e);
+        CheckSummary.Text = message + " " + CheckSummary.Text;
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
