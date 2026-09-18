@@ -152,6 +152,9 @@ namespace MarkdownProcessor
         Dictionary<NodeId, List<ReferenceInfo>> m_multipleReferences = new Dictionary<NodeId, List<ReferenceInfo>>();
         Dictionary<NodeId, InternalElementType> m_instances = new Dictionary<NodeId, InternalElementType>();
 
+        /// <summary>AMLOpcUa patch 0001: problems that did not stop the conversion.</summary>
+        public List<string> Warnings { get; } = new List<string>();
+
         public NodeSetToAML(ModelManager modelManager)
         {
             m_modelManager = modelManager;
@@ -2738,6 +2741,24 @@ namespace MarkdownProcessor
 
                 string refURI = m_modelManager.FindModelUri(referenceHolder.Reference.ReferenceTypeId);
                 UANode referenceTypeNode = FindNode<UANode>(referenceHolder.Reference.ReferenceTypeId);
+
+                // AMLOpcUa patch 0001: an endpoint without a hierarchical parent
+                // (DI 1.05.0 made ConnectsTo non-hierarchical, so <CPIdentifier>
+                // and <NetworkIdentifier> hang off their type only through it)
+                // has no element to carry the interface. Skip the reference and
+                // report it instead of failing the whole conversion.
+                if (sourceSystemUnitClass == null || targetSystemUnitClass == null)
+                {
+                    string skipped = string.Format(
+                        "Skipped {0} reference {1} ({2}) -> {3} ({4}): no AML element for the {5}.",
+                        referenceTypeNode?.DecodedBrowseName?.Name,
+                        referenceHolder.Reference.SourceId, sourceNode?.DecodedBrowseName?.Name,
+                        referenceHolder.Reference.TargetId, targetNode?.DecodedBrowseName?.Name,
+                        sourceSystemUnitClass == null ? "source" : "target");
+                    Utils.LogWarning(skipped);
+                    Warnings.Add(skipped);
+                    continue;
+                }
 
                 Utils.LogTrace("{0} : {1} {2} - {3} {4}",
                     referenceTypeNode.DecodedBrowseName.Name,
