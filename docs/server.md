@@ -32,6 +32,9 @@ example of the AutomationML e.V. (these files are not part of the repository).
 - **Browse** along hierarchical references (Objects folder by default).
 - **Read** values, several in one request; a node that does not exist is a bad
   result, not an exception.
+- **Watch** values through a subscription (`WatchAsync`); the plugin shows
+  them in a live list under the address space. Watched values are not written
+  into the document.
 
 ## Into the document
 
@@ -55,7 +58,8 @@ forms, arrays separated by spaces.
 ## Tests
 
 `ServerTests` and `MirrorTests` start an OPC UA server inside the test process
-(`TestServer`, a small plant namespace on a free port) and cover secured and
-unsecured sessions, the refused unknown certificate, browsing, reading,
-mirroring with types and values, limits, and snapshots including
-DataVariables of another server and bindings to missing nodes.
+(`TestServer`, a small plant namespace on a free port, with a counter that
+changes every 100 ms) and cover secured and unsecured sessions, the refused
+unknown certificate, browsing, reading, subscriptions, mirroring with types
+and values, limits, and snapshots including DataVariables of another server
+and bindings to missing nodes.
