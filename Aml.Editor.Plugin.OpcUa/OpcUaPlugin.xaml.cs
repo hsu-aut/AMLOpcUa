@@ -153,10 +153,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         var file = dialog.FileName;
         _settings.LastNodeSetFolder = Path.GetDirectoryName(file);
         _settings.Save();
+        await ImportFileAsync(document, file, Array.Empty<string>());
+    }
 
-        // The NodeSet's own folder is searched first: companion specs usually
-        // ship with the NodeSets they depend on.
-        var folders = new[] { Path.GetDirectoryName(file)! }.Concat(_settings.NodeSetFolders).Distinct().ToList();
+    /// <summary>
+    /// Converts a NodeSet off the UI thread and merges it into the document.
+    /// The NodeSet's own folder is searched first: companion specs usually
+    /// ship with the NodeSets they depend on.
+    /// </summary>
+    private async Task ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    {
+        var folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Distinct().ToList();
         var options = new MergeOptions { ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries };
 
         SetBusy(true, $"Converting {Path.GetFileName(file)} …");
@@ -202,6 +209,42 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             SetBusy(false, null);
             UpdateState();
         }
+    }
+
+    private async void CloudButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || _busy) return;
+        if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
+        {
+            SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
+            return;
+        }
+        var window = new CloudLibraryWindow(_settings.CloudLibraryUser) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true || window.Selected == null) return;
+        _settings.CloudLibraryUser = window.UserName;
+        _settings.Save();
+
+        var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "cloudlibrary");
+        SetBusy(true, $"Downloading {window.Selected.NamespaceUri} …");
+        IReadOnlyList<string> files;
+        try
+        {
+            var catalog = NodeSetCatalog.Create(new[] { cache }.Concat(_settings.NodeSetFolders));
+            files = await window.CreateClient().DownloadWithDependenciesAsync(window.Selected.Identifier, cache, catalog);
+            foreach (var f in files) PluginLog.Info("Downloaded " + f);
+        }
+        catch (CloudLibraryException ex)
+        {
+            PluginLog.Error(ex.Message);
+            SetStatus(ex.Message);
+            return;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+        await ImportFileAsync(document, files[0], new[] { cache });
     }
 
     private void InstanceButton_Click(object sender, RoutedEventArgs e)
@@ -319,6 +362,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
 
         ImportButton.IsEnabled = usable && !_busy;
+        CloudButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
@@ -338,6 +382,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _busy = busy;
         Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         ImportButton.IsEnabled = !busy && _document != null;
+        CloudButton.IsEnabled = !busy && _document != null;
         InstanceButton.IsEnabled = !busy && _document != null;
         CheckButton.IsEnabled = !busy && _document != null;
         FoldersButton.IsEnabled = !busy;

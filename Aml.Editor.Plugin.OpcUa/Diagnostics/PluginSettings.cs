@@ -26,6 +26,9 @@ public sealed class PluginSettings
     /// <summary>The last OPC UA endpoint connected to.</summary>
     public string? LastEndpointUrl { get; set; }
 
+    /// <summary>The Cloud Library account last used; the password is never stored.</summary>
+    public string? CloudLibraryUser { get; set; }
+
     /// <summary>Prefer a secured endpoint when connecting.</summary>
     public bool UseSecurity { get; set; } = true;
 

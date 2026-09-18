@@ -34,6 +34,13 @@
                             <TextBlock Text="Import NodeSet…" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <Button x:Name="CloudButton" Click="CloudButton_Click"
+                            ToolTip="Search the OPC Foundation's UA Cloud Library and import a model with the models it requires.">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE753;" Foreground="#2070C0"/>
+                            <TextBlock Text="Cloud Library…" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="FoldersButton" Click="FoldersButton_Click"
                             ToolTip="Folders searched for NodeSets that an import requires. The UA base model and DI are built in.">
                         <StackPanel Orientation="Horizontal">
