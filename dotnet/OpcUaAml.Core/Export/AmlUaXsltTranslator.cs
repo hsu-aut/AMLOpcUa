@@ -197,6 +197,18 @@ internal sealed partial class AmlUaXsltTranslator
             new XElement(Ua + "RequiredModel", new XAttribute("ModelUri", AmlUri),
                 new XAttribute("Version", "1.0.1"), new XAttribute("PublicationDate", "2019-09-09T00:00:00Z")),
         };
+        if (!_compat)
+        {
+            // D14: the classes of imported and fallback libraries (the
+            // AutomationML base role, interface and system unit classes) are
+            // referenced in their own namespaces, but the XSLT does not require
+            // those models, so a NodeSet importer cannot know it has to load them.
+            baseModels = baseModels.Concat(_importedLibraries
+                .Select(l => l.Name.Contains('/') ? l.Name : AmlUri + l.Name)
+                .Where(uri => uri != AmlUri)
+                .Distinct()
+                .Select(uri => new XElement(Ua + "RequiredModel", new XAttribute("ModelUri", uri)))).ToArray();
+        }
         var parts = _root.Elements().Where(e => L(e) == "InstanceHierarchy" || LibraryKinds.Contains(L(e))).ToList();
         var models = new XElement(Ua + "Models");
         foreach (var part in parts)
