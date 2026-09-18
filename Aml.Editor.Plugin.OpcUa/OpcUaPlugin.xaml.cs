@@ -341,6 +341,42 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
+    private async void ExportButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || _busy) return;
+        var name = Path.GetFileNameWithoutExtension(document.CAEXFile.FileName ?? "document");
+        var dialog = new SaveFileDialog
+        {
+            Title = "Export as OPC UA NodeSet",
+            Filter = "OPC UA NodeSet (*.xml)|*.xml",
+            FileName = (string.IsNullOrEmpty(name) ? "document" : name) + ".NodeSet2.xml",
+        };
+        if (dialog.ShowDialog() != true) return;
+
+        SetBusy(true, "Exporting …");
+        try
+        {
+            // The exporter reads the document; a copy of its XML keeps the
+            // editor's document out of the background thread.
+            var xml = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(document.CAEXFile.Node));
+            var nodeSet = await Task.Run(() => OpcUaAml.Export.NodeSetExporter.Export(xml));
+            nodeSet.Save(dialog.FileName);
+            var nodes = nodeSet.Root?.Elements().Count(x => x.Name.LocalName.StartsWith("UA")) ?? 0;
+            PluginLog.Info($"Exported {nodes} node(s) to {dialog.FileName}.");
+            SetStatus($"Exported {nodes} node(s) to {Path.GetFileName(dialog.FileName)}.");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Export failed", ex);
+            SetStatus("Export failed: " + ex.Message);
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
@@ -380,6 +416,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
         LinkButton.IsEnabled = usable && !_busy;
+        ExportButton.IsEnabled = doc != null && !_busy;
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Placeholder.Text = doc == null
             ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
