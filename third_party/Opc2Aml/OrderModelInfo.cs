@@ -72,15 +72,23 @@ namespace Opc2Aml
                 if ( modelInfo.NodeSet != null && 
                     modelInfo.NodeSet.Models != null )
                 {
+                    // AMLOpcUa patch 0003: a NodeSet can declare several models
+                    // that require each other (an AML document exported by the
+                    // AML-UA-XSLT rules declares one per library). Take only the
+                    // requirements of this model's own entry, and do not descend
+                    // into a model already collected, or the recursion never ends.
                     foreach( ModelTableEntry entry in modelInfo.NodeSet.Models )
                     {
+                        if ( entry.ModelUri != uri && modelInfo.NodeSet.Models.Any( m => m.ModelUri == uri ) )
+                        {
+                            continue;
+                        }
                         if ( entry.RequiredModel != null )
                         {
                             foreach( ModelTableEntry requiredModel in entry.RequiredModel)
                             {
-                                if ( !string.IsNullOrEmpty( requiredModel.ModelUri ) )
+                                if ( !string.IsNullOrEmpty( requiredModel.ModelUri ) && set.Add( requiredModel.ModelUri ) )
                                 {
-                                    set.Add( requiredModel.ModelUri );
                                     AddCompiled( requiredModel.ModelUri, set, source );
                                 }
                             }
