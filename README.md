@@ -6,8 +6,11 @@ OPC UA information models in AutomationML.
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A
 - Instances of UA types with their Mandatory children and chosen Optional
   children, and a check of instances against their types
+- Export of AML documents (CAEX 2.15 and 3.0) as OPC UA NodeSets by the rules
+  of the AutomationML/OPC Foundation working group (AML-UA-XSLT), a successor
+  of OPC 30040
 - Command line tool `uaaml` with the same functions
-- Structural comparison of AML class libraries, used as the test oracle
+- Structural comparison of AML class libraries and of NodeSets, used as test oracles
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
 the OPC Foundation's reference implementation of Annex A, included as source
@@ -22,12 +25,12 @@ AMLPetriNet.
 | Path | Content |
 |---|---|
 | `Aml.Editor.Plugin.OpcUa/` | AutomationML Editor plugin |
-| `dotnet/OpcUaAml.Core/` | Library: NodeSet catalog, import, merge, comparison |
+| `dotnet/OpcUaAml.Core/` | Library: NodeSet catalog, import, merge, export, comparison |
 | `dotnet/OpcUaAml.Tool/` | Command line tool `uaaml` |
-| `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes |
+| `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes and with the unit tests of AML-UA-XSLT |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
-| `docs/` | Import ([import.md](docs/import.md)), instances and checks ([instances.md](docs/instances.md)) |
+| `docs/` | Import ([import.md](docs/import.md)), instances and checks ([instances.md](docs/instances.md)), export ([export.md](docs/export.md)) |
 
 ## Build
 
@@ -78,7 +81,10 @@ uaaml compare machinery.aml Opc.Ua.Machinery.NodeSet2.xml.amlx --skeleton
 uaaml types   plant.aml --filter Machine
 uaaml instantiate plant.aml --type SoftwareVersionType --name Firmware --optional ReleaseDate
 uaaml check   plant.aml
+uaaml export  plant.aml -o plant.NodeSet2.xml
+uaaml compare plant.NodeSet2.xml other.NodeSet2.xml
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the
-documents differ, `check` when there are errors.
+documents differ, `check` when there are errors. Given two NodeSets, `compare`
+compares them as graphs.
