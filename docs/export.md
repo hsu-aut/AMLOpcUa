@@ -218,6 +218,26 @@ v1.00 does differently, from its text and the example in Annex A:
 | CAEX 3.0 | Not covered: no AttributeTypeLib, constraints, RefSemantic, mirror objects, SourceDocumentInformation | Covered, with the reference types HasAMLReferenceType, IsAMLMirroredAs, HasAMLConstraint, HasAMLRequirement and the constraint VariableTypes of the draft base types |
 | AutomationMLBaseInterface | ObjectType `ns=1;i=1002` of the base types | Dropped from the draft base types; comes from the AutomationMLInterfaceClassLib namespace |
 
+## DIN SPEC 16592
+
+DIN SPEC 16592:2016-12 extends OPC 30040 v1.00 and is the published reference
+the AML-UA-XSLT rules revise. Where it differs from what the XSLT (and this
+port) writes:
+
+| Topic | DIN SPEC 16592 | AML-UA-XSLT and this port |
+|---|---|---|
+| Role assignment | Two ReferenceTypes, `HasAMLSupportedRoleClass` (inverse `IsSupportedRole`) and `HasAMLRoleRequirement` (inverse `IsRequiredRole`) | One `HasAMLRoleReference`, as in OPC 30040 |
+| Attribute unit | Property `Unit` (String) | Not written; the draft base types define `Unit` as an Optional property of `AMLBaseVariableType`, but nothing uses it. This is why units are lost in the round trip ([round trip](roundtrip.md)) |
+| Attribute DefaultValue, RefSemantic, constraints | Properties `DefaultValue`, `RefSemantic`, constraint properties | Covered, with the draft base types' constraint VariableTypes and `HasAMLConstraint` |
+| Links to other information models | `HasAMLUAReference` (inverse `IsAMLReferenceOf`) from an element whose ExternalDataConnector points at a node of another model, e.g. IEC 61131-3 | Not written |
+| Entry points | `AutomationMLFiles` (file view), `AutomationMLInstanceHierarchies`, `AutomationMLLibraries` | `CAEXFile` with collection folders |
+| Several documents | One ObjectType per class, whichever document holds it | One namespace per library; classes of other documents only through aliases (see Known limits) |
+| UA configuration in AML (clause 6) | Server element with DiscoveryURL, EndpointURL, TransportProfileURI, SecurityPolicy, MessageSecurityMode, UserToken, NamespaceTable; variables reference the server element's ID and carry a NodeId | Not an export topic; the addressing in [servers](server.md) follows BPR 007 DataVariable, which covers DiscoveryURL, EndpointURL, SecurityPolicy and NamespaceTable |
+
+Candidates for this exporter, beyond the XSLT: write `Unit`, and write
+`HasAMLUAReference` for attributes bound to a server node, so that the
+exported model keeps its connection to the live model.
+
 ## Known limits
 
 - Classes referenced but not contained in the document are only known through
