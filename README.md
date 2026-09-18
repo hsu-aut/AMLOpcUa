@@ -4,6 +4,8 @@ OPC UA information models in AutomationML.
 
 - Plugin for the AutomationML Editor that imports OPC UA NodeSets as AML
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A
+- Instances of UA types with their Mandatory children and chosen Optional
+  children, and a check of instances against their types
 - Command line tool `uaaml` with the same functions
 - Structural comparison of AML class libraries, used as the test oracle
 
@@ -25,7 +27,7 @@ AMLPetriNet.
 | `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
-| `docs/` | How the import works and what it does not do |
+| `docs/` | Import ([import.md](docs/import.md)), instances and checks ([instances.md](docs/instances.md)) |
 
 ## Build
 
@@ -56,6 +58,11 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   publication date.
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
+- **New instance** creates an instance of a UA type: every Mandatory child,
+  the Optional children ticked in the dialog, no placeholders.
+- **Check** lists findings on the "Check" tab: missing Mandatory children,
+  unfilled MandatoryPlaceholders, abstract or unknown types, broken or
+  mismatched reference links.
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor
@@ -68,7 +75,10 @@ uaaml info    Opc.Ua.Machinery.NodeSet2.xml --search ./nodesets
 uaaml import  Opc.Ua.Machinery.NodeSet2.xml --search ./nodesets -o machinery.aml
 uaaml import  Opc.Ua.Machinery.NodeSet2.xml --into plant.aml
 uaaml compare machinery.aml Opc.Ua.Machinery.NodeSet2.xml.amlx --skeleton
+uaaml types   plant.aml --filter Machine
+uaaml instantiate plant.aml --type SoftwareVersionType --name Firmware --optional ReleaseDate
+uaaml check   plant.aml
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the
-documents differ.
+documents differ, `check` when there are errors.
