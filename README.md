@@ -36,7 +36,7 @@ AMLPetriNet.
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
 | `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
-| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [servers](docs/server.md), [diagram](docs/diagram.md), [VDI 3682](docs/vdi3682.md) |
+| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [VDI 3682](docs/vdi3682.md) |
 
 ## Build
 
@@ -89,8 +89,10 @@ uaaml instantiate plant.aml --type SoftwareVersionType --name Firmware --optiona
 uaaml check   plant.aml
 uaaml export  plant.aml -o plant.NodeSet2.xml
 uaaml compare plant.NodeSet2.xml other.NodeSet2.xml
+uaaml roundtrip Opc.Ua.Di.NodeSet2.xml plant.aml -o report.md
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the
-documents differ, `check` when there are errors. Given two NodeSets, `compare`
+documents differ, `check` when there are errors, `roundtrip` when a chain
+breaks off ([round trip](docs/roundtrip.md)). Given two NodeSets, `compare`
 compares them as graphs.
