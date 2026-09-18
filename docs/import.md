@@ -29,6 +29,16 @@ transitively, must be available as a file:
 2. the folders given with `--search` or under "NodeSet folders",
 3. the NodeSets shipped in `nodesets/` (UA base model 1.05.07, DI 1.05.0).
 
+The plugin can also fetch NodeSets from the OPC Foundation's
+[UA Cloud Library](https://uacloudlibrary.opcfoundation.org) (**Cloud
+Library…**, `CloudLibraryClient`): search, then download the chosen model and
+every required model the catalog lacks into
+`%LOCALAPPDATA%\AMLOpcUa\cloudlibrary`, which is searched on import. The
+library needs an account or an API key; the password or key is kept for the
+editor session only. Tests run against a fake of its REST API (v1,
+`/infomodel/find2` and `/infomodel/download/{id}`), since the real service
+cannot be used without credentials.
+
 When two files declare the same model, the newer publication wins; at the same
 date the first one found wins. Missing models are named before Opc2Aml runs.
 
