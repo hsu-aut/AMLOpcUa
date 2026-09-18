@@ -128,5 +128,49 @@
                 </ListView>
             </DockPanel>
         </TabItem>
+        <TabItem Header="Server" x:Name="ServerTab">
+            <Grid Margin="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <DockPanel Grid.Row="0" Margin="0,0,0,4">
+                    <TextBlock Text="Endpoint" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <Button x:Name="ConnectButton" DockPanel.Dock="Right" Content="Connect" Width="90" Click="ConnectButton_Click"/>
+                    <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="Secure" VerticalAlignment="Center" Margin="8,0"
+                              ToolTip="Prefer a signed and encrypted endpoint."/>
+                    <PasswordBox x:Name="PasswordBox" DockPanel.Dock="Right" Width="100" ToolTip="Password (empty for anonymous)"/>
+                    <TextBox x:Name="UserBox" DockPanel.Dock="Right" Width="100" Margin="8,0,4,0" ToolTip="User name (empty for anonymous)"/>
+                    <TextBox x:Name="EndpointBox"/>
+                </DockPanel>
+                <ToolBar Grid.Row="1">
+                    <Button x:Name="MirrorButton" Content="Take into document" Click="MirrorButton_Click"
+                            ToolTip="Create elements for the selected node and the nodes below it, with their NodeIds, UA types and current values."/>
+                    <TextBlock Text=" depth " VerticalAlignment="Center"/>
+                    <TextBox x:Name="MirrorDepthBox" Text="3" Width="30"/>
+                    <TextBlock Text=" into " VerticalAlignment="Center"/>
+                    <TextBox x:Name="MirrorHierarchyBox" Text="OpcUaServer" Width="120"/>
+                    <Separator/>
+                    <Button x:Name="BindButton" Content="Bind to element…" Click="BindButton_Click"
+                            ToolTip="Write the selected node's address as NodeId attribute (OPC 10000-83 Annex A) of an element you choose."/>
+                    <Separator/>
+                    <Button x:Name="SnapshotButton" Content="Read current values" Click="SnapshotButton_Click"
+                            ToolTip="Read the value of every bound element and DataVariable of this server into the document."/>
+                </ToolBar>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TreeView x:Name="AddressTree" Grid.Column="0" SelectedItemChanged="AddressTree_SelectedItemChanged"/>
+                    <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
+                    <TextBox x:Name="NodeDetails" Grid.Column="2" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                </Grid>
+                <TextBlock x:Name="ServerStateText" Grid.Row="3" Foreground="Gray" Margin="0,4,0,0"/>
+            </Grid>
+        </TabItem>
     </TabControl>
 </aml:PluginViewBase>

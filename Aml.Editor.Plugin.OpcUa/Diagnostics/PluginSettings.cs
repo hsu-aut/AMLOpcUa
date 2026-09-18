@@ -23,6 +23,12 @@ public sealed class PluginSettings
 
     public bool DebugLogging { get; set; }
 
+    /// <summary>The last OPC UA endpoint connected to.</summary>
+    public string? LastEndpointUrl { get; set; }
+
+    /// <summary>Prefer a secured endpoint when connecting.</summary>
+    public bool UseSecurity { get; set; } = true;
+
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa", "settings.json");
 

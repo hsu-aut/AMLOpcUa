@@ -1,0 +1,319 @@
+// The "Server" tab: connect to a running OPC UA server, browse its address
+// space, take parts of it into the document, bind nodes to elements and read
+// current values. All server work goes through OpcUaAml.Core.Server.
+
+using System.Windows;
+using System.Windows.Controls;
+using Aml.Editor.Plugin.Contracts;
+using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
+using OpcUaAml.Addressing;
+using OpcUaAml.Server;
+
+namespace Aml.Editor.Plugin.OpcUa;
+
+public partial class OpcUaPlugin : ISupportsSelection
+{
+    private UaClient? _client;
+
+    /// <summary>Asks the editor to select an element in its tree (after mirroring or binding).</summary>
+    public event EventHandler<SelectionEventArgs>? Selected;
+
+    private void InitServerTab()
+    {
+        EndpointBox.Text = _settings.LastEndpointUrl ?? "opc.tcp://localhost:4840";
+        SecurityToggle.IsChecked = _settings.UseSecurity;
+        UpdateServerState();
+    }
+
+    private async void ConnectButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_client != null)
+        {
+            await DisconnectAsync();
+            return;
+        }
+
+        var url = EndpointBox.Text.Trim();
+        _settings.LastEndpointUrl = url;
+        _settings.UseSecurity = SecurityToggle.IsChecked == true;
+        _settings.Save();
+
+        SetBusy(true, $"Connecting to {url} …");
+        try
+        {
+            _client = await ConnectWithTrustPromptAsync(url);
+            PluginLog.Info($"Connected to {url} ({_client.SecurityMode}); {_client.NamespaceTable.Count} namespaces.");
+            SetStatus($"Connected to {url}.");
+            await LoadRootAsync();
+        }
+        catch (UaConnectionException ex)
+        {
+            PluginLog.Error(ex.Message);
+            SetStatus(ex.Message);
+        }
+        finally
+        {
+            SetBusy(false, null);
+            UpdateServerState();
+        }
+    }
+
+    /// <summary>
+    /// Connects; if the server's certificate is unknown, asks the user once
+    /// instead of trusting silently.
+    /// </summary>
+    private async Task<UaClient> ConnectWithTrustPromptAsync(string url)
+    {
+        var options = new UaConnectOptions
+        {
+            EndpointUrl = url,
+            UseSecurity = _settings.UseSecurity,
+            UserName = string.IsNullOrWhiteSpace(UserBox.Text) ? null : UserBox.Text.Trim(),
+            Password = PasswordBox.Password,
+        };
+        try
+        {
+            return await UaClient.ConnectAsync(options);
+        }
+        catch (UaConnectionException ex) when (ex.Message.Contains("not trusted"))
+        {
+            var answer = MessageBox.Show(Window.GetWindow(this),
+                $"The server at {url} presents a certificate this computer does not trust yet.\n\n" +
+                "Trust it for this connection?", "OPC UA server certificate",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (answer != MessageBoxResult.Yes) throw;
+            return await UaClient.ConnectAsync(new UaConnectOptions
+            {
+                EndpointUrl = options.EndpointUrl,
+                UseSecurity = options.UseSecurity,
+                UserName = options.UserName,
+                Password = options.Password,
+                AcceptUntrustedServerCertificates = true,
+            });
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        var client = _client;
+        _client = null;
+        AddressTree.Items.Clear();
+        UpdateServerState();
+        if (client != null) await client.DisposeAsync();
+        PluginLog.Info("Disconnected.");
+        SetStatus("Disconnected.");
+    }
+
+    // ── address space tree ──────────────────────────────────────────────────
+
+    private const string Pending = "…";
+
+    private async Task LoadRootAsync()
+    {
+        AddressTree.Items.Clear();
+        if (_client == null) return;
+        foreach (var item in await _client.BrowseAsync()) AddressTree.Items.Add(NodeItem(item));
+    }
+
+    private TreeViewItem NodeItem(UaBrowseItem node)
+    {
+        var item = new TreeViewItem
+        {
+            Header = $"{node.DisplayName}   [{node.NodeClass}]",
+            Tag = node,
+            ToolTip = node.Address.ToString(),
+        };
+        if (node.NodeClass != "Method") item.Items.Add(Pending);
+        item.Expanded += async (s, e) =>
+        {
+            if (e.OriginalSource != item || _client == null) return;
+            if (item.Items.Count != 1 || item.Items[0] as string != Pending) return;
+            item.Items.Clear();
+            try
+            {
+                foreach (var child in await _client.BrowseAsync(node.Address)) item.Items.Add(NodeItem(child));
+            }
+            catch (Exception ex)
+            {
+                PluginLog.Error($"Browsing {node.Address} failed", ex);
+            }
+        };
+        return item;
+    }
+
+    private UaBrowseItem? SelectedNode => (AddressTree.SelectedItem as TreeViewItem)?.Tag as UaBrowseItem;
+
+    private async void AddressTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        UpdateServerState();
+        var node = SelectedNode;
+        if (node == null || _client == null) { NodeDetails.Text = ""; return; }
+        var text = $"{node.Address}\nBrowseName: {node.BrowseName}   Class: {node.NodeClass}   Reference: {node.ReferenceType}"
+                   + (node.TypeDefinition != null ? $"\nType: {node.TypeDefinition}" : "");
+        if (node.NodeClass == "Variable")
+        {
+            try
+            {
+                var r = await _client.ReadAsync(node.Address);
+                text += r.Good ? $"\nValue: {r.ValueText} ({r.DataType})" : $"\nValue: {r.Status}";
+            }
+            catch (Exception ex) { text += "\nValue: " + ex.Message; }
+        }
+        NodeDetails.Text = text;
+    }
+
+    // ── into the document ───────────────────────────────────────────────────
+
+    private async void MirrorButton_Click(object sender, RoutedEventArgs e)
+    {
+        var node = SelectedNode;
+        var document = _document;
+        if (node == null || document == null || _client == null) return;
+
+        var ihName = string.IsNullOrWhiteSpace(MirrorHierarchyBox.Text) ? "OpcUaServer" : MirrorHierarchyBox.Text.Trim();
+        var ih = document.CAEXFile.InstanceHierarchy[ihName] ?? document.CAEXFile.InstanceHierarchy.Append(ihName);
+        int.TryParse(MirrorDepthBox.Text, out var depth);
+        SetBusy(true, $"Reading {node.DisplayName} …");
+        try
+        {
+            var result = await AddressSpaceMirror.MirrorAsync(_client, node, ih, new MirrorOptions { Depth = Math.Clamp(depth, 1, 20) });
+            var message = $"Took {result.Nodes} node(s) of {node.DisplayName} into '{ih.Name}', {result.Typed} typed by an imported UA type."
+                          + (result.Truncated ? " Stopped at the node limit." : "");
+            PluginLog.Info(message);
+            SetStatus(message + " Press Ctrl+S to save.");
+            Selected?.Invoke(this, new SelectionEventArgs(result.Root));
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Mirroring failed", ex);
+            SetStatus("Mirroring failed: " + ex.Message);
+        }
+        finally
+        {
+            SetBusy(false, null);
+            UpdateServerState();
+        }
+    }
+
+    private void BindButton_Click(object sender, RoutedEventArgs e)
+    {
+        var node = SelectedNode;
+        var document = _document;
+        if (node == null || document == null || _client == null) return;
+
+        var picker = new ElementPickerWindow(document, $"Bind {node.DisplayName} to") { Owner = Window.GetWindow(this) };
+        if (picker.ShowDialog() != true || picker.Selected == null) return;
+
+        AnnexANodeId.Write(picker.Selected, node.Address with { ServerUri = _client.ServerUri });
+        var message = $"Bound {node.Address} to '{picker.Selected.Name}' (NodeId attribute, OPC 10000-83 Annex A).";
+        PluginLog.Info(message);
+        SetStatus(message + " Press Ctrl+S to save.");
+        Selected?.Invoke(this, new SelectionEventArgs(picker.Selected));
+    }
+
+    private async void SnapshotButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || _client == null) return;
+        SetBusy(true, "Reading current values …");
+        try
+        {
+            var result = await ValueSnapshot.ApplyAsync(document, _client);
+            foreach (var p in result.Problems) PluginLog.Warn(p);
+            PluginLog.Info($"Snapshot from {_client.EndpointUrl}: {result}.");
+            SetStatus($"Snapshot: {result}." + (result.Read > 0 ? " Press Ctrl+S to save." : ""));
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Snapshot failed", ex);
+            SetStatus("Snapshot failed: " + ex.Message);
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
+    private void UpdateServerState()
+    {
+        var connected = _client != null;
+        ConnectButton.Content = connected ? "Disconnect" : "Connect";
+        EndpointBox.IsEnabled = !connected;
+        SecurityToggle.IsEnabled = !connected;
+        UserBox.IsEnabled = !connected;
+        PasswordBox.IsEnabled = !connected;
+        var hasNode = connected && SelectedNode != null && _document != null && !_busy;
+        MirrorButton.IsEnabled = hasNode && SelectedNode!.NodeClass != "Method";
+        BindButton.IsEnabled = hasNode;
+        SnapshotButton.IsEnabled = connected && _document != null && !_busy;
+        ServerStateText.Text = connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.";
+    }
+}
+
+/// <summary>Picks an InternalElement of the document's instance hierarchies.</summary>
+public sealed class ElementPickerWindow : Window
+{
+    private readonly ListBox _list = new();
+    private readonly TextBox _search = new() { Margin = new Thickness(0, 0, 0, 4) };
+    private readonly List<(string Path, InternalElementType Element)> _all;
+
+    public InternalElementType? Selected { get; private set; }
+
+    public ElementPickerWindow(CAEXDocument document, string title)
+    {
+        Title = title;
+        Width = 560;
+        Height = 480;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _all = document.CAEXFile.InstanceHierarchy
+            .SelectMany(ih => ih.Descendants<InternalElementType>().Select(ie => (PathOf(ie), ie)))
+            .ToList();
+        _search.TextChanged += (_, __) => Filter();
+
+        var ok = new Button { Content = "Bind", Width = 90, IsDefault = true, Margin = new Thickness(0, 0, 6, 0) };
+        ok.Click += (_, __) =>
+        {
+            Selected = (_list.SelectedItem as PickItem)?.Element;
+            if (Selected != null) DialogResult = true;
+        };
+        var cancel = new Button { Content = "Cancel", Width = 90, IsCancel = true };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
+        buttons.Children.Add(ok);
+        buttons.Children.Add(cancel);
+
+        var root = new DockPanel { Margin = new Thickness(10) };
+        DockPanel.SetDock(_search, Dock.Top);
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        root.Children.Add(_search);
+        root.Children.Add(buttons);
+        root.Children.Add(_list);
+        Content = root;
+        Filter();
+    }
+
+    private void Filter()
+    {
+        var text = _search.Text.Trim();
+        _list.ItemsSource = _all.Where(x => text.Length == 0 || x.Path.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(x => new PickItem(x.Path, x.Element)).ToList();
+    }
+
+    private static string PathOf(InternalElementType ie)
+    {
+        var parts = new List<string>();
+        for (CAEXBasicObject? o = ie; o is CAEXObject c; o = c.CAEXParent as CAEXBasicObject)
+        {
+            parts.Add(c.Name);
+            if (c is InstanceHierarchyType) break;
+        }
+        parts.Reverse();
+        return string.Join("/", parts);
+    }
+
+    private sealed record PickItem(string Path, InternalElementType Element)
+    {
+        public override string ToString() => Path;
+    }
+}

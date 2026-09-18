@@ -51,6 +51,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SaveToggle.IsChecked = _settings.SaveAfterImport;
         DebugToggle.IsChecked = PluginLog.DebugEnabled;
         LogFilePathLabel.Text = PluginLog.FilePath;
+        InitServerTab();
 
         Loaded += (_, __) =>
         {
@@ -107,11 +108,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         _document = null;
         UpdateState();
+        UpdateServerState();
         PluginLog.Info("Document closed.");
     }
 
     public void ApplicationClose()
     {
+        try { _client?.DisposeAsync().AsTask().Wait(3000); }
+        catch { /* shutting down */ }
         try { PluginLog.Shutdown(); }
         catch { /* shutting down */ }
     }
@@ -321,6 +325,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         CheckButton.IsEnabled = !busy && _document != null;
         FoldersButton.IsEnabled = !busy;
         if (status != null) SetStatus(status);
+        UpdateServerState();
     }
 
     private void SetStatus(string text) => StatusText.Text = text;
