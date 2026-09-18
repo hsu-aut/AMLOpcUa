@@ -166,6 +166,11 @@
                     <Button x:Name="WatchButton" Content="Watch" Click="WatchButton_Click"
                             ToolTip="Add the selected variable to the live list below (subscription, not written into the document)."/>
                     <Button x:Name="UnwatchButton" Content="Clear watch list" Click="UnwatchButton_Click"/>
+                    <Separator/>
+                    <Button x:Name="ServeButton" Content="Serve this document" Click="ServeButton_Click"
+                            ToolTip="Start a local OPC UA server whose address space is this document's instance hierarchies (a snapshot; restart to update)."/>
+                    <TextBlock Text=" port " VerticalAlignment="Center"/>
+                    <TextBox x:Name="ServePortBox" Text="48400" Width="50"/>
                 </ToolBar>
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>

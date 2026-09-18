@@ -17,6 +17,7 @@ public partial class OpcUaPlugin : ISupportsSelection
 {
     private UaClient? _client;
     private IAsyncDisposable? _watch;
+    private AmlServerHost? _host;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
 
     /// <summary>A row of the live list; updated from the subscription thread through the dispatcher.</summary>
@@ -149,6 +150,41 @@ public partial class OpcUaPlugin : ISupportsSelection
         {
             PluginLog.Error("Watching failed", ex);
             SetStatus("Watching failed: " + ex.Message);
+        }
+    }
+
+    private async void ServeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_host != null)
+        {
+            await _host.DisposeAsync();
+            _host = null;
+            PluginLog.Info("Document server stopped.");
+            SetStatus("Document server stopped.");
+            UpdateServerState();
+            return;
+        }
+        var document = _document;
+        if (document == null) return;
+        if (!int.TryParse(ServePortBox.Text, out var port) || port is < 1 or > 65535) { SetStatus("Give a port between 1 and 65535."); return; }
+        SetBusy(true, "Starting the document server …");
+        try
+        {
+            _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port });
+            var message = $"Serving {_host.Nodes} node(s) of this document at {_host.EndpointUrl}.";
+            PluginLog.Info(message);
+            SetStatus(message);
+            if (_client == null) EndpointBox.Text = _host.EndpointUrl;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Starting the document server failed", ex);
+            SetStatus("Starting the document server failed: " + ex.Message);
+        }
+        finally
+        {
+            SetBusy(false, null);
+            UpdateServerState();
         }
     }
 
@@ -310,7 +346,11 @@ public partial class OpcUaPlugin : ISupportsSelection
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
-        ServerStateText.Text = connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.";
+        ServeButton.Content = _host != null ? "Stop serving" : "Serve this document";
+        ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;
+        ServePortBox.IsEnabled = _host == null;
+        ServerStateText.Text = (connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.")
+                               + (_host != null ? $"    Serving this document at {_host.EndpointUrl}" : "");
     }
 }
 
