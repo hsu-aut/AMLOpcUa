@@ -315,6 +315,10 @@ internal sealed partial class AmlUaXsltTranslator
         else
             node.Ref("HasTypeDefinition", "AMLBaseVariableType");
         foreach (var r in References(attribute, objectId + "_" + name, nsId)) node.References.Add(r);
+        // D15: DIN SPEC 16592 maps Attribute.Unit to a Property "Unit", which
+        // the draft base types declare on AMLBaseVariableType; the XSLT drops it.
+        var unit = _compat ? "" : Attr(attribute, "Unit");
+        if (unit != "") node.Ref("HasProperty", FormatRef(objectId + "_" + name + "_Unit", nsId));
 
         var values = Kids(attribute, "Value").ToList();
         if (HasTypedValue(dataType))
@@ -328,10 +332,29 @@ internal sealed partial class AmlUaXsltTranslator
             node.Value = new XElement(Ua + "Value", new XElement(Uax + "String", Join(values)));
         }
         Emit(node);
+        if (unit != "") Unit(unit, objectId + "_" + name, nsId);
         // D3: References() points to the AML_ID of an Attribute with an ID,
         // which the XSLT never creates.
         if (!_compat) ApplyId(attribute);
         ApplyChildren(attribute);
+    }
+
+    /// <summary>
+    /// The Unit property of an attribute variable. Its BrowseName is in the
+    /// base types namespace, as the instance declaration on AMLBaseVariableType.
+    /// </summary>
+    private void Unit(string unit, string attributeId, string nsId)
+    {
+        var node = new UaNode("UAVariable", FormatRef(attributeId + "_Unit", nsId), NamespaceIdByName(AmlUri) + ":Unit")
+        {
+            ParentNodeId = FormatRef(attributeId, nsId),
+            DataType = "String",
+            DisplayName = "Unit",
+            Value = new XElement(Ua + "Value", new XElement(Uax + "String", unit)),
+        };
+        node.Ref("HasTypeDefinition", "i=68");
+        node.Ref("HasProperty", FormatRef(attributeId, nsId), forward: false);
+        Emit(node);
     }
 
     /// <summary>

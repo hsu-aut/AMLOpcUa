@@ -112,6 +112,21 @@ public class ExportConformanceTests(ITestOutputHelper output)
     private static bool IsD14(Difference d) =>
         Is(d, DifferenceKind.OnlyLeft, @"/requires:http://opcfoundation\.org/UA/AML/.+$");
 
+    // D15: attributes with a unit get a Unit property; the XSLT drops it.
+    private static bool IsD15(Difference d) =>
+        Is(d, DifferenceKind.OnlyLeft, @"_Unit(/.*)?$|/ref:i=46>.*_Unit$");
+
+    [Fact]
+    public void D15_writes_the_unit_of_an_attribute_as_Unit_property()
+    {
+        var nodeSet = Export("5_SUC", compat: false);
+        var unit = nodeSet.Descendants().Single(e => e.Name.LocalName == "UAVariable" && ((string)e.Attribute("NodeId")!).EndsWith("_SU_Attr_Unit"));
+
+        Assert.EndsWith(":Unit", (string)unit.Attribute("BrowseName")!);
+        Assert.Equal("m", unit.Descendants().Single(e => e.Name.LocalName == "String").Value);
+        Assert.DoesNotContain(Export("5_SUC", compat: true).Descendants(), e => ((string?)e.Attribute("NodeId"))?.EndsWith("_Unit") == true);
+    }
+
     [Fact]
     public void D14_shows_in_the_files_that_use_the_standard_libraries()
     {
@@ -124,7 +139,7 @@ public class ExportConformanceTests(ITestOutputHelper output)
     public void By_default_the_graph_differs_only_by_documented_deviations(string name)
     {
         var diffs = Report(new NodeSetComparer().Compare(Export(name, compat: false), Expected(name)))
-            .Where(d => !IsD14(d)).ToList();
+            .Where(d => !IsD14(d) && !IsD15(d)).ToList();
         var deviations = Deviations.Where(d => d.File == name).ToList();
 
         Assert.Empty(diffs.Where(d => !deviations.Any(dev => dev.Explains(d))));
