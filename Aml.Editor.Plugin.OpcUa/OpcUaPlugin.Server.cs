@@ -275,9 +275,11 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             var result = await AddressSpaceMirror.MirrorAsync(_client, node, ih, new MirrorOptions { Depth = Math.Clamp(depth, 1, 20) });
-            var message = $"Took {result.Nodes} node(s) of {node.DisplayName} into '{ih.Name}', {result.Typed} typed by an imported UA type."
+            var message = $"Took {result.Nodes} node(s) of {node.DisplayName} into '{ih.Name}', {result.Typed} typed by an imported UA type"
+                          + (result.Linked > 0 ? $", {result.Linked} linked to their planned element (refBaseObj)." : ".")
                           + (result.Truncated ? " Stopped at the node limit." : "");
             PluginLog.Info(message);
+            foreach (var note in result.Notes) PluginLog.Info("Mirror: " + note);
             SetStatus(message + " Press Ctrl+S to save.");
             Selected?.Invoke(this, new SelectionEventArgs(result.Root));
         }
