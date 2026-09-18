@@ -60,6 +60,16 @@ server it was bound to ([export](export.md), D16).
   its UA type as RefBaseSystemUnitPath when the document holds the type's
   library (matched by the NodeId every generated class carries). Variables get
   a `Value` attribute with the current value and an XML Schema data type.
+  When the document already models a node, that is an element with the same
+  NodeId (the planned object), the mirrored element becomes an aspect of it:
+  a `refBaseObj` of the AutomationML object reference attribute types (Drath,
+  Nabizada, 1.1.1-beta) holds the planned element's ID. The planned model is
+  not changed, the library is added to the document if missing. Planned
+  elements are searched in a chosen InstanceHierarchy (`--plan` on the
+  command line), or in the whole document outside the target, leaving out
+  elements that are aspects themselves. A node claimed by several planned
+  elements is not linked, and a type that differs between server and plan is
+  reported; both appear as notes. `--no-link` turns linking off.
 - **Bind to element**: writes the selected node's NodeId attribute onto an
   element of your choice; the editor then selects that element.
 - **Read current values** (`ValueSnapshot`): every element with a NodeId and a
