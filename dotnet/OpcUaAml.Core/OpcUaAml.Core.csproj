@@ -22,4 +22,11 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Embedded unmodified: the editor does not follow file references, so
+         links carry their attribute types inside the document. -->
+    <EmbeddedResource Include="..\..\libraries\AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml"
+                      Link="libraries\AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CAEXFile SchemaVersion="3.0" FileName="AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.dke.de/CAEX" xsi:schemaLocation="http://www.dke.de/CAEX CAEX_ClassModel_V.3.0.xsd">
+  <SuperiorStandardVersion>AutomationML 2.1</SuperiorStandardVersion>
+  <SourceDocumentInformation OriginName="ObjectReferences_AttributeTypeLib" OriginID="748ac5ba-719f-4a2c-bde7-759d99256aa6" OriginVersion="1.1.1-beta" LastWritingDateTime="2026-08-12T09:42:46.3487055+02:00" OriginProjectID="" OriginProjectTitle="" OriginRelease="1.1.1-beta" OriginVendor="AutomationML" OriginVendorURL="https://automationml.org/AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml" />
+  <AttributeTypeLib Name="AutomationML_ObjectReferences_AttributeTypeLib" ID="207a2f21-f41a-47f7-b8a7-1e640cad289c">
+    <Description>Library of object reference types</Description>
+    <Version>1.1.1-beta</Version>
+    <AttributeType Name="refObj" ID="6bfeebe7-d1f4-4085-b34d-dea400a87740" AttributeDataType="xs:IDREF">
+      <Description>refObj is an abstract attribute type for modelling object references. Its value references another AML object, its semantic is unspecific. Derived reference attribute types specify the semantic meaning of the relationship, such as identity, aspect, abstraction, or refinement.</Description>
+      <Version>1.0.0</Version>
+    </AttributeType>
+    <AttributeType Name="refBaseObj" ID="94df107c-15e4-4381-92c1-b0ad8043d19d" AttributeDataType="xs:IDREF" RefAttributeType="AutomationML_ObjectReferences_AttributeTypeLib/refObj">
+      <Description>refBaseObj is an attribute type attached to an aspect object. Its value shall reference the corresponding base object. The aspect object and the referenced base object represent the same logical object while containing complementary information. This mechanism enables distributed modelling of logical objects across different hierarchies, contexts, ownership boundaries, and aspects. </Description>
+      <Version>1.0.0</Version>
+    </AttributeType>
+    <AttributeType Name="refAspectObj" ID="629175a1-9813-4678-a6aa-0d8d278c0f01" AttributeDataType="xs:IDREF" RefAttributeType="AutomationML_ObjectReferences_AttributeTypeLib/refObj">
+      <Description>refAspectObj is an attribute type attached to a base object. Its value shall reference an aspect object representing the same logical object. The attribute is optional and provides a reverse reference to distributed aspect representations. It facilitates discovery and navigation of complementary object descriptions without changing the semantic relationship established by the corresponding refBaseObj reference.</Description>
+      <Version>1.0.0</Version>
+    </AttributeType>
+    <AttributeType Name="refDetailObj" ID="223848cc-78a2-47f9-b593-3f86a1bccf7d" AttributeDataType="xs:IDREF" RefAttributeType="AutomationML_ObjectReferences_AttributeTypeLib/refObj">
+      <Description>refDetailObj is an attribute type attached to an abstract object. Its value references a distinct object that provides a more detailed representation of the same subject, typically including its internal structure or subordinate objects. The referenced object may have a different type and may be located in another hierarchy.</Description>
+      <Version>1.0.0</Version>
+    </AttributeType>
+    <AttributeType Name="refAbstractObj" ID="7dc12b9e-70fe-4c48-90a9-39a632419530" AttributeDataType="xs:IDREF" RefAttributeType="AutomationML_ObjectReferences_AttributeTypeLib/refObj">
+      <Description>refAbstractObj is an attribute type attached to a detail object. Its value references the distinct object that represents the same subject at a higher level of abstraction. The referenced object may have a different type and may be located in another hierarchy.</Description>
+      <Version>1.0.0</Version>
+    </AttributeType>
+  </AttributeTypeLib>
+</CAEXFile>

@@ -25,6 +25,7 @@ public static class Rules
     public const string DanglingLink = "UA005";
     public const string WrongLinkPair = "UA006";
     public const string PlaceholderInInstance = "UA007";
+    public const string BrokenVdi3682Link = "UA008";
 
     public static readonly IReadOnlyDictionary<string, string> Descriptions = new Dictionary<string, string>
     {
@@ -35,6 +36,7 @@ public static class Rules
         [DanglingLink] = "An InternalLink points to an interface that does not exist.",
         [WrongLinkPair] = "An InternalLink connects reference interfaces that do not belong together (RefClassConnectsToPath).",
         [PlaceholderInInstance] = "A placeholder declaration (<Name>) was copied into an instance.",
+        [BrokenVdi3682Link] = "A VDI 3682 element links to an OPC UA element that does not exist.",
     };
 }
 
@@ -56,6 +58,9 @@ public static class AnnexAChecker
                 CheckLinks(doc, ie, interfaces, findings);
             }
         }
+        foreach (var link in Links.Vdi3682Links.Links(doc).Where(l => l.Target == null))
+            findings.Add(new Finding(Rules.BrokenVdi3682Link, Severity.Warning, PathOf(link.Source),
+                $"links to '{link.TargetId}', which is not in the document.", link.Source.ID));
         return findings;
     }
 
