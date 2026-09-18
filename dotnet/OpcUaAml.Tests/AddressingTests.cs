@@ -110,6 +110,36 @@ public class AddressingTests
     }
 
     [Fact]
+    public void A_data_source_reads_the_DIN_SPEC_description_and_asks_for_security_as_described()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("IH");
+        var plc = ih.InternalElement.Append("PLC");
+        plc.Attribute.Append("EndpointURL").Value = "opc.tcp://plc:4840";
+        plc.Attribute.Append("MessageSecurityMode").Value = "None";
+        plc.Attribute.Append("TransportProfileURI").Value = "http://opcfoundation.org/UA-Profile/Transport/uatcp-uasc-uabinary";
+        plc.Attribute.Append("UserToken").Value = "Anonymous";
+        var secure = ih.InternalElement.Append("Secure");
+        secure.Attribute.Append("DiscoveryURL").Value = "opc.tcp://secure:4840";
+        secure.Attribute.Append("SecurityPolicy").Value = "http://opcfoundation.org/UA/SecurityPolicy#Basic256Sha256";
+        var address = new UaNodeAddress("http://example.org/Plant/", UaIdType.Numeric, "1");
+        BprDataVariable.Write(ih.InternalElement.Append("A"), "X", address, plc);
+        BprDataVariable.Write(ih.InternalElement.Append("B"), "Y", address, plc);
+        BprDataVariable.Write(ih.InternalElement.Append("C"), "Z", address, secure);
+
+        var sources = BprDataVariable.SourcesIn(doc);
+
+        Assert.Equal(new[] { "PLC", "Secure" }, sources.Select(s => s.Element.Name));
+        var first = sources[0];
+        Assert.Equal("Anonymous", first.UserToken);
+        Assert.EndsWith("uatcp-uasc-uabinary", first.TransportProfileUri);
+        Assert.False(first.ToConnectOptions().UseSecurity);
+        var second = sources[1].ToConnectOptions();
+        Assert.Equal("opc.tcp://secure:4840", second.EndpointUrl);
+        Assert.True(second.UseSecurity);
+    }
+
+    [Fact]
     public void The_three_conventions_convert_into_each_other()
     {
         var doc = CAEXDocument.New_CAEXDocument();

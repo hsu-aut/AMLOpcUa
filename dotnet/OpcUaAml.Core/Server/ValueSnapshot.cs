@@ -1,6 +1,7 @@
 // Current values from a running server into the document, for everything
 // that is bound to a node: elements with an Annex A NodeId (their Value
-// attribute) and BPR DataVariables (the variable attribute itself). The result
+// attribute), BPR DataVariables (the variable attribute itself) and the older
+// "aml-opcua-variable" binding of Kühnert et al. (its parent attribute). The result
 // is a document "as is" at one point in time; nothing is subscribed.
 
 using Aml.Engine.CAEX;
@@ -37,6 +38,21 @@ public static class ValueSnapshot
             {
                 if (OtherServer(address.ServerUri, client)) skipped++;
                 else targets.Add((r => SetValue(ie, r), address with { ServerUri = null }, ie.Name));
+            }
+
+            foreach (var legacy in AllAttributes(ie).Where(LegacyOpcUaVariable.IsBound))
+            {
+                try
+                {
+                    var (server, nodeId) = LegacyOpcUaVariable.Read(legacy);
+                    if (!SameUrl(server, client)) { skipped++; continue; }
+                    // The index belongs to exactly this server, so its table resolves it.
+                    targets.Add((r => SetAttribute(legacy, r), UaNodeAddress.Parse(nodeId, client.NamespaceTable), $"{ie.Name}/{legacy.Name}"));
+                }
+                catch (Exception ex) when (ex is AddressingException or FormatException)
+                {
+                    problems.Add($"{ie.Name}/{legacy.Name}: {ex.Message}");
+                }
             }
 
             foreach (var dv in ie.Attribute.Where(BprDataVariable.IsDataVariable))
@@ -104,12 +120,12 @@ public static class ValueSnapshot
     private static bool OtherServer(string? serverUri, UaClient client) =>
         serverUri != null && client.ServerUri != null && serverUri != client.ServerUri;
 
-    private static bool SameEndpoint(DataSource source, UaClient client)
-    {
-        var url = source.EndpointUrl ?? source.DiscoveryUrl;
-        if (url == null) return true;
-        return Normalize(url) == Normalize(client.EndpointUrl);
+    private static bool SameEndpoint(DataSource source, UaClient client) => source.Url == null || SameUrl(source.Url, client);
 
-        static string Normalize(string u) => u.TrimEnd('/').ToLowerInvariant().Replace("://127.0.0.1", "://localhost");
-    }
+    private static bool SameUrl(string url, UaClient client) => Normalize(url) == Normalize(client.EndpointUrl);
+
+    private static string Normalize(string u) => u.TrimEnd('/').ToLowerInvariant().Replace("://127.0.0.1", "://localhost");
+
+    private static IEnumerable<AttributeType> AllAttributes(IObjectWithAttributes owner) =>
+        owner.Attribute.SelectMany(a => new[] { a }.Concat(AllAttributes(a)));
 }

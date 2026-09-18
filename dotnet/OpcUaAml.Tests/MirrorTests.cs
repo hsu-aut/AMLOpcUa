@@ -85,4 +85,20 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         Assert.True(result.Skipped >= 1);
         Assert.Contains(result.Problems, p => p.StartsWith("Ghost") && p.Contains("BadNodeIdUnknown"));
     }
+
+    [Fact]
+    public async Task A_snapshot_fills_the_older_aml_opcua_variable_binding()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var index = client.NamespaceTable.ToList().IndexOf(TestServer.Namespace);
+        var element = di.Hierarchy("Legacy").InternalElement.Append("Motor");
+        var value = element.Attribute.Append("Temperature");
+        var binding = value.Attribute.Append(LegacyOpcUaVariable.SubAttribute);
+        binding.Attribute.Append("ServerAddress").Value = server.EndpointUrl;
+        binding.Attribute.Append("VariableNodeId").Value = $"ns={index};s=Plant.Pump1.Motor.Temperature";
+
+        await ValueSnapshot.ApplyAsync(di.Document, client);
+
+        Assert.Equal("42", value.Value);
+    }
 }

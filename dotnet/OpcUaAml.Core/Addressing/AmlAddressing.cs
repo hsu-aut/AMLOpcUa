@@ -141,8 +141,36 @@ public static class MtpOpcUaItem
     }
 }
 
-/// <summary>The server element a DataVariable points to.</summary>
-public sealed record DataSource(string? EndpointUrl, string? DiscoveryUrl, IReadOnlyList<string> NamespaceTable, InternalElementType Element);
+/// <summary>
+/// The server element a DataVariable points to. BPR 007 names DiscoveryURL,
+/// EndpointURL, SecurityPolicy and NameSpaceTable; DIN SPEC 16592 clause 6
+/// adds TransportProfileURI, MessageSecurityMode and UserToken.
+/// </summary>
+public sealed record DataSource(string? EndpointUrl, string? DiscoveryUrl, IReadOnlyList<string> NamespaceTable, InternalElementType Element)
+{
+    public string? SecurityPolicy { get; init; }
+    public string? MessageSecurityMode { get; init; }
+    public string? TransportProfileUri { get; init; }
+    public string? UserToken { get; init; }
+
+    /// <summary>The URL to connect to: EndpointURL, else DiscoveryURL.</summary>
+    public string? Url => EndpointUrl ?? DiscoveryUrl;
+
+    /// <summary>
+    /// Connection options from the description: security is asked for unless
+    /// MessageSecurityMode or SecurityPolicy say None. Credentials are never
+    /// taken from a document.
+    /// </summary>
+    public Server.UaConnectOptions ToConnectOptions(bool acceptUntrusted = false) => new()
+    {
+        EndpointUrl = Url ?? throw new AddressingException($"'{Element.Name}' has neither EndpointURL nor DiscoveryURL."),
+        UseSecurity = !IsNone(MessageSecurityMode) && !IsNone(SecurityPolicy),
+        AcceptUntrustedServerCertificates = acceptUntrusted,
+    };
+
+    private static bool IsNone(string? value) =>
+        value != null && (value.Equals("None", StringComparison.OrdinalIgnoreCase) || value.EndsWith("#None", StringComparison.Ordinal));
+}
 
 public static class BprDataVariable
 {
@@ -174,9 +202,26 @@ public static class BprDataVariable
                 if (table.Count == index) table.Add(entry.Value ?? "");
             }
         }
-        return new DataSource(AnnexANodeId.Value(server.Attribute["EndpointURL"]),
-            AnnexANodeId.Value(server.Attribute["DiscoveryURL"]), table, server);
+        return new DataSource(Named(server, "EndpointURL"), Named(server, "DiscoveryURL"), table, server)
+        {
+            SecurityPolicy = Named(server, "SecurityPolicy"),
+            MessageSecurityMode = Named(server, "MessageSecurityMode"),
+            TransportProfileUri = Named(server, "TransportProfileURI"),
+            UserToken = Named(server, "UserToken"),
+        };
     }
+
+    /// <summary>The server elements the document's DataVariables point to, each once.</summary>
+    public static IReadOnlyList<DataSource> SourcesIn(CAEXDocument doc) =>
+        doc.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>())
+            .SelectMany(ie => ie.Attribute.Where(IsDataVariable))
+            .Select(dv => AnnexANodeId.Value(Sub(dv, "RefDataSource")))
+            .Where(id => id != null).Distinct()
+            .Select(id => doc.FindByID(id!, true, null) as InternalElementType)
+            .Where(e => e != null).Select(e => SourceOf(e!)).ToList();
+
+    private static string? Named(InternalElementType server, string name) =>
+        AnnexANodeId.Value(server.Attribute.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase)));
 
     /// <summary>
     /// Writes a DataVariable attribute. The index is taken from the server's
@@ -214,4 +259,28 @@ public static class BprDataVariable
 
     private static AttributeType? Sub(AttributeType a, string name) =>
         a.Attribute.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+}
+
+/// <summary>
+/// The binding of Kühnert, Schleipen et al. (2016), before BPR 007: an
+/// attribute whose value changes at run time carries a sub-attribute
+/// "aml-opcua-variable" with ServerAddress and VariableNodeId. Read only; the
+/// namespace index of VariableNodeId belongs to that server.
+/// </summary>
+public static class LegacyOpcUaVariable
+{
+    public const string SubAttribute = "aml-opcua-variable";
+
+    public static bool IsBound(AttributeType a) => a.Attribute[SubAttribute] != null;
+
+    public static (string ServerAddress, string NodeId) Read(AttributeType attribute)
+    {
+        var binding = attribute.Attribute[SubAttribute]
+            ?? throw new AddressingException($"'{attribute.Name}' has no {SubAttribute}.");
+        var server = AnnexANodeId.Value(binding.Attribute["ServerAddress"])
+            ?? throw new AddressingException($"'{attribute.Name}': {SubAttribute} has no ServerAddress.");
+        var nodeId = AnnexANodeId.Value(binding.Attribute["VariableNodeId"])
+            ?? throw new AddressingException($"'{attribute.Name}': {SubAttribute} has no VariableNodeId.");
+        return (server, nodeId);
+    }
 }
