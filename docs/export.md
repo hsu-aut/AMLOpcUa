@@ -252,3 +252,14 @@ group.
 - Size: the AML libraries of UA and DI (`Opc.Ua.Di.NodeSet2.xml.amlx`) give
   285 000 nodes in 13 seconds; the whole NodeSet is built in memory.
 - Writing `.amlx`, and the plugin UI for the export, are not part of this stage.
+- An ExternalDataConnector's `refURI` (a reference into another file) gives
+  no reference. Wassilew et al. (2016, 2017) propose `HasAMLExternalLink` for
+  it; the draft base types have no such ReferenceType.
+- Variables are `AMLBaseVariableType` or the AttributeType's VariableType.
+  The DataAccess types of Part 8 (AnalogItemType, TwoStateDiscreteType,
+  MultiStateDiscreteType), chosen by data type as Wassilew et al. do, would
+  depart from both the XSLT and DIN SPEC 16592; not done.
+- Deliberately not done, because the draft base types define neither and the
+  choice belongs to the working group: `HasAMLUAReference` (bound attributes
+  get `AMLOpcUaConnectionType` instead, D16) and DIN SPEC 16592's split into
+  `HasAMLSupportedRoleClass` and `HasAMLRoleRequirement`.
