@@ -16,7 +16,6 @@ can be reported upstream and reapplied after an update.
 |---|---|
 | 0001 skip unresolvable non-hierarchical references | DI 1.05.0 made `ConnectsTo` non-hierarchical. The placeholders `<CPIdentifier>` (under `NetworkType`) and `<NetworkIdentifier>` (under `ConnectionPointType`) are attached to their type only through it, so Opc2Aml finds no element for the reference and throws a `NullReferenceException` for every NodeSet that depends on DI 1.05.0. The patch skips such a reference and reports it in a new `NodeSetToAML.Warnings` list. |
 | 0002 OPC UA stack 1.5.378 under MIT | Opc2Aml references OPC UA .NET Standard 1.5.375.443, published under the OPC Foundation's dual license (RCL/GPL 2.0). 1.5.378 is the first release under MIT. It seals `ExpandedNodeId`, from which `AmlExpandedNodeId` derived; the class now wraps one. IDs are unchanged: the test `Class_IDs_are_identical_to_the_published_library` compares them with the libraries the OPC Foundation generated with 1.5.375. |
-
 | 0003 model order without cycles | `OrderModelInfo.AddCompiled` collected the requirements of every model in a NodeSet file for each of them and recursed without a visited check. A NodeSet that declares several models requiring each other (an AML document exported by the AML-UA-XSLT rules declares one per library) sent it into endless recursion and a stack overflow. Now only the model's own entry counts, and a model already collected is not entered again. |
 
 ## Updating
