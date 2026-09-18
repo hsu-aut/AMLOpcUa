@@ -86,8 +86,11 @@ Across all documents:
   `1_AMLBaseLibraries`, 13 of 22 in the VDI 3682 library). Annex A knows OPC UA
   types only, and every type becomes a SystemUnitClass; the kind survives only
   in the library name (`SUC_http://opcfoundation.org/UA/AML/RoleClassLib1`).
-- Units are lost (0/1 in `5_SUC`, `6_RCL`, `7_ICL`; 0/5 in `13_Facet`). The
-  export writes no EngineeringUnits.
+- Units were lost (0/1 in `5_SUC`, `6_RCL`, `7_ICL`; 0/5 in `13_Facet`),
+  because the XSLT drops `Attribute/@Unit`. Since D15 the export writes a
+  `Unit` property, and all units are recoverable (1/1 and 5/5). They come
+  back as a child element `Unit` whose value is the unit, not as the CAEX
+  `Unit` of the attribute: Annex A turns every property into an element.
 - InstanceHierarchies come back as an element below `OPC UA Instance
   Hierarchy`, not as hierarchies of their own.
 
@@ -102,6 +105,7 @@ requirements, and SupportedRoleClasses.
 | Opc2Aml | ObjectTypes below Objects counted as instances | Patch 0004 |
 | Export | D13: CAEX 3.0 bracket paths not resolved | [export](export.md) |
 | Export | D14: models of imported AML libraries not required | [export](export.md), `Opc.Ua.AMLStandardLibraries.NodeSet2.xml` |
+| Export and AML-UA-XSLT | D15: units dropped | [export](export.md) |
 | AML-UA-XSLT | Mirror objects without HasTypeDefinition | open, question for the working group |
 
 Chain B needs two NodeSets that the working group does not publish as files:
