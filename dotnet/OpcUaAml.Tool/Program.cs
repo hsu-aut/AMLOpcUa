@@ -54,8 +54,9 @@ public static class Program
             Take the node and the nodes below it into the document, with NodeIds,
             UA types (where the document holds them) and current values.
 
-        uaaml snapshot <endpoint> <doc.aml> [--secure] [--accept] [-o <out.aml>]
-            Read the current value of every bound element and DataVariable.
+        uaaml snapshot [<endpoint>] <doc.aml> [--secure] [--accept] [-o <out.aml>]
+            Read the current value of every bound element and DataVariable. Without
+            an endpoint, from every server the document names as a data source.
 
         uaaml serve <doc.aml> [--port <n>]
             Serve the document's instance hierarchies as an OPC UA server until Enter.
@@ -358,14 +359,29 @@ public static class Program
     private static async Task<int> SnapshotCommand(List<string> args)
     {
         var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--secure", "--accept" });
-        if (o.Positional.Count != 2) throw new ArgumentException("snapshot needs an endpoint and a document.");
-        var doc = Documents.Load(o.Positional[1]);
-        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
-        var result = await OpcUaAml.Server.ValueSnapshot.ApplyAsync(doc, client);
-        foreach (var p in result.Problems) Console.Error.WriteLine("warning: " + p);
-        Documents.Save(doc, o.One("-o") ?? o.Positional[1]);
-        Console.WriteLine(result + ".");
-        return result.Failed == 0 ? 0 : 1;
+        if (o.Positional.Count is not (1 or 2)) throw new ArgumentException("snapshot needs a document, optionally after an endpoint.");
+        var docPath = o.Positional[^1];
+        var doc = Documents.Load(docPath);
+
+        // Without an endpoint: every server the document names as a data
+        // source, with the security its description asks for.
+        var connections = o.Positional.Count == 2
+            ? new List<OpcUaAml.Server.UaConnectOptions> { Connect(o, o.Positional[0]) }
+            : OpcUaAml.Addressing.BprDataVariable.SourcesIn(doc).Where(s => s.Url != null)
+                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => g.First().ToConnectOptions(o.Has("--accept"))).ToList();
+        if (connections.Count == 0) throw new ArgumentException("The document names no server with an EndpointURL or DiscoveryURL; give an endpoint.");
+
+        var failed = 0;
+        foreach (var connection in connections)
+        {
+            await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(connection);
+            var result = await OpcUaAml.Server.ValueSnapshot.ApplyAsync(doc, client);
+            foreach (var p in result.Problems) Console.Error.WriteLine("warning: " + p);
+            Console.WriteLine($"{connection.EndpointUrl}: {result}.");
+            failed += result.Failed;
+        }
+        Documents.Save(doc, o.One("-o") ?? docPath);
+        return failed == 0 ? 0 : 1;
     }
 
     private static async Task<int> ServeCommand(List<string> args)
