@@ -1,6 +1,7 @@
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
+using OpcUaAml.Links;
 using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
@@ -100,5 +101,30 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         await ValueSnapshot.ApplyAsync(di.Document, client);
 
         Assert.Equal("42", value.Value);
+    }
+
+    [Fact]
+    public async Task A_mirrored_node_becomes_an_aspect_of_its_planned_element()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var plan = di.Hierarchy("Plan");
+        var pump = plan.InternalElement.Append("Pump P-101");
+        AnnexANodeId.Write(pump, new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Pump1"));
+        // Two planned elements claim the same node: no link, a note.
+        foreach (var name in new[] { "Speed A", "Speed B" })
+            AnnexANodeId.Write(plan.InternalElement.Append(name), new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Pump1.Speed"));
+
+        var result = await AddressSpaceMirror.MirrorAsync(client, await PlantFolder(client), di.Hierarchy("AsBuilt"),
+            new MirrorOptions { PlannedIn = plan, ReadValues = false });
+
+        var mirrored = result.Root.InternalElement["Pump1"]!;
+        var reference = mirrored.Attribute[ObjectReferences.RefBaseObj]!;
+        Assert.Equal(pump.ID, reference.Value);
+        Assert.Equal("AutomationML_ObjectReferences_AttributeTypeLib/refBaseObj", reference.RefAttributeType);
+        Assert.NotNull(di.Document.CAEXFile.AttributeTypeLib[ObjectReferences.Lib]);
+        Assert.Null(pump.Attribute[ObjectReferences.RefBaseObj]);
+        Assert.Null(mirrored.InternalElement["Speed"]!.Attribute[ObjectReferences.RefBaseObj]);
+        Assert.Equal(1, result.Linked);
+        Assert.Contains(result.Notes, n => n.StartsWith("Speed") && n.Contains("2 planned elements"));
     }
 }
