@@ -52,6 +52,20 @@ example of the AutomationML e.V. (these files are not part of the repository).
   endpoint) are skipped. Nothing is subscribed; the document records one
   point in time.
 
+## The document as a server
+
+**Serve this document** (`AmlServerHost`) starts a local OPC UA server whose
+address space is the document's instance hierarchies, so clients can be tested
+against the engineering model before the plant exists. Each instance
+hierarchy becomes a folder under Objects; elements become Objects, or
+Variables if their UA type is a VariableType or they carry a `Value` and no
+children. Elements with an Annex A NodeId keep it (the namespace is
+registered), the others get a string NodeId from their path in
+`urn:amlopcua:document`. Values come from the `Value` attributes, typed by
+their AttributeDataType. The address space is a snapshot of the document at
+start; restart to pick up changes. `AmlServerTests` serves a document and
+mirrors it back: structure and values survive.
+
 Values are written as AML holds them: invariant culture, XML Schema lexical
 forms, arrays separated by spaces.
 
