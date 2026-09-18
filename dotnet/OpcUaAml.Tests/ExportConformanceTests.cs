@@ -107,11 +107,24 @@ public class ExportConformanceTests(ITestOutputHelper output)
         new("11_Constraints", "D12", "InstanceHierarchy references its Version", d => Is(d, DifferenceKind.OnlyLeft, IhVersionReference)),
     };
 
+    // D14: every file requires the models of the AutomationML standard
+    // libraries it uses; the XSLT requires none of them.
+    private static bool IsD14(Difference d) =>
+        Is(d, DifferenceKind.OnlyLeft, @"/requires:http://opcfoundation\.org/UA/AML/.+$");
+
+    [Fact]
+    public void D14_shows_in_the_files_that_use_the_standard_libraries()
+    {
+        var diffs = Report(new NodeSetComparer().Compare(Export("5_SUC", compat: false), Expected("5_SUC")));
+        Assert.Contains(diffs, d => IsD14(d) && d.Path.EndsWith("requires:http://opcfoundation.org/UA/AML/AutomationMLBaseRoleClassLib"));
+    }
+
     [Theory]
     [MemberData(nameof(Pairs))]
     public void By_default_the_graph_differs_only_by_documented_deviations(string name)
     {
-        var diffs = Report(new NodeSetComparer().Compare(Export(name, compat: false), Expected(name)));
+        var diffs = Report(new NodeSetComparer().Compare(Export(name, compat: false), Expected(name)))
+            .Where(d => !IsD14(d)).ToList();
         var deviations = Deviations.Where(d => d.File == name).ToList();
 
         Assert.Empty(diffs.Where(d => !deviations.Any(dev => dev.Explains(d))));
@@ -233,6 +246,7 @@ public class ExportConformanceTests(ITestOutputHelper output)
     {
         var dates = Export("5_SUC", compat: false).Descendants()
             .Where(e => e.Name.LocalName is "Model" or "RequiredModel")
+            .Where(e => e.Attribute("PublicationDate") != null) // D14 requires a library's model without a date
             .Where(e => ((string)e.Attribute("ModelUri")!).StartsWith("http://opcfoundation.org/UA/AML/")
                         && (string)e.Attribute("ModelUri")! != "http://opcfoundation.org/UA/AML/")
             .Select(e => (string)e.Attribute("PublicationDate")!)
