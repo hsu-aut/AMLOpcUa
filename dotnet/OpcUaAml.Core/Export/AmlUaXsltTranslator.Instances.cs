@@ -299,6 +299,8 @@ internal sealed partial class AmlUaXsltTranslator
         var attrLibName = PathLib(refAttributeType);
         var amlAttributeType = attrLibName != "" ? GetClass(refAttributeType) : ClassLookup.None;
         var attrLibId = NamespaceIdByName(attrLibName);
+        var connection = _compat || amlAttributeType.ClassName("AttributeType") != null || attrLibName.Contains('@')
+            ? null : ConnectionOf(attribute);
 
         var node = new UaNode("UAVariable", FormatRef(objectId + "_" + name, nsId), nsId + ":" + name)
         {
@@ -312,6 +314,8 @@ internal sealed partial class AmlUaXsltTranslator
             node.Ref("HasTypeDefinition", FormatRef(typeName, attrLibId));
         else if (attrLibName.Contains('@'))
             node.Ref("HasTypeDefinition", attrAliasName);
+        else if (connection != null)
+            node.Ref("HasTypeDefinition", $"ns={NamespaceIdByName(AmlUri)};i=3002");
         else
             node.Ref("HasTypeDefinition", "AMLBaseVariableType");
         foreach (var r in References(attribute, objectId + "_" + name, nsId)) node.References.Add(r);
@@ -319,6 +323,8 @@ internal sealed partial class AmlUaXsltTranslator
         // the draft base types declare on AMLBaseVariableType; the XSLT drops it.
         var unit = _compat ? "" : Attr(attribute, "Unit");
         if (unit != "") node.Ref("HasProperty", FormatRef(objectId + "_" + name + "_Unit", nsId));
+        foreach (var (component, _) in connection ?? new())
+            node.Ref("HasComponent", FormatRef(objectId + "_" + name + "_" + component, nsId));
 
         var values = Kids(attribute, "Value").ToList();
         if (HasTypedValue(dataType))
@@ -333,6 +339,8 @@ internal sealed partial class AmlUaXsltTranslator
         }
         Emit(node);
         if (unit != "") Unit(unit, objectId + "_" + name, nsId);
+        foreach (var (component, value) in connection ?? new())
+            ConnectionComponent(component, value, objectId + "_" + name, nsId);
         // D3: References() points to the AML_ID of an Attribute with an ID,
         // which the XSLT never creates.
         if (!_compat) ApplyId(attribute);
@@ -354,6 +362,52 @@ internal sealed partial class AmlUaXsltTranslator
         };
         node.Ref("HasTypeDefinition", "i=68");
         node.Ref("HasProperty", FormatRef(attributeId, nsId), forward: false);
+        Emit(node);
+    }
+
+    /// <summary>
+    /// D16: a BPR 007 DataVariable (sub-attributes NodeId and RefDataSource)
+    /// binds an attribute to a node of a running server. The draft base types
+    /// have AMLOpcUaConnectionType for that, which the XSLT never uses. Returns
+    /// its components, or null when the attribute is no DataVariable or the
+    /// Mandatory VariableNodeId and ServerAddress cannot be filled.
+    /// </summary>
+    private List<(string Component, string Value)>? ConnectionOf(XElement attribute)
+    {
+        var nodeId = SubValue(attribute, "NodeId");
+        var sourceId = SubValue(attribute, "RefDataSource");
+        if (nodeId == null || sourceId == null) return null;
+        var server = _root.Descendants().FirstOrDefault(e => L(e) == "InternalElement" && Attr(e, "ID") == sourceId);
+        var address = server == null ? null : SubValue(server, "EndpointURL") ?? SubValue(server, "DiscoveryURL");
+        if (address == null) return null;
+
+        // The index of "ns=2;i=5" refers to the server's NameSpaceTable; the
+        // export writes the namespace URI, which stays valid without the server.
+        var table = Kids(server!, "Attribute").FirstOrDefault(a => string.Equals(Attr(a, "Name"), "NameSpaceTable", StringComparison.OrdinalIgnoreCase));
+        var match = System.Text.RegularExpressions.Regex.Match(nodeId, @"^ns=(\d+);(.+)$");
+        if (match.Success && table != null
+            && Kids(table, "Attribute").FirstOrDefault(a => Attr(a, "Name") == match.Groups[1].Value) is { } entry
+            && Kids(entry, "Value").FirstOrDefault()?.Value is { Length: > 0 } uri)
+            nodeId = $"nsu={uri};{match.Groups[2].Value}";
+
+        return new() { ("VariableNodeId", nodeId), ("ServerAddress", address), ("ServerAlias", Attr(server!, "Name")) };
+    }
+
+    private static string? SubValue(XElement owner, string name) =>
+        Kids(owner, "Attribute").FirstOrDefault(a => string.Equals(Attr(a, "Name"), name, StringComparison.OrdinalIgnoreCase)) is { } a
+        && Kids(a, "Value").FirstOrDefault()?.Value is { Length: > 0 } v ? v : null;
+
+    private void ConnectionComponent(string component, string value, string attributeId, string nsId)
+    {
+        var node = new UaNode("UAVariable", FormatRef(attributeId + "_" + component, nsId), NamespaceIdByName(AmlUri) + ":" + component)
+        {
+            ParentNodeId = FormatRef(attributeId, nsId),
+            DataType = "String",
+            DisplayName = component,
+            Value = new XElement(Ua + "Value", new XElement(Uax + "String", value)),
+        };
+        node.Ref("HasTypeDefinition", "BaseDataVariableType");
+        node.Ref("HasComponent", FormatRef(attributeId, nsId), forward: false);
         Emit(node);
     }
 
