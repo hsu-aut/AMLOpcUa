@@ -50,9 +50,11 @@ public static class Program
         uaaml browse <endpoint> [<nsu=...;s=...>] [--secure] [--accept]
             Children of a node of a running server (Objects when omitted).
 
-        uaaml mirror <endpoint> <node> <doc.aml> [--hierarchy <name>] [--depth <n>] [--secure] [--accept] [-o <out.aml>]
+        uaaml mirror <endpoint> <node> <doc.aml> [--hierarchy <name>] [--plan <hierarchy>] [--no-link] [--depth <n>] [--secure] [--accept] [-o <out.aml>]
             Take the node and the nodes below it into the document, with NodeIds,
-            UA types (where the document holds them) and current values.
+            UA types (where the document holds them) and current values. A node the
+            document already models (same NodeId, in --plan or anywhere) is linked
+            to that planned element with refBaseObj, unless --no-link.
 
         uaaml snapshot [<endpoint>] <doc.aml> [--secure] [--accept] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
@@ -341,7 +343,7 @@ public static class Program
 
     private static async Task<int> MirrorCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--hierarchy", "--depth", "-o" }, flags: new[] { "--secure", "--accept" });
+        var o = Options.Parse(args, valued: new[] { "--hierarchy", "--plan", "--depth", "-o" }, flags: new[] { "--secure", "--accept", "--no-link" });
         if (o.Positional.Count != 3) throw new ArgumentException("mirror needs an endpoint, a node and a document.");
         var doc = Documents.Load(o.Positional[2]);
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
@@ -350,9 +352,14 @@ public static class Program
         var ihName = o.One("--hierarchy") ?? "OpcUaServer";
         var ih = doc.CAEXFile.InstanceHierarchy[ihName] ?? doc.CAEXFile.InstanceHierarchy.Append(ihName);
         var depth = int.TryParse(o.One("--depth"), out var d) ? d : 3;
-        var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorAsync(client, start, ih, new OpcUaAml.Server.MirrorOptions { Depth = depth });
+        var plan = o.One("--plan") is { } planName
+            ? doc.CAEXFile.InstanceHierarchy[planName] ?? throw new ArgumentException($"No InstanceHierarchy '{planName}'.")
+            : null;
+        var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorAsync(client, start, ih,
+            new OpcUaAml.Server.MirrorOptions { Depth = depth, PlannedIn = plan, LinkToPlanned = !o.Has("--no-link") });
+        foreach (var note in result.Notes) Console.Error.WriteLine("note: " + note);
         Documents.Save(doc, o.One("-o") ?? o.Positional[2]);
-        Console.WriteLine($"{result.Nodes} node(s), {result.Typed} typed{(result.Truncated ? ", truncated" : "")}.");
+        Console.WriteLine($"{result.Nodes} node(s), {result.Typed} typed, {result.Linked} linked to the plan{(result.Truncated ? ", truncated" : "")}.");
         return 0;
     }
 
