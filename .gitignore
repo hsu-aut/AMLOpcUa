@@ -1,0 +1,13 @@
+bin/
+obj/
+build/
+*.user
+.vs/
+TestResults/
+
+# Aml.Engine drops the CAEX schema next to any file it saves, wherever that is.
+**/CAEX_ClassModel_V.3.0.xsd
+**/CAEX_ClassModel_V2.15.xsd
+
+# Written by Opc2Aml when its trace configuration is loaded.
+*.report.txt

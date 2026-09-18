@@ -1,0 +1,56 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "third_party", "third_party", "{9896DBC6-1523-4BA2-A9EE-10B958A93316}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Opc2Aml", "third_party\Opc2Aml\Opc2Aml.csproj", "{BE0A46ED-23D5-4D7E-8F47-710446966E10}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "dotnet", "dotnet", "{F10245D8-AD71-4063-86EF-E0E36D56EBD9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpcUaAml.Core", "dotnet\OpcUaAml.Core\OpcUaAml.Core.csproj", "{CF371743-5334-4440-8FF3-FB364E93183B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpcUaAml.Tests", "dotnet\OpcUaAml.Tests\OpcUaAml.Tests.csproj", "{2C0F0262-8809-4D06-9F6D-A820B8FAB196}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpcUaAml.Tool", "dotnet\OpcUaAml.Tool\OpcUaAml.Tool.csproj", "{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aml.Editor.Plugin.OpcUa", "Aml.Editor.Plugin.OpcUa\Aml.Editor.Plugin.OpcUa.csproj", "{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BE0A46ED-23D5-4D7E-8F47-710446966E10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE0A46ED-23D5-4D7E-8F47-710446966E10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE0A46ED-23D5-4D7E-8F47-710446966E10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE0A46ED-23D5-4D7E-8F47-710446966E10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF371743-5334-4440-8FF3-FB364E93183B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF371743-5334-4440-8FF3-FB364E93183B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF371743-5334-4440-8FF3-FB364E93183B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF371743-5334-4440-8FF3-FB364E93183B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C0F0262-8809-4D06-9F6D-A820B8FAB196}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C0F0262-8809-4D06-9F6D-A820B8FAB196}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C0F0262-8809-4D06-9F6D-A820B8FAB196}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C0F0262-8809-4D06-9F6D-A820B8FAB196}.Release|Any CPU.Build.0 = Release|Any CPU
+		{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BE0A46ED-23D5-4D7E-8F47-710446966E10} = {9896DBC6-1523-4BA2-A9EE-10B958A93316}
+		{CF371743-5334-4440-8FF3-FB364E93183B} = {F10245D8-AD71-4063-86EF-E0E36D56EBD9}
+		{2C0F0262-8809-4D06-9F6D-A820B8FAB196} = {F10245D8-AD71-4063-86EF-E0E36D56EBD9}
+		{557DBCC4-BBA7-455D-B4F9-7B8CDA9DE777} = {F10245D8-AD71-4063-86EF-E0E36D56EBD9}
+	EndGlobalSection
+EndGlobal
