@@ -18,5 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Schema for the export tests, the one Opc2Aml ships. -->
+    <None Include="..\..\third_party\Opc2Aml\UANodeSet.xsd" Link="UANodeSet.xsd" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
