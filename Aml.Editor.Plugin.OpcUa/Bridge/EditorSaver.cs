@@ -1,0 +1,112 @@
+// Last-resort reflection bridge into the AMLEditor's internal SaveAMLCommand.
+//
+// The Aml.Editor.Plugin.Contract API exposes Document-Load/Unload/Selection
+// callbacks but no "save the current AML file". The editor's own toolbar binds
+// to a SaveAMLCommand on its main view-model, internal but reachable via
+// Application.Current.MainWindow.DataContext.
+//
+// This is brittle: a future editor version may rename the ViewModel or the
+// command. Every call is wrapped in try/catch and the worst-case behaviour is
+// "nothing happens, user has to press Ctrl+S themselves", the same as before this
+// hack existed. Failure modes are logged via PluginLog so we can spot drift.
+
+using System.Reflection;
+using System.Windows;
+using System.Windows.Input;
+using Aml.Editor.Plugin.OpcUa.Diagnostics;
+
+namespace Aml.Editor.Plugin.OpcUa.Bridge;
+
+public static class EditorSaver
+{
+    private static readonly string[] CandidateProperties =
+    {
+        "SaveAMLCommand",
+        "SaveCommand",
+        "SaveActiveDocumentCommand",
+        "SaveCurrentAMLFileCommand",
+    };
+
+    /// <summary>
+    /// Try to trigger the editor's own save action without going through the
+    /// filesystem ourselves. Returns true if a command was found AND executed.
+    /// </summary>
+    public static bool TrySaveActiveDocument()
+    {
+        try
+        {
+            var mainWindow = Application.Current?.MainWindow;
+            if (mainWindow == null)
+            {
+                PluginLog.Debug("Editor save reflection: Application.Current.MainWindow is null.");
+                return false;
+            }
+
+            var vm = mainWindow.DataContext;
+            if (vm == null)
+            {
+                PluginLog.Debug("Editor save reflection: MainWindow.DataContext is null.");
+                return false;
+            }
+
+            var vmType = vm.GetType();
+            foreach (var name in CandidateProperties)
+            {
+                var prop = vmType.GetProperty(name,
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (prop == null) continue;
+
+                if (prop.GetValue(vm) is not ICommand cmd)
+                {
+                    PluginLog.Debug($"Editor save reflection: {vmType.Name}.{name} is not ICommand.");
+                    continue;
+                }
+
+                if (!cmd.CanExecute(null))
+                {
+                    // Keep looking: a later candidate (SaveCommand,
+                    // SaveActiveDocumentCommand, …) may be executable even when
+                    // this one isn't. Bailing out here disabled auto-save
+                    // whenever the first-named command happened to be context-
+                    // gated to false.
+                    PluginLog.Debug($"Editor save reflection: {vmType.Name}.{name}.CanExecute(null) is false; trying the next candidate.");
+                    continue;
+                }
+
+                // Execute on the UI thread so WPF command-handler invariants hold.
+                // Timed, because a slow save is worth seeing in the log: 23 s has
+                // been observed on a large document.
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher == null)
+                {
+                    PluginLog.Debug("Editor save reflection: no dispatcher available.");
+                    return false;
+                }
+
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                if (dispatcher.CheckAccess())
+                    cmd.Execute(null);
+                else
+                    dispatcher.Invoke(() => cmd.Execute(null));
+                sw.Stop();
+                PluginLog.Debug($"Editor save reflection: {vmType.Name}.{name}.Execute completed in {sw.ElapsedMilliseconds} ms (editor decides whether to actually persist).");
+
+                // Whether the editor actually persisted is unknown here:
+                // CanExecute=true does not imply IsDirty. Report the command was
+                // invoked, not "save completed".
+                PluginLog.Info($"Editor save command invoked via {vmType.Name}.{name} " +
+                               "(editor may no-op if document was already clean).");
+                return true;
+            }
+
+            PluginLog.Warn($"Editor save reflection: no matching command on {vmType.FullName}. " +
+                           "The editor's internal ViewModel may have been renamed.");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Editor save reflection threw", ex);
+            return false;
+        }
+    }
+}

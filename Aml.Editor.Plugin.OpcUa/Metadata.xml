@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PlugInPackageMetaData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                       xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <PackageName>Aml.Editor.Plugin.OpcUa</PackageName>
+  <DisplayName>AMLOpcUa</DisplayName>
+  <Version>0.1.0</Version>
+  <Author>Hamied Nabizada</Author>
+  <Description>AutomationML Editor plugin for OPC UA: imports NodeSets as AML libraries according to OPC 10000-83 Annex A.</Description>
+  <MinimumEditorVersion>6.4.0.0</MinimumEditorVersion>
+</PlugInPackageMetaData>

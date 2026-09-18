@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Version>0.1.0</Version>
+    <Title>AMLOpcUa</Title>
+    <Description>AutomationML Editor plugin for OPC UA: imports NodeSets as AML libraries according to OPC 10000-83 Annex A.</Description>
+    <PackageTags>AMLEditor; AMLEditorPlugin.Net; AutomationML; OPCUA; NodeSet; UAFX</PackageTags>
+    <Authors>Hamied Nabizada</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- Anchored at this file so a build of the project alone lands in the same tree. -->
+    <BaseOutputPath>$(MSBuildThisFileDirectory)..\build\Plugins\$(MSBuildProjectName)</BaseOutputPath>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Editor-side dependencies, pinned exactly: a drift changes the surface
+         this plugin compiles against without any error. -->
+    <PackageReference Include="Aml.Editor.Plugin.Contract" Version="[4.3.0]">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Aml.Engine" Version="[4.*, 5.0.0)">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Aml.Editor.API" Version="[2.3.0]">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Aml.Skins" Version="2.*">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\dotnet\OpcUaAml.Core\OpcUaAml.Core.csproj">
+      <PrivateAssets>all</PrivateAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Metadata.xml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="" />
+    <None Include="..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="" />
+    <None Include="$(OutputPath)$(AssemblyName).deps.json" Pack="true" PackagePath="lib\$(TargetFramework)" />
+  </ItemGroup>
+
+  <!--
+    Everything the core needs at run time is bundled: the core itself, Opc2Aml,
+    the OPC UA stack and its dependencies, and the bundled NodeSets. The list
+    comes from the resolved references, not from the output folder, so a file
+    left over from an earlier build cannot slip into the package. What the
+    editor already loads is left out on purpose: a second copy of the contract
+    or of Aml.Engine in the plugin folder is loaded into the plugin's own load
+    context, and the plugin then no longer matches the editor's interfaces.
+  -->
+  <Target Name="PackRuntimeDependencies" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
+    <ItemGroup>
+      <_Bundled Include="@(ReferenceCopyLocalPaths)"
+                Condition="'%(Extension)' == '.dll'
+                           And !$([System.String]::Copy('%(Filename)').StartsWith('Aml.Engine'))
+                           And !$([System.String]::Copy('%(Filename)').StartsWith('Aml.Editor.'))
+                           And '%(Filename)' != 'Aml.Skins'
+                           And '%(Filename)' != 'Aml.Toolkit'
+                           And '%(Filename)' != 'ControlzEx'
+                           And !$([System.String]::Copy('%(Filename)').StartsWith('MahApps.'))
+                           And !$([System.String]::Copy('%(Filename)').StartsWith('Microsoft.Xaml.Behaviors'))" />
+      <_BundledNodeSets Include="..\nodesets\*.xml" />
+      <None Include="@(_Bundled)" Pack="true" PackagePath="lib\$(TargetFramework)\" />
+      <None Include="@(_BundledNodeSets)" Pack="true" PackagePath="lib\$(TargetFramework)\nodesets\" />
+    </ItemGroup>
+  </Target>
+
+</Project>
