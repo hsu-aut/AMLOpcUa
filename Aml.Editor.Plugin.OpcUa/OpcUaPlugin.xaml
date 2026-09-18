@@ -63,6 +63,13 @@
                             <TextBlock Text="Check" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+                    <Button x:Name="LinkButton" Click="LinkButton_Click"
+                            ToolTip="Link a VDI 3682 TechnicalResource to the OPC UA object representing it, or a ProcessOperator to the method executing it.">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="#8040A0"/>
+                            <TextBlock Text="Link VDI 3682..." VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <Separator/>
                     <CheckBox x:Name="ReplaceToggle" Content="Replace existing" VerticalAlignment="Center"
                               Checked="Setting_Changed" Unchecked="Setting_Changed"

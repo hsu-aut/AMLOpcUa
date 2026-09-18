@@ -327,6 +327,20 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         CheckSummary.Text = message + " " + CheckSummary.Text;
     }
 
+    private void LinkButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null) return;
+        var window = new LinkWindow(document) { Owner = Window.GetWindow(this) };
+        window.ShowDialog();
+        if (window.Linked != null)
+        {
+            PluginLog.Info($"Linked '{window.Linked.Name}' (VDI 3682) to OPC UA.");
+            SetStatus("VDI 3682 link set. Press Ctrl+S to save.");
+            Selected?.Invoke(this, new SelectionEventArgs(window.Linked));
+        }
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
@@ -365,6 +379,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         CloudButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
+        LinkButton.IsEnabled = usable && !_busy;
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Placeholder.Text = doc == null
             ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
