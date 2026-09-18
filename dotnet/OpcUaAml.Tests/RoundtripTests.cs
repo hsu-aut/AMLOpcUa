@@ -13,7 +13,7 @@ public class RoundtripTests
     private static Criterion C(RoundtripReport r, string name) => r.Criteria.Single(c => c.Name == name);
 
     [Fact]
-    public void AML_to_UA_to_AML_keeps_instances_classes_and_IDs_but_not_units()
+    public void AML_to_UA_to_AML_keeps_instances_classes_IDs_and_units()
     {
         var report = RoundtripRunner.AmlUaAml(Fixtures.Path("aml-ua-xslt", "AML", "5_SUC.aml"), NodeSetCatalog.Create(Array.Empty<string>()));
 
@@ -23,7 +23,7 @@ public class RoundtripTests
         Assert.Equal(5, C(report, "Classes present, by library and name").Kept);
         Assert.Equal(5, C(report, "Class ID recoverable").Kept);
         Assert.Equal(4, C(report, "Base class kept").Kept);
-        Assert.Equal((1, 0), (C(report, "Attribute units kept").Total, C(report, "Attribute units kept").Kept));
+        Assert.Equal((1, 1), (C(report, "Attribute units recoverable").Total, C(report, "Attribute units recoverable").Kept));
     }
 
     [Fact]

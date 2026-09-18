@@ -71,7 +71,7 @@ public static class AmlUaAmlAnalysis
         var ids = new UaAmlUaAnalysis.Tally("Class ID recoverable", "AML_ID");
         var attributes = new UaAmlUaAnalysis.Tally("Class attributes present, by name");
         var values = new UaAmlUaAnalysis.Tally("Attribute values kept", "Value or DefaultValue");
-        var units = new UaAmlUaAnalysis.Tally("Attribute units kept");
+        var units = new UaAmlUaAnalysis.Tally("Attribute units recoverable", "CAEX Unit or a Unit child");
         var interfaces = new UaAmlUaAnalysis.Tally("Class interfaces present, by name");
         var children = new UaAmlUaAnalysis.Tally("Class child elements present, by name");
 
@@ -103,7 +103,7 @@ public static class AmlUaAmlAnalysis
                     if (v != null)
                         values.Add(match != null && Values(match, null).Contains(v), $"{label}.{Name(a)} = {v}");
                     if (Attr(a, "Unit") is { Length: > 0 } unit)
-                        units.Add(match != null && (Attr(match, "Unit") == unit || match.Descendants().Any(d => Attr(d, "Unit") == unit || d.Value == unit)),
+                        units.Add(match != null && (Attr(match, "Unit") == unit || Values(match, "Unit").Contains(unit)),
                             $"{label}.{Name(a)} [{unit}]");
                 }
                 foreach (var ei in Kids(cls, "ExternalInterface"))
