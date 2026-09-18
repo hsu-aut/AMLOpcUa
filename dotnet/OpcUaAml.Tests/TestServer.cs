@@ -11,6 +11,7 @@ namespace OpcUaAml.Tests;
 /// Objects/Plant (folder)
 ///   Pump1 (object)   Speed: Double 12.5, Running: Boolean true, Label: String "Pump 1"
 ///     Motor (object) Temperature: Int32 42, Samples: Int32[] {1, 2, 3}
+///   Counter: UInt32, incremented every 100 ms
 /// </code>
 /// </summary>
 public sealed class TestServer : IAsyncLifetime
@@ -63,8 +64,17 @@ public sealed class TestServer : IAsyncLifetime
 
     private sealed class PlantNodeManager : CustomNodeManager2
     {
+        private BaseDataVariableState _counter = null!;
+        private Timer? _timer;
+
         public PlantNodeManager(IServerInternal server, ApplicationConfiguration configuration)
             : base(server, configuration, Namespace) { }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _timer?.Dispose();
+            base.Dispose(disposing);
+        }
 
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
@@ -91,6 +101,17 @@ public sealed class TestServer : IAsyncLifetime
                 Variable(motor, "Temperature", ns, DataTypeIds.Int32, 42);
                 var samples = Variable(motor, "Samples", ns, DataTypeIds.Int32, new[] { 1, 2, 3 });
                 samples.ValueRank = ValueRanks.OneDimension;
+
+                _counter = Variable(plant, "Counter", ns, DataTypeIds.UInt32, 0u);
+                _timer = new Timer(_ =>
+                {
+                    lock (Lock)
+                    {
+                        _counter.Value = (uint)_counter.Value + 1;
+                        _counter.Timestamp = DateTime.UtcNow;
+                        _counter.ClearChangeMasks(SystemContext, false);
+                    }
+                }, null, 100, 100);
 
                 AddPredefinedNode(SystemContext, plant);
             }

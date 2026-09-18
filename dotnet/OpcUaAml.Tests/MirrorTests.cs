@@ -26,7 +26,7 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
 
         var result = await AddressSpaceMirror.MirrorAsync(client, await PlantFolder(client), ih);
 
-        Assert.Equal(8, result.Nodes);
+        Assert.Equal(9, result.Nodes);
         Assert.False(result.Truncated);
         var plant = ih.InternalElement["Plant"]!;
         Assert.Equal("[SUC_http://opcfoundation.org/UA/]/[FolderType]", plant.RefBaseSystemUnitPath);
@@ -37,7 +37,7 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         Assert.Equal("12.5", speed.Attribute["Value"]!.Value);
         Assert.Equal(new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Pump1.Speed", client.ServerUri), AnnexANodeId.Of(speed));
         Assert.Equal("1 2 3", pump.InternalElement["Motor"]!.InternalElement["Samples"]!.Attribute["Value"]!.Value);
-        Assert.Equal(8, result.Typed);
+        Assert.Equal(9, result.Typed);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         var shallow = await AddressSpaceMirror.MirrorAsync(client, plantFolder, di.Hierarchy("Shallow"), new MirrorOptions { Depth = 1 });
         var capped = await AddressSpaceMirror.MirrorAsync(client, plantFolder, di.Hierarchy("Capped"), new MirrorOptions { MaxNodes = 3 });
 
-        Assert.Equal(2, shallow.Nodes);
+        Assert.Equal(3, shallow.Nodes);
         Assert.Equal(3, capped.Nodes);
         Assert.True(capped.Truncated);
     }

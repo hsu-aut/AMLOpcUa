@@ -212,6 +212,65 @@ public sealed class UaClient : IAsyncDisposable
         return results;
     }
 
+    /// <summary>
+    /// Subscribes to value changes of the given variables. <paramref name="onChange"/>
+    /// runs on a stack thread for each change; dispose the result to stop.
+    /// </summary>
+    public async Task<IAsyncDisposable> WatchAsync(IReadOnlyList<UaNodeAddress> addresses, Action<UaReadResult> onChange,
+        int publishingIntervalMs = 500, CancellationToken ct = default)
+    {
+        var telemetry = _session.MessageContext.Telemetry;
+        var subscription = new Subscription(telemetry, new SubscriptionOptions
+        {
+            DisplayName = "AMLOpcUa watch",
+            PublishingInterval = publishingIntervalMs,
+            PublishingEnabled = true,
+            KeepAliveCount = 10,
+            LifetimeCount = 100,
+        });
+        foreach (var address in addresses)
+        {
+            NodeId nodeId;
+            try { nodeId = ToNodeId(address); }
+            catch (FormatException ex)
+            {
+                onChange(new UaReadResult(address, null, null, false, ex.Message));
+                continue;
+            }
+            var item = new MonitoredItem(telemetry, new MonitoredItemOptions
+            {
+                StartNodeId = nodeId,
+                AttributeId = Attributes.Value,
+                SamplingInterval = publishingIntervalMs,
+                QueueSize = 1,
+                DiscardOldest = true,
+                DisplayName = address.Identifier,
+            });
+            var captured = address;
+            item.Notification += (_, e) =>
+            {
+                if (e.NotificationValue is not MonitoredItemNotification n) return;
+                var dv = n.Value;
+                onChange(new UaReadResult(captured, dv.Value, dv.WrappedValue.TypeInfo?.BuiltInType.ToString(),
+                    StatusCode.IsGood(dv.StatusCode), StatusCode.LookupSymbolicId(dv.StatusCode.Code) ?? dv.StatusCode.ToString()));
+            };
+            subscription.AddItem(item);
+        }
+        _session.AddSubscription(subscription);
+        await subscription.CreateAsync(ct).ConfigureAwait(false);
+        return new Watch(_session, subscription);
+    }
+
+    private sealed class Watch(ISession session, Subscription subscription) : IAsyncDisposable
+    {
+        public async ValueTask DisposeAsync()
+        {
+            try { await session.RemoveSubscriptionAsync(subscription, CancellationToken.None).ConfigureAwait(false); }
+            catch (Exception) { /* session already closed */ }
+            subscription.Dispose();
+        }
+    }
+
     private NodeId ToNodeId(UaNodeAddress address) =>
         NodeId.Parse(address.ToNodeIdString(NamespaceTable));
 

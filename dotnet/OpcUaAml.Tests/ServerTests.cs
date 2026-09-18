@@ -33,7 +33,7 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
         var plant = Assert.Single(top, i => i.BrowseName == "Plant");
         Assert.Equal(Plant("Plant"), plant.Address);
 
-        var pump = Assert.Single(await client.BrowseAsync(plant.Address));
+        var pump = Assert.Single(await client.BrowseAsync(plant.Address), i => i.BrowseName == "Pump1");
         Assert.Equal("Pump1", pump.BrowseName);
         Assert.Equal("Object", pump.NodeClass);
 
@@ -106,5 +106,22 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
         var options = new UaConnectOptions { EndpointUrl = "opc.tcp://localhost:1/none", UseSecurity = false, OperationTimeoutMs = 2000 };
 
         await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
+    }
+
+    [Fact]
+    public async Task Watching_delivers_changing_values_until_disposed()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var seen = new System.Collections.Concurrent.ConcurrentQueue<UaReadResult>();
+
+        var watch = await client.WatchAsync(new[] { Plant("Plant.Counter") }, seen.Enqueue, publishingIntervalMs: 100);
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (seen.Count < 3 && DateTime.UtcNow < deadline) await Task.Delay(50);
+        await watch.DisposeAsync();
+
+        Assert.True(seen.Count >= 3, $"only {seen.Count} notification(s)");
+        var values = seen.Select(r => uint.Parse(r.ValueText!)).ToList();
+        Assert.True(values.Last() > values.First());
+        Assert.All(seen, r => Assert.True(r.Good));
     }
 }
