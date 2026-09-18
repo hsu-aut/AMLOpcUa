@@ -4,6 +4,7 @@
 using Aml.Engine.CAEX;
 using OpcUaAml.Checks;
 using OpcUaAml.Compare;
+using OpcUaAml.Export;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Types;
@@ -39,9 +40,17 @@ public static class Program
             Check the instance hierarchies against their UA types. Exits with 1
             when there are errors.
 
+        uaaml export <doc.aml|amlx> -o <out.xml> [--date <yyyy-mm-dd>] [--xslt-compatible]
+            Convert the document (CAEX 2.15 or 3.0) into a UANodeSet by the rules
+            of the AutomationML/OPC Foundation working group (AML-UA-XSLT).
+            --date             PublicationDate of the generated models (default: now)
+            --xslt-compatible  reproduce the XSLT output exactly, bugs included
+
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
             --skeleton   libraries, classes, derivation and child elements only
+            Given two NodeSets, compares them as graphs: namespaces, aliases,
+            models, nodes and references.
 
         The UA base model and DI ship with uaaml; --search adds folders with
         further NodeSets, which win over the bundled ones when newer.
@@ -62,6 +71,7 @@ public static class Program
             {
                 "info" => Info(rest),
                 "import" => Import(rest),
+                "export" => ExportCommand(rest),
                 "compare" => CompareCommand(rest),
                 "types" => TypesCommand(rest),
                 "instantiate" => InstantiateCommand(rest),
@@ -132,11 +142,42 @@ public static class Program
         return 0;
     }
 
+    private static int ExportCommand(List<string> args)
+    {
+        var options = Options.Parse(args, valued: new[] { "-o", "--date" }, flags: new[] { "--xslt-compatible" });
+        var file = options.SinglePositional("document");
+        var output = options.One("-o") ?? throw new ArgumentException("Give -o <out.xml>.");
+        if (!File.Exists(file)) throw new ImportException($"'{file}' does not exist.");
+        DateTime? date = null;
+        if (options.One("--date") is { } d)
+        {
+            if (!DateTime.TryParse(d, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed))
+                throw new ArgumentException($"--date: '{d}' is not a date.");
+            date = parsed;
+        }
+        NodeSetExporter.ExportFile(file, output, new NodeSetExportOptions
+        {
+            PublicationDate = date,
+            XsltCompatibility = options.Has("--xslt-compatible"),
+        });
+        Console.WriteLine($"Written to {Path.GetFullPath(output)}");
+        return 0;
+    }
+
     private static int CompareCommand(List<string> args)
     {
         var options = Options.Parse(args, valued: new[] { "--limit" }, flags: new[] { "--skeleton" });
         if (options.Positional.Count != 2) throw new ArgumentException("compare needs two documents.");
         var limit = int.TryParse(options.One("--limit"), out var n) ? n : 200;
+        if (IsNodeSet(options.Positional[0]) && IsNodeSet(options.Positional[1]))
+        {
+            var nodeSetDiffs = new NodeSetComparer().Compare(options.Positional[0], options.Positional[1]);
+            foreach (var d in nodeSetDiffs.Take(limit)) Console.WriteLine(d);
+            if (nodeSetDiffs.Count > limit) Console.WriteLine($"... {nodeSetDiffs.Count - limit} more");
+            Console.WriteLine($"{nodeSetDiffs.Count} difference(s).");
+            return nodeSetDiffs.Count == 0 ? 0 : 1;
+        }
 
         var comparer = new LibraryComparer { CompareFacets = !options.Has("--skeleton") };
         var diffs = comparer.Compare(Documents.Load(options.Positional[0]), Documents.Load(options.Positional[1]));
@@ -149,6 +190,10 @@ public static class Program
         Console.WriteLine($"{diffs.Count} difference(s).");
         return diffs.Count == 0 ? 0 : 1;
     }
+
+    private static bool IsNodeSet(string path) =>
+        File.Exists(path) && Path.GetExtension(path).Equals(".xml", StringComparison.OrdinalIgnoreCase)
+        && NodeSetInfo.TryRead(path) != null;
 
     private static int TypesCommand(List<string> args)
     {
