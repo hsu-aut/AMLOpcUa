@@ -16,8 +16,6 @@
 // object, aspect to base) is left open: that depends on which hierarchy a
 // model treats as the base, see docs/vdi3682.md.
 
-using System.Reflection;
-using System.Xml.Linq;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Diagram;
@@ -36,12 +34,11 @@ public sealed class LinkException : Exception
 
 public static class Vdi3682Links
 {
-    public const string ObjectReferencesLib = "AutomationML_ObjectReferences_AttributeTypeLib";
+    public const string ObjectReferencesLib = ObjectReferences.Lib;
     public const string OwnLib = "AMLOpcUa_ReferenceAttributeTypeLib";
     public const string RefOpcUaObject = "refOpcUaObject";
     public const string RefOpcUaMethod = "refOpcUaMethod";
 
-    private const string ObjectReferencesFile = "AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml";
 
     /// <summary>FPD elements of the given kind: by class path or role ending in FPD_TechnicalResource / FPD_ProcessOperator.</summary>
     public static IEnumerable<InternalElementType> FpdElements(CAEXDocument doc, FpdKind kind)
@@ -108,13 +105,7 @@ public static class Vdi3682Links
     /// <summary>Adds the object reference types and this project's derived types if missing.</summary>
     public static void EnsureLibraries(CAEXFileType caex)
     {
-        XNamespace ns = caex.Node.Name.Namespace;
-        if (caex.AttributeTypeLib[ObjectReferencesLib] == null)
-        {
-            var lib = XDocument.Parse(ReadEmbedded(ObjectReferencesFile)).Root!
-                .Elements().First(e => e.Name.LocalName == "AttributeTypeLib" && (string?)e.Attribute("Name") == ObjectReferencesLib);
-            caex.Node.Add(Renamespace(lib, ns));
-        }
+        ObjectReferences.EnsureLibrary(caex);
         if (caex.AttributeTypeLib[OwnLib] == null)
         {
             var own = caex.AttributeTypeLib.Append(OwnLib);
@@ -135,9 +126,6 @@ public static class Vdi3682Links
         t.Description = description;
     }
 
-    private static XElement Renamespace(XElement e, XNamespace ns) =>
-        new(ns + e.Name.LocalName, e.Attributes(), e.Nodes().Select(n => n is XElement c ? Renamespace(c, ns) : n));
-
     private static bool IsMethod(InternalElementType ie) =>
         ie.RefBaseSystemUnitPath?.Contains("UaMethodNodeClass") == true
         || (UaTypes.TypeOf(ie) is { } t && UaTypes.Chain(t).Any(c => c.Name == "UaMethodNodeClass"));
@@ -147,14 +135,4 @@ public static class Vdi3682Links
 
     private static bool EndsWith(string? path, string suffix) =>
         path != null && DiagramBuilder.Segments(path).LastOrDefault() == suffix;
-
-    private static string ReadEmbedded(string fileName)
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var name = assembly.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith(fileName, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException($"'{fileName}' is not embedded in {assembly.GetName().Name}.");
-        using var stream = assembly.GetManifestResourceStream(name)!;
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
-    }
 }
