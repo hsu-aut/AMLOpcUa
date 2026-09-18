@@ -20,7 +20,9 @@ used under its own license, referenced below.
 Test fixtures in `dotnet/OpcUaAml.Tests/Fixtures/` are further NodeSets and
 AML libraries from UA-Nodeset (tags `UA-1.05.05-2025-06-30`,
 `DI-1.04.0-2022-11-03`, `UAFX-1.00.04-2026-07-22`), under the same license.
-They are not part of the plugin package.
+`Fixtures/aml-ua-xslt/` holds the unit tests of
+[AML-UA-XSLT](https://github.com/AutomationML/AML-UA-XSLT) (commit a144dcc),
+MIT, Copyright 2021 AutomationML e.V. They are not part of the plugin package.
 
 ## Redistributed in the plugin package
 

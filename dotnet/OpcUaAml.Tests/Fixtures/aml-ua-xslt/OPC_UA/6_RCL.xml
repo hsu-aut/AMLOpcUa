@@ -1,0 +1,453 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"><!--
+			Documentation
+			===============
+			To support both CAEX V2.15 and CAEX V3.0 we add the namespace to CAEX V2.15 before translation. 
+
+			UANodeSet
+			=============
+			TODOs:
+				- Missing translation for UtcTime/DateTime
+				- How to use Table 14 in DataTypeMapping v5.0? -> Add mapping to translation table
+				- are '{GUID}' and 'GUID' equal? -> will be handled as equivalent
+				- from UA to AML: what if we have no "file name" in UA XML (Nodeset has no name) (which element to use as filename)
+				- fix model version for RequiredModels -> is this correct?
+			--><!--!!! Warning !!! 
+		===============
+		Auto-generated namespaces and aliases. Check if equal to namespace of translated library file. 
+		-->
+   <NamespaceUris><!--Namespace for current AML file.-->
+      <Uri>http://opcfoundation.org/UA/AML/6_RCL.aml</Uri>
+      <!--AML Base-->
+      <Uri>http://opcfoundation.org/UA/AML/</Uri>
+      <!--Libs/RoleClass Libraries/AutomationMLBaseRoleClassLib.aml-->
+      <Uri>http://opcfoundation.org/UA/AML/AutomationMLBaseRoleClassLib</Uri>
+      <!--Fallback: AutomationMLBaseInterface-->
+      <Uri>http://opcfoundation.org/UA/AML/AutomationMLInterfaceClassLib</Uri>
+      <!--RoleClassLib: RoleClassLib1-->
+      <Uri>http://opcfoundation.org/UA/AML/RoleClassLib1</Uri>
+      <!--RoleClassLib: RoleClassLib2-->
+      <Uri>http://opcfoundation.org/UA/AML/RoleClassLib2</Uri>
+   </NamespaceUris>
+   <Models>
+      <Model ModelUri="http://opcfoundation.org/UA/AML/RoleClassLib1" Version="1.0" PublicationDate="2026-09-17T00:00:00Z">
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z"/>
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z"/>
+      </Model>
+      <Model ModelUri="http://opcfoundation.org/UA/AML/RoleClassLib2" Version="1.0" PublicationDate="2026-09-17T00:00:00Z">
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z"/>
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z"/>
+      </Model>
+      <Model ModelUri="http://opcfoundation.org/UA/AML/6_RCL.aml" Version="0.0.0" PublicationDate="2026-09-17T00:00:00Z">
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.04.3" PublicationDate="2019-09-09T00:00:00Z"/>
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/" Version="1.0.1" PublicationDate="2019-09-09T00:00:00Z"/>
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/RoleClassLib1" Version="1.0" PublicationDate="2026-09-17T00:00:00Z"/>
+         <RequiredModel ModelUri="http://opcfoundation.org/UA/AML/RoleClassLib2" Version="1.0" PublicationDate="2026-09-17T00:00:00Z"/>
+      </Model>
+   </Models>
+   <Aliases>
+      <Alias Alias="Boolean">i=1</Alias>
+      <Alias Alias="SByte">i=2</Alias>
+      <Alias Alias="Byte">i=3</Alias>
+      <Alias Alias="Int16">i=4</Alias>
+      <Alias Alias="UInt16">i=5</Alias>
+      <Alias Alias="Int32">i=6</Alias>
+      <Alias Alias="UInt32">i=7</Alias>
+      <Alias Alias="Int64">i=8</Alias>
+      <Alias Alias="UInt64">i=9</Alias>
+      <Alias Alias="Float">i=10</Alias>
+      <Alias Alias="Double">i=11</Alias>
+      <Alias Alias="DateTime">i=13</Alias>
+      <Alias Alias="String">i=12</Alias>
+      <Alias Alias="ByteString">i=15</Alias>
+      <Alias Alias="Guid">i=14</Alias>
+      <Alias Alias="XmlElement">i=16</Alias>
+      <Alias Alias="NodeId">i=17</Alias>
+      <Alias Alias="ExpandedNodeId">i=18</Alias>
+      <Alias Alias="QualifiedName">i=20</Alias>
+      <Alias Alias="LocalizedText">i=21</Alias>
+      <Alias Alias="StatusCode">i=19</Alias>
+      <Alias Alias="Structure">i=22</Alias>
+      <Alias Alias="Number">i=26</Alias>
+      <Alias Alias="Integer">i=27</Alias>
+      <Alias Alias="UInteger">i=28</Alias>
+      <Alias Alias="HasComponent">i=47</Alias>
+      <Alias Alias="HasProperty">i=46</Alias>
+      <Alias Alias="Organizes">i=35</Alias>
+      <Alias Alias="HasEventSource">i=36</Alias>
+      <Alias Alias="HasNotifier">i=48</Alias>
+      <Alias Alias="HasSubtype">i=45</Alias>
+      <Alias Alias="HasTypeDefinition">i=40</Alias>
+      <Alias Alias="HasModellingRule">i=37</Alias>
+      <Alias Alias="HasEncoding">i=38</Alias>
+      <Alias Alias="HasDescription">i=39</Alias>
+      <Alias Alias="FolderType">i=61</Alias>
+      <Alias Alias="BaseDataVariableType">i=63</Alias>
+      <Alias Alias="Duration">i=290</Alias>
+      <Alias Alias="CAEXObjectType">ns=2;i=1001</Alias>
+      <Alias Alias="CAEXFileType">ns=2;i=1005</Alias>
+      <Alias Alias="CAEXConstraintType">ns=2;i=2000</Alias>
+      <Alias Alias="CAEXNominalScaledConstraintType">ns=2;i=2001</Alias>
+      <Alias Alias="CAEXOrdinalScaledConstraintType">ns=2;i=2002</Alias>
+      <Alias Alias="CAEXUnknownConstraintType">ns=2;i=2003</Alias>
+      <Alias Alias="CAEXRequiredValue">ns=2;i=2004</Alias>
+      <Alias Alias="CAEXRequiredMinValue">ns=2;i=2005</Alias>
+      <Alias Alias="CAEXRequiredMaxValue">ns=2;i=2006</Alias>
+      <Alias Alias="CAEXRequirements">ns=2;i=2007</Alias>
+      <Alias Alias="AMLBaseVariableType">ns=2;i=3001</Alias>
+      <Alias Alias="HasAMLRoleReference">ns=2;i=4001</Alias>
+      <Alias Alias="HasAMLInternalLink">ns=2;i=4002</Alias>
+      <Alias Alias="HasAMLReferenceType">ns=2;i=4003</Alias>
+      <Alias Alias="IsAMLMirroredAs">ns=2;i=4004</Alias>
+      <Alias Alias="HasAMLConstraint">ns=2;i=4005</Alias>
+      <Alias Alias="HasAMLRequirement">ns=2;i=4006</Alias>
+      <Alias Alias="CAEXFile_AutomationMLInstanceHierarchies">ns=2;i=5005</Alias>
+      <Alias Alias="CAEXFile_AutomationMLFiles">ns=2;i=5006</Alias>
+      <Alias Alias="CAEXFile_InterfaceClassLibs">ns=2;i=5008</Alias>
+      <Alias Alias="CAEXFile_RoleClassLibs">ns=2;i=5009</Alias>
+      <Alias Alias="CAEXFile_SystemUnitClassLibs">ns=2;i=5010</Alias>
+      <Alias Alias="CAEXFile_AttributeTypeLibs">ns=2;i=5011</Alias>
+      <Alias Alias="AutomationMLBaseRoleClassLib/AutomationMLBaseRole">ns=3;s=AutomationMLBaseRole</Alias>
+      <Alias Alias="AutomationMLInterfaceClassLib/AutomationMLBaseInterface">ns=4;s=AutomationMLBaseInterface</Alias>
+   </Aliases>
+   <!--
+			CAEXFile
+			===============
+			-->
+   <UAObject NodeId="ns=1;s=CAEXFile" BrowseName="1:CAEXFile">
+      <DisplayName>6_RCL.aml</DisplayName>
+      <References><!--Type definition: CAEXFileType-->
+         <Reference ReferenceType="HasTypeDefinition">CAEXFileType</Reference>
+         <!--FileName-->
+         <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_FileName</Reference>
+         <!--SchemaVersion-->
+         <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_SchemaVersion</Reference>
+         <!--InstanceHierarchy-->
+         <!--Libraries-->
+         <Reference ReferenceType="Organizes">ns=1;s=RoleClassLibs</Reference>
+         <!--AdditionalInformation: 6_RCL.aml_AutomationMLVersion-->
+         <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_AdditionalInformation</Reference>
+         <!--AdditionalInformation: 6_RCL.aml_WriterHeader-->
+         <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_AdditionalInformation_1</Reference>
+         <!--AdditionalInformation: 6_RCL.aml_WriterHeader-->
+         <Reference ReferenceType="HasProperty">ns=1;s=CAEXFile_AdditionalInformation_2</Reference>
+         <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_AutomationMLFiles</Reference>
+      </References>
+   </UAObject>
+   <UAVariable NodeId="ns=1;s=CAEXFile_FileName" BrowseName="1:FileName" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+      <DisplayName>FileName</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>6_RCL.aml</uax:String>
+      </Value>
+   </UAVariable>
+   <UAVariable NodeId="ns=1;s=CAEXFile_SchemaVersion" BrowseName="1:SchemaVersion" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+      <DisplayName>SchemaVersion</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>2.15</uax:String>
+      </Value>
+   </UAVariable>
+   <!--
+			AdditionalInformation
+			===============
+			-->
+   <!--Attribute: CAEXFile.CAEXFile_AutomationMLVersion-->
+   <UAVariable NodeId="ns=1;s=CAEXFile_AdditionalInformation" BrowseName="1:AutomationMLVersion" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+      <DisplayName>AutomationMLVersion</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String><![CDATA[<AdditionalInformation AutomationMLVersion="2.0"/>]]></uax:String>
+      </Value>
+   </UAVariable>
+   <!--Attribute: CAEXFile.CAEXFile_WriterHeader-->
+   <UAVariable NodeId="ns=1;s=CAEXFile_AdditionalInformation_1" BrowseName="1:WriterHeader" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+      <DisplayName>WriterHeader</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String><![CDATA[<AdditionalInformation>
+               <WriterHeader>
+                  <WriterName>AutomationML e.V.</WriterName>
+                  <WriterID>AutomationML e.V.</WriterID>
+                  <WriterVendor>AutomationML e.V.</WriterVendor>
+                  <WriterVendorURL>www.AutomationML.org</WriterVendorURL>
+                  <WriterVersion>1.0</WriterVersion>
+                  <WriterRelease>1.0</WriterRelease>
+                  <LastWritingDateTime>2012-02-20
+			</LastWritingDateTime>
+                  <WriterProjectTitle>AutomationML Tutorial Examples</WriterProjectTitle>
+                  <WriterProjectID>AutomationML Tutorial Examples
+			</WriterProjectID>
+               </WriterHeader>
+            </AdditionalInformation>]]></uax:String>
+      </Value>
+   </UAVariable>
+   <!--Attribute: CAEXFile.CAEXFile_WriterHeader-->
+   <UAVariable NodeId="ns=1;s=CAEXFile_AdditionalInformation_2" BrowseName="1:WriterHeader" ParentNodeId="ns=1;s=CAEXFile" DataType="String">
+      <DisplayName>WriterHeader</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String><![CDATA[<AdditionalInformation>
+               <WriterHeader>
+                  <WriterName>AutomationML Editor</WriterName>
+                  <WriterID>916578CA-FE0D-474E-A4FC-9E1719892369</WriterID>
+                  <WriterVendor>AutomationML e.V.</WriterVendor>
+                  <WriterVendorURL>www.AutomationML.org</WriterVendorURL>
+                  <WriterVersion>6.4.3.1</WriterVersion>
+                  <WriterRelease>6.4.3.1</WriterRelease>
+                  <LastWritingDateTime>2026-02-19T11:18:27.6175234</LastWritingDateTime>
+                  <WriterProjectTitle>unspecified</WriterProjectTitle>
+                  <WriterProjectID>unspecified</WriterProjectID>
+               </WriterHeader>
+            </AdditionalInformation>]]></uax:String>
+      </Value>
+   </UAVariable>
+   <!--
+			InstanceHierarchies
+			===============
+			TODOs:
+				- Test child of AutomationMLBaseRole/UABaseObjectType
+			-->
+   <!--Collection: CAEXFile.InstanceHierarchies-->
+   <!--
+			InterfaceClassLibs
+			===============
+			-->
+   <!--Collection: CAEXFile.InterfaceClassLibs-->
+   <!--
+			RoleClassLibs
+			===============
+			-->
+   <!--Collection: CAEXFile.RoleClassLibs-->
+   <UAObject NodeId="ns=1;s=RoleClassLibs" BrowseName="1:RoleClassLibs" ParentNodeId="ns=1;s=CAEXFile">
+      <DisplayName>RoleClassLibs</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+         <!--RoleClassLib: RoleClassLib1-->
+         <Reference ReferenceType="Organizes">ns=5;s=RoleClassLib</Reference>
+         <!--RoleClassLib: RoleClassLib2-->
+         <Reference ReferenceType="Organizes">ns=6;s=RoleClassLib</Reference>
+      </References>
+   </UAObject>
+   <!--
+			RoleClassLib: RoleClassLib1
+			==================================================
+			TODOs:
+				- What was the correct translation for an RoleClass?
+				- Why is the lib modelled as UAObject?
+		-->
+   <!--
+			Libraries:
+			===============================================
+			TODOs:
+				- is there a maximum length for NodeId?
+				- how do we handle very long lib names -> generate short name?
+		-->
+   <UAObject NodeId="ns=5;s=RoleClassLib" BrowseName="RoleClassLib1">
+      <DisplayName>RoleClassLib1</DisplayName>
+      <References><!--Id no longer part of the specification-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClassLib_Version</Reference>
+         <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+         <!--Collection of RoleClassLib-->
+         <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_RoleClassLibs</Reference>
+         <!--TODO: what is the correct way to list all elements of the Lib?-->
+         <!--List of included RoleClass-->
+         <Reference ReferenceType="Organizes">ns=5;s=RoleClass1</Reference>
+         <Reference ReferenceType="Organizes">ns=5;s=RoleClass2</Reference>
+      </References>
+   </UAObject>
+   <UAVariable NodeId="ns=5;s=RoleClassLib_Version" BrowseName="5:Version" ParentNodeId="ns=5;s=RoleClassLib" DataType="String">
+      <DisplayName>Version</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1.0</uax:String>
+      </Value>
+   </UAVariable>
+   <!--RoleClass: RoleClass1-->
+   <UAObjectType NodeId="ns=5;s=RoleClass1" BrowseName="RoleClass1">
+      <DisplayName>RoleClass1</DisplayName>
+      <!--Library: RoleClassLib1-->
+      <References><!--Hierarchical parent in AutomationML library-->
+         <Reference ReferenceType="Organizes" IsForward="false">ns=5;s=RoleClassLib</Reference>
+         <!--Parent class-->
+         <Reference ReferenceType="HasSubtype" IsForward="false">AutomationMLBaseRoleClassLib/AutomationMLBaseRole</Reference>
+         <!--Attribute: TestAttribute-->
+         <Reference ReferenceType="HasComponent">ns=5;s=RoleClass1_TestAttribute</Reference>
+      </References>
+   </UAObjectType>
+   <!--Attribute: TestAttribute-->
+   <UAVariable NodeId="ns=5;s=RoleClass1_TestAttribute" BrowseName="5:TestAttribute" ParentNodeId="ns=5;s=RoleClass1" DataType="String">
+      <DisplayName>TestAttribute</DisplayName>
+      <Description>TestAttribute</Description>
+      <References><!--Parent: -->
+         <Reference ReferenceType="HasComponent" IsForward="false">ns=5;s=RoleClass1</Reference>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1</uax:String>
+      </Value>
+   </UAVariable>
+   <!--RoleClass: RoleClass2-->
+   <UAObjectType NodeId="ns=5;s=RoleClass2" BrowseName="RoleClass2">
+      <DisplayName>RoleClass2</DisplayName>
+      <!--Library: RoleClassLib1-->
+      <References><!--Hierarchical parent in AutomationML library-->
+         <Reference ReferenceType="Organizes" IsForward="false">ns=5;s=RoleClassLib</Reference>
+         <!--Parent class-->
+         <Reference ReferenceType="HasSubtype" IsForward="false">ns=5;s=RoleClass1</Reference>
+         <!--AML-ID-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2_AML_ID</Reference>
+         <!--Version-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2_Version</Reference>
+      </References>
+   </UAObjectType>
+   <UAVariable NodeId="ns=5;s=RoleClass2_AML_ID" BrowseName="5:AML_ID" ParentNodeId="ns=5;s=RoleClass2" DataType="String">
+      <DisplayName>AML_ID</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>{9e7f747f-efdf-4558-9e8d-3d847c2bfa2b}</uax:String>
+      </Value>
+   </UAVariable>
+   <UAVariable NodeId="ns=5;s=RoleClass2_Version" BrowseName="5:Version" ParentNodeId="ns=5;s=RoleClass2" DataType="String">
+      <DisplayName>Version</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1.0.0</uax:String>
+      </Value>
+   </UAVariable>
+   <!--RoleClass: RoleClass2-1-->
+   <UAObjectType NodeId="ns=5;s=RoleClass2-1" BrowseName="RoleClass2-1">
+      <DisplayName>RoleClass2-1</DisplayName>
+      <!--Library: RoleClassLib1-->
+      <References><!--Hierarchical parent in AutomationML library-->
+         <Reference ReferenceType="Organizes" IsForward="false">ns=5;s=RoleClass2</Reference>
+         <!--Parent class-->
+         <Reference ReferenceType="HasSubtype" IsForward="false">ns=5;s=RoleClass2</Reference>
+         <!--AML-ID-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2-1_AML_ID</Reference>
+         <!--Version-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2-1_Version</Reference>
+      </References>
+   </UAObjectType>
+   <UAVariable NodeId="ns=5;s=RoleClass2-1_AML_ID" BrowseName="5:AML_ID" ParentNodeId="ns=5;s=RoleClass2-1" DataType="String">
+      <DisplayName>AML_ID</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>{4a0abf98-e2bd-4b07-b94a-549098b781ee}</uax:String>
+      </Value>
+   </UAVariable>
+   <UAVariable NodeId="ns=5;s=RoleClass2-1_Version" BrowseName="5:Version" ParentNodeId="ns=5;s=RoleClass2-1" DataType="String">
+      <DisplayName>Version</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1.0.0</uax:String>
+      </Value>
+   </UAVariable>
+   <!--RoleClass: RoleClass2-1-1-->
+   <UAObjectType NodeId="ns=5;s=RoleClass2-1-1" BrowseName="RoleClass2-1-1">
+      <DisplayName>RoleClass2-1-1</DisplayName>
+      <!--Library: RoleClassLib1-->
+      <References><!--Hierarchical parent in AutomationML library-->
+         <Reference ReferenceType="Organizes" IsForward="false">ns=5;s=RoleClass2-1</Reference>
+         <!--Parent class-->
+         <Reference ReferenceType="HasSubtype" IsForward="false">ns=5;s=RoleClass2-1</Reference>
+         <!--AML-ID-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2-1-1_AML_ID</Reference>
+         <!--Version-->
+         <Reference ReferenceType="HasProperty">ns=5;s=RoleClass2-1-1_Version</Reference>
+      </References>
+   </UAObjectType>
+   <UAVariable NodeId="ns=5;s=RoleClass2-1-1_AML_ID" BrowseName="5:AML_ID" ParentNodeId="ns=5;s=RoleClass2-1-1" DataType="String">
+      <DisplayName>AML_ID</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>{e3a9745b-8bbd-493c-91de-534633b6667b}</uax:String>
+      </Value>
+   </UAVariable>
+   <UAVariable NodeId="ns=5;s=RoleClass2-1-1_Version" BrowseName="5:Version" ParentNodeId="ns=5;s=RoleClass2-1-1" DataType="String">
+      <DisplayName>Version</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1.0.0</uax:String>
+      </Value>
+   </UAVariable>
+   <!--
+			RoleClassLib: RoleClassLib2
+			==================================================
+			TODOs:
+				- What was the correct translation for an RoleClass?
+				- Why is the lib modelled as UAObject?
+		-->
+   <!--
+			Libraries:
+			===============================================
+			TODOs:
+				- is there a maximum length for NodeId?
+				- how do we handle very long lib names -> generate short name?
+		-->
+   <UAObject NodeId="ns=6;s=RoleClassLib" BrowseName="RoleClassLib2">
+      <DisplayName>RoleClassLib2</DisplayName>
+      <References><!--Id no longer part of the specification-->
+         <Reference ReferenceType="HasProperty">ns=6;s=RoleClassLib_Version</Reference>
+         <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+         <!--Collection of RoleClassLib-->
+         <Reference ReferenceType="Organizes" IsForward="false">CAEXFile_RoleClassLibs</Reference>
+         <!--TODO: what is the correct way to list all elements of the Lib?-->
+         <!--List of included RoleClass-->
+         <Reference ReferenceType="Organizes">ns=6;s=RoleClass</Reference>
+      </References>
+   </UAObject>
+   <UAVariable NodeId="ns=6;s=RoleClassLib_Version" BrowseName="6:Version" ParentNodeId="ns=6;s=RoleClassLib" DataType="String">
+      <DisplayName>Version</DisplayName>
+      <References>
+         <Reference ReferenceType="HasTypeDefinition">AMLBaseVariableType</Reference>
+      </References>
+      <Value>
+         <uax:String>1.0</uax:String>
+      </Value>
+   </UAVariable>
+   <!--RoleClass: RoleClass-->
+   <UAObjectType NodeId="ns=6;s=RoleClass" BrowseName="RoleClass">
+      <DisplayName>RoleClass</DisplayName>
+      <!--Library: RoleClassLib2-->
+      <References><!--Hierarchical parent in AutomationML library-->
+         <Reference ReferenceType="Organizes" IsForward="false">ns=6;s=RoleClassLib</Reference>
+         <!--Parent class-->
+         <Reference ReferenceType="HasSubtype" IsForward="false">ns=5;s=RoleClass1</Reference>
+      </References>
+   </UAObjectType>
+   <!--
+			SystemUnitClassLibs
+			===============
+			-->
+   <!--Collection: CAEXFile.SystemUnitClassLibs-->
+   <!--
+			AttributeTypeLibs
+			===============
+			-->
+   <!--Collection: CAEXFile.AttributeTypeLibs-->
+</UANodeSet>
