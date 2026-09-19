@@ -1,4 +1,5 @@
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Import;
 
 namespace OpcUaAml.Tests;
@@ -134,6 +135,22 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
 
         Assert.Contains("CAEX 2.15", ex.Message);
         Assert.Empty(target.CAEXFile.SystemUnitClassLib);
+    }
+
+    [Fact]
+    public void A_CAEX_2_15_document_converted_to_CAEX_3_takes_the_libraries()
+    {
+        var original = CAEXDocument.LoadFromFile(Fixtures.Path("aml-ua-xslt", "AML", "3_IE_Attribute.aml"));
+        Assert.True(CaexUpgrade.IsNeeded(original));
+        var names = original.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()).Select(ie => ie.Name).ToList();
+
+        var upgraded = CaexUpgrade.ToCaex3(original);
+
+        Assert.Equal("3.0", upgraded.CAEXFile.SchemaVersion);
+        Assert.Equal("2.15", original.CAEXFile.SchemaVersion);
+        Assert.Equal(names, upgraded.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()).Select(ie => ie.Name).ToList());
+        OpcUaImport.ImportInto(upgraded, di.Catalog.Find(Fixtures.DiUri)!.FilePath, di.Catalog);
+        Assert.NotNull(upgraded.CAEXFile.SystemUnitClassLib["SUC_" + Fixtures.DiUri]);
     }
 
     [Fact]

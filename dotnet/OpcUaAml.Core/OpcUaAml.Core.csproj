@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Aml.Engine" Version="[4.*, 5.0.0)" />
+    <PackageReference Include="Aml.Engine.Services" Version="4.2.4" />
   </ItemGroup>
 
   <ItemGroup>

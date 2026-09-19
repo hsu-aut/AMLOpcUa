@@ -188,6 +188,14 @@
                             <TextBlock DockPanel.Dock="Top" Text="OPC UA namespaces in this document" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
                             <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="{DynamicResource Ua.Muted}" TextWrapping="Wrap"
                                        Text="Open a CAEX 3.0 document to import OPC UA NodeSets."/>
+                            <Button x:Name="Caex3Button" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
+                                    Click="Caex3Button_Click" Padding="10,3"
+                                    ToolTip="Write a CAEX 3.0 copy of this document (Aml.Engine's conversion) to a new file; open that file to import OPC UA libraries.">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE898;" Foreground="{StaticResource Exchange}"/>
+                                    <TextBlock Text="Save a CAEX 3.0 copy…" Style="{StaticResource Label}"/>
+                                </StackPanel>
+                            </Button>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

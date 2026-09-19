@@ -104,8 +104,11 @@ while the FX NodeSets of the tag define it in FX Data.
   their type only through it, so Opc2Aml has no element for them. Unpatched
   Opc2Aml fails on every NodeSet that uses DI 1.05.0; with patch 0001 the two
   references are skipped and reported as warnings.
-- **CAEX 2.15 documents** are refused: the Annex A libraries use CAEX 3.0
-  features (AttributeTypeLib, nested attribute types).
+- **CAEX 2.15 documents** cannot take the libraries: they use CAEX 3.0
+  features (AttributeTypeLib, nested attribute types). `CaexUpgrade` converts
+  a document with Aml.Engine's own transformation; `uaaml import --into`
+  does so on its own, the plugin offers "Save a CAEX 3.0 copy…" (the editor
+  lets plugins not replace its open document).
 - **Duration.** Opc2Aml turns the whole UA base model into libraries on every
   conversion: 11 to 15 seconds for a small NodeSet, in the background in the
   plugin. Two changes took about 15 % off: while a conversion runs, Aml.Engine

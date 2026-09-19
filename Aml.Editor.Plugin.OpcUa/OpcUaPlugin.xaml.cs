@@ -467,6 +467,38 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
     }
 
+    /// <summary>
+    /// A CAEX 2.15 document cannot hold the Annex A libraries, and the editor
+    /// offers plugins no way to replace its open document: the plugin writes a
+    /// CAEX 3.0 copy for the user to open.
+    /// </summary>
+    private void Caex3Button_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || !CaexUpgrade.IsNeeded(document)) return;
+        var current = document.CAEXFile.FileName;
+        var name = string.IsNullOrEmpty(current) ? "document" : Path.GetFileNameWithoutExtension(current);
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save a CAEX 3.0 copy",
+            Filter = "AutomationML (*.aml)|*.aml",
+            FileName = name + "_CAEX3.0.aml",
+        };
+        if (dialog.ShowDialog() != true) return;
+        try
+        {
+            var upgraded = CaexUpgrade.ToCaex3(document);
+            upgraded.SaveToFile(dialog.FileName, true);
+            PluginLog.Info($"Wrote a CAEX 3.0 copy of {name} to {dialog.FileName}.");
+            SetStatus($"CAEX 3.0 copy written to {Path.GetFileName(dialog.FileName)}. Open it in the editor to import OPC UA libraries.");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Converting to CAEX 3.0 failed", ex);
+            SetStatus("Converting to CAEX 3.0 failed: " + ex.Message);
+        }
+    }
+
     private void ClearCache_Click(object sender, RoutedEventArgs e)
     {
         OpcUaAml.Import.ConversionCache.Default.Clear();
@@ -515,6 +547,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
+        Caex3Button.Visibility = doc != null && !usable ? Visibility.Visible : Visibility.Collapsed;
         Placeholder.Text = doc == null
             ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
             : $"This document uses CAEX {doc.CAEXFile.SchemaVersion}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).";

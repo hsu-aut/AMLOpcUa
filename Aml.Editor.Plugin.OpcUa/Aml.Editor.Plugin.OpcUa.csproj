@@ -91,6 +91,8 @@
     editor already loads is left out on purpose: a second copy of the contract
     or of Aml.Engine in the plugin folder is loaded into the plugin's own load
     context, and the plugin then no longer matches the editor's interfaces.
+    That includes Aml.Engine.Services (the CAEX 2.15 to 3.0 conversion), which
+    the editor uses for its own conversion; without it only that button fails.
   -->
   <Target Name="PackRuntimeDependencies" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
     <ItemGroup>

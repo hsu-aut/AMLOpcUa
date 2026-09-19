@@ -47,6 +47,6 @@ the OPC Foundation's dual license (RCL for members, GPL 2.0 otherwise); patch
 
 | Component | License |
 |---|---|
-| [Aml.Engine](https://github.com/AutomationML/AMLEngine2.1), Aml.Engine.Resources | MIT |
+| [Aml.Engine](https://github.com/AutomationML/AMLEngine2.1), Aml.Engine.Resources, Aml.Engine.Services | MIT |
 | Aml.Editor.Plugin.Contract, Aml.Editor.API, Aml.Skins | MIT |
 | xunit, Microsoft.NET.Test.Sdk (tests only) | Apache-2.0, MIT |

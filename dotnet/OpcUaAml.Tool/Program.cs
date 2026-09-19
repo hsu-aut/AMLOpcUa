@@ -23,9 +23,10 @@ public static class Program
 
         uaaml import <NodeSet.xml> [--search <dir>]... [--into <doc.aml>] [-o <out.aml>] [--keep]
             Convert the NodeSet according to OPC 10000-83 Annex A and write its
-            AML libraries. With --into, the libraries are merged into that CAEX 3.0
-            document, which is overwritten unless -o names another file. Without
-            --into, -o is required and receives a new document.
+            AML libraries. With --into, the libraries are merged into that document
+            (a CAEX 2.15 document is converted to CAEX 3.0 first), which is
+            overwritten unless -o names another file. Without --into, -o is
+            required and receives a new document.
             --keep   keep libraries the document already has instead of replacing them
 
         uaaml types <doc.aml> [--filter <text>] [--abstract]
@@ -212,6 +213,11 @@ public static class Program
         foreach (var w in catalog.Warnings) Console.Error.WriteLine($"note: {w}");
 
         var target = into != null ? Documents.Load(into) : CAEXDocument.New_CAEXDocument();
+        if (CaexUpgrade.IsNeeded(target))
+        {
+            Console.Error.WriteLine($"note: {into} is CAEX {target.CAEXFile.SchemaVersion}; converted to CAEX 3.0 for the OPC UA libraries.");
+            target = CaexUpgrade.ToCaex3(target);
+        }
         var result = OpcUaImport.ImportInto(target, file, catalog,
             new MergeOptions { ReplaceGeneratedLibraries = !options.Has("--keep") });
 
