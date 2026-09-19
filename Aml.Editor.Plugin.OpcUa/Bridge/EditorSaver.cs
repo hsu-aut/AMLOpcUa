@@ -28,6 +28,34 @@ public static class EditorSaver
     };
 
     /// <summary>
+    /// The editor's save command as "ViewModel.Property", found without running
+    /// it; null when this editor version has none of the known names. Asked once
+    /// when the plugin is shown, so "Save after import" is only offered when it works.
+    /// </summary>
+    public static string? FindSaveCommand()
+    {
+        try
+        {
+            var vm = Application.Current?.MainWindow?.DataContext;
+            if (vm == null) return null;
+            var vmType = vm.GetType();
+            foreach (var name in CandidateProperties)
+            {
+                var prop = vmType.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+                if (prop == null) continue;
+                if (typeof(ICommand).IsAssignableFrom(prop.PropertyType) || prop.GetValue(vm) is ICommand)
+                    return $"{vmType.Name}.{name}";
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Debug("Editor save reflection probe threw: " + ex.Message);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Try to trigger the editor's own save action without going through the
     /// filesystem ourselves. Returns true if a command was found AND executed.
     /// </summary>

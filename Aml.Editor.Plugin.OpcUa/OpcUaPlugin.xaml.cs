@@ -66,6 +66,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
         Loaded += (_, __) =>
         {
+            ProbeEditorBridge();
             if (_document == null)
             {
                 // A view created after the editor announced its document never
@@ -75,6 +76,35 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             }
             UpdateState();
         };
+    }
+
+    private bool _bridgeProbed;
+
+    /// <summary>The user's choice, when this editor lets the plugin save.</summary>
+    private bool SaveAfterImport => _settings.SaveAfterImport && SaveToggle.IsEnabled;
+
+    /// <summary>
+    /// Saving and finding the open document go through the editor's internals
+    /// by reflection, which a new editor version may break. Checked once: an
+    /// unusable "Save after import" is switched off with the reason, instead of
+    /// promising a save that never happens.
+    /// </summary>
+    private void ProbeEditorBridge()
+    {
+        if (_bridgeProbed) return;
+        _bridgeProbed = true;
+        var save = EditorSaver.FindSaveCommand();
+        if (save != null)
+        {
+            PluginLog.Debug($"Editor save command: {save}.");
+            return;
+        }
+        // Outside the editor (the WPF probe, tests) there is no main view-model to ask.
+        if (Application.Current?.MainWindow?.DataContext == null) return;
+        PluginLog.Warn("This editor version has no save command the plugin knows; \"Save after import\" is off. Save with Ctrl+S.");
+        // The setting itself stays as the user chose it, for an editor where saving works.
+        SaveToggle.IsEnabled = false;
+        SaveToggle.ToolTip = "Not available with this editor version: its save command was not found. Save with Ctrl+S.";
     }
 
     // ── plugin identity ─────────────────────────────────────────────────────
@@ -223,7 +253,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             foreach (var w in result.Warnings) PluginLog.Warn(w);
             PluginLog.Info(result.Summary);
 
-            var saved = _settings.SaveAfterImport && EditorSaver.TrySaveActiveDocument();
+            var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             SetStatus(result.Summary + (saved ? " Saved." : " Press Ctrl+S to save."));
         }
         catch (ImportException ex)
@@ -287,7 +317,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             if (UaTypes.IsAbstract(window.SelectedType))
                 PluginLog.Warn($"'{window.SelectedType.Name}' is abstract; OPC UA only instantiates concrete subtypes.");
 
-            var saved = _settings.SaveAfterImport && EditorSaver.TrySaveActiveDocument();
+            var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             SetStatus(message + (saved ? " Saved." : " Press Ctrl+S to save."));
         }
         catch (InstantiationException ex)

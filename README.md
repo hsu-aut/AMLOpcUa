@@ -73,7 +73,9 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
 - **Settings ▾ › NodeSet folders** lists folders searched for required
   NodeSets. The folder of the imported NodeSet is always searched first. The
   UA base model and DI are built in. The same menu holds "Replace existing
-  libraries", "Save after import" and the debug log.
+  libraries", "Save after import" and the debug log. Saving goes through the
+  editor's own save command, reached by reflection; when an editor version
+  does not have it, the option is switched off with that reason.
 - The list shows the UA namespaces the document holds, with model version and
   publication date; a double click opens one in the modeler. Beside it, the
   selected namespace in detail: its ObjectTypes, VariableTypes, DataTypes and
