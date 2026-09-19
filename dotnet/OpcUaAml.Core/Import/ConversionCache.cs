@@ -4,9 +4,10 @@
 // takes 10 to 20 seconds even for a small NodeSet. The result depends only on
 // the files it reads and on the converter itself, so the container it writes
 // is kept under a key made of both: the content of the NodeSet and of every
-// file it requires, and the build of Opc2Aml and of this library. A changed
-// file or a rebuilt converter gives a new key; old entries are dropped when
-// the cache grows beyond its limit.
+// file it requires, and the build of Opc2Aml. A changed file or a rebuilt
+// converter gives a new key; old entries are dropped when the cache grows
+// beyond its limit. Format counts changes to how NodeSetImporter runs it
+// (such as the ID service); raise it with such a change.
 
 using System.Security.Cryptography;
 using System.Text;
@@ -17,7 +18,7 @@ namespace OpcUaAml.Import;
 
 public sealed class ConversionCache
 {
-    private const string Format = "1";
+    private const string Format = "2";
 
     /// <summary>The folder holding the cached containers.</summary>
     public string Folder { get; }
@@ -36,8 +37,7 @@ public sealed class ConversionCache
     {
         using var sha = SHA256.Create();
         var text = new StringBuilder(Format).Append('\n');
-        foreach (var assembly in new[] { typeof(MarkdownProcessor.NodeSetToAML).Assembly, typeof(ConversionCache).Assembly })
-            text.Append(assembly.ManifestModule.ModuleVersionId).Append('\n');
+        text.Append(typeof(MarkdownProcessor.NodeSetToAML).Assembly.ManifestModule.ModuleVersionId).Append('\n');
         // The primary file first; the others in a stable order, since the catalog's order may vary.
         text.Append(FileHash(nodeSet.FilePath)).Append('\n');
         foreach (var hash in catalog.Dependencies(nodeSet).Select(d => d.PrimaryModel.Model.ModelUri + " " + FileHash(d.FilePath)).OrderBy(s => s, StringComparer.Ordinal))
