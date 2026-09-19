@@ -89,8 +89,9 @@ file (`ServerNodeSetTests`).
 
 ## Into the document
 
-- **Take into document** (`AddressSpaceMirror`): the selected node and the
-  nodes below it (up to a depth, at most 2000 nodes) become InternalElements.
+- **Take into document** (`AddressSpaceMirror`): the checked parts (see
+  above), or with nothing checked the selected node and the nodes below it (up
+  to a depth, at most 2000 nodes), become InternalElements.
   Each carries its Annex A NodeId including the server's ApplicationUri, and
   its UA type as RefBaseSystemUnitPath when the document holds the type's
   library (matched by the NodeId every generated class carries). Variables get
@@ -116,30 +117,40 @@ file (`ServerNodeSetTests`).
   source, with the security its description asks for. Nothing is subscribed; the document records one
   point in time.
 
-## Selective mirroring (planned)
+## Selecting what to mirror
 
 A mirror follows Annex A, so every variable and property is an element of its
-own; a DI device alone gives 50 to 100 elements. Decided on 2026-09-19, not
-built yet:
+own; a DI device alone gives 50 to 100 elements. What goes into the document
+is therefore chosen (`MirrorSelection`, `MirrorPlan`):
 
-- **Selection** in the address tree with three-state check boxes: the node
-  alone, with its children, or with its whole subtree; several parts at once.
-- **Filters** over the selection, also shown in the tree: leave out
-  properties, objects only, hide Server and diagnostics, namespaces to take.
-- **By type**: all instances of a type below the selected node, checked in the
-  tree and removable one by one.
-- **Views** of the server as a further root of the tree, checked like a subtree.
-- **Preview** of how many elements the selection gives.
-- **Layout**: the ancestors of each selected part up to the Objects folder
-  become lean elements with their NodeId, so the part's place in the server
-  stays visible and a later mirror finds it again.
-- **The selection is kept in the document**, as an attribute of the
-  InstanceHierarchy (endpoint, selected NodeIds and how, filters, depth), so
-  the same part can be mirrored again with one click.
-- **Mirroring again** asks whether to update the existing elements (by NodeId:
-  values and types updated, new nodes added, vanished ones reported, not
-  deleted) or to add a new copy.
-- Variables and properties stay elements of their own (Annex A).
+- **Check boxes** in the address tree mark parts; right click says how much:
+  the node only, with its children, or with everything below it (down to the
+  depth given, 0 for no limit but the node limit of 2000).
+- **Filters** apply to the tree and to what is taken: leave out properties,
+  objects only, show or hide the Server object (hidden by default),
+  namespaces to take (nodes of other namespaces are left out with what they
+  hold).
+- **Instances of a type** below a node: the server's ObjectTypes and
+  VariableTypes are listed, the instances found (with subtypes, not searched
+  below a match) are shown with check boxes; unchecked ones are left out.
+- **Views** of the server appear as a further root of the tree; a View is
+  browsed with its own references.
+- **Leave out** takes a node out of checked parts.
+- **Count** gives the number of elements before anything is written.
+
+Each part keeps the way to it: below an element for the server (with
+`ServerUri` and `EndpointUrl`), the nodes from the Objects or Views folder
+down to the part become elements with their NodeId, the part itself gets its
+content. The selection is kept as attribute `MirrorSelection` of that server
+element; **Load kept selection** takes it back into the tree.
+
+When the hierarchy already holds a mirror of the server, the plugin asks:
+update it (found by NodeId: types and values read again, new nodes added,
+nodes the server no longer holds reported in the log, not deleted) or mirror
+into a new hierarchy. On the command line `uaaml mirror` updates, `--copy`
+mirrors anew, `--preview` counts, and without nodes the kept selection is
+mirrored again. Elements of a mirrored selection never count as planned
+elements for the refBaseObj link, so a second copy does not link to the first.
 
 ## The document as a server
 
