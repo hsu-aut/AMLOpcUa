@@ -78,9 +78,9 @@ public static class NodeSetImporter
             {
                 return new ConversionResult(ReadContainer(hit.Container), info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
             }
-            catch (Exception ex) when (ex is IOException or ImportException or System.Xml.XmlException or InvalidDataException)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // A damaged entry: convert again and replace it.
+                // A damaged entry, whatever the zip or XML reader throws on it: convert again and replace it.
             }
         }
 

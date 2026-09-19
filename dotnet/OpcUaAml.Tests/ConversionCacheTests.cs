@@ -37,6 +37,36 @@ public class ConversionCacheTests
     }
 
     [Fact]
+    public void A_damaged_entry_is_converted_again()
+    {
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-cache-damaged-").FullName;
+        var previous = NodeSetImporter.Cache;
+        try
+        {
+            NodeSetImporter.Cache = new ConversionCache(folder);
+            var catalog = NodeSetCatalog.Create(Array.Empty<string>());
+            NodeSetImporter.Convert(Safety, catalog);
+            // Half a zip, as a crash while copying would leave it.
+            foreach (var amlx in Directory.GetFiles(folder, "*.amlx"))
+            {
+                var bytes = File.ReadAllBytes(amlx);
+                File.WriteAllBytes(amlx, bytes[..(bytes.Length / 2)]);
+            }
+
+            var again = NodeSetImporter.Convert(Safety, catalog);
+
+            Assert.False(again.FromCache);
+            Assert.NotEmpty(again.Document.CAEXFile.SystemUnitClassLib);
+            Assert.True(NodeSetImporter.Convert(Safety, catalog).FromCache);
+        }
+        finally
+        {
+            NodeSetImporter.Cache = previous;
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Conversions_on_several_threads_do_not_disturb_each_other()
     {
         // Aml.Engine keeps static state while Opc2Aml runs; conversions and
