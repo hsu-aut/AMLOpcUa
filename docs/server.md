@@ -207,6 +207,9 @@ forms, arrays separated by spaces. A value its type cannot hold (3000000000
 as `xs:int`) is served as text.
 
 By default the server is for this computer only: it listens on 127.0.0.1,
+under a certificate made for the address it is served at (one made for
+another address, such as the computer's name, is replaced at start, and
+clients that trusted it ask again),
 offers the unsecured endpoint besides the secured ones and admits every
 client, which is what testing a client on the same computer needs. Only
 programs on this computer reach it; they could read the document file

@@ -112,6 +112,17 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its fi
   Annex C) and applies the result to the document as a NodeSet import; see
   [docs/modeler.md](docs/modeler.md).
 
+**Tutorial** (in the status bar, and a card on an empty document) opens four
+short lessons in a panel beside the tabs: models into the document, instances
+and checks, a running server (the document serves itself, so no plant is
+needed), a model of your own. Each step frames the control it is about and
+ticks itself off when the plugin's state shows it done; a button takes over
+what needs a file or a place, such as opening the dialog in the folder of the
+bundled DI. For those who know their way, a **?** beside each part says in a
+few sentences what it does, explains its terms on a click and leads to the
+lesson that shows it. A test checks that every lesson step and every **?**
+names a control and a topic that exist.
+
 Every tab has a toolbar in the style of the other plugins of this family
 (icons of the editor's font, colour by kind of command); messages and
 progress appear in one status bar below all tabs, with the whole message in
