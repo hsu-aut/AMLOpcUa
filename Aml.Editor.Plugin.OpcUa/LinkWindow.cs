@@ -15,7 +15,7 @@ public sealed class LinkWindow : Window
     private readonly ListBox _sources = new();
     private readonly ListBox _targets = new();
     private readonly ListBox _existing = new() { Height = 110 };
-    private readonly TextBlock _info = new() { TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly TextBlock _info = DialogKit.Message();
 
     /// <summary>Set when a link was created, for the editor to select.</summary>
     public InternalElementType? Linked { get; private set; }
@@ -23,46 +23,42 @@ public sealed class LinkWindow : Window
     public LinkWindow(CAEXDocument doc)
     {
         _doc = doc;
-        Title = "Link VDI 3682 and OPC UA";
-        Width = 820;
-        Height = 560;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Width = 860;
+        Height = 600;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
         _kind.Items.Add("TechnicalResource to UA object");
         _kind.Items.Add("ProcessOperator to UA method");
         _kind.SelectedIndex = 0;
         _kind.SelectionChanged += (_, __) => Fill();
 
-        var link = new Button { Content = "Link", Width = 90, Margin = new Thickness(0, 0, 6, 0) };
+        var link = DialogKit.Action("Link", primary: true);
         link.Click += (_, __) => DoLink();
-        var close = new Button { Content = "Close", Width = 90, IsCancel = true };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        buttons.Children.Add(link);
-        buttons.Children.Add(close);
 
         var lists = new Grid();
         lists.ColumnDefinitions.Add(new ColumnDefinition());
-        lists.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+        lists.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
         lists.ColumnDefinitions.Add(new ColumnDefinition());
         lists.Children.Add(Labelled("VDI 3682 element", _sources, 0));
         lists.Children.Add(Labelled("OPC UA element", _targets, 2));
 
-        var top = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-        top.Children.Add(new TextBlock { Text = "Relation ", VerticalAlignment = VerticalAlignment.Center });
+        var top = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+        top.Children.Add(new TextBlock { Text = "Relation", FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) });
         top.Children.Add(_kind);
 
         var bottom = new StackPanel();
-        bottom.Children.Add(new TextBlock { Text = "Links in this document", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 2) });
+        bottom.Children.Add(DialogKit.Label("Links in this document"));
         bottom.Children.Add(_existing);
-        bottom.Children.Add(_info);
-        bottom.Children.Add(buttons);
 
-        var root = new DockPanel { Margin = new Thickness(10) };
+        var body = new DockPanel();
         DockPanel.SetDock(top, Dock.Top);
         DockPanel.SetDock(bottom, Dock.Bottom);
-        root.Children.Add(top);
-        root.Children.Add(bottom);
-        root.Children.Add(lists);
-        Content = root;
+        body.Children.Add(top);
+        body.Children.Add(bottom);
+        body.Children.Add(lists);
+
+        DialogKit.Frame(this, "\uE71B", DialogKit.Relate, "Link VDI 3682 and OPC UA",
+            "A TechnicalResource refers to the OPC UA object that represents it, a ProcessOperator to the method that executes it.",
+            body, _info, link, DialogKit.Action("Close", cancel: true));
         Fill();
     }
 
@@ -71,7 +67,7 @@ public sealed class LinkWindow : Window
     private static DockPanel Labelled(string label, ListBox list, int column)
     {
         var panel = new DockPanel();
-        var text = new TextBlock { Text = label, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 2) };
+        var text = DialogKit.Label(label, 0);
         DockPanel.SetDock(text, Dock.Top);
         panel.Children.Add(text);
         panel.Children.Add(list);
@@ -81,8 +77,8 @@ public sealed class LinkWindow : Window
 
     private void Fill()
     {
-        _sources.ItemsSource = Vdi3682Links.FpdElements(_doc, Kind).Select(e => new Item(e)).ToList();
-        _targets.ItemsSource = Vdi3682Links.UaTargets(_doc, Kind).Select(e => new Item(e)).ToList();
+        _sources.ItemsSource = Vdi3682Links.FpdElements(_doc, Kind).Select(Entry).ToList();
+        _targets.ItemsSource = Vdi3682Links.UaTargets(_doc, Kind).Select(Entry).ToList();
         _existing.ItemsSource = Vdi3682Links.Links(_doc)
             .Select(l => $"{l.Source.Name}   {(l.Kind == FpdKind.TechnicalResource ? "refOpcUaObject" : "refOpcUaMethod")}   {l.Target?.Name ?? "(missing " + l.TargetId + ")"}")
             .ToList();
@@ -93,17 +89,17 @@ public sealed class LinkWindow : Window
 
     private void DoLink()
     {
-        if (_sources.SelectedItem is not Item source || _targets.SelectedItem is not Item target)
+        if (DialogKit.Selected<InternalElementType>(_sources) is not { } source || DialogKit.Selected<InternalElementType>(_targets) is not { } target)
         {
             _info.Text = "Choose one element on each side.";
             return;
         }
         try
         {
-            Vdi3682Links.Link(source.Element, target.Element, Kind);
-            Linked = source.Element;
+            Vdi3682Links.Link(source, target, Kind);
+            Linked = source;
             Fill();
-            _info.Text = $"Linked '{source.Element.Name}' to '{target.Element.Name}'.";
+            _info.Text = $"Linked '{source.Name}' to '{target.Name}'.";
         }
         catch (LinkException ex)
         {
@@ -111,13 +107,10 @@ public sealed class LinkWindow : Window
         }
     }
 
-    private sealed record Item(InternalElementType Element)
+    private static ListBoxItem Entry(InternalElementType element)
     {
-        public override string ToString()
-        {
-            var type = Element.RefBaseSystemUnitPath;
-            var last = type == null ? "" : type[(type.LastIndexOf('/') + 1)..].Trim('[', ']');
-            return $"{Element.Name}    {last}";
-        }
+        var type = element.RefBaseSystemUnitPath;
+        var last = type == null ? "" : type[(type.LastIndexOf('/') + 1)..].Trim('[', ']');
+        return DialogKit.Entry(element.Name, last, element);
     }
 }

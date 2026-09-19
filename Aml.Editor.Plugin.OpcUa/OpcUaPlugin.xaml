@@ -453,7 +453,16 @@
                             </Grid.RowDefinitions>
                             <DockPanel Grid.Row="0">
                                 <TextBlock DockPanel.Dock="Top" Text="Node" Style="{StaticResource Caption}" Margin="0,0,0,3"/>
-                                <TextBox x:Name="NodeDetails" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                                <Border BorderBrush="#DDE1E6" BorderThickness="1" Padding="8,6">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <Grid x:Name="NodeDetails">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                        </Grid>
+                                    </ScrollViewer>
+                                </Border>
                             </DockPanel>
                             <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
                             <DockPanel Grid.Row="2">
@@ -474,10 +483,36 @@
                     <ListView x:Name="WatchList" Grid.Row="4" MaxHeight="160" Margin="6,0,6,6" Visibility="Collapsed">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Node" Width="320" DisplayMemberBinding="{Binding Node}"/>
-                                <GridViewColumn Header="Value" Width="200" DisplayMemberBinding="{Binding Value}"/>
-                                <GridViewColumn Header="Status" Width="120" DisplayMemberBinding="{Binding Status}"/>
-                                <GridViewColumn Header="Received" Width="90" DisplayMemberBinding="{Binding Received}"/>
+                                <GridViewColumn Header="Node" Width="240">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Node}" ToolTip="{Binding Where}"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Value" Width="240">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Value}" FontFamily="Consolas"/>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Status" Width="200">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#C03030" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Status}" ToolTip="{Binding Status}"/>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Good}" Value="True">
+                                                    <Setter TargetName="Dot" Property="Fill" Value="#2E9E4F"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Header="Received" Width="80" DisplayMemberBinding="{Binding Received}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>

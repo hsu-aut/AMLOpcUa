@@ -14,68 +14,65 @@ public sealed class CloudLibraryWindow : Window
     private static string? _sessionPassword;
     private static string? _sessionApiKey;
 
-    private readonly TextBox _user = new() { Width = 140 };
-    private readonly PasswordBox _password = new() { Width = 120, Margin = new Thickness(4, 0, 0, 0) };
-    private readonly PasswordBox _apiKey = new() { Width = 160, Margin = new Thickness(4, 0, 0, 0) };
+    private readonly TextBox _user = new() { Width = 140, Padding = new Thickness(3) };
+    private readonly PasswordBox _password = new() { Width = 120, Padding = new Thickness(3) };
+    private readonly PasswordBox _apiKey = new() { Width = 170, Padding = new Thickness(3) };
     private readonly TextBox _search = new();
     private readonly ListBox _results = new();
-    private readonly TextBlock _info = new() { TextWrapping = TextWrapping.Wrap, Foreground = System.Windows.Media.Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) };
+    private readonly TextBlock _info = DialogKit.Message();
 
     public CloudModel? Selected { get; private set; }
     public string? UserName => string.IsNullOrWhiteSpace(_user.Text) ? null : _user.Text.Trim();
 
     public CloudLibraryWindow(string? rememberedUser)
     {
-        Title = "UA Cloud Library";
-        Width = 720;
-        Height = 520;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Width = 780;
+        Height = 580;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
         _user.Text = rememberedUser ?? "";
         _password.Password = _sessionPassword ?? "";
         _apiKey.Password = _sessionApiKey ?? "";
 
-        var credentials = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-        credentials.Children.Add(new TextBlock { Text = "User ", VerticalAlignment = VerticalAlignment.Center });
+        var credentials = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
+        credentials.Children.Add(Caption("User"));
         credentials.Children.Add(_user);
-        credentials.Children.Add(new TextBlock { Text = "  Password", VerticalAlignment = VerticalAlignment.Center });
+        credentials.Children.Add(Caption("Password", 12));
         credentials.Children.Add(_password);
-        credentials.Children.Add(new TextBlock { Text = "   or API key", VerticalAlignment = VerticalAlignment.Center });
+        credentials.Children.Add(Caption("or API key", 12));
         credentials.Children.Add(_apiKey);
 
-        var searchButton = new Button { Content = "Search", Width = 80, Margin = new Thickness(6, 0, 0, 0), IsDefault = true };
+        var searchButton = DialogKit.Action("Search", primary: true);
+        searchButton.Margin = new Thickness(6, 0, 0, 0);
         searchButton.Click += async (_, __) => await SearchAsync();
         var searchRow = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         DockPanel.SetDock(searchButton, Dock.Right);
         searchRow.Children.Add(searchButton);
-        searchRow.Children.Add(_search);
+        searchRow.Children.Add(DialogKit.WithPlaceholder(_search, "Keywords, e.g. Machinery, or * for all"));
 
-        var import = new Button { Content = "Download and import", Width = 150, Margin = new Thickness(0, 0, 6, 0) };
+        var import = DialogKit.Action("Download and import");
         import.Click += (_, __) =>
         {
-            Selected = (_results.SelectedItem as ResultItem)?.Model;
+            Selected = DialogKit.Selected<CloudModel>(_results);
             if (Selected == null) { _info.Text = "Choose a model."; return; }
             Remember();
             DialogResult = true;
         };
-        var cancel = new Button { Content = "Cancel", Width = 80, IsCancel = true };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        buttons.Children.Add(import);
-        buttons.Children.Add(cancel);
+        _results.MouseDoubleClick += (_, __) => import.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
 
-        var root = new DockPanel { Margin = new Thickness(10) };
-        foreach (var top in new UIElement[] { credentials, searchRow })
-        {
-            DockPanel.SetDock(top, Dock.Top);
-            root.Children.Add(top);
-        }
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        DockPanel.SetDock(_info, Dock.Bottom);
-        root.Children.Add(buttons);
-        root.Children.Add(_info);
-        root.Children.Add(_results);
-        Content = root;
-        _info.Text = "Search needs an account of uacloudlibrary.opcfoundation.org or an API key. Keywords, e.g. Machinery, or * for all.";
+        var body = new DockPanel();
+        DockPanel.SetDock(credentials, Dock.Top);
+        DockPanel.SetDock(searchRow, Dock.Top);
+        body.Children.Add(credentials);
+        body.Children.Add(searchRow);
+        body.Children.Add(_results);
+
+        DialogKit.Frame(this, "\uE753", DialogKit.Exchange, "UA Cloud Library",
+            "Models of the OPC Foundation's UA Cloud Library, imported with the models they require. Searching needs an account of uacloudlibrary.opcfoundation.org or an API key; the password is kept for this session only.",
+            body, _info, import, DialogKit.Action("Cancel", cancel: true));
     }
+
+    private static TextBlock Caption(string text, double left = 0) =>
+        new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(left, 0, 6, 0) };
 
     public CloudLibraryClient CreateClient() =>
         new(new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
@@ -97,18 +94,13 @@ public sealed class CloudLibraryWindow : Window
             var keywords = _search.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var models = await CreateClient().SearchAsync(keywords.Length == 0 ? new[] { "*" } : keywords);
             Remember();
-            _results.ItemsSource = models.OrderBy(m => m.NamespaceUri).Select(m => new ResultItem(m)).ToList();
+            _results.ItemsSource = models.OrderBy(m => m.NamespaceUri)
+                .Select(m => DialogKit.Entry(m.Title ?? m.NamespaceUri, $"{m.NamespaceUri}   {m.Version} ({m.PublicationDate:yyyy-MM-dd})", m)).ToList();
             _info.Text = $"{models.Count} model(s).";
         }
         catch (CloudLibraryException ex)
         {
             _info.Text = ex.Message;
         }
-    }
-
-    private sealed record ResultItem(CloudModel Model)
-    {
-        public override string ToString() =>
-            $"{Model.Title ?? Model.NamespaceUri}    {Model.NamespaceUri}    {Model.Version} ({Model.PublicationDate:yyyy-MM-dd})";
     }
 }

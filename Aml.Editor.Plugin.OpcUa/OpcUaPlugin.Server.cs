@@ -24,6 +24,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     private UaClient? _client;
     private IAsyncDisposable? _watch;
     private AmlServerHost? _host;
+    private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
 
     /// <summary>A row of the live list; updated from the subscription thread through the dispatcher.</summary>
@@ -31,8 +32,10 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         public required UaNodeAddress Address { get; init; }
         public required string Node { get; init; }
+        public string Where => Address.ToString();
         public string Value { get; private set; } = "";
-        public string Status { get; private set; } = "";
+        public string Status { get; private set; } = "waiting for the first value";
+        public bool Good { get; private set; }
         public string Received { get; private set; } = "";
 
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
@@ -40,7 +43,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         public void Update(UaReadResult r)
         {
             Value = r.ValueText ?? "";
-            Status = r.Status;
+            Status = r.Good ? "Good" : r.Status;
+            Good = r.Good;
             Received = DateTime.Now.ToString("HH:mm:ss");
             PropertyChanged?.Invoke(this, new(null));
         }
@@ -151,7 +155,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         var node = SelectedNode;
         if (node == null || _client == null || node.NodeClass != "Variable") return;
         if (_watchRows.Any(r => r.Address == node.Address)) return;
-        _watchRows.Add(new WatchRow { Address = node.Address, Node = node.DisplayName + "   " + node.Address.Identifier });
+        _watchRows.Add(new WatchRow { Address = node.Address, Node = node.DisplayName });
         await RestartWatchAsync();
     }
 
@@ -237,20 +241,117 @@ public partial class OpcUaPlugin : ISupportsSelection
     private async void AddressTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         UpdateServerState();
+        var version = ++_detailsVersion;
+        NodeDetails.Children.Clear();
+        NodeDetails.RowDefinitions.Clear();
         var node = SelectedNode;
-        if (node == null || _client == null) { NodeDetails.Text = ""; return; }
-        var text = $"{node.Address}\nBrowseName: {node.BrowseName}   Class: {node.NodeClass}   Reference: {node.ReferenceType}"
-                   + (node.TypeDefinition != null ? $"\nType: {node.TypeDefinition}" : "");
-        if (node.NodeClass == "Variable")
+        var client = _client;
+        if (node == null || client == null) return;
+
+        DetailRow("Name", node.DisplayName, bold: true);
+        DetailRow("Class", node.NodeClass);
+        DetailRow("NodeId", node.Address.ToString(), mono: true, copy: true);
+        if (node.BrowseName != node.DisplayName) DetailRow("BrowseName", node.BrowseName);
+        if (node.ReferenceType.Length > 0) DetailRow("Held by", node.ReferenceType);
+        var typeRow = node.TypeDefinition != null ? DetailRow("Type", node.TypeDefinition.ToString(), mono: true) : null;
+        var valueRow = node.NodeClass == "Variable" ? DetailRow("Value", "…", mono: true) : null;
+        var element = MirroredElement(node.Address);
+        if (element != null) DetailRow("In document", ElementPath(element), select: element);
+
+        if (typeRow != null && node.TypeDefinition != null)
         {
             try
             {
-                var r = await _client.ReadAsync(node.Address);
-                text += r.Good ? $"\nValue: {r.ValueText} ({r.DataType})" : $"\nValue: {r.Status}";
+                var type = await client.DescribeAsync(node.TypeDefinition);
+                if (version != _detailsVersion) return;
+                var inDocument = _document != null && AddressSpaceMirror.TypeIndex(_document).ContainsKey(node.TypeDefinition with { ServerUri = null });
+                typeRow.Text = type.DisplayName + (inDocument ? "" : "   (not imported)");
+                typeRow.FontFamily = FontFamily;
+                typeRow.ToolTip = node.TypeDefinition.ToString();
             }
-            catch (Exception ex) { text += "\nValue: " + ex.Message; }
+            catch (Exception) { /* keep the NodeId */ }
         }
-        NodeDetails.Text = text;
+        if (valueRow != null)
+        {
+            try
+            {
+                var r = await client.ReadAsync(node.Address);
+                if (version != _detailsVersion) return;
+                valueRow.Text = r.Good ? $"{r.ValueText}" : r.Status;
+                valueRow.Foreground = r.Good ? Brushes.Black : new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30));
+                if (r.Good && r.DataType != null) DetailRow("DataType", r.DataType);
+            }
+            catch (Exception ex) { valueRow.Text = ex.Message; }
+        }
+    }
+
+    /// <summary>Adds a label and a value to the node details; returns the value's text block to fill in later.</summary>
+    private TextBlock DetailRow(string label, string value, bool mono = false, bool bold = false, bool copy = false, InternalElementType? select = null)
+    {
+        var row = NodeDetails.RowDefinitions.Count;
+        NodeDetails.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        var name = new TextBlock { Text = label, Foreground = new SolidColorBrush(Color.FromRgb(0x70, 0x70, 0x70)), Margin = new Thickness(0, 2, 12, 2) };
+        Grid.SetRow(name, row);
+        NodeDetails.Children.Add(name);
+        var text = new TextBlock
+        {
+            Text = value, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 2),
+            FontFamily = mono ? new FontFamily("Consolas") : FontFamily,
+            FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal,
+        };
+        var cell = new DockPanel();
+        if (copy)
+        {
+            var button = new Button
+            {
+                Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE8C8", FontSize = 11 },
+                ToolTip = $"Copy the {label}", Padding = new Thickness(3, 1, 3, 1), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
+            };
+            button.Click += (_, __) => Clipboard.SetText(value);
+            DockPanel.SetDock(button, Dock.Right);
+            cell.Children.Add(button);
+        }
+        if (select != null)
+        {
+            var link = new Button
+            {
+                Content = "Select", Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
+                ToolTip = "Select the element in the editor",
+            };
+            link.Click += (_, __) => Selected?.Invoke(this, new SelectionEventArgs(select));
+            DockPanel.SetDock(link, Dock.Right);
+            cell.Children.Add(link);
+        }
+        cell.Children.Add(text);
+        Grid.SetRow(cell, row);
+        Grid.SetColumn(cell, 1);
+        NodeDetails.Children.Add(cell);
+        return text;
+    }
+
+    /// <summary>The element that mirrors a node in the hierarchy named under 'into', if any.</summary>
+    private InternalElementType? MirroredElement(UaNodeAddress address)
+    {
+        if (_document == null || _client == null || _document.CAEXFile.InstanceHierarchy[HierarchyName()] is not { } ih
+            || AddressSpaceMirror.MirroredServer(ih, _client) is not { } server) return null;
+        var key = address with { ServerUri = null };
+        foreach (var e in server.Descendants<InternalElementType>())
+        {
+            try { if (AnnexANodeId.Of(e) is { } a && a with { ServerUri = null } == key) return e; }
+            catch (AddressingException) { /* not a node */ }
+        }
+        return null;
+    }
+
+    private static string ElementPath(InternalElementType e)
+    {
+        var parts = new List<string>();
+        for (CAEXBasicObject? o = e; o is CAEXObject c; o = c.CAEXParent as CAEXBasicObject)
+        {
+            parts.Insert(0, c.Name);
+            if (c is InstanceHierarchyType) break;
+        }
+        return string.Join("/", parts);
     }
 
     // ── into the document ───────────────────────────────────────────────────
@@ -433,17 +534,17 @@ public sealed class NamespacePickerWindow : Window
         {
             Columns =
             {
-                new GridViewColumn { Header = "Namespace", Width = 330, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Uri)) },
+                new GridViewColumn { Header = "Namespace", Width = 340, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Uri)) },
                 new GridViewColumn { Header = "Version", Width = 70, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Version)) },
-                new GridViewColumn { Header = "Published", Width = 80, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Published)) },
+                new GridViewColumn { Header = "Published", Width = 84, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Published)) },
                 new GridViewColumn { Header = "NodeSet", Width = 110, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Source)) },
             },
         },
     };
     private readonly CheckBox _instances = new()
     {
-        Content = "Include the namespace's objects (for the modeler or a file; an import takes the types)",
-        Margin = new Thickness(0, 6, 0, 0),
+        Content = "Include the namespace's objects",
+        ToolTip = "For the modeler or a file; an import takes the types, the objects come in through 'Take into document'.",
     };
 
     public ServerNamespace? Selected { get; private set; }
@@ -452,47 +553,38 @@ public sealed class NamespacePickerWindow : Window
 
     public NamespacePickerWindow(IReadOnlyList<ServerNamespace> namespaces, bool canImport)
     {
-        Title = "Types of the server";
-        Width = 680;
-        Height = 420;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Width = 740;
+        Height = 460;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
         _list.ItemsSource = namespaces.Select(n => new Row(n)).ToList();
-        _list.SelectedIndex = namespaces.Count > 0 ? 0 : -1;
+        // Namespaces with metadata are models; the server's own namespace usually has none.
+        var first = namespaces.Select((n, i) => (n, i)).FirstOrDefault(x => x.n.Version != null);
+        _list.SelectedIndex = namespaces.Count == 0 ? -1 : first.n != null ? first.i : 0;
 
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        void Add(string text, NamespaceAction action, bool enabled, bool isDefault)
+        Button Make(string text, NamespaceAction action, bool enabled, bool primary)
         {
-            var b = new Button { Content = text, MinWidth = 110, Margin = new Thickness(0, 0, 6, 0), IsEnabled = enabled, IsDefault = isDefault };
-            b.Click += (_, __) =>
-            {
-                Selected = (_list.SelectedItem as Row)?.Namespace;
-                Action = action;
-                if (Selected != null) DialogResult = true;
-            };
-            buttons.Children.Add(b);
+            var b = DialogKit.Action(text, primary);
+            b.IsEnabled = enabled;
+            b.Click += (_, __) => Accept(action);
+            return b;
         }
-        Add("Import types", NamespaceAction.Import, canImport, canImport);
-        Add("Open in modeler", NamespaceAction.Modeler, true, !canImport);
-        Add("Save as…", NamespaceAction.Save, true, false);
-        buttons.Children.Add(new Button { Content = "Cancel", MinWidth = 90, IsCancel = true });
+        var defaultAction = canImport ? NamespaceAction.Import : NamespaceAction.Modeler;
+        _list.MouseDoubleClick += (_, __) => Accept(defaultAction);
 
-        var hint = new TextBlock
-        {
-            Text = "Where the server publishes a namespace's NodeSet, that file is taken; otherwise the NodeSet is rebuilt by browsing, "
-                   + "without documentation links and without nodes no reference leads to.",
-            TextWrapping = TextWrapping.Wrap,
-            Foreground = System.Windows.Media.Brushes.Gray,
-            Margin = new Thickness(0, 0, 0, 6),
-        };
-        var root = new DockPanel { Margin = new Thickness(10) };
-        DockPanel.SetDock(hint, Dock.Top);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        DockPanel.SetDock(_instances, Dock.Bottom);
-        root.Children.Add(hint);
-        root.Children.Add(buttons);
-        root.Children.Add(_instances);
-        root.Children.Add(_list);
-        Content = root;
+        DialogKit.Frame(this, "\uE8B5", DialogKit.Exchange, "Types of the server",
+            "Where the server publishes a namespace's NodeSet, that file is taken; otherwise the NodeSet is rebuilt by browsing, without documentation links and without nodes no reference leads to.",
+            _list, _instances,
+            Make("Import types", NamespaceAction.Import, canImport, canImport),
+            Make("Open in modeler", NamespaceAction.Modeler, true, !canImport),
+            Make("Save as…", NamespaceAction.Save, true, false),
+            DialogKit.Action("Cancel", cancel: true));
+    }
+
+    private void Accept(NamespaceAction action)
+    {
+        Selected = (_list.SelectedItem as Row)?.Namespace;
+        Action = action;
+        if (Selected != null) DialogResult = true;
     }
 
     private sealed record Row(ServerNamespace Namespace)
@@ -509,64 +601,61 @@ public sealed class NamespacePickerWindow : Window
 public sealed class ElementPickerWindow : Window
 {
     private readonly ListBox _list = new();
-    private readonly TextBox _search = new() { Margin = new Thickness(0, 0, 0, 4) };
-    private readonly List<(string Path, InternalElementType Element)> _all;
+    private readonly TextBox _search = new();
+    private readonly List<(string Name, string Parent, InternalElementType Element)> _all;
 
     public InternalElementType? Selected { get; private set; }
 
     public ElementPickerWindow(CAEXDocument document, string title)
     {
-        Title = title;
-        Width = 560;
-        Height = 480;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Width = 620;
+        Height = 520;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
         _all = document.CAEXFile.InstanceHierarchy
-            .SelectMany(ih => ih.Descendants<InternalElementType>().Select(ie => (PathOf(ie), ie)))
+            .SelectMany(ih => ih.Descendants<InternalElementType>().Select(ie => (ie.Name, ParentPath(ie), ie)))
             .ToList();
         _search.TextChanged += (_, __) => Filter();
+        _list.MouseDoubleClick += (_, __) => Accept();
 
-        var ok = new Button { Content = "Bind", Width = 90, IsDefault = true, Margin = new Thickness(0, 0, 6, 0) };
-        ok.Click += (_, __) =>
-        {
-            Selected = (_list.SelectedItem as PickItem)?.Element;
-            if (Selected != null) DialogResult = true;
-        };
-        var cancel = new Button { Content = "Cancel", Width = 90, IsCancel = true };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        buttons.Children.Add(ok);
-        buttons.Children.Add(cancel);
+        var ok = DialogKit.Action("Bind", primary: true);
+        ok.Click += (_, __) => Accept();
+        var search = DialogKit.WithPlaceholder(_search, "Search elements by name or path");
+        ((FrameworkElement)search).Margin = new Thickness(0, 0, 0, 6);
+        var body = new DockPanel();
+        DockPanel.SetDock(search, Dock.Top);
+        body.Children.Add(search);
+        body.Children.Add(_list);
 
-        var root = new DockPanel { Margin = new Thickness(10) };
-        DockPanel.SetDock(_search, Dock.Top);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        root.Children.Add(_search);
-        root.Children.Add(buttons);
-        root.Children.Add(_list);
-        Content = root;
+        DialogKit.Frame(this, "\uE71B", DialogKit.Relate, title,
+            "The element you choose gets the node's address as its NodeId attribute (OPC 10000-83 Annex A).",
+            body, null, ok, DialogKit.Action("Cancel", cancel: true));
         Filter();
+        Loaded += (_, __) => _search.Focus();
+    }
+
+    private void Accept()
+    {
+        Selected = DialogKit.Selected<InternalElementType>(_list);
+        if (Selected != null) DialogResult = true;
     }
 
     private void Filter()
     {
         var text = _search.Text.Trim();
-        _list.ItemsSource = _all.Where(x => text.Length == 0 || x.Path.Contains(text, StringComparison.OrdinalIgnoreCase))
-            .Select(x => new PickItem(x.Path, x.Element)).ToList();
+        _list.ItemsSource = _all
+            .Where(x => text.Length == 0 || $"{x.Parent}/{x.Name}".Contains(text, StringComparison.OrdinalIgnoreCase))
+            .Select(x => DialogKit.Entry(x.Name, x.Parent, x.Element)).ToList();
     }
 
-    private static string PathOf(InternalElementType ie)
+    /// <summary>"Hierarchy/Parent": where the element is.</summary>
+    private static string ParentPath(InternalElementType ie)
     {
         var parts = new List<string>();
-        for (CAEXBasicObject? o = ie; o is CAEXObject c; o = c.CAEXParent as CAEXBasicObject)
+        for (var o = ie.CAEXParent as CAEXBasicObject; o is CAEXObject c; o = c.CAEXParent as CAEXBasicObject)
         {
-            parts.Add(c.Name);
+            parts.Insert(0, c.Name);
             if (c is InstanceHierarchyType) break;
         }
-        parts.Reverse();
         return string.Join("/", parts);
-    }
-
-    private sealed record PickItem(string Path, InternalElementType Element)
-    {
-        public override string ToString() => Path;
     }
 }

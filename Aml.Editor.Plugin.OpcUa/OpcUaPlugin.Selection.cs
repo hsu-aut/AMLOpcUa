@@ -269,7 +269,7 @@ public partial class OpcUaPlugin
         if (_client == null) return;
         var rows = _client.NamespaceTable.Select(uri => new ChecklistWindow.Row(uri, uri, _namespaces.Contains(uri))).ToList();
         var window = new ChecklistWindow("Namespaces to take",
-            "Only nodes of the checked namespaces are taken, with what they hold. Nothing checked takes all.", rows)
+            "Only nodes of the checked namespaces are taken, with what they hold. Nothing checked takes all.", rows, "\uE71C")
         { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         _namespaces = window.Checked.Cast<string>().ToList();
@@ -306,9 +306,9 @@ public partial class OpcUaPlugin
         }
 
         foreach (var f in found) _names[Key(f.Address)] = f.DisplayName;
-        var rows = found.Select(f => new ChecklistWindow.Row($"{f.DisplayName}   {f.Address}", Key(f.Address), !_excluded.Contains(Key(f.Address)))).ToList();
+        var rows = found.Select(f => new ChecklistWindow.Row(f.DisplayName, Key(f.Address), !_excluded.Contains(Key(f.Address)), f.Address.ToString())).ToList();
         var check = new ChecklistWindow($"Instances of {type.DisplayName}",
-            "Each checked instance is taken with everything below it; unchecked ones are left out.", rows)
+            $"{found.Count} found below {Label(start)}. Each checked instance is taken with everything below it; unchecked ones are left out.", rows, "\uE721")
         { Owner = Window.GetWindow(this) };
         if (check.ShowDialog() != true) return;
         var taken = check.Checked.Cast<UaNodeAddress>().ToHashSet();
@@ -445,42 +445,44 @@ public partial class OpcUaPlugin
 /// <summary>A list of check boxes; returns the tags of the checked rows.</summary>
 public sealed class ChecklistWindow : Window
 {
-    public sealed record Row(string Label, object Tag, bool IsChecked);
+    public sealed record Row(string Label, object Tag, bool IsChecked, string Detail = "");
 
     private readonly List<CheckBox> _boxes;
 
     public IReadOnlyList<object> Checked => _boxes.Where(b => b.IsChecked == true).Select(b => b.Tag).ToList();
 
-    public ChecklistWindow(string title, string hint, IReadOnlyList<Row> rows)
+    public ChecklistWindow(string title, string hint, IReadOnlyList<Row> rows, string glyph = "\uE762")
     {
-        Title = title;
-        Width = 620;
-        Height = 460;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        _boxes = rows.Select(r => new CheckBox { Content = r.Label, Tag = r.Tag, IsChecked = r.IsChecked, Margin = new Thickness(0, 1, 0, 1) }).ToList();
+        Width = 640;
+        Height = 480;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
+        _boxes = rows.Select(r =>
+        {
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            content.Children.Add(new TextBlock { Text = r.Label });
+            if (r.Detail.Length > 0) content.Children.Add(new TextBlock { Text = r.Detail, Foreground = DialogKit.Muted, Margin = new Thickness(10, 0, 0, 0) });
+            return new CheckBox { Content = content, Tag = r.Tag, IsChecked = r.IsChecked, Margin = new Thickness(2, 2, 0, 2) };
+        }).ToList();
 
         var list = new StackPanel();
         foreach (var b in _boxes) list.Children.Add(b);
-        var ok = new Button { Content = "OK", Width = 90, IsDefault = true, Margin = new Thickness(0, 0, 6, 0) };
-        ok.Click += (_, __) => DialogResult = true;
-        var all = new Button { Content = "All", Width = 70, Margin = new Thickness(0, 0, 6, 0) };
+        var all = DialogKit.Action("All");
         all.Click += (_, __) => _boxes.ForEach(b => b.IsChecked = true);
-        var none = new Button { Content = "None", Width = 70, Margin = new Thickness(0, 0, 18, 0) };
+        var none = DialogKit.Action("None");
+        none.Margin = new Thickness(6, 0, 0, 0);
         none.Click += (_, __) => _boxes.ForEach(b => b.IsChecked = false);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        buttons.Children.Add(all);
-        buttons.Children.Add(none);
-        buttons.Children.Add(ok);
-        buttons.Children.Add(new Button { Content = "Cancel", Width = 90, IsCancel = true });
+        var left = new StackPanel { Orientation = Orientation.Horizontal };
+        left.Children.Add(all);
+        left.Children.Add(none);
+        var ok = DialogKit.Action("OK", primary: true);
+        ok.Click += (_, __) => DialogResult = true;
 
-        var text = new TextBlock { Text = hint, TextWrapping = TextWrapping.Wrap, Foreground = Brushes.Gray, Margin = new Thickness(0, 0, 0, 6) };
-        var root = new DockPanel { Margin = new Thickness(10) };
-        DockPanel.SetDock(text, Dock.Top);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        root.Children.Add(text);
-        root.Children.Add(buttons);
-        root.Children.Add(new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-        Content = root;
+        var frame = new Border
+        {
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xE1, 0xE6)), BorderThickness = new Thickness(1), Padding = new Thickness(6, 4, 6, 4),
+            Child = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
+        };
+        DialogKit.Frame(this, glyph, DialogKit.Exchange, title, hint, frame, left, ok, DialogKit.Action("Cancel", cancel: true));
     }
 }
 
@@ -488,41 +490,39 @@ public sealed class ChecklistWindow : Window
 public sealed class TypePickerWindow : Window
 {
     private readonly ListBox _list = new();
-    private readonly TextBox _search = new() { Margin = new Thickness(0, 0, 0, 4) };
+    private readonly TextBox _search = new();
     private readonly IReadOnlyList<UaBrowseItem> _types;
 
     public UaBrowseItem? Selected { get; private set; }
 
     public TypePickerWindow(IReadOnlyList<UaBrowseItem> types, string title)
     {
-        Title = title;
-        Width = 560;
-        Height = 480;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        Width = 620;
+        Height = 520;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
         _types = types.OrderBy(t => t.DisplayName, StringComparer.OrdinalIgnoreCase).ToList();
         _search.TextChanged += (_, __) => Filter();
         _list.MouseDoubleClick += (_, __) => Accept();
 
-        var ok = new Button { Content = "Search", Width = 90, IsDefault = true, Margin = new Thickness(0, 0, 6, 0) };
+        var ok = DialogKit.Action("Search", primary: true);
         ok.Click += (_, __) => Accept();
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
-        buttons.Children.Add(ok);
-        buttons.Children.Add(new Button { Content = "Cancel", Width = 90, IsCancel = true });
+        var search = DialogKit.WithPlaceholder(_search, "Type name");
+        ((FrameworkElement)search).Margin = new Thickness(0, 0, 0, 6);
+        var body = new DockPanel();
+        DockPanel.SetDock(search, Dock.Top);
+        body.Children.Add(search);
+        body.Children.Add(_list);
 
-        var root = new DockPanel { Margin = new Thickness(10) };
-        DockPanel.SetDock(_search, Dock.Top);
-        DockPanel.SetDock(buttons, Dock.Bottom);
-        root.Children.Add(_search);
-        root.Children.Add(buttons);
-        root.Children.Add(_list);
-        Content = root;
+        DialogKit.Frame(this, "\uE721", DialogKit.Exchange, title,
+            "Instances of the type and of its subtypes are searched; below an instance found the search does not go on.",
+            body, null, ok, DialogKit.Action("Cancel", cancel: true));
         Filter();
         Loaded += (_, __) => _search.Focus();
     }
 
     private void Accept()
     {
-        Selected = (_list.SelectedItem as Row)?.Type;
+        Selected = DialogKit.Selected<UaBrowseItem>(_list);
         if (Selected != null) DialogResult = true;
     }
 
@@ -530,11 +530,6 @@ public sealed class TypePickerWindow : Window
     {
         var text = _search.Text.Trim();
         _list.ItemsSource = _types.Where(t => text.Length == 0 || t.DisplayName.Contains(text, StringComparison.OrdinalIgnoreCase))
-            .Select(t => new Row(t)).ToList();
-    }
-
-    private sealed record Row(UaBrowseItem Type)
-    {
-        public override string ToString() => $"{Type.DisplayName}   ({Type.NodeClass}, {Type.Address.NamespaceUri})";
+            .Select(t => DialogKit.Entry(t.DisplayName, $"{t.NodeClass}   {t.Address.NamespaceUri}", t)).ToList();
     }
 }
