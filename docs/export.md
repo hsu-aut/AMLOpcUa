@@ -74,8 +74,10 @@ All NodeIds are strings, spaces removed:
 | constraint, required value | `ns=n;s=<attribute>_Constraint_1`, `..._Constraint_RequiredValue_2` |
 | RefSemantic | `ns=n;s=<attribute>_RefSemantic` |
 
-Because class NodeIds consist of the name, two classes of the same name in
-one library share a NodeId.
+Class NodeIds consist of the name. Two classes of one name in a library
+(nested below different parents, which CAEX allows) would share a NodeId, and
+so would their attributes; such names get the path of their parent classes
+instead (`A/X`, `B/X`, D17).
 
 ## Mapping
 
@@ -177,6 +179,7 @@ switches all of them off.
 | D14 | Requires only the UA base model and `http://opcfoundation.org/UA/AML/`, although classes of imported libraries (the AutomationML base role, interface and system unit classes, and fallback libraries) are referenced in their own namespaces. A NodeSet importer does not know it has to load them and stops at the first unknown node (`Can't find node AutomationMLBaseRole`) | A RequiredModel per imported or fallback library; `nodesets/Opc.Ua.AMLStandardLibraries.NodeSet2.xml` provides the AutomationML standard libraries | `BundledNodeSetTests`; found in the round trip of `5_SUC.aml` |
 | D15 | Drops `Attribute/@Unit`, although DIN SPEC 16592 maps it to a Property `Unit` and the draft base types declare `Unit` on `AMLBaseVariableType` | A Property `Unit` (String, PropertyType) below the attribute variable, BrowseName in the base types namespace | `D15_writes_the_unit_of_an_attribute_as_Unit_property`; found in the round trip and the DIN SPEC comparison |
 | D16 | Exports a BPR 007 DataVariable (an attribute bound to a server node through `NodeId` and `RefDataSource`) as a plain `AMLBaseVariableType`, although the draft base types define `AMLOpcUaConnectionType` for it | Typed `AMLOpcUaConnectionType` with `VariableNodeId` (as `nsu=<URI>;…`, resolved through the server's NameSpaceTable), `ServerAddress` (EndpointURL, else DiscoveryURL) and `ServerAlias` (the server element's name); only when both Mandatory components can be filled and the attribute has no AttributeType. The BPR sub-attributes stay | `ExportConnectionTests` |
+| D17 | Classes of one name in one library, nested below different parents, share a NodeId, and so do their attributes | The name is prefixed with the path of parent classes within the library (`A/X`, `B/X`); every other class keeps its name | `ExportClassKeyTests` |
 
 Kept as the XSLT does it, although questionable (open questions for the
 working group):
@@ -309,8 +312,8 @@ trip measures it node by node (chain C in [roundtrip](roundtrip.md)):
 
 - Classes referenced but not contained in the document are only known through
   `ExternalReference` aliases; there is no library catalog as for the import.
-- A class path is resolved by name only (GetClass): the first class of that
-  name, with all libraries of the same name searched together.
+- Libraries are known by name, as AML paths name them; two libraries of one
+  name in a document (which CAEX does not allow) are searched together.
 - The export reads the CAEX XML. An `.amlx` container is read through
   Aml.Engine; only its root document is exported.
 - Size: the AML libraries of UA and DI (`Opc.Ua.Di.NodeSet2.xml.amlx`) give

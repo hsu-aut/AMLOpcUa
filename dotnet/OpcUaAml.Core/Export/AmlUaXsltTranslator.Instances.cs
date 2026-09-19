@@ -206,7 +206,7 @@ internal sealed partial class AmlUaXsltTranslator
     private string ObjectName(XElement? obj, XObject context)
     {
         var name = Attr(obj, "Name");
-        if (obj != null && name != "" && IsNamedClass(L(obj))) return name;
+        if (obj != null && name != "" && IsNamedClass(L(obj))) return ClassKey(obj);
         // D3: an Attribute with an ID (CAEX 3.0 allows one) has a NodeId built
         // from its owner and name, but the XSLT names its children by the ID.
         var id = obj != null && L(obj) == "Attribute" && !_compat ? "" : Attr(obj, "ID");
@@ -310,7 +310,7 @@ internal sealed partial class AmlUaXsltTranslator
             Description = DescriptionIfNotEmpty(attribute),
         };
         node.Ref("HasComponent", FormatRef(objectId, nsId), forward: false);
-        if (amlAttributeType.ClassName("AttributeType") is { } typeName)
+        if (ClassRef(amlAttributeType, "AttributeType") is { } typeName)
             node.Ref("HasTypeDefinition", FormatRef(typeName, attrLibId));
         else if (attrLibName.Contains('@'))
             node.Ref("HasTypeDefinition", attrAliasName);
@@ -478,7 +478,7 @@ internal sealed partial class AmlUaXsltTranslator
             DisplayName = Attr(ei, "Name"),
             Description = DescriptionIfPresent(ei),
         };
-        if (icContent.ClassName("InterfaceClass") is { } className)
+        if (ClassRef(icContent, "InterfaceClass") is { } className)
             node.Ref("HasTypeDefinition", FormatRef(className, libNsId));
         else if (icLibName.Contains('@'))
             node.Ref("HasTypeDefinition", icAliasName);
@@ -571,7 +571,7 @@ internal sealed partial class AmlUaXsltTranslator
             var sucAliasName = After(path, "@");
             var sucContent = sucLibName != "" ? GetClass(path) : ClassLookup.None;
             var mirror = IsMirrorPath(path) ? path : "";
-            if (sucContent.ClassName("SystemUnitClass") is { } sucName)
+            if (ClassRef(sucContent, "SystemUnitClass") is { } sucName)
                 list.Ref("HasTypeDefinition", FormatRef(sucName, NamespaceIdByName(sucLibName)));
             else if (sucLibName.Contains('@'))
                 list.Ref("HasTypeDefinition", sucAliasName);
@@ -594,7 +594,7 @@ internal sealed partial class AmlUaXsltTranslator
             if (rcLibName != "" && refRole != null && refRole != baseRole) rcContent.Add(GetClass(refRole));
             if (rcLibName != "" && refBase != null && refBase != baseRole) rcContent.Add(GetClass(refBase));
             var libNsId = NamespaceIdByName(rcLibName);
-            if (rcContent.Select(c => c.ClassName("RoleClass")).FirstOrDefault(n => n != null) is { } roleName)
+            if (rcContent.Select(c => ClassRef(c, "RoleClass")).FirstOrDefault(n => n != null) is { } roleName)
                 list.Ref("HasAMLRoleReference", FormatRef(roleName, libNsId));
             else if (rcLibName.Contains('@'))
                 list.Ref("HasAMLRoleReference", rcAliasName);

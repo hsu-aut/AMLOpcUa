@@ -43,6 +43,38 @@ internal sealed partial class AmlUaXsltTranslator
 
     private readonly Dictionary<string, ClassLookup> _classCache = new(StringComparer.Ordinal);
 
+    private Dictionary<XElement, string>? _classKeys;
+
+    /// <summary>
+    /// D17: what a class's NodeId is made of. The XSLT uses the name, so two
+    /// classes of one name in a library (nested below different parents, as
+    /// CAEX allows) share a NodeId, and so do their attributes. Such a name is
+    /// made unique by the path of parent classes within the library ("A/X",
+    /// "B/X"); every other class keeps its name, as does every class in the
+    /// XSLT compatible mode.
+    /// </summary>
+    private string ClassKey(XElement cls)
+    {
+        var name = Attr(cls, "Name");
+        if (_compat) return name;
+        if (_classKeys == null)
+        {
+            _classKeys = new Dictionary<XElement, string>();
+            foreach (var lib in _root.DescendantsAndSelf().Where(e => LibraryKinds.Contains(L(e))))
+            {
+                var classes = lib.Descendants().Where(e => ClassKinds.Contains(L(e))).ToList();
+                foreach (var twins in classes.GroupBy(c => Attr(c, "Name")).Where(g => g.Count() > 1))
+                    foreach (var c in twins)
+                        _classKeys[c] = string.Join("/", c.AncestorsAndSelf().TakeWhile(a => a != lib).Reverse().Select(a => Attr(a, "Name")));
+            }
+        }
+        return _classKeys.TryGetValue(cls, out var key) ? key : name;
+    }
+
+    /// <summary>The NodeId key of a lookup's class when it is a class of the given kind with a name.</summary>
+    private string? ClassRef(ClassLookup lookup, string kind) =>
+        lookup.ClassName(kind) != null ? ClassKey(lookup.Class!) : null;
+
     private ILookup<(string Kind, string Name), XElement>? _librariesByName;
 
     private ClassLookup FindClass(string path)
@@ -114,7 +146,7 @@ internal sealed partial class AmlUaXsltTranslator
         node.Ref("HasTypeDefinition", "i=61");
         node.Ref("Organizes", LibraryCollections[L(lib)], forward: false);
         foreach (var cls in lib.Elements().Where(c => ClassKinds.Contains(L(c))))
-            node.Ref("Organizes", $"ns={nsId};s={RemoveSpace(Attr(cls, "Name"))}");
+            node.Ref("Organizes", $"ns={nsId};s={RemoveSpace(ClassKey(cls))}");
         AddContainerPropertyReferences(node, lib, nsId);
         Emit(node);
     }
@@ -130,7 +162,7 @@ internal sealed partial class AmlUaXsltTranslator
         // D2: the XSLT tests an unprefixed Description, so classes of CAEX 3.0
         // documents never get their documentation.
         var descriptions = UnprefixedKids(cls, "Description").ToList();
-        var node = new UaNode(L(cls) == "AttributeType" ? "UAVariableType" : "UAObjectType", $"ns={nsId};s={RemoveSpace(name)}", name)
+        var node = new UaNode(L(cls) == "AttributeType" ? "UAVariableType" : "UAObjectType", $"ns={nsId};s={RemoveSpace(ClassKey(cls))}", name)
         {
             DisplayName = name,
             Documentation = descriptions.Any(d => d.Value != "") ? Join(descriptions) : null,
@@ -157,7 +189,7 @@ internal sealed partial class AmlUaXsltTranslator
             .FirstOrDefault(a => a != null);
         // D4: the XSLT keeps spaces in the parent's name here, while the
         // parent's NodeId has them removed.
-        node.Ref("Organizes", parentClass != null ? $"ns={nsId};s={NoSpaceUnlessCompat(Attr(parentClass, "Name"))}" : $"ns={nsId};s={libId}",
+        node.Ref("Organizes", parentClass != null ? $"ns={nsId};s={NoSpaceUnlessCompat(ClassKey(parentClass))}" : $"ns={nsId};s={libId}",
             forward: false);
 
         var basePath = cls.Attribute("RefBaseClassPath")?.Value ?? cls.Attribute("RefAttributeType")?.Value ?? "";
@@ -166,7 +198,7 @@ internal sealed partial class AmlUaXsltTranslator
         string superType;
         if (basePath != "" && !basePath.Contains('/')) superType = $"ns={nsId};s={NoSpaceUnlessCompat(basePath)}";
         else if (basePath.Contains('@')) superType = After(basePath, "@");
-        else if (basePath != "") superType = $"ns={NamespaceIdByName(PathLib(basePath))};s={RemoveSpace(baseClass.Name)}";
+        else if (basePath != "") superType = $"ns={NamespaceIdByName(PathLib(basePath))};s={RemoveSpace(baseClass.Class != null ? ClassKey(baseClass.Class) : baseClass.Name)}";
         else if (L(cls) == "SystemUnitClass" && name != "AutomationMLBaseSystemUnit") superType = "CAEXObjectType";
         else if (L(cls) == "RoleClass" && name != "AutomationMLBaseRole") superType = "AutomationMLBaseRoleClassLib/AutomationMLBaseRole";
         else if (L(cls) == "InterfaceClass" && name != "AutomationMLBaseInterface") superType = "AutomationMLInterfaceClassLib/AutomationMLBaseInterface";
