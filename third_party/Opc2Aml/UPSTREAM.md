@@ -19,6 +19,8 @@ can be reported upstream and reapplied after an update.
 | 0003 model order without cycles | `OrderModelInfo.AddCompiled` collected the requirements of every model in a NodeSet file for each of them and recursed without a visited check. A NodeSet that declares several models requiring each other (an AML document exported by the AML-UA-XSLT rules declares one per library) sent it into endless recursion and a stack overflow. Now only the model's own entry counts, and a model already collected is not entered again. |
 | 0004 instances only below Objects | `CreateInstances` follows every hierarchical reference below the Objects folder and treats each target as an instance. The AutomationML file view of OPC 30040 and of the AML-UA-XSLT rules organizes the AML classes, which are ObjectTypes, in folders below Objects; an ObjectType has no type definition, so the conversion failed with a NullReferenceException. Type nodes are now skipped there; the type libraries cover them. |
 
+| 0005 ordinal string comparison | `IsolateNodeId` and `GetNodeIdPrefix` run for every link and interface ID and compared with the culture aware `StartsWith` and `IndexOf`, which in .NET 8 go through ICU: about 1.5 s of a 17 s DI conversion. IDs are URL encoded ASCII, so an ordinal comparison gives the same result. |
+
 ## Updating
 
 1. Copy the library files of the new upstream commit over this folder.

@@ -2080,9 +2080,10 @@ namespace MarkdownProcessor
         {
             string nodeId = nodeIdString;
 
-            if (!nodeIdString.StartsWith("nsu%3D") )
+            // AMLOpcUa patch 0005: ordinal comparison; IDs are ASCII, and the culture aware default is slow
+            if (!nodeIdString.StartsWith("nsu%3D", StringComparison.Ordinal) )
             {
-                int startIndex = nodeIdString.IndexOf("nsu%3D");
+                int startIndex = nodeIdString.IndexOf("nsu%3D", StringComparison.Ordinal);
                 if (startIndex > 0)
                 {
                     nodeId = nodeIdString.Substring(startIndex);
@@ -2095,7 +2096,7 @@ namespace MarkdownProcessor
         {
             string nodeId = IsolateNodeId(nodeIdString);
 
-            int nodeIdIndex = nodeIdString.IndexOf(nodeId);
+            int nodeIdIndex = nodeIdString.IndexOf(nodeId, StringComparison.Ordinal); // AMLOpcUa patch 0005
 
             string prefix = nodeIdString.Substring(0, nodeIdIndex);
 

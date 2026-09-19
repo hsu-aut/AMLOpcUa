@@ -438,7 +438,7 @@ namespace MarkdownProcessor
         {
             NodeId targetId = null;
 
-            int index = targetName.IndexOf(":");
+            int index = targetName.IndexOf(':'); // AMLOpcUa patch 0005
 
             if (index > 0)
             {
@@ -568,7 +568,7 @@ namespace MarkdownProcessor
 
             int namespaceIndex = targetModelNamespaceIndex;
 
-            int index = name.IndexOf(":");
+            int index = name.IndexOf(':'); // AMLOpcUa patch 0005
 
             if (index > 0)
             {
