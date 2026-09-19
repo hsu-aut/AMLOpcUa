@@ -156,6 +156,22 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task A_certificate_made_for_another_address_is_replaced()
+    {
+        // Served to the network first, the certificate names the computer; served
+        // locally afterwards it must name 127.0.0.1. The stack refuses the old one.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Again");
+        var serverPki = Path.Combine(TempPki(), "server");
+        await using (await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = serverPki, Network = true })) { }
+
+        await using var local = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = serverPki });
+
+        Assert.StartsWith("opc.tcp://127.0.0.1:", local.EndpointUrl);
+        Assert.True(local.CertificateReplaced);
+    }
+
+    [Fact]
     public async Task A_server_that_goes_away_is_noticed()
     {
         var doc = CAEXDocument.New_CAEXDocument();

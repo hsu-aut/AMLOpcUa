@@ -148,7 +148,22 @@ public sealed class AmlServerHost : IAsyncDisposable
             .AddSecurityConfiguration("CN=AMLOpcUa document server", options.PkiRoot)
             .SetAutoAcceptUntrustedCertificates(!options.Network)
             .CreateAsync(ct).ConfigureAwait(false);
-        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        var replaced = false;
+        try
+        {
+            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The certificate names the addresses it was made for (the computer's name, or
+            // 127.0.0.1); served under another, the stack refuses it. It is the server's own,
+            // so a new one is made. Clients that trusted the old one are asked again.
+            foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(options.PkiRoot, "own", f)).Where(Directory.Exists))
+                foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
+            app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
+            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+            replaced = true;
+        }
 
         var server = new DocumentServer(model);
         try
@@ -160,8 +175,11 @@ public sealed class AmlServerHost : IAsyncDisposable
             server.Dispose();
             throw;
         }
-        return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace);
+        return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace) { CertificateReplaced = replaced };
     }
+
+    /// <summary>The server's certificate was made anew, because the old one named other addresses.</summary>
+    public bool CertificateReplaced { get; private init; }
 
     /// <summary>
     /// The client certificates a server offered to the network refused, newest
