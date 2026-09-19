@@ -36,12 +36,14 @@ AMLPetriNet.
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
 | `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
-| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [VDI 3682](docs/vdi3682.md) |
+| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [VDI 3682](docs/vdi3682.md) |
 
 ## Build
 
 Requires the .NET 8 SDK. The plugin needs Windows and the AutomationML
-Editor 6.4 or later.
+Editor 6.4 or later, and bundles the graphical modeler: build
+[UaModeler.js](../UaModeler.js) first (`npm install`, `npm run build`), it is
+expected next to this repository.
 
 ```bash
 dotnet build AMLOpcUa.sln
@@ -72,6 +74,9 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
   mismatched reference links.
+- The **Modeler** tab draws and edits OPC UA types and instances (OPC 10000-3
+  Annex C) and applies the result to the document as a NodeSet import; see
+  [docs/modeler.md](docs/modeler.md).
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor
