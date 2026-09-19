@@ -6,6 +6,12 @@
 // its formatting. That is a sixth of a conversion. While a conversion runs,
 // this service answers those elements with nothing (the ID is not used) and
 // the others with a GUID from a random base and a counter.
+//
+// The service is process-wide, so the editor and other plugins get their IDs
+// from here too while a conversion runs: unique GUIDs, as from the default
+// service, and nothing only for elements that carry no ID. When the last
+// conversion ends, the earlier service comes back, unless someone else
+// registered a service meanwhile; that one stays.
 
 using System.Xml.Linq;
 using Aml.Engine.CAEX;
@@ -57,7 +63,9 @@ internal sealed class ConversionIds : ICaexIDService
             _disposed = true;
             lock (Gate)
             {
-                if (--_users == 0 && _previous != null) ServiceLocator.Register(_previous);
+                if (--_users == 0 && _previous != null && ReferenceEquals(ServiceLocator.IDService, Instance))
+                    ServiceLocator.Register(_previous);
+                if (_users == 0) _previous = null;
             }
         }
     }
