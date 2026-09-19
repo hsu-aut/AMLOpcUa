@@ -88,6 +88,34 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
     }
 
     [Fact]
+    public async Task Live_values_follow_the_server()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var ih = di.Hierarchy("Live");
+        await AddressSpaceMirror.MirrorAsync(client, await PlantFolder(client), ih, new MirrorOptions { ReadValues = false });
+        var counter = ih.InternalElement["Plant"]!.InternalElement["Counter"]!;
+        counter.Attribute.Append("Value").Value = "-1";
+
+        // Writes happen under one lock, as the plugin runs them on one thread.
+        var gate = new object();
+        var seen = new List<string?>();
+        await using (var live = await LiveValues.FollowAsync(di.Document, client, write => { lock (gate) write(); },
+            u => { if (u.What == "Counter") seen.Add(u.Value); }, publishingIntervalMs: 100))
+        {
+            Assert.True(live.Count >= 1);
+            for (var i = 0; i < 50 && seen.Distinct().Count() < 3; i++) await Task.Delay(100);
+            Assert.True(live.Updates >= 3, $"{live.Updates} update(s)");
+        }
+
+        lock (gate)
+        {
+            Assert.True(seen.Distinct().Count() >= 3, string.Join(",", seen));
+            Assert.Equal(seen[^1], counter.Attribute["Value"]!.Value);
+            Assert.NotEqual("-1", counter.Attribute["Value"]!.Value);
+        }
+    }
+
+    [Fact]
     public async Task A_snapshot_fills_the_older_aml_opcua_variable_binding()
     {
         await using var client = await UaClient.ConnectAsync(Options());
