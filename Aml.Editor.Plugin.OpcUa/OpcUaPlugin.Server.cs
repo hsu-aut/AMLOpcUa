@@ -62,6 +62,14 @@ public partial class OpcUaPlugin : ISupportsSelection
         UpdateServerState();
     }
 
+    private async void AddressTree_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.F5 || _client == null) return;
+        e.Handled = true;
+        await LoadRootAsync();
+        SetStatus("Address space reloaded.");
+    }
+
     private void EndpointBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != System.Windows.Input.Key.Enter || _client != null || _busy) return;

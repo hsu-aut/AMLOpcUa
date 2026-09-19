@@ -302,6 +302,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var findings = AnnexAChecker.Check(document);
             FindingList.ItemsSource = findings;
             var errors = findings.Count(f => f.Severity == Severity.Error);
+            CheckTab.Header = findings.Count == 0 ? "Check" : $"Check ({findings.Count})";
             CheckSummary.Text = findings.Count == 0
                 ? $"No findings in {document.CAEXFile.InstanceHierarchy.Count} instance hierarch{(document.CAEXFile.InstanceHierarchy.Count == 1 ? "y" : "ies")}."
                 : $"{errors} error(s), {findings.Count - errors} warning(s). Rules: "
@@ -492,6 +493,24 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void SetStatus(string text) => StatusText.Text = text;
 
+    /// <summary>A log line as the list shows it: time, level, message.</summary>
+    public sealed record LogLine(string Time, string Level, string Message, string Text)
+    {
+        private static readonly System.Text.RegularExpressions.Regex Format = new(@"^\[(?<time>[^\]]*)\] \[(?<level>[^\]]*)\] (?<message>.*)$");
+
+        public static LogLine Parse(string line)
+        {
+            var m = Format.Match(line);
+            return m.Success
+                ? new LogLine(m.Groups["time"].Value, m.Groups["level"].Value.Trim(), m.Groups["message"].Value, line)
+                : new LogLine("", "", line, line);
+        }
+
+        public override string ToString() => Text;
+    }
+
+    private readonly System.Collections.ObjectModel.ObservableCollection<LogLine> _log = new();
+
     private void AppendLog(string line)
     {
         if (!Dispatcher.CheckAccess())
@@ -499,12 +518,34 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             Dispatcher.BeginInvoke(() => AppendLog(line));
             return;
         }
-        LogBox.AppendText(line + Environment.NewLine);
-        if (LogBox.LineCount > MaxLogLines)
+        if (LogList.ItemsSource == null) LogList.ItemsSource = _log;
+        _log.Add(LogLine.Parse(line));
+        while (_log.Count > MaxLogLines) _log.RemoveAt(0);
+        LogList.ScrollIntoView(_log[^1]);
+    }
+
+    private void LogCopy_Click(object sender, RoutedEventArgs e)
+    {
+        var lines = LogList.SelectedItems.Cast<LogLine>().Select(l => l.Text).ToList();
+        if (lines.Count > 0) Clipboard.SetText(string.Join(Environment.NewLine, lines));
+    }
+
+    private void LogCopyAll_Click(object sender, RoutedEventArgs e)
+    {
+        if (_log.Count > 0) Clipboard.SetText(string.Join(Environment.NewLine, _log.Select(l => l.Text)));
+    }
+
+    private void LogClear_Click(object sender, RoutedEventArgs e) => _log.Clear();
+
+    private void LogOpenFile_Click(object sender, RoutedEventArgs e)
+    {
+        try
         {
-            var cut = LogBox.GetCharacterIndexFromLineIndex(LogBox.LineCount - MaxLogLines);
-            LogBox.Text = LogBox.Text[cut..];
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(PluginLog.FilePath) { UseShellExecute = true });
         }
-        LogBox.ScrollToEnd();
+        catch (Exception ex)
+        {
+            SetStatus("The log file could not be opened: " + ex.Message);
+        }
     }
 }

@@ -1,7 +1,10 @@
 # Diagram
 
 The "Diagram" tab draws a UA type or an instance of one; **Export SVG** writes
-the same picture as SVG.
+the same picture as SVG. Picking an entry draws it (Enter in the search box
+takes the first). A click on a shape selects its element in the editor, a
+double click draws the shape's type (for a type, its supertype). **Fit** and
+Ctrl + mouse wheel zoom.
 
 ## What is drawn
 

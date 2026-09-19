@@ -240,12 +240,51 @@
                         <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" ResizeDirection="Rows"/>
 
                         <DockPanel Grid.Row="2" Margin="6,4,6,6">
-                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,3">
+                                <Button DockPanel.Dock="Right" Click="LogOpenFile_Click" Padding="4,0" ToolTip="Open the log file">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE8E5;" FontSize="12" Foreground="{StaticResource Plain}"/>
+                                        <TextBlock Text="Log file" Style="{StaticResource Label}"/>
+                                    </StackPanel>
+                                </Button>
                                 <TextBlock Text="Log" Style="{StaticResource Caption}"/>
                                 <TextBlock x:Name="LogFilePathLabel" Margin="8,0" Style="{StaticResource Hint}"/>
                             </DockPanel>
-                            <TextBox x:Name="LogBox" IsReadOnly="True" FontFamily="Consolas" FontSize="11"
-                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"/>
+                            <ListBox x:Name="LogList" FontFamily="Consolas" FontSize="11" SelectionMode="Extended"
+                                     VirtualizingPanel.IsVirtualizing="True" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                <ListBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Copy selected lines" Click="LogCopy_Click"/>
+                                        <MenuItem Header="Copy all" Click="LogCopyAll_Click"/>
+                                        <MenuItem Header="Clear the view" Click="LogClear_Click"/>
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding Time}" Foreground="#909090" Margin="0,0,8,0"/>
+                                            <Border x:Name="Badge" CornerRadius="3" Padding="4,0" Margin="0,0,8,0" Background="#E4EEF9" MinWidth="46">
+                                                <TextBlock x:Name="Level" Text="{Binding Level}" Foreground="#2070C0" TextAlignment="Center"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding Message}"/>
+                                        </StackPanel>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Level}" Value="WARN">
+                                                <Setter TargetName="Badge" Property="Background" Value="#FCEFE0"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="#B06010"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Level}" Value="ERROR">
+                                                <Setter TargetName="Badge" Property="Background" Value="#FBE3E3"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="#C03030"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Level}" Value="DEBUG">
+                                                <Setter TargetName="Badge" Property="Background" Value="#EEEEEE"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="#707070"/>
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
                         </DockPanel>
                     </Grid>
                 </Grid>
@@ -441,8 +480,8 @@
                         </Grid.ColumnDefinitions>
                         <DockPanel Grid.Column="0">
                             <TextBlock DockPanel.Dock="Top" Margin="0,0,0,3" Style="{StaticResource Hint}"
-                                       Text="Address space: check the parts to take; right click for how much below them. &#x2713; marks nodes already in the document."/>
-                            <TreeView x:Name="AddressTree" SelectedItemChanged="AddressTree_SelectedItemChanged"/>
+                                       Text="Address space: check the parts to take; right click for how much below them. &#x2713; marks nodes already in the document. F5 reloads."/>
+                            <TreeView x:Name="AddressTree" SelectedItemChanged="AddressTree_SelectedItemChanged" KeyDown="AddressTree_KeyDown"/>
                         </DockPanel>
                         <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
                         <Grid Grid.Column="2">
@@ -524,9 +563,9 @@
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{StaticResource Plain}"/>
-                        <TextBox x:Name="DiagramSearchBox" Width="160" TextChanged="DiagramSearchBox_TextChanged" VerticalContentAlignment="Center"
-                                 ToolTip="Filter types and instances by name"/>
-                        <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="Type or instance to draw"/>
+                        <TextBox x:Name="DiagramSearchBox" Width="160" TextChanged="DiagramSearchBox_TextChanged" KeyDown="DiagramSearchBox_KeyDown"
+                                 VerticalContentAlignment="Center" ToolTip="Filter types and instances by name; Enter draws the first"/>
+                        <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="Type or instance to draw" SelectionChanged="DiagramSourceBox_SelectionChanged"/>
                         <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
                         <TextBox x:Name="DiagramDepthBox" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="Levels to draw"/>
                         <Button x:Name="DiagramShowButton" Click="DiagramShowButton_Click" Margin="4,0,0,0">
@@ -537,8 +576,11 @@
                         </Button>
                         <Separator/>
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE71E;" Foreground="{StaticResource Plain}"/>
-                        <Slider x:Name="DiagramZoom" Width="110" Minimum="0.3" Maximum="2" Value="1" ValueChanged="DiagramZoom_Changed"
-                                ToolTip="Zoom" VerticalAlignment="Center"/>
+                        <Slider x:Name="DiagramZoom" Width="110" Minimum="0.2" Maximum="2" Value="1" ValueChanged="DiagramZoom_Changed"
+                                ToolTip="Zoom (Ctrl + mouse wheel)" VerticalAlignment="Center"/>
+                        <Button Click="DiagramFit_Click" ToolTip="Fit the diagram into the view" Margin="4,0,0,0">
+                            <TextBlock Text="Fit" Style="{StaticResource Label}"/>
+                        </Button>
                         <Separator/>
                         <Button x:Name="DiagramExportButton" Click="DiagramExportButton_Click" ToolTip="Save the diagram as SVG.">
                             <StackPanel Orientation="Horizontal">
@@ -548,9 +590,10 @@
                         </Button>
                     </ToolBar>
                     <TextBlock x:Name="DiagramInfo" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
-                               Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types)."/>
-                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White">
-                        <Canvas x:Name="DiagramCanvas"/>
+                               Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type."/>
+                    <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White"
+                                  PreviewMouseWheel="DiagramScroll_PreviewMouseWheel">
+                        <Canvas x:Name="DiagramCanvas" Margin="4"/>
                     </ScrollViewer>
                 </DockPanel>
             </TabItem>
