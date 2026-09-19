@@ -180,11 +180,22 @@ public sealed class NodeSetComparer
         {
             sb.Append(item.Name.LocalName).Append(':');
             if (item.HasElements) sb.Append(Canonical(item, nodeId));
-            else sb.Append(CanonicalText(item.Value));
+            else sb.Append(Number(item.Name.LocalName, item.Value) ?? CanonicalText(item.Value));
             sb.Append(';');
         }
         return sb.ToString();
     }
+
+    private static readonly HashSet<string> Numeric = new(StringComparer.Ordinal)
+    {
+        "SByte", "Byte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double",
+    };
+
+    /// <summary>A number in one spelling ("0.0" and "0" are the same Float); null for anything else.</summary>
+    private static string? Number(string element, string text) =>
+        Numeric.Contains(element) && double.TryParse(text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d)
+            ? d.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+            : null;
 
     private static string CanonicalText(string text)
     {
@@ -206,7 +217,12 @@ public sealed class NodeSetComparer
             sb.Append(' ').Append(a.Name.LocalName).Append("=\"").Append(a.Value).Append('"');
         sb.Append('>');
         var text = string.Concat(e.Nodes().OfType<XText>().Select(t => t.Value.Trim()));
-        sb.Append(nodeId != null && e.Name.LocalName == "Identifier" && text.Length > 0 ? nodeId(text) : text);
+        // NodeIds and namespace indexes of QualifiedNames compare by namespace URI, numbers by value.
+        if (nodeId != null && text.Length > 0 && e.Name.LocalName == "Identifier") text = nodeId(text);
+        else if (nodeId != null && text.Length > 0 && e.Name.LocalName == "NamespaceIndex" && e.Parent?.Name.LocalName == "QualifiedName")
+            text = nodeId($"ns={text};i=0");
+        else text = Number(e.Name.LocalName, text) ?? text;
+        sb.Append(text);
         // An empty Description is a null LocalizedText, the same as none.
         foreach (var c in e.Elements().Where(c => !(c.Name.LocalName == "Description" && !c.HasElements && c.Value.Length == 0 && !c.HasAttributes)))
             sb.Append(Canonical(c, nodeId));

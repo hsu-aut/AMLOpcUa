@@ -78,6 +78,24 @@ public class NodeSetComparerTests
     }
 
     [Fact]
+    public void QualifiedNames_in_values_compare_by_namespace_and_numbers_by_value()
+    {
+        static string Values(string header, string ns, string index, string number) => header + $"""
+            <UAVariable NodeId="{ns};i=6001" BrowseName="1:Q" DataType="i=20"><DisplayName>Q</DisplayName>
+              <Value><uax:QualifiedName><uax:NamespaceIndex>{index}</uax:NamespaceIndex><uax:Name>View</uax:Name></uax:QualifiedName></Value></UAVariable>
+            <UAVariable NodeId="{ns};i=6002" BrowseName="1:F" DataType="i=10"><DisplayName>F</DisplayName>
+              <Value><uax:Float>{number}</uax:Float></Value></UAVariable>
+            </UANodeSet>
+            """;
+        var twoUris = Header.Replace("<Uri>urn:a</Uri>", "<Uri>urn:b</Uri><Uri>urn:a</Uri>");
+        var diffs = new NodeSetComparer().Compare(XDocument.Parse(Values(Header, "ns=1", "1", "0.0")), XDocument.Parse(Values(twoUris, "ns=2", "2", "0")));
+        Assert.DoesNotContain(diffs, d => d.Path.EndsWith("/@Value", StringComparison.Ordinal));
+
+        var other = new NodeSetComparer().Compare(XDocument.Parse(Values(Header, "ns=1", "1", "0.0")), XDocument.Parse(Values(twoUris, "ns=2", "1", "0.5")));
+        Assert.Equal(2, other.Count(d => d.Path.EndsWith("/@Value", StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void A_repeated_NodeId_is_a_difference()
     {
         var twice = Nodes + """<UAObject NodeId="ns=1;s=A" BrowseName="1:A"><DisplayName>A</DisplayName></UAObject>""";
