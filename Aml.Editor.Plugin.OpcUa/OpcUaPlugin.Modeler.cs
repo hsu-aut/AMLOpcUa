@@ -213,6 +213,7 @@ public partial class OpcUaPlugin
         {
             await EnsureModelerAsync();
             _modeler!.NewModel(uri, Array.Empty<string>());
+            _modelerNewUri = uri;
         }
         catch (Exception ex) { ModelerFailed("Starting a new model", ex); }
     }

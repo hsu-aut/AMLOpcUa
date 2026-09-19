@@ -41,6 +41,9 @@ public sealed class PluginSettings
     /// <summary>What mirroring again does with elements whose node the server no longer has.</summary>
     public OpcUaAml.Server.VanishedNodes MirrorVanished { get; set; } = OpcUaAml.Server.VanishedNodes.Report;
 
+    /// <summary>The tutorial's lessons done, by id.</summary>
+    public List<string> CompletedLessons { get; set; } = new();
+
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa", "settings.json");
 
@@ -75,6 +78,7 @@ public sealed class PluginSettings
     {
         NodeSetFolders ??= new();
         RecentEndpoints ??= new();
+        CompletedLessons ??= new();
         if (MirrorMaxNodes <= 0) MirrorMaxNodes = OpcUaAml.Server.MirrorOptions.DefaultMaxNodes;
         return this;
     }

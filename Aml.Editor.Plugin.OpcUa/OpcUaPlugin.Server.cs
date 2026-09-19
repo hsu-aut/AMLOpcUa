@@ -257,6 +257,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network });
+            if (_host.CertificateReplaced)
+                PluginLog.Info("The document server made itself a new certificate for its address; clients that trusted the old one ask again.");
             // Values edited in the document reach the served nodes; new or removed elements need a restart.
             _structureNoted = false;
             var host = _host;

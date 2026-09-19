@@ -6,6 +6,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:aml="clr-namespace:Aml.Editor.Plugin.WPFBase;assembly=Aml.Editor.Plugin.Contract"
     xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    xmlns:guide="clr-namespace:Aml.Editor.Plugin.OpcUa.Guide"
     mc:Ignorable="d"
     AllowDrop="True" PreviewDragEnter="Plugin_PreviewDragOver" PreviewDragOver="Plugin_PreviewDragOver"
     PreviewDragLeave="Plugin_PreviewDragLeave" PreviewDrop="Plugin_PreviewDrop"
@@ -104,6 +105,15 @@
             </StatusBarItem>
             <!-- The log sits on the first tab; this reaches it from every tab and counts what it has not shown yet. -->
             <StatusBarItem DockPanel.Dock="Right">
+                <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="Four short lessons on the plugin"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE7BE;" FontSize="12" Foreground="{DynamicResource Exchange}"/>
+                        <TextBlock Text="Tutorial" TextDecorations="Underline" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StatusBarItem>
+            <StatusBarItem DockPanel.Dock="Right">
                 <Button x:Name="LogLink" Click="LogLink_Click" Padding="6,0" ToolTip="Show the log"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
@@ -117,10 +127,28 @@
             </StatusBarItem>
         </StatusBar>
 
+        <!-- The tutorial, beside every tab; built in code (OpcUaPlugin.Tutorial.cs). -->
+        <Border x:Name="TourPanel" DockPanel.Dock="Right" Width="310" Visibility="Collapsed"
+                Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1,0,0,0">
+            <DockPanel Margin="14,10,10,10">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Click="TourClose_Click" Padding="4,0" ToolTip="Close the tutorial" AutomationProperties.Name="Close the tutorial"
+                            Background="Transparent" BorderThickness="0">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" Foreground="{DynamicResource Plain}" Margin="0"/>
+                    </Button>
+                    <TextBlock Style="{StaticResource IconText}" Text="&#xE7BE;" Foreground="{DynamicResource Exchange}" FontSize="16"/>
+                    <TextBlock x:Name="TourTitle" Text="Tutorial" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </DockPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="TourBody"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
         <Grid>
         <TabControl x:Name="Tabs">
             <!-- ── OPC UA: the models in the document ─────────────────────── -->
-            <TabItem Header="Namespaces">
+            <TabItem Header="Namespaces" x:Name="NamespacesTab">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -198,6 +226,7 @@
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
+                        <guide:HelpButton Topic="namespaces.commands"/>
                     </ToolBar>
 
                     <Grid Grid.Row="1">
@@ -208,7 +237,10 @@
                         </Grid.RowDefinitions>
 
                         <DockPanel Grid.Row="0" Margin="6,6,6,4">
-                            <TextBlock DockPanel.Dock="Top" Text="OPC UA namespaces in this document" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
+                            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="OPC UA namespaces in this document" Style="{StaticResource Caption}"/>
+                                <guide:HelpButton Topic="namespaces"/>
+                            </StackPanel>
                             <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="{DynamicResource Ua.Muted}" TextWrapping="Wrap"
                                        Text="Open a CAEX 3.0 document to import OPC UA NodeSets."/>
                             <Button x:Name="Caex3Button" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
@@ -275,6 +307,13 @@
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE703;" Foreground="{DynamicResource Create}"/>
                                                     <TextBlock Style="{StaticResource CardTitle}" Text="Connect to a server"/>
                                                     <TextBlock Style="{StaticResource CardText}" Text="Take a running server's types and the parts of its address space you choose."/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Card}" Click="TutorialButton_Click">
+                                                <StackPanel>
+                                                    <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE7BE;" Foreground="{DynamicResource Verify}"/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Take the tutorial"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="Four short lessons in this document: models, instances, a running server, a model of your own."/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartModeler_Click">
@@ -360,6 +399,7 @@
                                 <TextBlock Text="Add missing Mandatory children" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <guide:HelpButton Topic="check"/>
                     </ToolBar>
                     <TextBlock x:Name="CheckSummary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="6,6,6,4"
                                Text="Run Check to verify the instances against their UA types. Double click a finding to select its element."/>
@@ -408,6 +448,7 @@
                     <!-- Connection -->
                     <Border Grid.Row="0" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,5">
                         <DockPanel>
+                            <guide:HelpButton DockPanel.Dock="Right" Topic="server.connection"/>
                             <Button x:Name="ConnectButton" DockPanel.Dock="Right" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
@@ -487,12 +528,14 @@
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="Stop watching" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
+                        <guide:HelpButton Topic="server.commands"/>
                     </ToolBar>
 
                     <!-- What to take -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,4">
                         <WrapPanel>
-                            <TextBlock Text="What to take" Style="{StaticResource Caption}" Margin="0,0,10,0"/>
+                            <TextBlock Text="What to take" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                            <guide:HelpButton Topic="server.take" Margin="4,0,10,0"/>
                             <Label Content="_depth" Target="{Binding ElementName=MirrorDepthBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
                             <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="Depth" Text="3" Width="28" VerticalContentAlignment="Center" Margin="0,0,10,0"
                                      ToolTip="Levels taken below a node checked with everything below it; 0 has no limit but the node limit."/>
@@ -532,7 +575,8 @@
                     <!-- This document as a server -->
                     <Border Grid.Row="3" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="This document as a server" Style="{StaticResource Caption}" Margin="0,0,10,0"/>
+                            <TextBlock Text="This document as a server" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                            <guide:HelpButton Topic="server.serve" Margin="4,0,10,0"/>
                             <Button x:Name="ServeButton" Click="ServeButton_Click" Padding="4,1"
                                     ToolTip="Start an OPC UA server whose address space is this document's instance hierarchies; values follow the document, added elements need a restart.">
                                 <StackPanel Orientation="Horizontal">
@@ -670,6 +714,7 @@
                                 <TextBlock Text="Export SVG…" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <guide:HelpButton x:Name="DiagramHelp" Topic="diagram"/>
                     </ToolBar>
                     <TextBlock x:Name="DiagramInfo" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
                                Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type."/>
@@ -710,6 +755,7 @@
                         <Button Click="ModelerReload_Click" ToolTip="Reload the modeler page" AutomationProperties.Name="Reload the modeler">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE72C;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
+                        <guide:HelpButton Topic="modeler"/>
                     </ToolBar>
                     <TextBlock x:Name="ModelerStatus" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
                                Text="Edit a namespace of the document, start a new model, or open a NodeSet file. 'Apply to document' in the modeler imports the result."/>

@@ -10,6 +10,7 @@ using System.Windows;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Guide;
 using Aml.Editor.Plugin.WPFBase;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
@@ -68,6 +69,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         InitServerTab();
         InitModelerTab();
         InitNumberFields();
+        InitTutorial();
         // Closed by the user, the view is gone; what it holds must not stay behind (the port above all).
         PluginTerminated += (_, _) => ReleaseResources();
         Tabs.SelectionChanged += (_, e) =>
@@ -229,6 +231,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (_released) return;
         _released = true;
         PluginLog.OnLine -= AppendLog;
+        HelpButton.Opened -= OnHelpOpened;
+        HelpButton.LessonRequested -= OnLessonRequested;
+        _tourTimer?.Stop();
         try { if (_themeChanged != null) ControlzEx.Theming.ThemeManager.Current.ThemeChanged -= _themeChanged; }
         catch { /* shutting down */ }
         var live = _live;
@@ -265,7 +270,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     // ── commands ────────────────────────────────────────────────────────────
 
-    private async void ImportButton_Click(object sender, RoutedEventArgs e)
+    private async void ImportButton_Click(object sender, RoutedEventArgs e) => await ImportFromFolderAsync(_settings.LastNodeSetFolder);
+
+    /// <summary>Asks for a NodeSet, starting in <paramref name="folder"/>, and imports it.</summary>
+    private async Task ImportFromFolderAsync(string? folder)
     {
         var document = _document;
         if (document == null || _busy) return;
@@ -280,7 +288,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             Title = "Import OPC UA NodeSet",
             Filter = "OPC UA NodeSet (*.xml)|*.xml|All files (*.*)|*.*",
-            InitialDirectory = _settings.LastNodeSetFolder ?? "",
+            InitialDirectory = folder ?? "",
         };
         if (dialog.ShowDialog() != true) return;
 
@@ -467,6 +475,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         var document = _document;
         if (document == null) return;
+        _checkRuns++;
         try
         {
             var findings = AnnexAChecker.Check(document);
