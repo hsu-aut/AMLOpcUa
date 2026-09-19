@@ -112,6 +112,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             _client = await ConnectWithTrustPromptAsync(url);
+            var client = _client;
+            client.ReachableChanged += reachable => Dispatcher.BeginInvoke(() =>
+            {
+                if (!ReferenceEquals(_client, client)) return;
+                if (reachable) PluginLog.Info($"{url} answers again.");
+                else PluginLog.Warn($"{url} does not answer any more.");
+                SetStatus(reachable ? $"{url} answers again." : $"{url} does not answer any more. Disconnect, and connect again once it is back.");
+                UpdateServerState();
+            });
             PluginLog.Info($"Connected to {url} ({_client.SecurityMode}); {_client.NamespaceTable.Count} namespaces.");
             SetStatus($"Connected to {url}.");
             RememberEndpoint(url);
@@ -684,9 +693,10 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;
         ServePortBox.IsEnabled = _host == null;
         ServeNetworkBox.IsEnabled = _host == null;
-        ServerStateText.Text = (connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
+        var lost = connected && !_client!.Reachable;
+        ServerStateText.Text = (lost ? "Connection lost" : connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
                                + (_host != null ? $"  ·  serving at {_host.EndpointUrl}" : "");
-        ConnectionDot.Fill = new SolidColorBrush(connected ? Color.FromRgb(0x2E, 0x9E, 0x4F) : Color.FromRgb(0x9A, 0xA0, 0xA6));
+        ConnectionDot.Fill = new SolidColorBrush(lost ? Color.FromRgb(0xD1, 0x34, 0x38) : connected ? Color.FromRgb(0x2E, 0x9E, 0x4F) : Color.FromRgb(0x9A, 0xA0, 0xA6));
         var palette = ThemePalette.Current(this);
         ConnectionPill.Background = connected ? palette.PillOn : palette.PillIdle;
         ConnectionPill.ToolTip = connected ? _client!.EndpointUrl : null;

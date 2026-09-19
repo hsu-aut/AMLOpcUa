@@ -87,6 +87,25 @@ public sealed class UaClient : IAsyncDisposable
         _session = session;
         EndpointUrl = endpointUrl;
         SecurityMode = securityMode;
+        _session.KeepAliveInterval = 5000;
+        _session.KeepAlive += OnKeepAlive;
+    }
+
+    /// <summary>
+    /// Whether the server answered the last keep-alive. A session whose server
+    /// went away is not ended by the stack; this says so within seconds.
+    /// </summary>
+    public bool Reachable { get; private set; } = true;
+
+    /// <summary>Raised, on a thread of the stack, when <see cref="Reachable"/> changes.</summary>
+    public event Action<bool>? ReachableChanged;
+
+    private void OnKeepAlive(ISession session, KeepAliveEventArgs e)
+    {
+        var reachable = ServiceResult.IsGood(e.Status);
+        if (reachable == Reachable) return;
+        Reachable = reachable;
+        ReachableChanged?.Invoke(reachable);
     }
 
     public string EndpointUrl { get; }
@@ -579,6 +598,7 @@ public sealed class UaClient : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        _session.KeepAlive -= OnKeepAlive;
         try { await _session.CloseAsync(2000, true, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception) { /* the server may already be gone */ }
         _session.Dispose();

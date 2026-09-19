@@ -156,6 +156,27 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task A_server_that_goes_away_is_noticed()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Gone");
+        var pki = TempPki();
+        var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        var lost = new TaskCompletionSource();
+        client.ReachableChanged += reachable => { if (!reachable) lost.TrySetResult(); };
+        Assert.True(client.Reachable);
+
+        await host.DisposeAsync();
+
+        await lost.Task.WaitAsync(TimeSpan.FromSeconds(30));
+        Assert.False(client.Reachable);
+    }
+
+    [Fact]
     public void Duplicate_NodeIds_are_made_unique()
     {
         var doc = CAEXDocument.New_CAEXDocument();
