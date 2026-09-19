@@ -617,7 +617,7 @@
                 </DockPanel>
             </TabItem>
 
-            <!-- ── Modeler: UaModeler.js in WebView2 ───────────────────────── -->
+            <!-- ── Modeler: InfoModel.js in WebView2 ───────────────────────── -->
             <TabItem Header="Modeler" x:Name="ModelerTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">

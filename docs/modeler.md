@@ -1,7 +1,7 @@
 # Modeler
 
 The Modeler tab hosts the graphical modeler
-[UaModeler.js](../../UaModeler.js) (working name) in a WebView2 control. It
+[InfoModel.js](../../InfoModel.js) in a WebView2 control. It
 draws OPC UA types and instances in the notation of OPC 10000-3 Annex C and
 edits NodeSet2 files: types, instance declarations with ModellingRules,
 method arguments, structure and union fields, enumeration values and
@@ -25,9 +25,9 @@ and survive the round trip through the document.
 
 ## How it is built
 
-- `Bridge/ModelerWebView.cs` hosts the page. The web build of UaModeler.js
+- `Bridge/ModelerWebView.cs` hosts the page. The web build of InfoModel.js
   (`npm run build`, `dist/web`) ships in the plugin folder as
-  `uamodeler-assets` and is served under the virtual host `uamodeler.local`.
+  `infomodel-assets` and is served under the virtual host `infomodel.local`.
   WebView2 keeps its profile in `%LOCALAPPDATA%\AMLOpcUa\WebView2`.
 - Messages are JSON. The plugin sends `open` (a NodeSet and the NodeSets it
   requires) or `new`; the page answers `ready` when it listens, `dirty`,
@@ -36,7 +36,7 @@ and survive the round trip through the document.
 - After `ready` the plugin sends `theme` with the editor's light or dark
   theme, again when the plugin becomes visible; the page's chrome follows,
   the canvas stays white. Standalone, the page follows the system setting.
-- The build fails with a message when `dist/web` of UaModeler.js is missing.
+- The build fails with a message when `dist/web` of InfoModel.js is missing.
   `WebView2Loader.dll` is staged under `obj/bundled` and packed next to the
   plugin's assemblies, because NuGet drops files from `runtimes/*/native`.
 

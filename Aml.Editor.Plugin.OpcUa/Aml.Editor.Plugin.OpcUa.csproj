@@ -33,7 +33,7 @@
     <PackageReference Include="Aml.Skins" Version="2.*">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <!-- Hosts the graphical modeler (UaModeler.js). Bundled with the plugin
+    <!-- Hosts the graphical modeler (InfoModel.js). Bundled with the plugin
          like the other runtime dependencies, not a NuGet dependency. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
@@ -42,13 +42,13 @@
 
   <!-- The modeler's web build, served to WebView2 from the plugin folder. -->
   <PropertyGroup>
-    <UaModelerDist>$(MSBuildThisFileDirectory)..\..\UaModeler.js\dist\web</UaModelerDist>
+    <InfoModelDist>$(MSBuildThisFileDirectory)..\..\InfoModel.js\dist\web</InfoModelDist>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="$(UaModelerDist)\**\*"
-          Link="uamodeler-assets\%(RecursiveDir)%(Filename)%(Extension)"
+    <None Include="$(InfoModelDist)\**\*"
+          Link="infomodel-assets\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" Visible="false"
-          Pack="true" PackagePath="lib\$(TargetFramework)\uamodeler-assets\%(RecursiveDir)%(Filename)%(Extension)" />
+          Pack="true" PackagePath="lib\$(TargetFramework)\infomodel-assets\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- WebView2Loader.dll is a native file of the WebView2 package. NuGet.Pack
        drops items that point into runtimes/<rid>/native, so a copy is staged
@@ -65,9 +65,9 @@
           SkipUnchangedFiles="true" />
   </Target>
 
-  <Target Name="VerifyUaModelerDist" BeforeTargets="BeforeBuild">
-    <Error Condition="!Exists('$(UaModelerDist)\index.html')"
-           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(UaModelerDist)\..\.." />
+  <Target Name="VerifyInfoModelDist" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(InfoModelDist)\index.html')"
+           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(InfoModelDist)\..\.." />
   </Target>
 
   <ItemGroup>

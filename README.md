@@ -43,7 +43,7 @@ AMLPetriNet.
 
 Requires the .NET 8 SDK. The plugin needs Windows and the AutomationML
 Editor 6.4 or later, and bundles the graphical modeler: build
-[UaModeler.js](../UaModeler.js) first (`npm install`, `npm run build`), it is
+[InfoModel.js](../InfoModel.js) first (`npm install`, `npm run build`), it is
 expected next to this repository.
 
 ```bash
