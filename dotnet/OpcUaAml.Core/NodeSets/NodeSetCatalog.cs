@@ -105,6 +105,27 @@ public sealed class NodeSetCatalog
         return missing;
     }
 
+    /// <summary>The known files of the models the given NodeSet needs, transitively.</summary>
+    public IReadOnlyList<NodeSetInfo> Dependencies(NodeSetInfo root)
+    {
+        var found = new List<NodeSetInfo>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var queue = new Queue<NodeSetInfo>();
+        queue.Enqueue(root);
+        foreach (var m in root.Models) seen.Add(m.Model.ModelUri);
+        while (queue.Count > 0)
+        {
+            foreach (var decl in queue.Dequeue().Models)
+                foreach (var req in decl.RequiredModels)
+                {
+                    if (!seen.Add(req.ModelUri) || Find(req.ModelUri) is not { } provider) continue;
+                    found.Add(provider);
+                    queue.Enqueue(provider);
+                }
+        }
+        return found;
+    }
+
     private static bool SamePath(string a, string b) =>
         string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
 }

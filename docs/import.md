@@ -106,5 +106,16 @@ while the FX NodeSets of the tag define it in FX Data.
   references are skipped and reported as warnings.
 - **CAEX 2.15 documents** are refused: the Annex A libraries use CAEX 3.0
   features (AttributeTypeLib, nested attribute types).
-- **Duration.** A conversion reads the whole UA base model and takes 15 to 25
-  seconds. The plugin runs it in the background.
+- **Duration.** Opc2Aml turns the whole UA base model into libraries on every
+  conversion: 11 to 15 seconds for a small NodeSet, in the background in the
+  plugin. Two changes took about 15 % off: while a conversion runs, Aml.Engine
+  gets an ID service that does not create a GUID for every copied Attribute and
+  Value (`ConversionIds`), and patch 0005 compares IDs ordinally. Most of the
+  rest is spent inside Aml.Engine (service lookups, path queries, class
+  instances).
+- **Cache.** A conversion is kept in `%LOCALAPPDATA%\AMLOpcUa\conversions`
+  (`ConversionCache`, the last 40), under a key made of the content of the
+  NodeSet and every file it requires and of the builds of Opc2Aml and
+  OpcUaAml.Core. Converting the same files again takes under a second
+  (DI: 0.7 s instead of 15 s). `NodeSetImporter.Cache = null` turns it off;
+  the plugin empties it with Settings › Forget earlier conversions.

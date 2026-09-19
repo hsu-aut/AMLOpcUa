@@ -22,10 +22,17 @@ public sealed record ConversionResult(
     NodeSetInfo NodeSet,
     IReadOnlyList<string> LoadedModels,
     IReadOnlyList<string> Warnings,
-    TimeSpan Duration);
+    TimeSpan Duration,
+    bool FromCache = false);
 
 public static class NodeSetImporter
 {
+    /// <summary>
+    /// Where conversions are kept (<see cref="ConversionCache.Default"/>); null
+    /// converts every time.
+    /// </summary>
+    public static ConversionCache? Cache { get; set; } = ConversionCache.Default;
+
     /// <summary>
     /// Converts one NodeSet into a CAEX 3.0 document holding the AML libraries
     /// of Annex A: the metamodel libraries and one ATL/ICL/RCL/SUC library per
@@ -52,6 +59,21 @@ public static class NodeSetImporter
                 "Add a folder that contains their NodeSet files.");
         }
 
+        var started = DateTime.UtcNow;
+        var cache = Cache;
+        var key = cache == null ? null : ConversionCache.Key(info, catalog);
+        if (cache != null && cache.Find(key!) is { } hit)
+        {
+            try
+            {
+                return new ConversionResult(ReadContainer(hit.Container), info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
+            }
+            catch (Exception ex) when (ex is IOException or ImportException or System.Xml.XmlException or InvalidDataException)
+            {
+                // A damaged entry: convert again and replace it.
+            }
+        }
+
         var loaded = new List<string>();
         var manager = new ModelManager();
         manager.ModelRequired += (_, e) =>
@@ -64,7 +86,6 @@ public static class NodeSetImporter
         };
 
         var workDir = Directory.CreateTempSubdirectory("opcuaaml-");
-        var started = DateTime.UtcNow;
         try
         {
             // Opc2Aml names the container after the path it is given and stores
@@ -73,7 +94,7 @@ public static class NodeSetImporter
             var converter = new NodeSetToAML(manager);
             try
             {
-                converter.CreateAML(fullPath, baseName);
+                using (ConversionIds.Use()) converter.CreateAML(fullPath, baseName);
             }
             catch (ImportException)
             {
@@ -85,7 +106,9 @@ public static class NodeSetImporter
             }
 
             var document = ReadContainer(baseName + ".amlx");
-            return new ConversionResult(document, info, loaded, converter.Warnings.ToList(), DateTime.UtcNow - started);
+            var warnings = converter.Warnings.ToList();
+            cache?.Store(key!, baseName + ".amlx", loaded, warnings);
+            return new ConversionResult(document, info, loaded, warnings, DateTime.UtcNow - started);
         }
         finally
         {

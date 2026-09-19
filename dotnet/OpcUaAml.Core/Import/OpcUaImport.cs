@@ -13,7 +13,7 @@ public sealed record ImportResult(ConversionResult Conversion, MergeReport Merge
     public string Summary =>
         $"Imported {Conversion.NodeSet.PrimaryModel.Model.ModelUri}: {Merge}" +
         (Warnings.Count > 0 ? $", {Warnings.Count} warning(s)" : "") +
-        $" ({Conversion.Duration.TotalSeconds:0.0} s).";
+        $" ({Conversion.Duration.TotalSeconds:0.0} s{(Conversion.FromCache ? ", converted before" : "")}).";
 }
 
 public static class OpcUaImport
