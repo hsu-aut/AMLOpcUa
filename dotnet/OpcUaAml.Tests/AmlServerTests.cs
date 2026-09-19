@@ -156,6 +156,43 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task Simulated_values_move_around_the_document_value_and_follow_its_edits()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Sim");
+        var value = ih.InternalElement.Append("Speed").Attribute.Append("Value");
+        value.AttributeDataType = "xs:double";
+        value.Value = "100";
+        var running = ih.InternalElement.Append("Running").Attribute.Append("Value");
+        running.AttributeDataType = "xs:boolean";
+        running.Value = "false";
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server"), Simulate = true });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        var speed = new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Sim/Speed");
+
+        var seen = new HashSet<double>();
+        for (var i = 0; i < 8; i++)
+        {
+            seen.Add(double.Parse((await client.ReadAsync(speed)).ValueText!, System.Globalization.CultureInfo.InvariantCulture));
+            await Task.Delay(600);
+        }
+
+        Assert.True(host.Simulating);
+        Assert.True(seen.Count > 2, "the value moves");
+        Assert.All(seen, v => Assert.InRange(v, 80, 120)); // within 20 % of the document's 100
+        Assert.Equal("100", value.Value); // the document keeps its value
+
+        value.Value = "1000";
+        host.RefreshValues();
+        await Task.Delay(1200);
+        Assert.InRange(double.Parse((await client.ReadAsync(speed)).ValueText!, System.Globalization.CultureInfo.InvariantCulture), 800, 1200);
+    }
+
+    [Fact]
     public async Task A_certificate_made_for_another_address_is_replaced()
     {
         // Served to the network first, the certificate names the computer; served

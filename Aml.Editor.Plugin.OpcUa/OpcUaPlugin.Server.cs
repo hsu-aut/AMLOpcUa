@@ -253,10 +253,11 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (!NumbersValid(ServePortBox)) return;
         var port = ValueOf(ServePortBox)!.Value;
         var network = ServeNetworkBox.IsChecked == true;
+        var simulate = ServeSimulateBox.IsChecked == true;
         SetBusy(true, "Starting the document server …");
         try
         {
-            _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network });
+            _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network, Simulate = simulate });
             if (_host.CertificateReplaced)
                 PluginLog.Info("The document server made itself a new certificate for its address; clients that trusted the old one ask again.");
             // Values edited in the document reach the served nodes; new or removed elements need a restart.
@@ -271,7 +272,8 @@ public partial class OpcUaPlugin : ISupportsSelection
                 SetStatus("The document server shows the values as they change; restart it to show added or removed elements.");
             });
             var message = $"Serving {_host.Nodes} node(s) of this document at {_host.EndpointUrl}, "
-                          + (network ? "to other computers too, to trusted clients only (Clients…)." : "to this computer only.");
+                          + (network ? "to other computers too, to trusted clients only (Clients…)" : "to this computer only")
+                          + (simulate ? ", with simulated values." : ".");
             PluginLog.Info(message);
             SetStatus(message);
             if (_client == null) EndpointBox.Text = _host.EndpointUrl;
@@ -708,6 +710,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;
         ServePortBox.IsEnabled = _host == null;
         ServeNetworkBox.IsEnabled = _host == null;
+        ServeSimulateBox.IsEnabled = _host == null;
         var lost = connected && !_client!.Reachable;
         ServerStateText.Text = (lost ? "Connection lost" : connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
                                + (_host != null ? $"  ·  serving at {_host.EndpointUrl}" : "");

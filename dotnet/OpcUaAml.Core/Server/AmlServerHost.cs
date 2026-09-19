@@ -42,6 +42,14 @@ public sealed class AmlServerOptions
     /// refused and kept among <see cref="AmlServerHost.RejectedClients"/>.
     /// </summary>
     public bool Network { get; init; }
+
+    /// <summary>
+    /// Let the served values move, as a running plant's would: numbers swing
+    /// around the document's value, booleans toggle every few seconds, texts
+    /// stay. The document itself is not changed; a value edited in it becomes
+    /// the new middle.
+    /// </summary>
+    public bool Simulate { get; init; }
 }
 
 /// <summary>A client certificate the document server refused or trusts.</summary>
@@ -165,7 +173,7 @@ public sealed class AmlServerHost : IAsyncDisposable
             replaced = true;
         }
 
-        var server = new DocumentServer(model);
+        var server = new DocumentServer(model, options.Simulate);
         try
         {
             await app.StartAsync(server).ConfigureAwait(false);
@@ -175,6 +183,7 @@ public sealed class AmlServerHost : IAsyncDisposable
             server.Dispose();
             throw;
         }
+        if (options.Simulate) server.NodeManager?.StartSimulation(TimeSpan.FromMilliseconds(500));
         return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace) { CertificateReplaced = replaced };
     }
 
@@ -220,28 +229,95 @@ public sealed class AmlServerHost : IAsyncDisposable
         return result;
     }
 
+    /// <summary>Whether the served values are simulated (<see cref="AmlServerOptions.Simulate"/>).</summary>
+    public bool Simulating => _server.NodeManager?.Simulating == true;
+
     public async ValueTask DisposeAsync()
     {
+        _server.NodeManager?.StopSimulation();
         try { await _server.StopAsync().ConfigureAwait(false); }
         catch (Exception) { /* already stopped */ }
         _server.Dispose();
     }
 
-    private sealed class DocumentServer(AmlAddressSpace model) : StandardServer
+    private sealed class DocumentServer(AmlAddressSpace model, bool simulate) : StandardServer
     {
         public DocumentNodeManager? NodeManager { get; private set; }
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            NodeManager = new DocumentNodeManager(server, configuration, model);
+            NodeManager = new DocumentNodeManager(server, configuration, model, simulate);
             return new(server, configuration, null, NodeManager);
         }
     }
 
-    private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model)
+    private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model, bool simulate)
         : CustomNodeManager2(server, configuration, model.NamespaceUris.ToArray())
     {
         private readonly List<(BaseDataVariableState State, AmlNode Node)> _variables = new();
+
+        // Simulation: the document's value of each variable is the middle it moves around.
+        private readonly Dictionary<BaseDataVariableState, object?> _middle = new();
+        private Timer? _simulation;
+        private readonly DateTime _started = DateTime.UtcNow;
+
+        public bool Simulating => _simulation != null;
+
+        public void StartSimulation(TimeSpan every)
+        {
+            lock (Lock)
+            {
+                foreach (var (state, _) in _variables) _middle[state] = state.Value;
+            }
+            _simulation = new Timer(_ => Simulate(), null, every, every);
+        }
+
+        public void StopSimulation()
+        {
+            _simulation?.Dispose();
+            _simulation = null;
+        }
+
+        /// <summary>Numbers on a slow sine around their middle, each with its own phase; booleans toggle; texts stay.</summary>
+        private void Simulate()
+        {
+            var seconds = (DateTime.UtcNow - _started).TotalSeconds;
+            lock (Lock)
+            {
+                var i = 0;
+                foreach (var (state, _) in _variables)
+                {
+                    var phase = i++ * 0.7;
+                    _middle.TryGetValue(state, out var middle);
+                    var next = Simulated(state.DataType, middle, seconds, phase);
+                    if (next == null || Equals(next, state.Value)) continue;
+                    state.Value = next;
+                    state.StatusCode = StatusCodes.Good;
+                    state.Timestamp = DateTime.UtcNow;
+                    state.ClearChangeMasks(SystemContext, false);
+                }
+            }
+        }
+
+        internal static object? Simulated(NodeId dataType, object? middle, double seconds, double phase)
+        {
+            if (dataType == DataTypeIds.Boolean)
+                return ((int)((seconds + phase * 3) / 5)) % 2 == 0 ? middle as bool? ?? false : !(middle as bool? ?? false);
+            double center;
+            try { center = middle == null ? 0 : Convert.ToDouble(middle, CultureInfo.InvariantCulture); }
+            catch (Exception ex) when (ex is InvalidCastException or FormatException) { return null; }
+            var amplitude = center == 0 ? 10 : Math.Abs(center) * 0.2;
+            var x = center + amplitude * Math.Sin(2 * Math.PI * seconds / 30 + phase);
+            if (dataType == DataTypeIds.Double) return Math.Round(x, 3);
+            if (dataType == DataTypeIds.Float) return (float)Math.Round(x, 3);
+            if (dataType == DataTypeIds.Int16) return (short)Math.Clamp(Math.Round(x), short.MinValue, short.MaxValue);
+            if (dataType == DataTypeIds.Int32) return (int)Math.Clamp(Math.Round(x), int.MinValue, int.MaxValue);
+            if (dataType == DataTypeIds.Int64) return (long)Math.Round(x);
+            if (dataType == DataTypeIds.UInt16) return (ushort)Math.Clamp(Math.Round(x), 0, ushort.MaxValue);
+            if (dataType == DataTypeIds.UInt32) return (uint)Math.Clamp(Math.Round(x), 0, uint.MaxValue);
+            if (dataType == DataTypeIds.Byte) return (byte)Math.Clamp(Math.Round(x), 0, byte.MaxValue);
+            return null;
+        }
 
         /// <summary>The values of the served variables from their elements again; the number that changed.</summary>
         public int Refresh()
@@ -253,6 +329,13 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     if (node.Source?.Attribute["Value"] is not { } attribute) continue;
                     var (_, value) = Typed(attribute.Value, attribute.AttributeDataType ?? node.DataType);
+                    if (Simulating)
+                    {
+                        // An edit in the document moves the middle; the simulation writes the value.
+                        _middle.TryGetValue(state, out var middle);
+                        if (!Equals(middle, value)) { _middle[state] = value; changed++; }
+                        continue;
+                    }
                     if (Equals(value, state.Value) || (value is Array a && state.Value is Array b && a.Cast<object>().SequenceEqual(b.Cast<object>()))) continue;
                     state.Value = value;
                     state.StatusCode = value == null ? StatusCodes.UncertainInitialValue : StatusCodes.Good;

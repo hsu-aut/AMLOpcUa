@@ -97,10 +97,12 @@ public static class Program
             (--accept then needs an endpoint: the servers a document names are
             not trusted blindly).
 
-        uaaml serve <doc.aml> [--port <n>] [--network]
+        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate]
             Serve the document's instance hierarchies as an OPC UA server until Enter,
             to this computer only. --network offers it to other computers: secured
             endpoints only, and only to clients whose certificate is trusted.
+            --simulate lets numbers swing around the document's values and
+            booleans toggle, as in a running plant.
 
         uaaml clients [--trust <thumbprint>] [--distrust <thumbprint>]
             The client certificates the document server refused and those it
@@ -607,11 +609,11 @@ public static class Program
 
     private static async Task<int> ServeCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--port" }, flags: new[] { "--network" });
+        var o = Options.Parse(args, valued: new[] { "--port" }, flags: new[] { "--network", "--simulate" });
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
         var network = o.Has("--network");
-        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network });
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate") });
         Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}"
                           + (network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.")
                           + " Press Enter to stop.");

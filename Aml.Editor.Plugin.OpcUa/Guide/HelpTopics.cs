@@ -55,7 +55,8 @@ internal static class HelpTopics
         ["server.serve"] = new(
             "This document as a server",
             "Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow "
-            + "the document; added elements need a restart. Only this computer can connect, unless 'to the network' is ticked: then "
+            + "the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and "
+            + "booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then "
             + "other computers may, over secured connections and only with a certificate you trusted under Clients….",
             new[] { "Endpoint", "Certificate" }, "server"),
         ["diagram"] = new(

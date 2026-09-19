@@ -593,6 +593,8 @@
                             </Button>
                             <Label Content="p_ort" Target="{Binding ElementName=ServePortBox}" Style="{StaticResource FieldLabel}" Margin="10,0,4,0"/>
                             <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="Port of the document server"/>
+                            <CheckBox x:Name="ServeSimulateBox" Content="simulate values" VerticalAlignment="Center" Margin="10,0,0,0"
+                                      ToolTip="Numbers swing around the document's values and booleans toggle, as in a running plant; the document keeps its values."/>
                             <CheckBox x:Name="ServeNetworkBox" Content="to the network" VerticalAlignment="Center" Margin="10,0,6,0"
                                       ToolTip="Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session."/>
                             <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="Clients…" Padding="4,1"
