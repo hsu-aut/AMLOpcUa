@@ -36,6 +36,18 @@ public sealed class ModelerWebView : IDisposable
 
     public bool IsDirty { get; private set; }
 
+    /// <summary>Whether the editor shows its dark theme; the page follows it.</summary>
+    public bool Dark { get; private set; }
+
+    /// <summary>Tells the page the editor's theme, now or once it is ready.</summary>
+    public void SetTheme(bool dark)
+    {
+        Dark = dark;
+        if (_view.CoreWebView2 != null)
+            _view.DefaultBackgroundColor = dark ? System.Drawing.Color.FromArgb(255, 0x1F, 0x1F, 0x1F) : System.Drawing.Color.White;
+        if (_ready) _view.CoreWebView2?.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "theme", dark }, Json));
+    }
+
     public async Task InitAsync()
     {
         if (_started || _disposed) return;
@@ -61,6 +73,8 @@ public sealed class ModelerWebView : IDisposable
             return;
         }
         var core = _view.CoreWebView2;
+        // No white flash before the page has its theme.
+        _view.DefaultBackgroundColor = Dark ? System.Drawing.Color.FromArgb(255, 0x1F, 0x1F, 0x1F) : System.Drawing.Color.White;
         core.Settings.AreDevToolsEnabled = true;
         core.Settings.IsStatusBarEnabled = false;
         core.SetVirtualHostNameToFolderMapping(VirtualHost, assets, CoreWebView2HostResourceAccessKind.Allow);
@@ -103,6 +117,7 @@ public sealed class ModelerWebView : IDisposable
         {
             case "ready":
                 _ready = true;
+                _view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "theme", dark = Dark }, Json));
                 if (_pending is { } p) { _pending = null; _view.CoreWebView2.PostWebMessageAsJson(p); }
                 break;
             case "apply" when m.Xml != null:

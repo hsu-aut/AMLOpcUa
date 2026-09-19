@@ -33,6 +33,9 @@ and survive the round trip through the document.
   requires) or `new`; the page answers `ready` when it listens, `dirty`,
   `status`, and `apply` with the NodeSet. A message sent before `ready` waits;
   a reload or a crashed renderer puts the bridge back into waiting.
+- After `ready` the plugin sends `theme` with the editor's light or dark
+  theme, again when the plugin becomes visible; the page's chrome follows,
+  the canvas stays white. Standalone, the page follows the system setting.
 - The build fails with a message when `dist/web` of UaModeler.js is missing.
   `WebView2Loader.dll` is staged under `obj/bundled` and packed next to the
   plugin's assemblies, because NuGet drops files from `runtimes/*/native`.

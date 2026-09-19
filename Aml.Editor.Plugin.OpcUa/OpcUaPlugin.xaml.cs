@@ -37,7 +37,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         InitializeComponent();
         // The editor's theme is known once the view sits in its window.
         Loaded += (_, __) => ThemePalette.Current(this).ApplyTo(this);
-        IsVisibleChanged += (_, __) => { if (IsVisible) ThemePalette.Current(this).ApplyTo(this); };
+        IsVisibleChanged += (_, __) =>
+        {
+            if (!IsVisible) return;
+            var palette = ThemePalette.Current(this);
+            palette.ApplyTo(this);
+            _modeler?.SetTheme(palette.Dark);
+        };
 
         // No dots or slashes: the editor turns DisplayName into a WPF x:Name and
         // an XML element name in its config, and both reject them.

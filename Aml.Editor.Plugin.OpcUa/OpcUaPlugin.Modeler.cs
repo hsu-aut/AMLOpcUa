@@ -44,6 +44,7 @@ public partial class OpcUaPlugin
     {
         if (_modeler != null) return;
         _modeler = new ModelerWebView(ModelerView);
+        _modeler.SetTheme(ThemePalette.Current(this).Dark);
         _modeler.Applied += (xml, uri) => Dispatcher.InvokeAsync(() => ApplyModelAsync(xml, uri));
         _modeler.DirtyChanged += dirty => Dispatcher.Invoke(() => ModelerTab.Header = dirty ? "Modeler *" : "Modeler");
         _modeler.Status += (text, warn) => Dispatcher.Invoke(() =>
