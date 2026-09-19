@@ -57,7 +57,8 @@ through the document.
 Checked with a WPF probe that loads the plugin, opens the tab, drives the page
 through `ExecuteScriptAsync` (new model, a type with a variable, Apply) and
 finds `SUC_http://example.org/Probe/` with `PumpType[Speed]` in the document.
-The same probe checks that the page hides New and Open, that the plugin asks
+The same probe applies a new model from the page and checks that the page
+hears "applied" and is clean again, that the page hides New and Open, that the plugin asks
 before New model drops changes, that a failed import reaches the page as a
 warning with the model still marked changed, and that navigation away is
 refused. The guards of the page on its own (asking before Open, before

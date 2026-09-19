@@ -73,7 +73,8 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its fi
   namespace, for the NodeSet and every model it requires, together with the
   `OpcAmlMetaModel` libraries.
 - **Settings ▾ › NodeSet folders** lists folders searched for required
-  NodeSets. The folder of the imported NodeSet is always searched first. The
+  NodeSets; **Forget fetched NodeSets** empties the folders of NodeSets taken
+  from servers and the Cloud Library, which grow with every fetch. The folder of the imported NodeSet is always searched first. The
   UA base model and DI are built in. The same menu holds "Replace existing
   libraries", "Save after import" and the debug log. Saving goes through the
   editor's own save command, reached by reflection; when an editor version
@@ -125,7 +126,9 @@ take its changes back. Changes that touch many elements or remove some
 (adding Mandatory children to every instance, removing a namespace or
 elements a server no longer has, replacing a binding) show what they do and
 ask first. An error in one of its commands is written to the log and shown
-in the status bar; it does not reach the editor.
+in the status bar; it does not reach the editor. Closed, the plugin ends its
+session, stops serving and frees the port. It follows the editor's theme,
+light or dark, also when it changes while the plugin is open.
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor

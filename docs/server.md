@@ -60,6 +60,8 @@ server it was bound to ([export](export.md), D16).
     checks it again and a server that shows another one is asked about anew.
     `uaaml --accept` trusts an unknown certificate for one run, and not
     for the servers a document names (`snapshot` without an endpoint).
+- Not connected, the address space shows how to begin: an endpoint, or this
+  document served and connected to.
 - **Keep-alive**: every 5 s the session asks the server; `Reachable` and
   `ReachableChanged` say within seconds when it no longer answers. The plugin
   then shows "Connection lost" and says to connect again.
@@ -163,6 +165,10 @@ is therefore chosen (`MirrorSelection`, `MirrorPlan`):
   browsed with its own references.
 - **Leave out** takes a node out of checked parts.
 - **Count nodes** gives the number of elements before anything is written.
+  While a selection is read (counting or taking), the status line shows how
+  many nodes were found so far, of at most how many (`MirrorOptions.Progress`).
+  Depth, node limit and port outside their range are marked red in their
+  field and named when a command needs them, not replaced silently.
 
 Each part keeps the way to it: below an element for the server (with
 `ServerUri` and `EndpointUrl`), the nodes from the Objects or Views folder
