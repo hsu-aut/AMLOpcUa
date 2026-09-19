@@ -450,38 +450,44 @@ public sealed class UaClient : IAsyncDisposable
             }
             case AliasNodeId alias:
             {
-                // The Aliases object and its FindAlias method, found by name: servers need not use the base model's NodeIds.
-                var aliases = (await BrowseAsync(null, ct).ConfigureAwait(false))
-                    .FirstOrDefault(i => i.BrowseName == "Aliases")
-                    ?? throw new AddressingException($"{alias}: the server has no Aliases object (OPC 10000-17).");
-                var find = (await BrowseAsync(aliases.Address, ct).ConfigureAwait(false))
-                    .FirstOrDefault(i => i.BrowseName == "FindAlias" && i.NodeClass == "Method")
-                    ?? throw new AddressingException($"{alias}: the Aliases object has no FindAlias method.");
-                var call = new CallMethodRequestCollection
+                // Aliases objects and their FindAlias methods, found by name: servers need not use the
+                // base model's NodeIds, and a server may carry the base model's Aliases object without
+                // implementing it next to one that works. Each is asked until one answers.
+                var candidates = (await BrowseAsync(null, ct).ConfigureAwait(false)).Where(i => i.BrowseName == "Aliases").ToList();
+                if (candidates.Count == 0) throw new AddressingException($"{alias}: the server has no Aliases object (OPC 10000-17).");
+                string? failure = null;
+                foreach (var aliases in candidates)
                 {
-                    new CallMethodRequest
+                    var find = (await BrowseAsync(aliases.Address, ct).ConfigureAwait(false))
+                        .FirstOrDefault(i => i.BrowseName == "FindAlias" && i.NodeClass == "Method");
+                    if (find == null) { failure ??= "the Aliases object has no FindAlias method"; continue; }
+                    var call = new CallMethodRequestCollection
                     {
-                        ObjectId = ToNodeId(aliases.Address),
-                        MethodId = ToNodeId(find.Address),
-                        InputArguments = new VariantCollection
+                        new CallMethodRequest
                         {
-                            new Variant(alias.AliasName),
-                            new Variant(alias.ReferenceTypeFilter == null ? NodeId.Null : ToNodeId(alias.ReferenceTypeFilter)),
+                            ObjectId = ToNodeId(aliases.Address),
+                            MethodId = ToNodeId(find.Address),
+                            InputArguments = new VariantCollection
+                            {
+                                new Variant(alias.AliasName),
+                                new Variant(alias.ReferenceTypeFilter == null ? NodeId.Null : ToNodeId(alias.ReferenceTypeFilter)),
+                            },
                         },
-                    },
-                };
-                var response = await _session.CallAsync(null, call, ct).ConfigureAwait(false);
-                var result = response.Results[0];
-                if (StatusCode.IsBad(result.StatusCode))
-                    throw new AddressingException($"{alias}: {StatusCode.LookupSymbolicId(result.StatusCode.Code) ?? result.StatusCode.ToString()}.");
-                var found = (result.OutputArguments.Count > 0 ? result.OutputArguments[0].Value as ExtensionObject[] : null) ?? Array.Empty<ExtensionObject>();
-                var nodes = found.Select(e => e.Body).OfType<AliasNameDataType>().SelectMany(a => a.ReferencedNodes).ToList();
-                return nodes.Count switch
-                {
-                    1 => FromExpanded(nodes[0]),
-                    0 => throw new AddressingException($"{alias}: the server knows no such alias."),
-                    _ => throw new AddressingException($"{alias}: the alias stands for {nodes.Count} nodes."),
-                };
+                    };
+                    var response = await _session.CallAsync(null, call, ct).ConfigureAwait(false);
+                    var result = response.Results[0];
+                    if (StatusCode.IsBad(result.StatusCode))
+                    {
+                        failure = StatusCode.LookupSymbolicId(result.StatusCode.Code) ?? result.StatusCode.ToString();
+                        continue;
+                    }
+                    var found = (result.OutputArguments.Count > 0 ? result.OutputArguments[0].Value as ExtensionObject[] : null) ?? Array.Empty<ExtensionObject>();
+                    var nodes = found.Select(e => e.Body).OfType<AliasNameDataType>().SelectMany(a => a.ReferencedNodes).ToList();
+                    if (nodes.Count == 0) { failure = "the server knows no such alias"; continue; }
+                    if (nodes.Count > 1) throw new AddressingException($"{alias}: the alias stands for {nodes.Count} nodes.");
+                    return FromExpanded(nodes[0]);
+                }
+                throw new AddressingException($"{alias}: {failure}.");
             }
             default:
                 throw new ArgumentException($"Unknown indirect NodeId {id}.", nameof(id));
