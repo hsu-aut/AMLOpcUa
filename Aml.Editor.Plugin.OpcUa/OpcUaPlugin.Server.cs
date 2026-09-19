@@ -572,7 +572,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             return;
 
         AnnexANodeId.Write(element, bound);
-        var message = $"Bound {node.Address} to '{element.Name}' (NodeId attribute, OPC 10000-83 Annex A).";
+        var message = $"Bound {node.Address} to '{element.Name}'.";
         PluginLog.Info(message + (before != null && before != bound ? $" It was bound to {before}." : ""));
         SetStatus(message + " Press Ctrl+S to save.");
         Selected?.Invoke(this, new SelectionEventArgs(element));
@@ -694,11 +694,11 @@ public partial class OpcUaPlugin : ISupportsSelection
         BindButton.IsEnabled = hasNode;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         LiveButton.IsEnabled = !_liveStarting && (_live != null || (connected && _document != null && !_busy));
-        LiveText.Text = _live != null ? "Stop live values" : "Keep values live";
+        LiveText.Text = _live != null ? "Stop keeping values live" : "Keep document values live";
         LiveGlyph.Text = _live != null ? "\uE71A" : "\uE9D9";
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
-        ServeText.Text = _host != null ? "Stop serving" : "Serve this document";
+        ServeText.Text = _host != null ? "Stop serving" : "Serve";
         ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";
         ServeGlyph.Foreground = _host != null ? new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30)) : (Brush)FindResource("Create");
         ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;

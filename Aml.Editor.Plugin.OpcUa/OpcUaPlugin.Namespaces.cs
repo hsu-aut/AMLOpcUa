@@ -75,7 +75,7 @@ public partial class OpcUaPlugin
 
         // Dependencies and use
         panel.Children.Add(Section("Builds on"));
-        panel.Children.Add(details.BuildsOn.Count == 0 ? Note("Nothing but itself.", palette) : Links(details.BuildsOn));
+        panel.Children.Add(details.BuildsOn.Count == 0 ? Note("No other namespace.", palette) : Links(details.BuildsOn));
         panel.Children.Add(Section("Used by"));
         panel.Children.Add(details.UsedBy.Count == 0 ? Note("No other namespace of the document builds on it.", palette) : Links(details.UsedBy));
         panel.Children.Add(Section("In this document"));

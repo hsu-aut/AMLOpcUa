@@ -114,7 +114,7 @@
         <Grid>
         <TabControl x:Name="Tabs">
             <!-- ── OPC UA: the models in the document ─────────────────────── -->
-            <TabItem Header="OPC UA">
+            <TabItem Header="Namespaces">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -390,10 +390,13 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
+                    <!-- Bands by task: the connection, what to do with the server, what to take,
+                         and serving this document, which needs no connection at all. -->
                     <!-- Connection -->
                     <Border Grid.Row="0" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,5">
                         <DockPanel>
@@ -404,7 +407,7 @@
                                 </StackPanel>
                             </Button>
                             <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="Secure" VerticalAlignment="Center" Margin="8,0,0,0"
-                                      ToolTip="Prefer a signed and encrypted endpoint."/>
+                                      ToolTip="Connect signed and encrypted only; a server without a secured endpoint is refused."/>
                             <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="Password" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="Password (empty for anonymous)"/>
                             <TextBlock DockPanel.Dock="Right" Text="Password" Style="{StaticResource Hint}" Margin="8,0,4,0"/>
                             <TextBox x:Name="UserBox" AutomationProperties.Name="User name" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="User name (empty for anonymous)"/>
@@ -423,7 +426,7 @@
                     <!-- Commands -->
                     <ToolBar Grid.Row="1">
                         <Button x:Name="ServerTypesButton" Click="ServerTypesButton_Click"
-                                ToolTip="Take the NodeSet of one of the server's namespaces: import its types into the document (OPC 10000-83 Annex A), open it in the modeler, or save it. Uses the file the server publishes for the namespace, otherwise rebuilds the NodeSet by browsing.">
+                                ToolTip="Import the types of one of the server's namespaces, open them in the modeler, or save them as a NodeSet.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8B5;" Foreground="{StaticResource Exchange}"/>
                                 <TextBlock Text="Types of the server…" Style="{StaticResource Label}"/>
@@ -431,7 +434,7 @@
                         </Button>
                         <Separator/>
                         <Button x:Name="MirrorButton" Click="MirrorButton_Click"
-                                ToolTip="Create elements for the checked parts (or, with nothing checked, the selected node and what is below it), each with the way to it from the Objects folder, with NodeIds, UA types and current values. Mirroring a part again updates it.">
+                                ToolTip="Create elements for the checked parts, or for the selected node with what is below it; taking a part again updates it.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE896;" Foreground="{StaticResource Create}"/>
                                 <TextBlock Text="Take into document" Style="{StaticResource Label}"/>
@@ -440,69 +443,57 @@
                         <Button x:Name="PreviewButton" Click="PreviewButton_Click" ToolTip="Count the elements the selection gives, without changing the document.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8EF;" Foreground="{StaticResource Plain}"/>
-                                <TextBlock Text="Count" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Count nodes" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="Depth" Text="3" Width="28" VerticalContentAlignment="Center"
-                                 ToolTip="Levels below a node taken with everything below it; 0 has no limit but the node limit."/>
-                        <TextBlock Text="max" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorMaxNodesBox" AutomationProperties.Name="Most nodes" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus"
-                                 ToolTip="Upper bound on nodes taken in one mirror, against mirroring a whole server by accident."/>
-                        <TextBlock Text="into" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="Into instance hierarchy" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged"
-                                 ToolTip="The InstanceHierarchy that receives the mirror."/>
                         <Separator/>
                         <Button x:Name="BindButton" Click="BindButton_Click"
-                                ToolTip="Write the selected node's address as NodeId attribute (OPC 10000-83 Annex A) of an element you choose.">
+                                ToolTip="Give an element of your choice the selected node's address (its NodeId attribute, OPC 10000-83 Annex A).">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{StaticResource Relate}"/>
                                 <TextBlock Text="Bind to element…" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Separator/>
                         <Button x:Name="SnapshotButton" Click="SnapshotButton_Click"
-                                ToolTip="Read the value of every bound element and DataVariable of this server into the document.">
+                                ToolTip="Read the value of every element bound to this server into the document, once.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE895;" Foreground="{StaticResource Exchange}"/>
-                                <TextBlock Text="Read current values" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Read values into document" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="LiveButton" Click="LiveButton_Click"
-                                ToolTip="Keep every bound element and DataVariable of this server current: each change the server reports is written into the document.">
+                                ToolTip="Write every change the server reports into the elements bound to it, until stopped.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="LiveGlyph" Style="{StaticResource IconText}" Text="&#xE9D9;" Foreground="{StaticResource Exchange}"/>
-                                <TextBlock x:Name="LiveText" Text="Keep values live" Style="{StaticResource Label}"/>
+                                <TextBlock x:Name="LiveText" Text="Keep document values live" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="WatchButton" Click="WatchButton_Click"
-                                ToolTip="Add the selected variable to the live list below (subscription, not written into the document).">
+                                ToolTip="Show the selected variable's value as it changes, in the list below; nothing is written into the document.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE7B3;" Foreground="{StaticResource Verify}"/>
-                                <TextBlock Text="Watch" Style="{StaticResource Label}"/>
+                                <TextBlock Text="Watch (view only)" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="Stop watching" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{StaticResource Plain}" Margin="0"/>
                         </Button>
-                        <Separator/>
-                        <Button x:Name="ServeButton" Click="ServeButton_Click"
-                                ToolTip="Start an OPC UA server whose address space is this document's instance hierarchies; values follow the document, added elements need a restart.">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="ServeGlyph" Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{StaticResource Create}"/>
-                                <TextBlock x:Name="ServeText" Text="Serve this document" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <TextBlock Text="port" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
-                        <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="Port of the document server"/>
-                        <CheckBox x:Name="ServeNetworkBox" Content="to the network" VerticalAlignment="Center" Margin="8,0,4,0"
-                                  ToolTip="Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session."/>
-                        <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="Clients…" Padding="4,1"
-                                ToolTip="The clients the document server refused over the network, to trust, and those it trusts."/>
                     </ToolBar>
 
                     <!-- What to take -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,4">
                         <WrapPanel>
+                            <TextBlock Text="What to take" Style="{StaticResource Caption}" Margin="0,0,10,0"/>
+                            <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="Depth" Text="3" Width="28" VerticalContentAlignment="Center" Margin="0,0,10,0"
+                                     ToolTip="Levels taken below a node checked with everything below it; 0 has no limit but the node limit."/>
+                            <TextBlock Text="at most" Style="{StaticResource Hint}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorMaxNodesBox" AutomationProperties.Name="At most nodes" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus" Margin="0,0,4,0"
+                                     ToolTip="Nodes taken at most at once, against taking a whole server by accident."/>
+                            <TextBlock Text="nodes into" Style="{StaticResource Hint}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="Into instance hierarchy" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged" Margin="0,0,16,0"
+                                     ToolTip="The InstanceHierarchy that receives what is taken."/>
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE71C;" Foreground="{StaticResource Plain}"/>
                             <CheckBox x:Name="SkipPropertiesBox" Content="Leave out properties" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
                                       ToolTip="Leave out nodes held by HasProperty (EURange, EngineeringUnits, Identification properties …)."/>
@@ -520,7 +511,7 @@
                                 </StackPanel>
                             </Button>
                             <Button x:Name="LoadSelectionButton" Click="LoadSelectionButton_Click" Margin="0,0,4,0" Padding="4,1"
-                                    ToolTip="Take the selection kept for this server in the hierarchy named under 'into', to mirror the same part again.">
+                                    ToolTip="Load the selection kept with what was taken from this server before, to take the same part again.">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE81C;" Foreground="{StaticResource Exchange}" FontSize="12"/>
                                     <TextBlock Text="Load kept selection" Style="{StaticResource Label}"/>
@@ -530,8 +521,28 @@
                         </WrapPanel>
                     </Border>
 
+                    <!-- This document as a server -->
+                    <Border Grid.Row="3" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,3">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="This document as a server" Style="{StaticResource Caption}" Margin="0,0,10,0"/>
+                            <Button x:Name="ServeButton" Click="ServeButton_Click" Padding="4,1"
+                                    ToolTip="Start an OPC UA server whose address space is this document's instance hierarchies; values follow the document, added elements need a restart.">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ServeGlyph" Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{StaticResource Create}"/>
+                                    <TextBlock x:Name="ServeText" Text="Serve" Style="{StaticResource Label}"/>
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Text="port" Style="{StaticResource Hint}" Margin="10,0,4,0"/>
+                            <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="Port of the document server"/>
+                            <CheckBox x:Name="ServeNetworkBox" Content="to the network" VerticalAlignment="Center" Margin="10,0,6,0"
+                                      ToolTip="Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session."/>
+                            <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="Clients…" Padding="4,1"
+                                    ToolTip="The clients the document server refused over the network, to trust, and those it trusts."/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Address space, details, selection -->
-                    <Grid Grid.Row="3" Margin="6">
+                    <Grid Grid.Row="4" Margin="6">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="2*"/>
                             <ColumnDefinition Width="6"/>
@@ -578,7 +589,7 @@
                         </Grid>
                     </Grid>
 
-                    <ListView x:Name="WatchList" Grid.Row="4" MaxHeight="160" Margin="6,0,6,6" Visibility="Collapsed">
+                    <ListView x:Name="WatchList" Grid.Row="5" MaxHeight="160" Margin="6,0,6,6" Visibility="Collapsed">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Node" Width="240">

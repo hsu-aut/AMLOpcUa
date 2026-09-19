@@ -474,7 +474,7 @@ public partial class OpcUaPlugin
                 fate = RemoveVanished(result.Server, result.Vanished) ? "removed" : "marked with NotOnServer, not removed";
             }
             var message = $"'{ih.Name}': {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed by an imported UA type"
-                          + (result.Linked > 0 ? $", {result.Linked} linked to their planned element (refBaseObj)" : "")
+                          + (result.Linked > 0 ? $", {result.Linked} linked to their planned element" : "")
                           + (result.Vanished.Count > 0 ? $", {result.Vanished.Count} no longer on the server ({fate}, see log)" : "")
                           + (result.Truncated ? ". Stopped at the node limit." : ".");
             PluginLog.Info(message);
@@ -486,8 +486,8 @@ public partial class OpcUaPlugin
         }
         catch (Exception ex)
         {
-            PluginLog.Error("Mirroring failed", ex);
-            SetStatus("Mirroring failed: " + ex.Message);
+            PluginLog.Error("Taking into the document failed", ex);
+            SetStatus("Taking into the document failed: " + ex.Message);
         }
         finally
         {

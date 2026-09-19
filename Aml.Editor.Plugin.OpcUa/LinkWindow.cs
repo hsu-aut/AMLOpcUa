@@ -84,7 +84,7 @@ public sealed class LinkWindow : Window
             .ToList();
         _info.Text = _sources.Items.Count == 0
             ? $"The document has no {Kind}. Process descriptions come from the FPB plugin (VDI 3682 library)."
-            : "Links are IDREF attributes derived from refObj of the AutomationML object reference types.";
+            : "The link is an attribute of the process element that names the OPC UA element.";
     }
 
     private void DoLink()

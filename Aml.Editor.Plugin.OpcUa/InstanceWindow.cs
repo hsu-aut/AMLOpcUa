@@ -21,6 +21,11 @@ public sealed class InstanceWindow : Window
     private readonly TextBlock _optionalHint = new() { Foreground = DialogKit.Muted, TextWrapping = TextWrapping.Wrap, Text = "Choose a type first." };
     private readonly StackPanel _placeholders = new();
     private readonly TextBlock _placeholderLabel = DialogKit.Label("Children for placeholders");
+    private readonly TextBlock _placeholderHint = new()
+    {
+        Foreground = DialogKit.Muted, TextWrapping = TextWrapping.Wrap,
+        Text = "A placeholder (a name in angle brackets) stands for any number of children; name the ones to create.",
+    };
     private readonly TextBlock _info = DialogKit.Message();
     private readonly List<(PlaceholderInfo Placeholder, TextBox Names, ComboBox Type)> _placeholderRows = new();
     private readonly CAEXDocument _document;
@@ -121,6 +126,7 @@ public sealed class InstanceWindow : Window
         right.Children.Add(form);
         var optional = new StackPanel();
         optional.Children.Add(_placeholderLabel);
+        optional.Children.Add(_placeholderHint);
         optional.Children.Add(_placeholders);
         optional.Children.Add(DialogKit.Label("Optional children to create"));
         optional.Children.Add(_optionalHint);
@@ -195,6 +201,7 @@ public sealed class InstanceWindow : Window
         _placeholders.Children.Clear();
         _placeholderRows.Clear();
         _placeholderLabel.Visibility = Visibility.Collapsed;
+        _placeholderHint.Visibility = Visibility.Collapsed;
         SelectedType = DialogKit.Selected<SystemUnitFamilyType>(_typeList);
         if (SelectedType == null) return;
 
@@ -230,6 +237,7 @@ public sealed class InstanceWindow : Window
 
             foreach (var placeholder in all.Placeholders) AddPlaceholderRow(placeholder);
             _placeholderLabel.Visibility = _placeholderRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            _placeholderHint.Visibility = _placeholderLabel.Visibility;
 
             _warned = null;
             DialogKit.ShowInfo(_info, $"{mandatory.Count} Mandatory child(ren) are always created."

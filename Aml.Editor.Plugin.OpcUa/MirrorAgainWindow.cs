@@ -36,7 +36,7 @@ public sealed class MirrorAgainWindow : Window
 
         _update.Content = Option("Update it",
             "Values and types are read again, new nodes are added. Elements whose node the server no longer has:");
-        _copy.Content = Option("Mirror into a new InstanceHierarchy", "The earlier state stays as it is.");
+        _copy.Content = Option("Take into a new InstanceHierarchy", "The earlier state stays as it is.");
         _update.Checked += (_, __) => _vanished.IsEnabled = true;
         _copy.Checked += (_, __) => _vanished.IsEnabled = false;
 
@@ -46,10 +46,10 @@ public sealed class MirrorAgainWindow : Window
         _copy.Margin = new Thickness(0, 14, 0, 0);
         body.Children.Add(_copy);
 
-        var ok = DialogKit.Action("Mirror", primary: true);
+        var ok = DialogKit.Action("Take again", primary: true);
         ok.Click += (_, __) => DialogResult = true;
-        DialogKit.Frame(this, "", DialogKit.Exchange, "Mirror again",
-            $"'{hierarchy}' already holds a mirror of this server.", body, null, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Exchange, "Take again",
+            $"'{hierarchy}' already holds what was taken from this server before.", body, null, ok, DialogKit.Action("Cancel", cancel: true));
     }
 
     private static UIElement Option(string title, string text)

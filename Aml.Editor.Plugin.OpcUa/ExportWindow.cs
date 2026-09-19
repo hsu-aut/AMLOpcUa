@@ -50,7 +50,7 @@ public sealed class ExportWindow : Window
         if (models.Count > 0) body.Children.Add(_namespaces);
         else body.Children.Add(new TextBlock { Text = "The document holds no OPC UA model imported by Annex A.", Foreground = DialogKit.Muted, Margin = new Thickness(22, 4, 0, 0) });
 
-        var ok = DialogKit.Action("Export …", primary: true);
+        var ok = DialogKit.Action("Export…", primary: true);
         ok.Click += (_, __) => Accept();
         DialogKit.Frame(this, "", DialogKit.Exchange, "Export as OPC UA NodeSet",
             "Choose what the NodeSet holds.", body, null, ok, DialogKit.Action("Cancel", cancel: true));

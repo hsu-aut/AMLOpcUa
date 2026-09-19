@@ -66,9 +66,9 @@ server it was bound to ([export](export.md), D16).
 - **Browse** along hierarchical references (Objects folder by default).
 - **Read** values, several in one request; a node that does not exist is a bad
   result, not an exception.
-- **Watch** values through a subscription (`WatchAsync`); the plugin shows
+- **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
-  keep the document itself current, see "Keep values live" below.
+  keep the document itself current, see "Keep document values live" below.
 
 ## The server's types
 
@@ -112,7 +112,7 @@ file (`ServerNodeSetTests`).
 
 - **Take into document** (`AddressSpaceMirror`): the checked parts (see
   above), or with nothing checked the selected node and the nodes below it (up
-  to a depth, at most 2000 nodes by default, the "max" field or `--max-nodes`), become InternalElements.
+  to a depth, at most 2000 nodes by default, the "at most" field or `--max-nodes`), become InternalElements.
   Each carries its Annex A NodeId including the server's ApplicationUri, and
   its UA type as RefBaseSystemUnitPath when the document holds the type's
   library (matched by the NodeId every generated class carries). Variables get
@@ -129,7 +129,7 @@ file (`ServerNodeSetTests`).
   reported; both appear as notes. `--no-link` turns linking off.
 - **Bind to element**: writes the selected node's NodeId attribute onto an
   element of your choice; the editor then selects that element.
-- **Read current values** (`ValueSnapshot`): every element with a NodeId and a
+- **Read values into document** (`ValueSnapshot`): every element with a NodeId and a
   `Value` attribute, and every BPR DataVariable, gets the current value.
   The parent attribute of an `aml-opcua-variable` binding gets its value too.
   Bindings to another server (a different ServerInstanceUri or data source
@@ -137,7 +137,7 @@ file (`ServerNodeSetTests`).
   without an endpoint connects to every server the document names as a data
   source, with the security its description asks for. Nothing is subscribed; the document records one
   point in time.
-- **Keep values live** (`LiveValues`): the same bindings, subscribed. Every
+- **Keep document values live** (`LiveValues`): the same bindings, subscribed. Every
   change the server reports is written into the document (on the editor's UI
   thread, one monitored item per node however many elements are bound to it)
   until the button is pressed again, the client disconnects or the document
@@ -162,7 +162,7 @@ is therefore chosen (`MirrorSelection`, `MirrorPlan`):
 - **Views** of the server appear as a further root of the tree; a View is
   browsed with its own references.
 - **Leave out** takes a node out of checked parts.
-- **Count** gives the number of elements before anything is written.
+- **Count nodes** gives the number of elements before anything is written.
 
 Each part keeps the way to it: below an element for the server (with
 `ServerUri` and `EndpointUrl`), the nodes from the Objects or Views folder
@@ -181,7 +181,7 @@ elements for the refBaseObj link, so a second copy does not link to the first.
 
 ## The document as a server
 
-**Serve this document** (`AmlServerHost`) starts an OPC UA server whose
+**Serve** in the band "This document as a server" (`AmlServerHost`) starts an OPC UA server whose
 address space is the document's instance hierarchies, so clients can be tested
 against the engineering model before the plant exists. Each instance
 hierarchy becomes a folder under Objects; elements become Objects, or

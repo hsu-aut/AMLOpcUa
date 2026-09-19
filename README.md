@@ -64,7 +64,7 @@ The plugin package ends up in
 ## Plugin
 
 Add the package folder as a source in the PlugIn Manager of the AutomationML
-Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
+Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its first tab, "Namespaces", shows the OPC UA models of the document.
 
 - **Import NodeSet** converts a `NodeSet2.xml` and adds its libraries to the
   open document: one `ATL_`, `ICL_`, `RCL_` and `SUC_` library per UA
@@ -101,7 +101,10 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   mismatched reference links. A double click or Enter selects the element.
 - The **Server** tab connects to a running server (recent endpoints are
   kept), imports its types, and takes the parts of its address space you
-  check into the document; see [docs/server.md](docs/server.md).
+  check into the document; see [docs/server.md](docs/server.md). Its bands
+  follow the tasks: the connection; what to do with the server (types, take
+  into document, bind, values); what to take (depth, limit, target hierarchy,
+  filters); and this document as a server of its own.
 - The **Modeler** tab draws and edits OPC UA types and instances (OPC 10000-3
   Annex C) and applies the result to the document as a NodeSet import; see
   [docs/modeler.md](docs/modeler.md).
