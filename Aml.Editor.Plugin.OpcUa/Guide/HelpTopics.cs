@@ -16,7 +16,7 @@ internal static class HelpTopics
             "Each OPC UA model imported into the document, with its version and publication date. An import turns a NodeSet into "
             + "AutomationML libraries by Annex A: attribute types (ATL_), interface classes (ICL_), role classes (RCL_) and system unit "
             + "classes (SUC_) per namespace, together with the models it requires. Select a namespace to see what it brings, what it "
-            + "builds on and which elements use its types.",
+            + "builds on and which elements use its types; Documentation… writes all of it as one HTML page with diagrams.",
             new[] { "NodeSet", "Namespace", "Annex A", "Companion specification" }, "models"),
         ["namespaces.commands"] = new(
             "Import, export and more",

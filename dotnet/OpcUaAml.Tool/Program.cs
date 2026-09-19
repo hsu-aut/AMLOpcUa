@@ -108,6 +108,11 @@ public static class Program
             The client certificates the document server refused and those it
             trusts; --trust admits a refused one, --distrust removes a trusted one.
 
+        uaaml doc <doc.aml> [--namespace <uri>] -o <out.html>
+            Documentation of an imported OPC UA model as one HTML file: its types with
+            their declarations and diagrams, its DataTypes and ReferenceTypes.
+            --namespace names the model when the document holds several.
+
         uaaml diagram <doc.aml> (--type <name|path> | --instance <name|id>) [--depth <n>] -o <out.svg>
             Draw a UA type or an instance as SVG.
 
@@ -176,6 +181,7 @@ public static class Program
                 "serve" => Run(ServeCommand(rest)),
                 "clients" => ClientsCommand(rest),
                 "diagram" => DiagramCommand(rest),
+                "doc" => DocCommand(rest),
                 "upgrade" => UpgradeCommand(rest),
                 "link" => LinkCommand(rest),
                 "cloud" => Run(CloudCommand(rest)),
@@ -637,6 +643,22 @@ public static class Program
             Console.WriteLine($"refused  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
         foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients())
             Console.WriteLine($"trusted  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
+        return 0;
+    }
+
+    private static int DocCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o", "--namespace" }, flags: Array.Empty<string>());
+        var doc = Documents.Load(o.SinglePositional("document"));
+        var output = o.One("-o") ?? throw new ArgumentException("doc needs -o <out.html>.");
+        var models = NamespaceOverview.Of(doc).Select(e => e.NamespaceUri).Where(u => u != "http://opcfoundation.org/UA/").ToList();
+        var uri = o.One("--namespace") is { } given
+            ? models.FirstOrDefault(u => u == given) ?? models.FirstOrDefault(u => u.Contains(given, StringComparison.OrdinalIgnoreCase))
+              ?? throw new ArgumentException($"The document holds no model '{given}'. It holds: {string.Join(", ", models)}.")
+            : models.Count == 1 ? models[0]
+            : throw new ArgumentException($"The document holds {models.Count} models; name one with --namespace: {string.Join(", ", models)}.");
+        File.WriteAllText(output, OpcUaAml.Documentation.ModelDocumentation.Html(doc, uri));
+        Console.WriteLine($"{uri} documented in {Path.GetFullPath(output)}");
         return 0;
     }
 

@@ -115,6 +115,11 @@ public partial class OpcUaPlugin
         var edit = DialogKit.Action("Edit in the modeler");
         edit.Click += (s, e) => NamespaceEdit_Click(s, e);
         actions.Children.Add(edit);
+        var doc = DialogKit.Action("Documentation…");
+        doc.Margin = new Thickness(6, 0, 0, 0);
+        doc.ToolTip = "One HTML page of the model: its types with their declarations and diagrams, its DataTypes and ReferenceTypes.";
+        doc.Click += (_, __) => DocumentNamespace(details.NamespaceUri);
+        actions.Children.Add(doc);
         var blockers = NamespaceInspector.RemovalBlockers(document, details.NamespaceUri);
         var remove = DialogKit.Action("Remove…");
         remove.Margin = new Thickness(6, 0, 0, 0);
@@ -124,6 +129,24 @@ public partial class OpcUaPlugin
         remove.Click += (_, __) => RemoveNamespace(details.NamespaceUri);
         actions.Children.Add(remove);
         panel.Children.Add(actions);
+    }
+
+    /// <summary>Writes the model's documentation as HTML and opens it.</summary>
+    private void DocumentNamespace(string uri)
+    {
+        if (_document is not { } document) return;
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = $"Documentation of {uri}", Filter = "HTML (*.html)|*.html", FileName = ShortName(uri) + ".html",
+        };
+        if (dialog.ShowDialog() != true) return;
+        Guard("Writing the documentation", () =>
+        {
+            File.WriteAllText(dialog.FileName, OpcUaAml.Documentation.ModelDocumentation.Html(document, uri));
+            PluginLog.Info($"Documentation of {uri} written to {dialog.FileName}.");
+            SetStatus($"Documentation written to {Path.GetFileName(dialog.FileName)}.");
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dialog.FileName) { UseShellExecute = true });
+        });
     }
 
     private void RemoveNamespace(string uri)
