@@ -52,6 +52,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         DebugToggle.IsChecked = PluginLog.DebugEnabled;
         LogFilePathLabel.Text = PluginLog.FilePath;
         InitServerTab();
+        InitModelerTab();
 
         Loaded += (_, __) =>
         {
@@ -117,6 +118,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         try { _client?.DisposeAsync().AsTask().Wait(3000); }
         catch { /* shutting down */ }
         try { _host?.DisposeAsync().AsTask().Wait(3000); }
+        catch { /* shutting down */ }
+        try { _modeler?.Dispose(); }
         catch { /* shutting down */ }
         try { PluginLog.Shutdown(); }
         catch { /* shutting down */ }
@@ -427,6 +430,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             ? NamespaceOverview.Of(doc!).Select(n => new NamespaceRow(
                 n.NamespaceUri, n.ModelVersion ?? "", n.PublicationDate?.ToString("yyyy-MM-dd") ?? "", n.Libraries.Count)).ToList()
             : null;
+        RefreshModelerNamespaces();
     }
 
     private void SetBusy(bool busy, string? status)

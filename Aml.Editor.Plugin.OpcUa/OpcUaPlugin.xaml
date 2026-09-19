@@ -5,6 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:aml="clr-namespace:Aml.Editor.Plugin.WPFBase;assembly=Aml.Editor.Plugin.Contract"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
     mc:Ignorable="d"
     d:DesignHeight="500" d:DesignWidth="800">
 
@@ -235,6 +236,23 @@
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White">
                     <Canvas x:Name="DiagramCanvas"/>
                 </ScrollViewer>
+            </DockPanel>
+        </TabItem>
+        <TabItem Header="Modeler" x:Name="ModelerTab">
+            <DockPanel Margin="4">
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <Button DockPanel.Dock="Right" Content="Reload" Width="60" Margin="4,0,0,0" Click="ModelerReload_Click"
+                            ToolTip="Reload the modeler page"/>
+                    <Button DockPanel.Dock="Right" Content="Open NodeSet file…" Margin="4,0,0,0" Click="ModelerOpenFile_Click"/>
+                    <Button DockPanel.Dock="Right" Content="New model" Width="80" Margin="4,0,0,0" Click="ModelerNew_Click"/>
+                    <TextBox x:Name="ModelerNewUriBox" DockPanel.Dock="Right" Width="240" Text="http://example.org/MyModel/"
+                             ToolTip="Namespace URI of a new model"/>
+                    <Button x:Name="ModelerEditButton" DockPanel.Dock="Right" Content="Edit" Width="60" Margin="4,0,12,0" Click="ModelerEdit_Click"/>
+                    <ComboBox x:Name="ModelerNamespaceBox" ToolTip="A namespace of the document whose NodeSet is in a NodeSet folder"/>
+                </DockPanel>
+                <TextBlock x:Name="ModelerStatus" DockPanel.Dock="Bottom" Foreground="Gray" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"
+                           Text="Edit a namespace of the document, start a new model, or open a NodeSet file. 'Apply to document' in the modeler imports the result."/>
+                <wv2:WebView2 x:Name="ModelerView"/>
             </DockPanel>
         </TabItem>
     </TabControl>
