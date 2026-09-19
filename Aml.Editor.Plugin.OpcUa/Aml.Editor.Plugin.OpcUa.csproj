@@ -33,7 +33,42 @@
     <PackageReference Include="Aml.Skins" Version="2.*">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
+    <!-- Hosts the graphical modeler (UaModeler.js). Bundled with the plugin
+         like the other runtime dependencies, not a NuGet dependency. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" GeneratePathProperty="true">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
+
+  <!-- The modeler's web build, served to WebView2 from the plugin folder. -->
+  <PropertyGroup>
+    <UaModelerDist>$(MSBuildThisFileDirectory)..\..\UaModeler.js\dist\web</UaModelerDist>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(UaModelerDist)\**\*"
+          Link="uamodeler-assets\%(RecursiveDir)%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" Visible="false"
+          Pack="true" PackagePath="lib\$(TargetFramework)\uamodeler-assets\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <!-- WebView2Loader.dll is a native file of the WebView2 package. NuGet.Pack
+       drops items that point into runtimes/<rid>/native, so a copy is staged
+       under obj/ and packed from there, next to the plugin's assemblies. -->
+  <ItemGroup>
+    <None Include="$(IntermediateOutputPath)bundled\WebView2Loader.dll"
+          Link="WebView2Loader.dll"
+          CopyToOutputDirectory="PreserveNewest" Visible="false"
+          Pack="true" PackagePath="lib\$(TargetFramework)\WebView2Loader.dll" />
+  </ItemGroup>
+  <Target Name="StageWebView2Loader" BeforeTargets="BeforeResolveReferences">
+    <Copy SourceFiles="$(PkgMicrosoft_Web_WebView2)\runtimes\win-x64\native\WebView2Loader.dll"
+          DestinationFolder="$(IntermediateOutputPath)bundled\"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="VerifyUaModelerDist" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(UaModelerDist)\index.html')"
+           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(UaModelerDist)\..\.." />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\dotnet\OpcUaAml.Core\OpcUaAml.Core.csproj">
