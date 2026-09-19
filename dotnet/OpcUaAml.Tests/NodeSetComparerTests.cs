@@ -57,6 +57,27 @@ public class NodeSetComparerTests
     }
 
     [Fact]
+    public void NodeIds_in_values_compare_by_namespace_and_encodings_by_what_they_encode()
+    {
+        static string Structure(string header, string ns, string encoding) => header + $"""
+            <UADataType NodeId="{ns};i=3000" BrowseName="1:T"><DisplayName>T</DisplayName>
+              <References><Reference ReferenceType="i=38">{ns};{encoding}</Reference></References></UADataType>
+            <UAObject NodeId="{ns};{encoding}" BrowseName="Default XML"><DisplayName>Default XML</DisplayName>
+              <References><Reference ReferenceType="i=38" IsForward="false">{ns};i=3000</Reference></References></UAObject>
+            <UAVariable NodeId="{ns};i=6000" BrowseName="1:V" DataType="{ns};i=3000"><DisplayName>V</DisplayName>
+              <Value><uax:ExtensionObject><uax:TypeId><uax:Identifier>{ns};{encoding}</uax:Identifier></uax:TypeId>
+                <uax:Body><T><A>1</A><Description/></T></uax:Body></uax:ExtensionObject></Value></UAVariable>
+            </UANodeSet>
+            """;
+        var twoUris = Header.Replace("<Uri>urn:a</Uri>", "<Uri>urn:b</Uri><Uri>urn:a</Uri>");
+        var left = XDocument.Parse(Structure(Header, "ns=1", "i=5001"));
+        var right = XDocument.Parse(Structure(twoUris, "ns=2", "i=7001").Replace("<Description/>", ""));
+
+        var diffs = new NodeSetComparer().Compare(left, right);
+        Assert.DoesNotContain(diffs, d => d.Path.EndsWith("/@Value", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_repeated_NodeId_is_a_difference()
     {
         var twice = Nodes + """<UAObject NodeId="ns=1;s=A" BrowseName="1:A"><DisplayName>A</DisplayName></UAObject>""";

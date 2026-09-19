@@ -75,20 +75,45 @@ public sealed class NodeSetComparer
                 facts[Unique(facts, $"{p}/requires:{(string?)req.Attribute("ModelUri")}")] = $"version={(string?)req.Attribute("Version")}{Date(req)}";
         }
 
-        foreach (var node in root.Elements().Where(e => e.Name.Namespace == Ua && e.Name.LocalName.StartsWith("UA", StringComparison.Ordinal)))
+        // NodeIds inside values (an ExtensionObject's TypeId, an Argument's
+        // DataType) compare like NodeId attributes. A TypeId names an encoding
+        // node; it compares as the DataType it encodes and the encoding's name,
+        // since two files may number the encodings differently.
+        var nodes = root.Elements().Where(e => e.Name.Namespace == Ua && e.Name.LocalName.StartsWith("UA", StringComparison.Ordinal)).ToList();
+        var encodings = new Dictionary<string, string>(StringComparer.Ordinal);
+        var browseNames = nodes.GroupBy(n => ctx.NodeId((string?)n.Attribute("NodeId") ?? ""))
+            .ToDictionary(g => g.Key, g => ctx.BrowseName((string?)g.First().Attribute("BrowseName")) ?? "", StringComparer.Ordinal);
+        foreach (var node in nodes)
+            foreach (var r in node.Element(Ua + "References")?.Elements(Ua + "Reference") ?? Enumerable.Empty<XElement>())
+            {
+                if (ctx.NodeId((string?)r.Attribute("ReferenceType") ?? "") != "i=38") continue;
+                var forward = !string.Equals((string?)r.Attribute("IsForward"), "false", StringComparison.OrdinalIgnoreCase);
+                var self = ctx.NodeId((string?)node.Attribute("NodeId") ?? "");
+                var other = ctx.NodeId(r.Value);
+                var (dataType, encoding) = forward ? (self, other) : (other, self);
+                encodings.TryAdd(encoding, $"encoding of {dataType}: {browseNames.GetValueOrDefault(encoding)}");
+            }
+        string ValueNodeId(string raw)
+        {
+            var id = ctx.NodeId(raw);
+            return encodings.TryGetValue(id, out var encoding) ? encoding : id;
+        }
+
+        foreach (var node in nodes)
         {
             var p = Unique(facts, "node:" + ctx.NodeId((string?)node.Attribute("NodeId") ?? ""));
             facts[p] = node.Name.LocalName;
             Fact(facts, p, "BrowseName", ctx.BrowseName((string?)node.Attribute("BrowseName")));
             Fact(facts, p, "ParentNodeId", ctx.NodeIdOrNull((string?)node.Attribute("ParentNodeId")));
             Fact(facts, p, "DataType", ctx.NodeIdOrNull((string?)node.Attribute("DataType")));
-            foreach (var attribute in new[] { "ValueRank", "ArrayDimensions", "IsAbstract", "Symmetric", "EventNotifier", "MethodDeclarationId" })
+            Fact(facts, p, "MethodDeclarationId", ctx.NodeIdOrNull((string?)node.Attribute("MethodDeclarationId")));
+            foreach (var attribute in new[] { "ValueRank", "ArrayDimensions", "IsAbstract", "Symmetric", "EventNotifier" })
                 Fact(facts, p, attribute, (string?)node.Attribute(attribute));
             Fact(facts, p, "DisplayName", Texts(node, "DisplayName"));
             Fact(facts, p, "Description", Texts(node, "Description"));
             Fact(facts, p, "Documentation", Texts(node, "Documentation"));
             Fact(facts, p, "InverseName", Texts(node, "InverseName"));
-            if (node.Element(Ua + "Value") is { } value) facts[p + "/@Value"] = NormalizeValue(value);
+            if (node.Element(Ua + "Value") is { } value) facts[p + "/@Value"] = NormalizeValue(value, ValueNodeId);
             if (node.Element(Ua + "Definition") is { } definition)
             {
                 facts[p + "/definition"] = string.Join(" ", new[] { ctx.BrowseName((string?)definition.Attribute("Name")) }
@@ -101,7 +126,7 @@ public sealed class NodeSetComparer
                     {
                         (string?)field.Attribute("Name"),
                         dataType == null ? null : "type=" + ctx.NodeId(dataType),
-                        Named(field, "ValueRank", "-1"), Named(field, "ArrayDimensions", null), Named(field, "Value", null),
+                        Named(field, "ValueRank", "-1"), Named(field, "ArrayDimensions", "0"), Named(field, "Value", null),
                         Named(field, "IsOptional", "false"),
                         Texts(field, "Description") is { } d ? "description=" + d : null,
                     }.Where(s => s != null));
@@ -148,13 +173,13 @@ public sealed class NodeSetComparer
     /// the like) is compared structurally: namespaces, attribute order and
     /// whitespace between elements do not count.
     /// </summary>
-    public static string NormalizeValue(XElement value)
+    public static string NormalizeValue(XElement value, Func<string, string>? nodeId = null)
     {
         var sb = new StringBuilder();
         foreach (var item in value.Elements())
         {
             sb.Append(item.Name.LocalName).Append(':');
-            if (item.HasElements) sb.Append(Canonical(item));
+            if (item.HasElements) sb.Append(Canonical(item, nodeId));
             else sb.Append(CanonicalText(item.Value));
             sb.Append(';');
         }
@@ -166,7 +191,7 @@ public sealed class NodeSetComparer
         if (!text.TrimStart().StartsWith('<')) return text;
         try
         {
-            return Canonical(XElement.Parse(text, LoadOptions.None));
+            return Canonical(XElement.Parse(text, LoadOptions.None), null);
         }
         catch (System.Xml.XmlException)
         {
@@ -174,14 +199,17 @@ public sealed class NodeSetComparer
         }
     }
 
-    private static string Canonical(XElement e)
+    private static string Canonical(XElement e, Func<string, string>? nodeId)
     {
         var sb = new StringBuilder("<").Append(e.Name.LocalName);
         foreach (var a in e.Attributes().Where(a => !a.IsNamespaceDeclaration).OrderBy(a => a.Name.LocalName, StringComparer.Ordinal))
             sb.Append(' ').Append(a.Name.LocalName).Append("=\"").Append(a.Value).Append('"');
         sb.Append('>');
-        sb.Append(string.Concat(e.Nodes().OfType<XText>().Select(t => t.Value.Trim())));
-        foreach (var c in e.Elements()) sb.Append(Canonical(c));
+        var text = string.Concat(e.Nodes().OfType<XText>().Select(t => t.Value.Trim()));
+        sb.Append(nodeId != null && e.Name.LocalName == "Identifier" && text.Length > 0 ? nodeId(text) : text);
+        // An empty Description is a null LocalizedText, the same as none.
+        foreach (var c in e.Elements().Where(c => !(c.Name.LocalName == "Description" && !c.HasElements && c.Value.Length == 0 && !c.HasAttributes)))
+            sb.Append(Canonical(c, nodeId));
         return sb.Append("</>").ToString();
     }
 
