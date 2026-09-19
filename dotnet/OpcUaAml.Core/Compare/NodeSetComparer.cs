@@ -46,7 +46,7 @@ public sealed class NodeSetComparer
     }
 
     public IReadOnlyList<Difference> Compare(string leftPath, string rightPath) =>
-        Compare(XDocument.Load(leftPath), XDocument.Load(rightPath));
+        Compare(SafeXml.Load(leftPath), SafeXml.Load(rightPath));
 
     /// <summary>
     /// Every comparable fact of a NodeSet as path to value, e.g.

@@ -98,7 +98,7 @@ public static class NodeSetExporter
             return Export(NodeSetImporter.ReadContainer(amlPath), options);
         // Loaded as plain XML: whitespace and attribute order as written, like
         // the XSLT processor sees them.
-        return Export(XDocument.Load(amlPath, LoadOptions.PreserveWhitespace), options);
+        return Export(SafeXml.Load(amlPath, LoadOptions.PreserveWhitespace), options);
     }
 
     /// <summary>Exports <paramref name="amlPath"/> and writes the NodeSet to <paramref name="nodeSetPath"/>.</summary>

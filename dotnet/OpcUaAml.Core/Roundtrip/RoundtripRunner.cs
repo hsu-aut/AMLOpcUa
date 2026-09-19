@@ -36,7 +36,7 @@ public static class RoundtripRunner
             var exported = NodeSetExporter.Export(conversion.Document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = modelUri });
 
             step = "analysis";
-            var criteria = InverseAnalysis.Analyze(System.Xml.Linq.XDocument.Load(nodeSetPath), conversion.Document.CAEXFile.Node, exported, modelUri);
+            var criteria = InverseAnalysis.Analyze(SafeXml.Load(nodeSetPath), conversion.Document.CAEXFile.Node, exported, modelUri);
             return new RoundtripReport(subject, ChainC, criteria, null, null, watch.Elapsed, notes);
         }
         catch (Exception ex)
@@ -88,7 +88,7 @@ public static class RoundtripRunner
         var work = Directory.CreateTempSubdirectory("opcuaaml-roundtrip-");
         try
         {
-            var original = XDocument.Load(amlPath);
+            var original = SafeXml.Load(amlPath);
 
             step = "export (AML-UA-XSLT rules)";
             var exported = NodeSetExporter.Export(original, new NodeSetExportOptions { PublicationDate = new DateTime(2026, 1, 1) });

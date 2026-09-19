@@ -79,7 +79,7 @@ public static partial class AnnexAInverse
         {
             try
             {
-                var root = XDocument.Load(file).Root!;
+                var root = SafeXml.Load(file).Root!;
                 var uris = new List<string> { UaUri };
                 uris.AddRange(root.Element(Ua + "NamespaceUris")?.Elements(Ua + "Uri").Select(u => u.Value.Trim()) ?? Enumerable.Empty<string>());
                 string Global(string raw)

@@ -42,7 +42,7 @@ public sealed class UaGraph
     public Dictionary<string, UaGraphNode> Nodes { get; } = new(StringComparer.Ordinal);
     public List<string> Models { get; } = new();
 
-    public static UaGraph Load(string path) => Load(XDocument.Load(path));
+    public static UaGraph Load(string path) => Load(SafeXml.Load(path));
 
     public static UaGraph Load(XDocument doc)
     {
