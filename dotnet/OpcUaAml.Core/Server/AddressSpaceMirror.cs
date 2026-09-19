@@ -45,6 +45,9 @@ public sealed class MirrorOptions
 
     public const int DefaultMaxNodes = 2000;
 
+    /// <summary>Told the number of nodes found so far while the selection is read from the server.</summary>
+    public IProgress<int>? Progress { get; init; }
+
     /// <summary>What mirroring again does with elements whose node the server no longer has.</summary>
     public VanishedNodes Vanished { get; init; } = VanishedNodes.Report;
 
@@ -128,7 +131,7 @@ public static class AddressSpaceMirror
         InstanceHierarchyType ih, MirrorOptions? options = null, CancellationToken ct = default)
     {
         options ??= new MirrorOptions();
-        var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct);
+        var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct, options.Progress);
         var doc = ih.CAEXDocument;
         var types = TypeIndex(doc);
         var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
@@ -145,9 +148,9 @@ public static class AddressSpaceMirror
 
     /// <summary>How many nodes a selection covers, without changing the document.</summary>
     public static async Task<(int Nodes, bool Truncated)> PreviewAsync(UaClient client, MirrorSelection selection, int maxNodes = 2000,
-        CancellationToken ct = default)
+        CancellationToken ct = default, IProgress<int>? progress = null)
     {
-        var plan = await MirrorPlan.BuildAsync(client, selection, maxNodes, ct);
+        var plan = await MirrorPlan.BuildAsync(client, selection, maxNodes, ct, progress);
         return (plan.Nodes, plan.Truncated);
     }
 

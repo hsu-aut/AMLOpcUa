@@ -20,6 +20,12 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         PkiRoot = Path.Combine(server.PkiRoot, "client-" + Guid.NewGuid().ToString("N")[..6]),
     };
 
+    /// <summary>Reports at once, unlike Progress, which posts to a context.</summary>
+    private sealed class SyncProgress(Action<int> report) : IProgress<int>
+    {
+        public void Report(int value) => report(value);
+    }
+
     private static List<string> Paths(InternalElementType root) =>
         root.Descendants<InternalElementType>().Select(e =>
         {
@@ -144,8 +150,11 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
     {
         await using var client = await UaClient.ConnectAsync(Options());
         var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant"), MirrorScope.Subtree) } };
-        var capped = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, di.Hierarchy("Capped3"), new MirrorOptions { MaxNodes = 3 });
+        var counted = new List<int>();
+        var capped = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, di.Hierarchy("Capped3"),
+            new MirrorOptions { MaxNodes = 3, Progress = new SyncProgress(counted.Add) });
         Assert.True(capped.Truncated);
+        Assert.Equal(3, counted.Last());
         Assert.Equal((3, true), await AddressSpaceMirror.PreviewAsync(client, selection, maxNodes: 3));
     }
 

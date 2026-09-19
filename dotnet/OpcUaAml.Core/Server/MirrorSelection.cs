@@ -161,10 +161,13 @@ public sealed class MirrorPlan
     public List<UaBrowseItem> Found { get; } = new();
 
     private readonly Dictionary<UaNodeAddress, MirrorPlanNode> _index = new();
+    private IProgress<int>? _progress;
 
-    public static async Task<MirrorPlan> BuildAsync(UaClient client, MirrorSelection selection, int maxNodes = 2000, CancellationToken ct = default)
+    /// <param name="progress">Told the number of nodes found so far, now and then.</param>
+    public static async Task<MirrorPlan> BuildAsync(UaClient client, MirrorSelection selection, int maxNodes = 2000, CancellationToken ct = default,
+        IProgress<int>? progress = null)
     {
-        var plan = new MirrorPlan();
+        var plan = new MirrorPlan { _progress = progress };
         foreach (var item in selection.Items)
         {
             if (plan.Truncated) break;
@@ -194,6 +197,7 @@ public sealed class MirrorPlan
                 if (parent != null) await plan.ExpandAsync(client, parent, levels, item.View, selection, maxNodes, ct).ConfigureAwait(false);
             }
         }
+        progress?.Report(plan.Nodes);
         return plan;
     }
 
@@ -210,6 +214,7 @@ public sealed class MirrorPlan
         if (_index.TryGetValue(key, out var existing)) return existing;
         var node = new MirrorPlanNode(item);
         _index[key] = node;
+        if (_index.Count % 25 == 0) _progress?.Report(_index.Count);
         (parent?.Children ?? Roots).Add(node);
         return node;
     }
