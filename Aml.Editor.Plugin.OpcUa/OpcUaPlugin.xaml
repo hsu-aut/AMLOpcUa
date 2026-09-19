@@ -441,6 +441,13 @@
                                 <TextBlock Text="Read current values" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="LiveButton" Click="LiveButton_Click"
+                                ToolTip="Keep every bound element and DataVariable of this server current: each change the server reports is written into the document.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="LiveGlyph" Style="{StaticResource IconText}" Text="&#xE9D9;" Foreground="{StaticResource Exchange}"/>
+                                <TextBlock x:Name="LiveText" Text="Keep values live" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="WatchButton" Click="WatchButton_Click"
                                 ToolTip="Add the selected variable to the live list below (subscription, not written into the document).">
                             <StackPanel Orientation="Horizontal">

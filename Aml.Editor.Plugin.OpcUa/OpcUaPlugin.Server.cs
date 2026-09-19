@@ -23,6 +23,8 @@ public partial class OpcUaPlugin : ISupportsSelection
 {
     private UaClient? _client;
     private IAsyncDisposable? _watch;
+    private LiveValues? _live;
+    private DateTime _liveStatusShown;
     private AmlServerHost? _host;
     private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
@@ -230,6 +232,7 @@ public partial class OpcUaPlugin : ISupportsSelection
 
     private async Task DisconnectAsync()
     {
+        await StopLiveAsync();
         if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
         _watchRows.Clear();
         WatchList.Visibility = Visibility.Collapsed;
@@ -483,6 +486,55 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    private async void LiveButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_live != null)
+        {
+            await StopLiveAsync();
+            SetStatus("Live values stopped. Press Ctrl+S to save the last values.");
+            return;
+        }
+        var document = _document;
+        if (document == null || _client == null) return;
+        try
+        {
+            // Writes run on the UI thread, and only while the same document is open.
+            _live = await LiveValues.FollowAsync(document, _client,
+                write => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_document, document) && _live != null) write(); }),
+                update =>
+                {
+                    if ((DateTime.Now - _liveStatusShown).TotalSeconds < 1) return;
+                    _liveStatusShown = DateTime.Now;
+                    SetStatus($"Live: {update.What} = {update.Value}  ·  {update.Updates} value(s) written.");
+                });
+            foreach (var p in _live.Problems) PluginLog.Warn(p);
+            var message = $"Following {_live.Count} bound value(s) of {_client.EndpointUrl}"
+                          + (_live.Skipped > 0 ? $"; {_live.Skipped} bound to another server left out" : "") + ".";
+            PluginLog.Info(message);
+            SetStatus(_live.Count == 0 ? "No element of this document is bound to this server." : message);
+            if (_live.Count == 0) await StopLiveAsync();
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Live values failed", ex);
+            SetStatus("Live values failed: " + ex.Message);
+            await StopLiveAsync();
+        }
+        UpdateServerState();
+    }
+
+    private async Task StopLiveAsync()
+    {
+        var live = _live;
+        _live = null;
+        if (live != null)
+        {
+            PluginLog.Info($"Live values stopped after {live.Updates} value(s).");
+            await live.DisposeAsync();
+        }
+        UpdateServerState();
+    }
+
     /// <summary>"SignAndEncrypt Basic256Sha256" as "signed and encrypted, Basic256Sha256"; "None None" as "not secured".</summary>
     private static string SecurityText(string mode)
     {
@@ -517,6 +569,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         ClearSelectionButton.IsEnabled = _items.Count > 0 || _excluded.Count > 0;
         BindButton.IsEnabled = hasNode;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
+        LiveButton.IsEnabled = _live != null || (connected && _document != null && !_busy);
+        LiveText.Text = _live != null ? "Stop live values" : "Keep values live";
+        LiveGlyph.Text = _live != null ? "\uE71A" : "\uE9D9";
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
         ServeText.Text = _host != null ? "Stop serving" : "Serve this document";

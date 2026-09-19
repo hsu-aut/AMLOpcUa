@@ -118,6 +118,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             return;
         }
         _document = null;
+        _ = StopLiveAsync();
         UpdateState();
         UpdateServerState();
         PluginLog.Info("Document closed.");
@@ -137,6 +138,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void Attach(CAEXDocument document)
     {
+        if (!ReferenceEquals(_document, document)) _ = StopLiveAsync();
         _document = document;
         PluginLog.Debug($"Document attached: {document.CAEXFile?.FileName} (CAEX {document.CAEXFile?.SchemaVersion}).");
         UpdateState();

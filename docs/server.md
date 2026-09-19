@@ -49,8 +49,8 @@ server it was bound to ([export](export.md), D16).
 - **Read** values, several in one request; a node that does not exist is a bad
   result, not an exception.
 - **Watch** values through a subscription (`WatchAsync`); the plugin shows
-  them in a live list under the address space. Watched values are not written
-  into the document.
+  them in a live list under the address space. That list is for looking; to
+  keep the document itself current, see "Keep values live" below.
 
 ## The server's types
 
@@ -116,6 +116,11 @@ file (`ServerNodeSetTests`).
   without an endpoint connects to every server the document names as a data
   source, with the security its description asks for. Nothing is subscribed; the document records one
   point in time.
+- **Keep values live** (`LiveValues`): the same bindings, subscribed. Every
+  change the server reports is written into the document (on the editor's UI
+  thread, one monitored item per node however many elements are bound to it)
+  until the button is pressed again, the client disconnects or the document
+  is closed. The document is not saved; Ctrl+S keeps the last values.
 
 ## Selecting what to mirror
 
