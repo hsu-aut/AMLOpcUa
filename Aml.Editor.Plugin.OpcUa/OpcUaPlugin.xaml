@@ -656,7 +656,7 @@
                         <Separator/>
                         <TextBox x:Name="ModelerNewUriBox" Width="220" Text="http://example.org/MyModel/" VerticalContentAlignment="Center"
                                  ToolTip="Namespace URI of a new model"/>
-                        <Button Click="ModelerNew_Click" ToolTip="Start a new model with this namespace URI.">
+                        <Button x:Name="ModelerNewButton" Click="ModelerNew_Click" ToolTip="Start a new model with this namespace URI.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="{StaticResource Create}"/>
                                 <TextBlock Text="New model" Style="{StaticResource Label}"/>
@@ -669,7 +669,7 @@
                                 <TextBlock Text="Open NodeSet file…" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button Click="ModelerReload_Click" ToolTip="Reload the modeler page">
+                        <Button Click="ModelerReload_Click" ToolTip="Reload the modeler page" AutomationProperties.Name="Reload the modeler">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE72C;" Foreground="{StaticResource Plain}" Margin="0"/>
                         </Button>
                     </ToolBar>

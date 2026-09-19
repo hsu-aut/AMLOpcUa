@@ -48,6 +48,7 @@ public partial class OpcUaPlugin
         _modeler = new ModelerWebView(ModelerView);
         _modeler.SetTheme(ThemePalette.Current(this).Dark);
         _modeler.Applied += (xml, uri) => Dispatcher.InvokeAsync(() => ApplyModelAsync(xml, uri));
+        _modeler.SaveRequested += (xml, name) => Dispatcher.Invoke(() => SaveModel(xml, name));
         _modeler.DirtyChanged += dirty => Dispatcher.Invoke(() => ModelerTab.Header = dirty ? "Modeler *" : "Modeler");
         _modeler.Status += (text, warn) => Dispatcher.Invoke(() =>
         {
@@ -69,6 +70,46 @@ public partial class OpcUaPlugin
         ModelerStatus.Text = $"{what} failed: {ex.Message}";
     }
 
+    /// <summary>
+    /// True when the modeler holds nothing unsaved, or the user agrees to drop
+    /// it: opening or starting another model replaces the one shown.
+    /// </summary>
+    private bool MayReplaceModel()
+    {
+        if (_modeler?.IsDirty != true) return true;
+        return DialogKit.Confirm(Window.GetWindow(this), "\uE7BA", DialogKit.Verify, "Drop the changes in the modeler?",
+            "The model in the modeler has changes that are neither applied to the document nor saved. Opening another model drops them.",
+            "Drop the changes", risky: true);
+    }
+
+    /// <summary>The modeler's "Save NodeSet": a file of the user's choice, not a browser download.</summary>
+    private void SaveModel(string xml, string name)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save the NodeSet",
+            Filter = "OPC UA NodeSet (*.xml)|*.xml",
+            FileName = name,
+            InitialDirectory = _settings.LastNodeSetFolder ?? "",
+        };
+        if (dialog.ShowDialog() != true)
+        {
+            _modeler?.Reply("saved", false, "Not saved.");
+            return;
+        }
+        try
+        {
+            File.WriteAllText(dialog.FileName, xml);
+            PluginLog.Info($"Modeler: saved to {dialog.FileName}.");
+            _modeler?.Reply("saved", true, $"Saved to {dialog.FileName}.");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Saving {dialog.FileName} failed", ex);
+            _modeler?.Reply("saved", false, $"Saving failed: {ex.Message}");
+        }
+    }
+
     private void RefreshModelerNamespaces()
     {
         var rows = NamespaceList.ItemsSource as IEnumerable<NamespaceRow>;
@@ -87,7 +128,7 @@ public partial class OpcUaPlugin
 
     private async void ModelerEdit_Click(object sender, RoutedEventArgs e)
     {
-        if (ModelerNamespaceBox.SelectedItem is not string uri) return;
+        if (ModelerNamespaceBox.SelectedItem is not string uri || !MayReplaceModel()) return;
         try
         {
             await EnsureModelerAsync();
@@ -105,6 +146,7 @@ public partial class OpcUaPlugin
 
     private async void ModelerOpenFile_Click(object sender, RoutedEventArgs e)
     {
+        if (!MayReplaceModel()) return;
         try { await OpenFileInModelerAsync(); }
         catch (Exception ex) { ModelerFailed("Opening the NodeSet", ex); }
     }
@@ -165,6 +207,7 @@ public partial class OpcUaPlugin
             ModelerStatus.Text = $"'{uri}' is not an absolute URI.";
             return;
         }
+        if (!MayReplaceModel()) return;
         try
         {
             await EnsureModelerAsync();
@@ -173,7 +216,10 @@ public partial class OpcUaPlugin
         catch (Exception ex) { ModelerFailed("Starting a new model", ex); }
     }
 
-    private void ModelerReload_Click(object sender, RoutedEventArgs e) => _modeler?.Reload();
+    private void ModelerReload_Click(object sender, RoutedEventArgs e)
+    {
+        if (MayReplaceModel()) _modeler?.Reload();
+    }
 
     /// <summary>Keeps the applied NodeSet in the models folder and imports it into the document.</summary>
     private async Task ApplyModelAsync(string xml, string modelUri)
@@ -188,6 +234,7 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             ModelerFailed($"Saving {modelUri}", ex);
+            _modeler?.Reply("applied", false, ModelerStatus.Text);
             return;
         }
         PluginLog.Info($"Modeler: {modelUri} saved to {file}.");
@@ -195,11 +242,14 @@ public partial class OpcUaPlugin
         var document = _document;
         if (document == null || document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
+            // Kept, but not in a document: the model still counts as changed.
             ModelerStatus.Text = $"Saved to {file}. Open a CAEX 3.0 document to import it.";
+            _modeler?.Reply("applied", false, ModelerStatus.Text);
             return;
         }
-        await ImportFileAsync(document, file, new[] { ModelsFolder });
+        var imported = await ImportFileAsync(document, file, new[] { ModelsFolder });
         ModelerStatus.Text = StatusText.Text;
+        _modeler?.Reply("applied", imported, StatusText.Text);
     }
 
     private static string SafeFileName(string uri)

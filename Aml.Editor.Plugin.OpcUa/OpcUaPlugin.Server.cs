@@ -512,6 +512,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                     await ImportFileAsync(document, files.Paths[0], new[] { folder, ModelsFolder });
                     break;
                 case NamespaceAction.Modeler:
+                    if (!MayReplaceModel()) return;
                     Tabs.SelectedItem = ModelerTab;
                     await EnsureModelerAsync();
                     if (NodeSetInfo.TryRead(files.Paths[0]) is { } info) OpenInModeler(info, ModelerCatalog(folder));

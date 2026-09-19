@@ -221,18 +221,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// The NodeSet's own folder is searched first: companion specs usually
     /// ship with the NodeSets they depend on.
     /// </summary>
-    private async Task ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    /// <summary>True when the NodeSet arrived in the document.</summary>
+    private async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
     {
         // One import at a time: each merges into the document and clears the busy state when done.
         if (_importing)
         {
             SetStatus($"An import is running; import {Path.GetFileName(file)} when it is done.");
-            return;
+            return false;
         }
         _importing = true;
         try
         {
-            await ImportOneAsync(document, file, extraFolders);
+            return await ImportOneAsync(document, file, extraFolders);
         }
         finally
         {
@@ -240,7 +241,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
-    private async Task ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    private async Task<bool> ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
     {
         List<string> folders;
         // Missing models are asked about before the conversion, which takes seconds;
@@ -261,13 +262,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 PluginLog.Warn($"{Path.GetFileName(file)} requires models that are not available: {string.Join(", ", missing.Select(m => m.ModelUri))}.");
                 if (await ResolveMissingAsync(file, missing)) continue;
                 SetStatus($"Import of {Path.GetFileName(file)} cancelled: required models are missing.");
-                return;
+                return false;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 PluginLog.Error($"Reading {file} failed", ex);
                 SetStatus($"{Path.GetFileName(file)} cannot be read: {ex.Message}");
-                return;
+                return false;
             }
         }
         var options = new MergeOptions { ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries };
@@ -290,7 +291,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             {
                 PluginLog.Warn($"{Path.GetFileName(file)} was converted after its document was closed; nothing was imported.");
                 SetStatus($"The document changed while {Path.GetFileName(file)} was converted; import it again into the open one.");
-                return;
+                return false;
             }
             var merge = LibraryMerger.Merge(document, conversion.Document, options);
             var result = new ImportResult(conversion, merge);
@@ -306,16 +307,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             SetStatus(result.Summary + (saved ? " Saved." : " Press Ctrl+S to save."));
+            return true;
         }
         catch (ImportException ex)
         {
             PluginLog.Error(ex.Message);
             SetStatus("Import failed: " + ex.Message);
+            return false;
         }
         catch (Exception ex)
         {
             PluginLog.Error("Import failed", ex);
             SetStatus("Import failed: " + ex.Message);
+            return false;
         }
         finally
         {
