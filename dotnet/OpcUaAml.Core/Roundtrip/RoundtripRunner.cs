@@ -14,6 +14,36 @@ public static class RoundtripRunner
 {
     public const string ChainA = "UA -> AML (OPC 10000-83 Annex A) -> UA (AML-UA-XSLT rules)";
     public const string ChainB = "AML -> UA (AML-UA-XSLT rules) -> AML (OPC 10000-83 Annex A)";
+    public const string ChainC = "UA -> AML (OPC 10000-83 Annex A) -> UA (inverse of Annex A)";
+
+    /// <summary>Chain C for a NodeSet: through Annex A and back through its inverse, compared node by node.</summary>
+    public static RoundtripReport UaAmlUaInverse(string nodeSetPath, NodeSetCatalog catalog)
+    {
+        var watch = Stopwatch.StartNew();
+        var subject = Path.GetFileName(nodeSetPath);
+        var notes = new List<string>();
+        string step = "read the NodeSet";
+        try
+        {
+            var info = NodeSetInfo.Read(nodeSetPath);
+            var modelUri = info.PrimaryModel.Model.ModelUri;
+
+            step = "Annex A import (Opc2Aml)";
+            var conversion = NodeSetImporter.Convert(nodeSetPath, catalog);
+            notes.AddRange(conversion.Warnings.Select(w => "Import: " + w));
+
+            step = "export (inverse of Annex A)";
+            var exported = NodeSetExporter.Export(conversion.Document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = modelUri });
+
+            step = "analysis";
+            var criteria = InverseAnalysis.Analyze(System.Xml.Linq.XDocument.Load(nodeSetPath), conversion.Document.CAEXFile.Node, exported, modelUri);
+            return new RoundtripReport(subject, ChainC, criteria, null, null, watch.Elapsed, notes);
+        }
+        catch (Exception ex)
+        {
+            return new RoundtripReport(subject, ChainC, Array.Empty<Criterion>(), step, Describe(ex), watch.Elapsed, notes);
+        }
+    }
 
     /// <summary>Chain A for a NodeSet; the catalog supplies the models it requires.</summary>
     public static RoundtripReport UaAmlUa(string nodeSetPath, NodeSetCatalog catalog)

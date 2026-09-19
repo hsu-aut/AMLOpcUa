@@ -42,10 +42,16 @@ public static class Program
             when there are errors.
 
         uaaml export <doc.aml|amlx> -o <out.xml> [--date <yyyy-mm-dd>] [--xslt-compatible]
+                     [--annex-a-inverse [--namespace <uri>]]
             Convert the document (CAEX 2.15 or 3.0) into a UANodeSet by the rules
             of the AutomationML/OPC Foundation working group (AML-UA-XSLT).
             --date             PublicationDate of the generated models (default: now)
             --xslt-compatible  reproduce the XSLT output exactly, bugs included
+            --annex-a-inverse  instead write back the OPC UA model that OPC 10000-83
+                               Annex A put into the document: its types, DataTypes,
+                               ReferenceTypes, methods and objects as the nodes they
+                               were. Not a standard. --namespace names the model when
+                               the document holds several.
 
         uaaml browse <endpoint> [<nsu=...;s=...>] [--secure] [--accept]
             Children of a node of a running server (Objects when omitted).
@@ -96,10 +102,12 @@ public static class Program
         uaaml cloud download <id> <folder> (--user <u> --password <p> | --api-key <k>)
             Search the UA Cloud Library, or download a model with the models it requires.
 
-        uaaml roundtrip <file>... [--search <dir>]... [-o <report.md>]
+        uaaml roundtrip <file>... [--search <dir>]... [--inverse] [-o <report.md>]
             Run each file through both mappings and back and report what survives:
             a NodeSet (.xml) UA -> AML (Annex A) -> UA (AML-UA-XSLT rules),
             an AML document (.aml) AML -> UA (AML-UA-XSLT rules) -> AML (Annex A).
+            --inverse  a NodeSet goes back through the inverse of Annex A instead,
+                       compared node by node with the original
 
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
@@ -214,7 +222,7 @@ public static class Program
 
     private static int ExportCommand(List<string> args)
     {
-        var options = Options.Parse(args, valued: new[] { "-o", "--date" }, flags: new[] { "--xslt-compatible" });
+        var options = Options.Parse(args, valued: new[] { "-o", "--date", "--namespace" }, flags: new[] { "--xslt-compatible", "--annex-a-inverse" });
         var file = options.SinglePositional("document");
         var output = options.One("-o") ?? throw new ArgumentException("Give -o <out.xml>.");
         if (!File.Exists(file)) throw new ImportException($"'{file}' does not exist.");
@@ -230,6 +238,8 @@ public static class Program
         {
             PublicationDate = date,
             XsltCompatibility = options.Has("--xslt-compatible"),
+            Mode = options.Has("--annex-a-inverse") ? ExportMode.AnnexAInverse : ExportMode.AmlUaXslt,
+            NamespaceUri = options.One("--namespace"),
         });
         Console.WriteLine($"Written to {Path.GetFullPath(output)}");
         return 0;
@@ -590,7 +600,7 @@ public static class Program
 
     private static int RoundtripCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--search", "-o" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--search", "-o" }, flags: new[] { "--inverse" });
         if (o.Positional.Count == 0) throw new ArgumentException("roundtrip needs at least one file.");
         var report = new System.Text.StringBuilder();
         report.AppendLine("# Round trip report").AppendLine();
@@ -598,9 +608,11 @@ public static class Program
         foreach (var file in o.Positional)
         {
             var catalog = NodeSetCatalog.Create(o.All("--search"));
-            var result = Path.GetExtension(file).Equals(".xml", StringComparison.OrdinalIgnoreCase)
-                ? OpcUaAml.Roundtrip.RoundtripRunner.UaAmlUa(file, catalog)
-                : OpcUaAml.Roundtrip.RoundtripRunner.AmlUaAml(file, catalog);
+            var isNodeSet = Path.GetExtension(file).Equals(".xml", StringComparison.OrdinalIgnoreCase);
+            if (o.Has("--inverse") && !isNodeSet) throw new ArgumentException("--inverse takes NodeSets (.xml).");
+            var result = !isNodeSet ? OpcUaAml.Roundtrip.RoundtripRunner.AmlUaAml(file, catalog)
+                : o.Has("--inverse") ? OpcUaAml.Roundtrip.RoundtripRunner.UaAmlUaInverse(file, catalog)
+                : OpcUaAml.Roundtrip.RoundtripRunner.UaAmlUa(file, catalog);
             if (!result.Completed) failed++;
             Console.WriteLine($"{result.Subject}: " + (result.Completed
                 ? string.Join(", ", result.Criteria.Where(c => c.Total > 0).Select(c => $"{c.Name} {c.Kept}/{c.Total}"))
