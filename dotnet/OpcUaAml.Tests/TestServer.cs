@@ -13,6 +13,7 @@ namespace OpcUaAml.Tests;
 ///     Motor (object) Temperature: Int32 42, Samples: Int32[] {1, 2, 3}
 ///   Counter: UInt32, incremented every 100 ms
 /// Views/Maintenance (view) organizes Motor
+/// Objects/Aliases (OPC 10000-17) with FindAlias: "PumpSpeed" stands for Speed
 /// </code>
 /// </summary>
 public class TestServer : IAsyncLifetime
@@ -134,6 +135,64 @@ public class TestServer : IAsyncLifetime
                     externalReferences[ObjectIds.ViewsFolder] = viewRefs = new List<IReference>();
                 viewRefs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, view.NodeId));
                 AddPredefinedNode(SystemContext, view);
+
+                // Alias names (OPC 10000-17): one alias, found through FindAlias.
+                var aliases = new BaseObjectState(null)
+                {
+                    NodeId = new NodeId("Aliases", ns),
+                    BrowseName = new QualifiedName("Aliases", 0),
+                    DisplayName = "Aliases",
+                    TypeDefinitionId = ObjectTypeIds.BaseObjectType,
+                };
+                aliases.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
+                refs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, aliases.NodeId));
+                var speedId = new NodeId("Plant.Pump1.Speed", ns);
+                var find = new MethodState(aliases)
+                {
+                    NodeId = new NodeId("Aliases.FindAlias", ns),
+                    BrowseName = new QualifiedName("FindAlias", 0),
+                    DisplayName = "FindAlias",
+                    ReferenceTypeId = ReferenceTypeIds.HasComponent,
+                    Executable = true,
+                    UserExecutable = true,
+                    OnCallMethod = (_, _, input, output) =>
+                    {
+                        var pattern = input.Count > 0 ? input[0] as string : null;
+                        var found = pattern == "PumpSpeed"
+                            ? new[] { new ExtensionObject(new AliasNameDataType { AliasName = new QualifiedName("PumpSpeed"), ReferencedNodes = new ExpandedNodeIdCollection { speedId } }) }
+                            : Array.Empty<ExtensionObject>();
+                        output[0] = found;
+                        return ServiceResult.Good;
+                    },
+                };
+                find.InputArguments = new PropertyState<Argument[]>(find)
+                {
+                    NodeId = new NodeId("Aliases.FindAlias.InputArguments", ns),
+                    BrowseName = BrowseNames.InputArguments,
+                    DisplayName = BrowseNames.InputArguments,
+                    TypeDefinitionId = VariableTypeIds.PropertyType,
+                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                    DataType = DataTypeIds.Argument,
+                    ValueRank = ValueRanks.OneDimension,
+                    Value = new[]
+                    {
+                        new Argument { Name = "AliasNameSearchPattern", DataType = DataTypeIds.String, ValueRank = ValueRanks.Scalar },
+                        new Argument { Name = "ReferenceTypeFilter", DataType = DataTypeIds.NodeId, ValueRank = ValueRanks.Scalar },
+                    },
+                };
+                find.OutputArguments = new PropertyState<Argument[]>(find)
+                {
+                    NodeId = new NodeId("Aliases.FindAlias.OutputArguments", ns),
+                    BrowseName = BrowseNames.OutputArguments,
+                    DisplayName = BrowseNames.OutputArguments,
+                    TypeDefinitionId = VariableTypeIds.PropertyType,
+                    ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                    DataType = DataTypeIds.Argument,
+                    ValueRank = ValueRanks.OneDimension,
+                    Value = new[] { new Argument { Name = "AliasNodeList", DataType = DataTypeIds.AliasNameDataType, ValueRank = ValueRanks.OneDimension } },
+                };
+                aliases.AddChild(find);
+                AddPredefinedNode(SystemContext, aliases);
             }
         }
 

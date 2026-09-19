@@ -3,7 +3,8 @@
 // - Annex A (OPC 10000-83): an attribute of type NodeId with RootNodeId
 //   (ExplicitNodeId: NamespaceUri and one of NumericId/StringId/GuidId/
 //   OpaqueId), optionally ServerInstanceUri; Alias and BrowsePath address a
-//   node indirectly and are reported, not resolved, here.
+//   node indirectly: they are read here (IndirectNodeId) and resolved by a
+//   server (UaClient.ResolveAsync).
 // - MTP (VDI/VDE/NAMUR 2658): an ExternalInterface of class OPCUAItem with
 //   Identifier (its AttributeDataType gives the identifier type), Namespace
 //   (the URI) and Access.
@@ -19,6 +20,25 @@ namespace OpcUaAml.Addressing;
 public sealed class AddressingException : Exception
 {
     public AddressingException(string message) : base(message) { }
+}
+
+/// <summary>A NodeId attribute that names its node through a server: by a browse path or by an alias.</summary>
+public abstract record IndirectNodeId(string? ServerUri);
+
+/// <summary>One step of a browse path: along which reference, to a child of which BrowseName.</summary>
+public sealed record PathStep(UaNodeAddress? ReferenceType, bool IsInverse, bool IncludeSubtypes, string? TargetNamespace, string TargetName);
+
+/// <summary>The node reached from <paramref name="Root"/> along <paramref name="Steps"/> (Annex A: RootNodeId with BrowsePath).</summary>
+public sealed record BrowsePathNodeId(UaNodeAddress Root, IReadOnlyList<PathStep> Steps, string? ServerUri) : IndirectNodeId(ServerUri)
+{
+    public override string ToString() =>
+        Root + string.Concat(Steps.Select(s => "/" + (s.TargetNamespace == null ? "" : "{" + s.TargetNamespace + "}") + s.TargetName));
+}
+
+/// <summary>The node an alias name stands for (Annex A: Alias; OPC 10000-17).</summary>
+public sealed record AliasNodeId(string AliasName, UaNodeAddress? ReferenceTypeFilter, string? ServerUri) : IndirectNodeId(ServerUri)
+{
+    public override string ToString() => "alias " + AliasName;
 }
 
 public static class AnnexANodeId
@@ -51,6 +71,54 @@ public static class AnnexANodeId
             if (v != null) return new UaNodeAddress(uri, type, v, server);
         }
         throw new AddressingException($"'{nodeId.Name}': RootNodeId has no identifier.");
+    }
+
+    /// <summary>
+    /// Reads the indirect forms of a NodeId attribute, an Alias or a RootNodeId
+    /// with a non-empty BrowsePath; null for a plain NodeId.
+    /// </summary>
+    public static IndirectNodeId? ReadIndirect(AttributeType nodeId)
+    {
+        var server = Value(Sub(nodeId, "ServerInstanceUri"));
+        var root = Sub(nodeId, "RootNodeId");
+        if (root == null)
+        {
+            var alias = Sub(nodeId, "Alias");
+            var name = Value(Sub(alias, "AliasName"));
+            if (name == null) return null;
+            var filter = Sub(alias, "ReferenceTypeFilter") is { } f ? Explicit(f) : null;
+            return new AliasNodeId(name, filter, server);
+        }
+        var elements = Sub(Sub(nodeId, "BrowsePath"), "Elements");
+        if (elements == null || elements.Attribute.Count == 0) return null;
+        var start = Explicit(root) ?? throw new AddressingException($"'{nodeId.Name}': RootNodeId has no identifier.");
+        var steps = new List<PathStep>();
+        foreach (var element in elements.Attribute)
+        {
+            var target = Sub(element, "TargetName");
+            var targetName = Value(Sub(target, "Name")) ?? throw new AddressingException($"'{nodeId.Name}': a BrowsePath element has no TargetName.");
+            steps.Add(new PathStep(
+                Sub(element, "ReferenceTypeId") is { } rt ? Explicit(rt) : null,
+                Value(Sub(element, "IsInverse")) == "true",
+                Value(Sub(element, "IncludeSubtypes")) != "false",
+                Value(Sub(target, "NamespaceUri")),
+                targetName));
+        }
+        return new BrowsePathNodeId(start, steps, server);
+    }
+
+    /// <summary>The indirect NodeId attribute of an element, or null if it has none or a plain one.</summary>
+    public static IndirectNodeId? IndirectOf(IObjectWithAttributes owner) =>
+        owner.Attribute[AttributeName] is { } a ? ReadIndirect(a) : null;
+
+    /// <summary>An ExplicitNodeId (NamespaceUri and one identifier); null when it names none.</summary>
+    private static UaNodeAddress? Explicit(AttributeType id)
+    {
+        var uri = Value(Sub(id, "NamespaceUri"));
+        if (uri == null) return null;
+        foreach (var (name, type) in new[] { ("NumericId", UaIdType.Numeric), ("StringId", UaIdType.String), ("GuidId", UaIdType.Guid), ("OpaqueId", UaIdType.Opaque) })
+            if (Value(Sub(id, name)) is { } v) return new UaNodeAddress(uri, type, v);
+        return null;
     }
 
     /// <summary>Finds and reads the NodeId attribute of an element, or returns null if it has none.</summary>

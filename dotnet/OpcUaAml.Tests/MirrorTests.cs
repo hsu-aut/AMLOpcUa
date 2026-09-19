@@ -87,6 +87,57 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         Assert.Contains(result.Problems, p => p.StartsWith("Ghost") && p.Contains("BadNodeIdUnknown"));
     }
 
+    /// <summary>An Annex A NodeId attribute that names its node by a browse path from the Plant folder.</summary>
+    private static void WriteBrowsePath(IObjectWithAttributes owner, params string[] names)
+    {
+        var nodeId = owner.Attribute.Append("NodeId");
+        var root = nodeId.Attribute.Append("RootNodeId");
+        root.Attribute.Append("NamespaceUri").Value = TestServer.Namespace;
+        root.Attribute.Append("StringId").Value = "Plant";
+        var elements = nodeId.Attribute.Append("BrowsePath").Attribute.Append("Elements");
+        for (var i = 0; i < names.Length; i++)
+        {
+            var element = elements.Attribute.Append(i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            element.Attribute.Append("IsInverse").Value = "false";
+            element.Attribute.Append("IncludeSubtypes").Value = "true";
+            var target = element.Attribute.Append("TargetName");
+            target.Attribute.Append("NamespaceUri").Value = TestServer.Namespace;
+            target.Attribute.Append("Name").Value = names[i];
+        }
+    }
+
+    [Fact]
+    public async Task Browse_paths_and_aliases_are_resolved_by_the_server()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var owner = di.Hierarchy("Indirect").InternalElement.Append("Probe");
+        WriteBrowsePath(owner, "Pump1", "Motor", "Temperature");
+        var path = Assert.IsType<BrowsePathNodeId>(AnnexANodeId.IndirectOf(owner));
+
+        Assert.Equal("Plant.Pump1.Motor.Temperature", (await client.ResolveAsync(path)).Identifier);
+        Assert.Equal("Plant.Pump1.Speed", (await client.ResolveAsync(new AliasNodeId("PumpSpeed", null, null))).Identifier);
+        await Assert.ThrowsAsync<AddressingException>(() => client.ResolveAsync(new AliasNodeId("Nobody", null, null)));
+        await Assert.ThrowsAsync<AddressingException>(() => client.ResolveAsync(path with { Steps = new[] { new PathStep(null, false, true, TestServer.Namespace, "Nothing") } }));
+    }
+
+    [Fact]
+    public async Task A_snapshot_reads_elements_addressed_by_browse_path()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var ih = di.Hierarchy("ByPath");
+        var speed = ih.InternalElement.Append("Speed");
+        WriteBrowsePath(speed, "Pump1", "Speed");
+        speed.Attribute.Append("Value");
+        var lost = ih.InternalElement.Append("Lost");
+        WriteBrowsePath(lost, "Pump1", "Nothing");
+        lost.Attribute.Append("Value");
+
+        var result = await ValueSnapshot.ApplyAsync(di.Document, client);
+
+        Assert.Equal("12.5", speed.Attribute["Value"]!.Value);
+        Assert.Contains(result.Problems, p => p.StartsWith("Lost", StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task Live_values_follow_the_server()
     {

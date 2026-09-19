@@ -25,7 +25,7 @@ public static class ValueSnapshot
     /// </summary>
     public static async Task<SnapshotResult> ApplyAsync(CAEXDocument doc, UaClient client, CancellationToken ct = default)
     {
-        var (targets, problems, skipped) = Targets(doc, client);
+        var (targets, problems, skipped) = await ResolvedTargetsAsync(doc, client, ct).ConfigureAwait(false);
 
         var read = 0;
         var failed = 0;
@@ -44,8 +44,33 @@ public static class ValueSnapshot
     /// <summary>A bound value in the document: how to write it, which node, and a name for messages.</summary>
     internal sealed record Target(Action<UaReadResult> Write, UaNodeAddress Address, string What);
 
-    /// <summary>Every bound value of the instance hierarchies that this client's server serves.</summary>
-    internal static (List<Target> Targets, List<string> Problems, int Skipped) Targets(CAEXDocument doc, UaClient client)
+    /// <summary>
+    /// Every bound value of the instance hierarchies that this client's server
+    /// serves, with NodeIds given by browse path or alias resolved by the server.
+    /// </summary>
+    internal static async Task<(List<Target> Targets, List<string> Problems, int Skipped)> ResolvedTargetsAsync(
+        CAEXDocument doc, UaClient client, CancellationToken ct)
+    {
+        var indirect = new List<(InternalElementType Element, IndirectNodeId Id)>();
+        var (targets, problems, skipped) = Targets(doc, client, indirect);
+        foreach (var (ie, id) in indirect)
+        {
+            if (OtherServer(id.ServerUri, client)) { skipped++; continue; }
+            try
+            {
+                var address = await client.ResolveAsync(id, ct).ConfigureAwait(false);
+                targets.Add(new Target(r => SetValue(ie, r), address, ie.Name));
+            }
+            catch (AddressingException ex)
+            {
+                problems.Add($"{ie.Name}: {ex.Message}");
+            }
+        }
+        return (targets, problems, skipped);
+    }
+
+    private static (List<Target> Targets, List<string> Problems, int Skipped) Targets(CAEXDocument doc, UaClient client,
+        List<(InternalElementType Element, IndirectNodeId Id)> indirect)
     {
         var targets = new List<Target>();
         var problems = new List<string>();
@@ -54,7 +79,14 @@ public static class ValueSnapshot
         foreach (var ie in doc.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()))
         {
             UaNodeAddress? address = null;
-            try { address = AnnexANodeId.Of(ie); }
+            try
+            {
+                if (AnnexANodeId.IndirectOf(ie) is { } id)
+                {
+                    if (ie.Attribute["Value"] != null) indirect.Add((ie, id));
+                }
+                else address = AnnexANodeId.Of(ie);
+            }
             catch (AddressingException ex) { problems.Add($"{ie.Name}: {ex.Message}"); }
             if (address != null && ie.Attribute["Value"] != null)
             {

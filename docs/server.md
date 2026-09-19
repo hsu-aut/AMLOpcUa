@@ -26,8 +26,12 @@ The older binding of Kühnert, Schleipen et al. (2016), a sub-attribute
 that server and is resolved through the connected server's table. It is never
 written.
 
-Annex A NodeIds that address a node through an `Alias` or a `BrowsePath`
-are reported as such; resolving them needs a server and is not done yet.
+Annex A NodeIds that address a node indirectly are resolved by the connected
+server when values are read or kept live: a `RootNodeId` with a `BrowsePath`
+through TranslateBrowsePathsToNodeIds (a missing reference type means
+HierarchicalReferences), an `Alias` through the `FindAlias` method of the
+server's `Aliases` object (OPC 10000-17). A path or alias the server does not
+know, or one that names several nodes, is reported for that element.
 
 Checked against real files: all 268 OPCUAItems of the ZVEI stirred reactor MTP
 (Siemens TIA), all 174 of the WAGO MTP from p2o-lab/MTPPy, and the DataVariable

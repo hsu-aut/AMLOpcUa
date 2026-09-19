@@ -413,6 +413,81 @@ public sealed class UaClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// The node an indirect NodeId names on this server: a browse path through
+    /// TranslateBrowsePathsToNodeIds, an alias through FindAlias of the Aliases
+    /// object (OPC 10000-17).
+    /// </summary>
+    /// <exception cref="AddressingException">The server does not know the path or the alias, or it is ambiguous.</exception>
+    public async Task<UaNodeAddress> ResolveAsync(IndirectNodeId id, CancellationToken ct = default)
+    {
+        switch (id)
+        {
+            case BrowsePathNodeId path:
+            {
+                var relative = new RelativePath();
+                foreach (var step in path.Steps)
+                {
+                    var index = step.TargetNamespace == null ? (ushort)0 : (ushort)_session.NamespaceUris.GetIndex(step.TargetNamespace);
+                    if (step.TargetNamespace != null && index == ushort.MaxValue)
+                        throw new AddressingException($"{path}: the server does not know the namespace {step.TargetNamespace}.");
+                    relative.Elements.Add(new RelativePathElement
+                    {
+                        ReferenceTypeId = step.ReferenceType == null ? ReferenceTypeIds.HierarchicalReferences : ToNodeId(step.ReferenceType),
+                        IsInverse = step.IsInverse,
+                        IncludeSubtypes = step.IncludeSubtypes,
+                        TargetName = new QualifiedName(step.TargetName, index),
+                    });
+                }
+                var request = new BrowsePathCollection { new BrowsePath { StartingNode = ToNodeId(path.Root), RelativePath = relative } };
+                var response = await _session.TranslateBrowsePathsToNodeIdsAsync(null, request, ct).ConfigureAwait(false);
+                var result = response.Results[0];
+                if (StatusCode.IsBad(result.StatusCode) || result.Targets.Count == 0)
+                    throw new AddressingException($"{path}: {StatusCode.LookupSymbolicId(result.StatusCode.Code) ?? result.StatusCode.ToString()}.");
+                if (result.Targets.Count > 1)
+                    throw new AddressingException($"{path}: the path leads to {result.Targets.Count} nodes.");
+                return FromExpanded(result.Targets[0].TargetId);
+            }
+            case AliasNodeId alias:
+            {
+                // The Aliases object and its FindAlias method, found by name: servers need not use the base model's NodeIds.
+                var aliases = (await BrowseAsync(null, ct).ConfigureAwait(false))
+                    .FirstOrDefault(i => i.BrowseName == "Aliases")
+                    ?? throw new AddressingException($"{alias}: the server has no Aliases object (OPC 10000-17).");
+                var find = (await BrowseAsync(aliases.Address, ct).ConfigureAwait(false))
+                    .FirstOrDefault(i => i.BrowseName == "FindAlias" && i.NodeClass == "Method")
+                    ?? throw new AddressingException($"{alias}: the Aliases object has no FindAlias method.");
+                var call = new CallMethodRequestCollection
+                {
+                    new CallMethodRequest
+                    {
+                        ObjectId = ToNodeId(aliases.Address),
+                        MethodId = ToNodeId(find.Address),
+                        InputArguments = new VariantCollection
+                        {
+                            new Variant(alias.AliasName),
+                            new Variant(alias.ReferenceTypeFilter == null ? NodeId.Null : ToNodeId(alias.ReferenceTypeFilter)),
+                        },
+                    },
+                };
+                var response = await _session.CallAsync(null, call, ct).ConfigureAwait(false);
+                var result = response.Results[0];
+                if (StatusCode.IsBad(result.StatusCode))
+                    throw new AddressingException($"{alias}: {StatusCode.LookupSymbolicId(result.StatusCode.Code) ?? result.StatusCode.ToString()}.");
+                var found = (result.OutputArguments.Count > 0 ? result.OutputArguments[0].Value as ExtensionObject[] : null) ?? Array.Empty<ExtensionObject>();
+                var nodes = found.Select(e => e.Body).OfType<AliasNameDataType>().SelectMany(a => a.ReferencedNodes).ToList();
+                return nodes.Count switch
+                {
+                    1 => FromExpanded(nodes[0]),
+                    0 => throw new AddressingException($"{alias}: the server knows no such alias."),
+                    _ => throw new AddressingException($"{alias}: the alias stands for {nodes.Count} nodes."),
+                };
+            }
+            default:
+                throw new ArgumentException($"Unknown indirect NodeId {id}.", nameof(id));
+        }
+    }
+
     private NodeId ToNodeId(UaNodeAddress address) =>
         NodeId.Parse(address.ToNodeIdString(NamespaceTable));
 
