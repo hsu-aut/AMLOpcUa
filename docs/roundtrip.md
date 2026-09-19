@@ -79,47 +79,115 @@ Chain A shows that the two standards do not form a pair. Chain C replaces the
 way back with the inverse of Annex A, a second export mode that is not a
 standard ([export](export.md#second-mode-the-inverse-of-annex-a)). It compares
 the result with the original node by node (`NodeSetComparer.Flatten`): a fact
-is kept when the same NodeId has the same value. A lost fact of a node that
-Annex A did not carry into AML at all, or a reference to such a node, is
-counted as lost on the way in; the table gives the losses of the inverse
-itself in brackets.
+is kept when the same NodeId has the same value.
+
+A lost fact counts as lost on the way in (Annex A) when the AML shows that it
+never arrived there: the node is not in the AML, a reference type appears on
+neither end, the Value attribute is empty (Opc2Aml writes it so for no value,
+an empty one and a matrix alike), a VariableType has no Value attribute (its
+DataType is the attribute's type), the element has no Description or the
+DataType no field definitions, or only the description of a field is missing.
+Documentation is never carried. The rest are losses of the inverse itself,
+given in brackets.
 
 | Criterion | DI | Safety | FX Data | FX AC | FX CM |
 |---|---:|---:|---:|---:|---:|
 | Nodes present, with their node class | 413/447 (0) | 85/91 (0) | 65/186 (0) | 432/511 (0) | 414/545 (0) |
-| BrowseName kept | 411/447 (0) | 85/91 (0) | 65/186 (0) | 432/511 (0) | 414/545 (0) |
-| Description kept | 16/16 | 37/40 (3) | 1/7 (2) | 5/11 (2) | 0/4 (0) |
+| BrowseName and DisplayName kept | 411/447 (0) | 85/91 (0) | 65/186 (0) | 432/511 (0) | 414/545 (0) |
+| Description kept | 16/16 | 37/40 (0) | 1/7 (0) | 5/11 (0) | 0/4 (0) |
 | ParentNodeId kept | 345/360 (0) | 73/74 (1) | 32/82 (0) | 378/437 (0) | 343/397 (0) |
-| DataType kept | 231/246 (1) | 66/66 | 25/77 (0) | 272/311 (0) | 222/278 (0) |
+| DataType kept | 231/246 (0) | 66/66 | 25/77 (0) | 272/311 (0) | 222/278 (0) |
 | ValueRank and ArrayDimensions kept | 145/145 | 14/14 | 36/36 | 221/242 (0) | 272/272 |
 | IsAbstract, Symmetric, InverseName kept | 28/28 | 2/2 | 7/7 | 20/20 | 23/23 |
 | MethodDeclarationId kept | 28/28 | | 6/6 | 27/35 (0) | 14/14 |
-| Values kept | 96/111 (1) | 12/13 (1) | 18/71 (1) | 73/108 (5) | 56/115 (3) |
-| DataType definitions kept, per field | 29/36 (7) | 16/22 (6) | 113/125 (12) | 37/48 (11) | 230/244 (14) |
-| References kept | 1448/1539 (1) | 220/236 (4) | 128/581 (0) | 1528/1826 (2) | 1433/1940 (16) |
+| Values kept | 96/111 (0) | 12/13 (0) | 18/71 (0) | 73/108 (1) | 56/115 (2) |
+| DataType definitions kept, per field | 29/36 (0) | 16/22 (1) | 113/125 (3) | 37/48 (0) | 230/244 (4) |
+| References kept | 1448/1539 (1) | 220/236 (4) | 128/581 (0) | 1528/1826 (0) | 1433/1940 (2) |
 | Documentation kept | 0/79 | 0/15 | 0/33 | 0/64 | 0/45 |
 
-Every loss in brackets was traced back to the AML Opc2Aml writes:
+What Annex A does not carry, found in the AML Opc2Aml writes:
 
-- Definitions: the descriptions of option set bits; Annex A keeps none. Safety
-  3005 and 3006 are option sets that Annex A writes without their fields.
-- Descriptions: Annex A writes none for some DataTypes (Safety, FX).
-- Values: empty strings, which Annex A leaves out, the EnumValues of variables
-  (FX AC 1251, 1254), which Annex A writes empty, and structures of a model
-  that is neither the exported one nor bundled (FX AC 6351 uses FX Data).
-- References: a declaration's references to declarations of another type, for
-  example to the placeholders of its own type definition (Safety 5000 to 6029),
-  and references between declarations that Annex A does not write at all
-  (FX CM 4001, HasCause 53).
-- DataType: DI 468, a VariableType without a `Value` attribute.
-- ParentNodeId: Safety 5002 is organized by Objects; DI writes no ParentNodeId
-  for organized nodes, Safety does, and the AML cannot tell the two apart.
-- Documentation: Annex A carries none.
+- Documentation; type dictionaries and their variables; encodings; nodes no
+  type or folder holds (most of FX Data).
+- Descriptions of some DataTypes and of option set bits; the field definitions
+  of some option sets.
+- Values that are empty, and matrices: the Value attribute stays empty either way.
+- The DataType of a VariableType without a Value attribute (DI 468).
+- Some references between declarations, for example to the placeholders of a
+  declaration's own type definition (Safety 5000 to 6029), and references
+  between declarations that Annex A does not write at all (FX CM 4001,
+  HasCause 53, HasDictionaryEntry).
 
-The losses outside the brackets are nodes Annex A does not carry: the type
-dictionaries and their variables (most of FX Data), the encodings, and nodes
-no type or folder holds. Methods, DataTypes and ReferenceTypes, 0 % in chain
-A, come back completely.
+What the inverse loses itself is small: a ParentNodeId that Safety writes for
+an organized node and DI does not (the AML cannot tell them apart), and a few
+references and definition fields. Methods, DataTypes and ReferenceTypes, 0 %
+in chain A, come back completely.
+
+#### Corpus of companion specifications
+
+The same chain over 34 companion specifications of
+[OPCFoundation/UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset)
+(commit `4b79bcf`, 2026-08-18; newest version where a model has several),
+every fact of every node of the model counted:
+
+| Model | Nodes kept | Facts kept | Lost by Annex A | Lost by the inverse |
+|---|---:|---:|---:|---:|
+| AMB | 80/92 | 664/804 (83 %) | 139 | 1 |
+| AutoID | 185/305 | 1764/2895 (61 %) | 1130 | 1 |
+| CommercialKitchenEquipment | 793/797 | 7288/7406 (98 %) | 118 | 0 |
+| CranesHoists | 88/89 | 690/748 (92 %) | 48 | 10 |
+| Gds | 355/405 | 3236/3766 (86 %) | 522 | 8 |
+| Glass.v2 | 110/149 | 1052/1380 (76 %) | 327 | 1 |
+| gms | 246/273 | 2152/2410 (89 %) | 255 | 3 |
+| IA | 111/122 | 960/1099 (87 %) | 139 | 0 |
+| Ijt.Base | 617/782 | 6015/7760 (78 %) | 1708 | 37 |
+| Ijt.Tightening | 30/36 | 305/372 (82 %) | 67 | 0 |
+| isa95-jobcontrol | 199/258 | 2104/2625 (80 %) | 510 | 11 |
+| LADS | 624/650 | 5097/5451 (94 %) | 318 | 36 |
+| LaserSystems | 275/287 | 2337/2721 (86 %) | 377 | 7 |
+| Machinery | 180/180 | 1683/1772 (95 %) | 89 | 0 |
+| Machinery.Examples | 293/514 | 2744/4900 (56 %) | 2143 | 13 |
+| Machinery.Energy | 93/112 | 864/956 (90 %) | 92 | 0 |
+| Machinery.Jobs | 40/60 | 383/566 (68 %) | 183 | 0 |
+| Machinery.ProcessValues | 138/138 | 1266/1280 (99 %) | 9 | 5 |
+| Machinery_Result | 77/124 | 732/1212 (60 %) | 453 | 27 |
+| MachineTool | 560/589 | 5029/5430 (93 %) | 398 | 3 |
+| MachineVision | 718/790 | 7194/7958 (90 %) | 746 | 18 |
+| MetalForming | 151/155 | 1298/1368 (95 %) | 57 | 13 |
+| PackML | 220/248 | 1988/2265 (88 %) | 277 | 0 |
+| IRDI | 271/271 | 1387/1389 (100 %) | 2 | 0 |
+| PADIM | 786/788 | 6586/7338 (90 %) | 750 | 2 |
+| PlasticsRubber.GeneralTypes | 907/961 | 8651/9255 (93 %) | 589 | 15 |
+| PlasticsRubber.IMM2MES | 317/321 | 3198/3300 (97 %) | 79 | 23 |
+| Pumps | 9585/9624 | 91973/92552 (99 %) | 524 | 55 |
+| Robotics | 461/531 | 3787/4457 (85 %) | 667 | 3 |
+| Scales | 1244/1348 | 11434/12533 (91 %) | 1062 | 37 |
+| TMC | 9272/9376 | 87783/89068 (99 %) | 1088 | 197 |
+| Weihenstephan | 59/59 | 423/440 (96 %) | 17 | 0 |
+| Woodworking | 1802/1816 | 16759/16954 (99 %) | 195 | 0 |
+| Eumabois | 212/212 | 2025/2044 (99 %) | 19 | 0 |
+| **All 34** | 31099/32462 | 290851/306474 (94.9 %) | 15097 | 526 (0.17 %) |
+
+Four of them first stopped inside Opc2Aml, which patches 0005 to 0008 fix
+(see [UPSTREAM.md](../third_party/Opc2Aml/UPSTREAM.md)): a structure that
+contains itself (Glass v2, a stack overflow that would end the editor), a
+reference to a dictionary entry no model defines (MetalForming, MachineVision),
+and a symmetric reference type (MachineVision). The inverse needed DisplayNames
+that differ from the BrowseName, locales of texts, NodeId values, nodes held by
+two parents, the "ThreeD" XML names of the base model's 3D types, models with
+instances only (IRDI), and an index of interfaces for models with tens of
+thousands of links (TMC, Pumps).
+
+Still open, losses of the inverse above ten in one model: MethodDeclarationId
+in TMC (96), ParentNodeId in TMC (58), Scales (36) and Machinery Result (20),
+references in Pumps (48) and LADS (30), values in TMC (23) and MachineVision (17).
+
+The run takes about half an hour the first time and under a minute from the
+conversion cache:
+
+```bash
+uaaml roundtrip <NodeSets> --search <their folders> --inverse -o corpus.md
+```
 
 ### Chain B: AML to NodeSet to AML
 

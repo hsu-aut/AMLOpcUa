@@ -115,7 +115,7 @@ while the FX NodeSets of the tag define it in FX Data.
   instances).
 - **Cache.** A conversion is kept in `%LOCALAPPDATA%\AMLOpcUa\conversions`
   (`ConversionCache`, the last 40), under a key made of the content of the
-  NodeSet and every file it requires and of the builds of Opc2Aml and
-  OpcUaAml.Core. Converting the same files again takes under a second
+  NodeSet and every file it requires, the build of Opc2Aml and a format
+  number for how the import runs it. Converting the same files again takes under a second
   (DI: 0.7 s instead of 15 s). `NodeSetImporter.Cache = null` turns it off;
   the plugin empties it with Settings › Forget earlier conversions.

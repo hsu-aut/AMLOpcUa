@@ -22,7 +22,7 @@ OPC UA information models in AutomationML.
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
 the OPC Foundation's reference implementation of Annex A, included as source
-with five documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
+with eight documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
 
 The counterparts for the Formalised Process Description (VDI/VDE 3682) and for
 Petri nets are [AMLFPB.js](https://github.com/hsu-aut/AMLFPB.js) and
@@ -51,7 +51,12 @@ expected next to this repository.
 ```bash
 dotnet build AMLOpcUa.sln
 dotnet test dotnet/OpcUaAml.Tests
+dotnet test dotnet/OpcUaAml.Tests --filter "Speed!=Slow"   # without servers and fresh conversions
 ```
+
+Conversions are cached (see [import](docs/import.md)), so a second run of the
+whole suite takes a few minutes; the fast run under half a minute. Some tests
+read cases shared with InfoModel.js when it lies next to this repository.
 
 The plugin package ends up in
 `build/Plugins/Aml.Editor.Plugin.OpcUa/<configuration>/`.

@@ -271,10 +271,12 @@ instances of one namespace and writes the nodes they came from:
 
 NodeIds are the ones Annex A kept in the IDs and `NodeId` attributes, so the
 result can replace the original. Values are written for built in types and
-their subtypes, enumerations (Annex A writes the name, OPC UA the number),
-option sets (Annex A writes one boolean per option), Arguments, and
-structures of the namespace itself or of a bundled model (UA, DI), whose XML
-encodings are known. Children that Opc2Aml repeats below typed declarations
+their subtypes, texts with their locale, NodeIds, enumerations (Annex A
+writes the name, OPC UA the number), option sets (Annex A writes one boolean
+per option), Arguments, and structures of the namespace itself or of a
+bundled model (UA, DI), whose XML encodings are known. A DisplayName that
+differs from the BrowseName comes back; a node that two parents hold is
+written once with a reference from each. Children that Opc2Aml repeats below typed declarations
 are recognised by their NodeId and written once.
 
 ```bash
@@ -293,9 +295,11 @@ trip measures it node by node (chain C in [roundtrip](roundtrip.md)):
 - Documentation, type dictionaries and their variables, and nodes no type or
   folder holds.
 - The original NodeIds of encodings; structures get new ones.
-- Descriptions of DataTypes in some models, and of option set bits.
-- Empty strings (Annex A writes no value) and values of structures from models
-  that are neither the exported one nor bundled.
+- Descriptions of DataTypes in some models, of option set bits, and the field
+  definitions of some option sets.
+- Empty values and matrices (Annex A writes an empty Value attribute for
+  them and for no value alike), and values of structures from models that
+  are neither the exported one nor bundled.
 - References a declaration has to declarations of another type, for example to
   the placeholders of its own type definition: in AML they look like the
   children Opc2Aml repeats below every typed declaration.
