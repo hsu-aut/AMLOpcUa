@@ -5,7 +5,7 @@ The Modeler tab hosts the graphical modeler
 draws OPC UA types and instances in the notation of OPC 10000-3 Annex C and
 edits NodeSet2 files: types, instance declarations with ModellingRules,
 method arguments, structure and union fields, enumeration values and
-OptionSets, values including simple structures, references,
+OptionSets, values including structures of any shape, references,
 instances by ModellingRule, checks, undo.
 
 The modeler edits NodeSets, not the document. The document gets what the
