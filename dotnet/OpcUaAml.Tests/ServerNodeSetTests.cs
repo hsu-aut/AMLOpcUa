@@ -70,6 +70,7 @@ public sealed class DiFileTestServer : DiTestServer
     protected override bool PublishFile => true;
 }
 
+[Trait("Speed", "Slow")]
 public class ServerNamespaceFileTests(DiFileTestServer server) : IClassFixture<DiFileTestServer>
 {
     [Fact]
@@ -96,6 +97,7 @@ public class ServerNamespaceFileTests(DiFileTestServer server) : IClassFixture<D
     }
 }
 
+[Trait("Speed", "Slow")]
 public class ServerNodeSetTests(DiTestServer server) : IClassFixture<DiTestServer>
 {
     private const string Di = "nsu=http://opcfoundation.org/UA/DI/;";

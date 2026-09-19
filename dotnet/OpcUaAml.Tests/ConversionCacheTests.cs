@@ -3,6 +3,7 @@ using OpcUaAml.NodeSets;
 
 namespace OpcUaAml.Tests;
 
+[Trait("Speed", "Slow")]
 public class ConversionCacheTests
 {
     private static readonly string Safety = Fixtures.Path("uafx", "Opc.Ua.Safety.NodeSet2.xml");

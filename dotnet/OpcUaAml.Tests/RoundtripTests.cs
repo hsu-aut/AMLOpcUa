@@ -8,6 +8,7 @@ namespace OpcUaAml.Tests;
 /// chains keep and lose today; a change in the numbers is a change in one of
 /// the mappings and should be looked at, not waved through.
 /// </summary>
+[Trait("Speed", "Slow")]
 public class RoundtripTests
 {
     private static Criterion C(RoundtripReport r, string name) => r.Criteria.Single(c => c.Name == name);

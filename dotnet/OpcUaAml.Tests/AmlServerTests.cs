@@ -5,6 +5,7 @@ using OpcUaAml.Types;
 
 namespace OpcUaAml.Tests;
 
+[Trait("Speed", "Slow")]
 public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
 {
     private static int FreePort()

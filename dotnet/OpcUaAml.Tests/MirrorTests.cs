@@ -6,6 +6,7 @@ using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
 
+[Trait("Speed", "Slow")]
 public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestServer>, IClassFixture<DiDocument>
 {
     private UaConnectOptions Options() => new()

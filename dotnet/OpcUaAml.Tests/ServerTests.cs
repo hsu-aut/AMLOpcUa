@@ -3,6 +3,7 @@ using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
 
+[Trait("Speed", "Slow")]
 public class ServerTests(TestServer server) : IClassFixture<TestServer>
 {
     private static UaNodeAddress Plant(string id) => new(TestServer.Namespace, UaIdType.String, id);

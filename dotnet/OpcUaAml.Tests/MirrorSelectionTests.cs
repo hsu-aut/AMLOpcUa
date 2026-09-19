@@ -5,6 +5,7 @@ using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
 
+[Trait("Speed", "Slow")]
 public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixture<TestServer>, IClassFixture<DiDocument>
 {
     private static UaNodeAddress Plant(string id) => new(TestServer.Namespace, UaIdType.String, id);
