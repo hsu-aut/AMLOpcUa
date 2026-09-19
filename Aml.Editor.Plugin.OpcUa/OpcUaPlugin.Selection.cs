@@ -479,7 +479,7 @@ public sealed class ChecklistWindow : Window
 
         var frame = new Border
         {
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0xDD, 0xE1, 0xE6)), BorderThickness = new Thickness(1), Padding = new Thickness(6, 4, 6, 4),
+            BorderBrush = ThemePalette.Current().Line, BorderThickness = new Thickness(1), Padding = new Thickness(6, 4, 6, 4),
             Child = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
         };
         DialogKit.Frame(this, glyph, DialogKit.Exchange, title, hint, frame, left, ok, DialogKit.Action("Cancel", cancel: true));

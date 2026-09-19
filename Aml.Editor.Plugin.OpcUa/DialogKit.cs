@@ -16,10 +16,10 @@ internal static class DialogKit
     public static readonly Brush Create = Frozen(0x20, 0xA0, 0x40);
     public static readonly Brush Verify = Frozen(0xE0, 0x80, 0x20);
     public static readonly Brush Relate = Frozen(0x80, 0x40, 0xA0);
-    public static readonly Brush Plain = Frozen(0x60, 0x60, 0x60);
-    public static readonly Brush Muted = Frozen(0x70, 0x70, 0x70);
-    private static readonly Brush Band = Frozen(0xF4, 0xF6, 0xF8);
-    private static readonly Brush Line = Frozen(0xDD, 0xE1, 0xE6);
+    public static readonly Brush Plain = Frozen(0x80, 0x80, 0x80);
+
+    /// <summary>Grey text in the current theme.</summary>
+    public static Brush Muted => ThemePalette.Current().Muted;
     private static readonly FontFamily Icons = new("Segoe MDL2 Assets");
 
     private static Brush Frozen(byte r, byte g, byte b)
@@ -33,8 +33,11 @@ internal static class DialogKit
     public static void Frame(Window window, string glyph, Brush accent, string title, string text, UIElement body,
         UIElement? footerLeft, params Button[] buttons)
     {
+        var palette = ThemePalette.Current();
         window.Title = title;
-        window.Background = Brushes.White;
+        window.Background = palette.Surface;
+        window.Foreground = palette.Foreground;
+        palette.ApplyTo(window);
         window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
         window.ShowInTaskbar = false;
 
@@ -47,7 +50,7 @@ internal static class DialogKit
         DockPanel.SetDock(icon, Dock.Left);
         headerRow.Children.Add(icon);
         headerRow.Children.Add(heading);
-        var header = new Border { Background = Band, BorderBrush = Line, BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(16, 12, 16, 12), Child = headerRow };
+        var header = new Border { Background = palette.Band, BorderBrush = palette.Line, BorderThickness = new Thickness(0, 0, 0, 1), Padding = new Thickness(16, 12, 16, 12), Child = headerRow };
 
         var right = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         foreach (var b in buttons)
@@ -63,7 +66,7 @@ internal static class DialogKit
             if (footerLeft is FrameworkElement f) f.VerticalAlignment = VerticalAlignment.Center;
             footerRow.Children.Add(footerLeft);
         }
-        var footer = new Border { Background = Band, BorderBrush = Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(16, 10, 16, 10), Child = footerRow };
+        var footer = new Border { Background = palette.Band, BorderBrush = palette.Line, BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(16, 10, 16, 10), Child = footerRow };
 
         var root = new DockPanel();
         DockPanel.SetDock(header, Dock.Top);

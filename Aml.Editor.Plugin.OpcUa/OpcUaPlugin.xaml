@@ -25,7 +25,7 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style x:Key="Hint" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#707070"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
@@ -33,28 +33,31 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
-        <Style TargetType="TabItem">
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
+        <SolidColorBrush x:Key="Ua.Surface" Color="White"/>
+        <SolidColorBrush x:Key="Ua.Foreground" Color="Black"/>
+        <SolidColorBrush x:Key="Ua.Band" Color="#F4F6F8"/>
+        <SolidColorBrush x:Key="Ua.Line" Color="#DDE1E6"/>
+        <SolidColorBrush x:Key="Ua.Muted" Color="#707070"/>
+        <SolidColorBrush x:Key="Ua.CardHover" Color="#EEF4FB"/>
         <SolidColorBrush x:Key="Exchange" Color="#2070C0"/>
         <SolidColorBrush x:Key="Create" Color="#20A040"/>
         <SolidColorBrush x:Key="Verify" Color="#E08020"/>
         <SolidColorBrush x:Key="Relate" Color="#8040A0"/>
-        <SolidColorBrush x:Key="Plain" Color="#606060"/>
+        <SolidColorBrush x:Key="Plain" Color="#808080"/>
         <!-- A flat card for the first steps in an empty document. -->
         <Style x:Key="Card" TargetType="Button">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="Frame" Background="White" BorderBrush="#DDE1E6" BorderThickness="1" CornerRadius="6"
+                        <Border x:Name="Frame" Background="{DynamicResource Ua.Surface}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1" CornerRadius="6"
                                 Padding="16,14" Margin="0,0,12,12" Width="250">
                             <ContentPresenter/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Frame" Property="BorderBrush" Value="#2070C0"/>
-                                <Setter TargetName="Frame" Property="Background" Value="#F5F9FD"/>
+                                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Ua.CardHover}"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Frame" Property="Opacity" Value="0.5"/>
@@ -75,13 +78,14 @@
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
         <Style x:Key="CardText" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#606060"/>
+            <Setter Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
     </aml:PluginViewBase.Resources>
 
     <DockPanel>
-        <StatusBar DockPanel.Dock="Bottom">
+        <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource Ua.Band}" Foreground="{DynamicResource Ua.Foreground}"
+                   BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,1,0,0">
             <StatusBarItem>
                 <ProgressBar x:Name="Busy" Width="80" Height="12" IsIndeterminate="True" Visibility="Collapsed"/>
             </StatusBarItem>
@@ -176,7 +180,7 @@
 
                         <DockPanel Grid.Row="0" Margin="6,6,6,4">
                             <TextBlock DockPanel.Dock="Top" Text="OPC UA namespaces in this document" Style="{StaticResource Caption}" Margin="0,0,0,4"/>
-                            <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="#707070" TextWrapping="Wrap"
+                            <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="{DynamicResource Ua.Muted}" TextWrapping="Wrap"
                                        Text="Open a CAEX 3.0 document to import OPC UA NodeSets."/>
                             <Grid>
                                 <ListView x:Name="NamespaceList" MouseDoubleClick="NamespaceList_DoubleClick"
@@ -197,7 +201,7 @@
                                     </ListView.View>
                                 </ListView>
                                 <!-- First steps, while the document has no OPC UA model yet. -->
-                                <ScrollViewer x:Name="StartPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Background="#FAFBFC">
+                                <ScrollViewer x:Name="StartPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Background="{DynamicResource Ua.Band}">
                                     <StackPanel Margin="18,16">
                                         <TextBlock Text="Bring OPC UA into this document" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <TextBlock Style="{StaticResource CardText}" Margin="0,0,0,14"
@@ -262,24 +266,24 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Time}" Foreground="#909090" Margin="0,0,8,0"/>
-                                            <Border x:Name="Badge" CornerRadius="3" Padding="4,0" Margin="0,0,8,0" Background="#E4EEF9" MinWidth="46">
-                                                <TextBlock x:Name="Level" Text="{Binding Level}" Foreground="#2070C0" TextAlignment="Center"/>
+                                            <TextBlock Text="{Binding Time}" Foreground="{DynamicResource Ua.Muted}" Margin="0,0,8,0"/>
+                                            <Border x:Name="Badge" CornerRadius="3" Padding="4,0" Margin="0,0,8,0" BorderThickness="1" BorderBrush="#4A8AD0" MinWidth="46">
+                                                <TextBlock x:Name="Level" Text="{Binding Level}" Foreground="#4A8AD0" TextAlignment="Center"/>
                                             </Border>
                                             <TextBlock Text="{Binding Message}"/>
                                         </StackPanel>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Level}" Value="WARN">
-                                                <Setter TargetName="Badge" Property="Background" Value="#FCEFE0"/>
-                                                <Setter TargetName="Level" Property="Foreground" Value="#B06010"/>
+                                                <Setter TargetName="Badge" Property="BorderBrush" Value="#D08020"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="#D08020"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Level}" Value="ERROR">
-                                                <Setter TargetName="Badge" Property="Background" Value="#FBE3E3"/>
-                                                <Setter TargetName="Level" Property="Foreground" Value="#C03030"/>
+                                                <Setter TargetName="Badge" Property="BorderBrush" Value="#D04040"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="#D04040"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Level}" Value="DEBUG">
-                                                <Setter TargetName="Badge" Property="Background" Value="#EEEEEE"/>
-                                                <Setter TargetName="Level" Property="Foreground" Value="#707070"/>
+                                                <Setter TargetName="Badge" Property="BorderBrush" Value="{DynamicResource Ua.Muted}"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>
@@ -350,7 +354,7 @@
                     </Grid.RowDefinitions>
 
                     <!-- Connection -->
-                    <Border Grid.Row="0" Background="#F4F6F8" BorderBrush="#DDE1E6" BorderThickness="0,0,0,1" Padding="6,5">
+                    <Border Grid.Row="0" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,5">
                         <DockPanel>
                             <Button x:Name="ConnectButton" DockPanel.Dock="Right" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
                                 <StackPanel Orientation="Horizontal">
@@ -364,7 +368,7 @@
                             <TextBlock DockPanel.Dock="Right" Text="Password" Style="{StaticResource Hint}" Margin="8,0,4,0"/>
                             <TextBox x:Name="UserBox" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="User name (empty for anonymous)"/>
                             <TextBlock DockPanel.Dock="Right" Text="User" Style="{StaticResource Hint}" Margin="8,0,4,0"/>
-                            <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0" Background="#E6E8EB">
+                            <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="ServerStateText" Text="Not connected" VerticalAlignment="Center" FontSize="11"/>
@@ -442,7 +446,7 @@
                     </ToolBar>
 
                     <!-- What to take -->
-                    <Border Grid.Row="2" BorderBrush="#DDE1E6" BorderThickness="0,0,0,1" Padding="6,4">
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,4">
                         <WrapPanel>
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE71C;" Foreground="{StaticResource Plain}"/>
                             <CheckBox x:Name="SkipPropertiesBox" Content="Leave out properties" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
@@ -492,7 +496,7 @@
                             </Grid.RowDefinitions>
                             <DockPanel Grid.Row="0">
                                 <TextBlock DockPanel.Dock="Top" Text="Node" Style="{StaticResource Caption}" Margin="0,0,0,3"/>
-                                <Border BorderBrush="#DDE1E6" BorderThickness="1" Padding="8,6">
+                                <Border BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1" Padding="8,6">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                         <Grid x:Name="NodeDetails">
                                             <Grid.ColumnDefinitions>
@@ -593,7 +597,7 @@
                                Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type."/>
                     <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White"
                                   PreviewMouseWheel="DiagramScroll_PreviewMouseWheel">
-                        <Canvas x:Name="DiagramCanvas" Margin="4"/>
+                        <Canvas x:Name="DiagramCanvas" Margin="4" TextElement.Foreground="Black"/>
                     </ScrollViewer>
                 </DockPanel>
             </TabItem>

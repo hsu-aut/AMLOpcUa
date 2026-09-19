@@ -286,7 +286,8 @@ public partial class OpcUaPlugin : ISupportsSelection
                 var r = await client.ReadAsync(node.Address);
                 if (version != _detailsVersion) return;
                 valueRow.Text = r.Good ? $"{r.ValueText}" : r.Status;
-                valueRow.Foreground = r.Good ? Brushes.Black : new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30));
+                if (r.Good) valueRow.ClearValue(TextBlock.ForegroundProperty);
+                else valueRow.Foreground = new SolidColorBrush(Color.FromRgb(0xD0, 0x40, 0x40));
                 if (r.Good && r.DataType != null) DetailRow("DataType", r.DataType);
             }
             catch (Exception ex) { valueRow.Text = ex.Message; }
@@ -298,7 +299,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var row = NodeDetails.RowDefinitions.Count;
         NodeDetails.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var name = new TextBlock { Text = label, Foreground = new SolidColorBrush(Color.FromRgb(0x70, 0x70, 0x70)), Margin = new Thickness(0, 2, 12, 2) };
+        var name = new TextBlock { Text = label, Foreground = ThemePalette.Current(this).Muted, Margin = new Thickness(0, 2, 12, 2) };
         Grid.SetRow(name, row);
         NodeDetails.Children.Add(name);
         var text = new TextBlock
@@ -526,7 +527,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServerStateText.Text = (connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
                                + (_host != null ? $"  ·  serving at {_host.EndpointUrl}" : "");
         ConnectionDot.Fill = new SolidColorBrush(connected ? Color.FromRgb(0x2E, 0x9E, 0x4F) : Color.FromRgb(0x9A, 0xA0, 0xA6));
-        ConnectionPill.Background = new SolidColorBrush(connected ? Color.FromRgb(0xE3, 0xF4, 0xE8) : Color.FromRgb(0xE6, 0xE8, 0xEB));
+        var palette = ThemePalette.Current(this);
+        ConnectionPill.Background = connected ? palette.PillOn : palette.PillIdle;
         ConnectionPill.ToolTip = connected ? _client!.EndpointUrl : null;
     }
 }

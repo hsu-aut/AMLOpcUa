@@ -181,6 +181,7 @@ public partial class OpcUaPlugin
                 Text = n.Name + (n.ModellingRule != null ? $" ({n.ModellingRule})" : ""),
                 FontWeight = FontWeights.SemiBold,
                 TextAlignment = TextAlignment.Center,
+                Foreground = Brushes.Black,
             });
             if (second != null)
                 panel.Children.Add(new TextBlock { Text = second, FontSize = 10, FontStyle = FontStyles.Italic, Foreground = grey, TextAlignment = TextAlignment.Center });

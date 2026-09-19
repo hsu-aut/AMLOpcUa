@@ -89,7 +89,9 @@ Every tab has a toolbar in the style of the other plugins of this family
 (icons of the editor's font, colour by kind of command); messages and
 progress appear in one status bar below all tabs, the log shows each line's
 level in colour and opens its file. Dialogs share one frame: what the dialog
-does in its header, the answer in its footer.
+does in its header, the answer in its footer. Surfaces, lines and grey text are
+mixed from the editor's theme (Aml.Skins on MahApps.Metro), so the plugin
+reads in the light and the dark theme; the diagram stays a white sheet.
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor
