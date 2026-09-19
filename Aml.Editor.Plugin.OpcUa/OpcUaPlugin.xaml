@@ -169,6 +169,9 @@
                                               ToolTip="Trigger the editor's save command after a successful import."/>
                                     <MenuItem x:Name="DebugToggle" Header="Debug log" IsCheckable="True"
                                               Checked="DebugToggle_Changed" Unchecked="DebugToggle_Changed"/>
+                                    <Separator/>
+                                    <MenuItem Header="Forget earlier conversions" Click="ClearCache_Click"
+                                              ToolTip="A NodeSet converted before is taken from a cache instead of being converted again (seconds instead of a quarter minute). This empties the cache."/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>

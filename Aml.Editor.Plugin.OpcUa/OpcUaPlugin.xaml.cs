@@ -432,6 +432,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
     }
 
+    private void ClearCache_Click(object sender, RoutedEventArgs e)
+    {
+        OpcUaAml.Import.ConversionCache.Default.Clear();
+        PluginLog.Info($"Emptied the conversion cache ({OpcUaAml.Import.ConversionCache.Default.Folder}).");
+        SetStatus("Earlier conversions forgotten; the next import converts again.");
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
