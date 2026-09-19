@@ -26,6 +26,8 @@ public partial class OpcUaPlugin : ISupportsSelection
     private LiveValues? _live;
     private DateTime _liveStatusShown;
     private AmlServerHost? _host;
+    private IDisposable? _hostFollow;
+    private bool _structureNoted;
     private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
 
@@ -199,6 +201,8 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         if (_host != null)
         {
+            _hostFollow?.Dispose();
+            _hostFollow = null;
             await _host.DisposeAsync();
             _host = null;
             PluginLog.Info("Document server stopped.");
@@ -213,6 +217,17 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port });
+            // Values edited in the document reach the served nodes; new or removed elements need a restart.
+            _structureNoted = false;
+            var host = _host;
+            _hostFollow = host.FollowDocument(refresh => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_host, host)) refresh(); }), changed =>
+            {
+                if (changed > 0) PluginLog.Debug($"Served values updated: {changed}.");
+                if (!host.StructureChanged || _structureNoted) return;
+                _structureNoted = true;
+                PluginLog.Info("Elements were added or removed; restart serving to show them.");
+                SetStatus("The document server shows the values as they change; restart it to show added or removed elements.");
+            });
             var message = $"Serving {_host.Nodes} node(s) of this document at {_host.EndpointUrl}.";
             PluginLog.Info(message);
             SetStatus(message);

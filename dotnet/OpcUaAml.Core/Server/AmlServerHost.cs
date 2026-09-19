@@ -7,10 +7,12 @@
 // Value attribute and no children. An element with an Annex A NodeId keeps
 // it (its namespace is registered on the server); the others get string
 // NodeIds from their path in a namespace of their own. Values come from the
-// Value attributes, typed by their AttributeDataType. The address space is a
-// snapshot of the document at start; restart to pick up changes.
+// Value attributes, typed by their AttributeDataType. The nodes are those of
+// the document at start; their values follow the document (RefreshValues,
+// FollowDocument), new or removed elements need a restart (StructureChanged).
 
 using System.Globalization;
+using System.Xml.Linq;
 using Aml.Engine.CAEX;
 using Opc.Ua;
 using Opc.Ua.Configuration;
@@ -37,13 +39,76 @@ public sealed class AmlServerOptions
 
 public sealed class AmlServerHost : IAsyncDisposable
 {
-    private readonly StandardServer _server;
+    private readonly DocumentServer _server;
+    private readonly CAEXDocument _document;
+    private readonly string _documentNamespace;
 
-    private AmlServerHost(StandardServer server, string endpointUrl, int nodes)
+    private AmlServerHost(DocumentServer server, string endpointUrl, int nodes, CAEXDocument document, string documentNamespace)
     {
         _server = server;
         EndpointUrl = endpointUrl;
         Nodes = nodes;
+        _document = document;
+        _documentNamespace = documentNamespace;
+    }
+
+    /// <summary>
+    /// Elements were added or removed since the server started; a running
+    /// server cannot show them, a restart does.
+    /// </summary>
+    public bool StructureChanged { get; private set; }
+
+    /// <summary>
+    /// Reads the Value of every served variable from its element again and
+    /// publishes what changed; subscribed clients see it at once. Call it where
+    /// the document may be read (the editor's UI thread). Returns how many
+    /// values changed.
+    /// </summary>
+    public int RefreshValues()
+    {
+        var changed = _server.NodeManager?.Refresh() ?? 0;
+        StructureChanged = AmlAddressSpace.From(_document, _documentNamespace).Count != Nodes;
+        return changed;
+    }
+
+    /// <summary>
+    /// Refreshes the served values whenever the document changes: after a
+    /// short quiet time, so a burst of edits refreshes once, and through
+    /// <paramref name="dispatch"/>, which must run the refresh where the
+    /// document may be read. Dispose the result to stop following.
+    /// </summary>
+    public IDisposable FollowDocument(Action<Action> dispatch, Action<int>? refreshed = null, TimeSpan? quiet = null)
+    {
+        var xml = _document.CAEXFile.Node.Document ?? throw new InvalidOperationException("The document has no XML root.");
+        var delay = quiet ?? TimeSpan.FromMilliseconds(300);
+        Timer? timer = null;
+        void Fire(object? _) => dispatch(() =>
+        {
+            var changed = RefreshValues();
+            refreshed?.Invoke(changed);
+        });
+        void OnChanged(object? sender, XObjectChangeEventArgs e)
+        {
+            timer ??= new Timer(Fire);
+            timer.Change(delay, Timeout.InfiniteTimeSpan);
+        }
+        xml.Changed += OnChanged;
+        return new Follower(() =>
+        {
+            xml.Changed -= OnChanged;
+            timer?.Dispose();
+        });
+    }
+
+    private sealed class Follower(Action stop) : IDisposable
+    {
+        private Action? _stop = stop;
+
+        public void Dispose()
+        {
+            _stop?.Invoke();
+            _stop = null;
+        }
     }
 
     public string EndpointUrl { get; }
@@ -71,7 +136,7 @@ public sealed class AmlServerHost : IAsyncDisposable
 
         var server = new DocumentServer(model);
         await app.StartAsync(server).ConfigureAwait(false);
-        return new AmlServerHost(server, url, model.Count);
+        return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace);
     }
 
     public async ValueTask DisposeAsync()
@@ -83,13 +148,41 @@ public sealed class AmlServerHost : IAsyncDisposable
 
     private sealed class DocumentServer(AmlAddressSpace model) : StandardServer
     {
-        protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration) =>
-            new(server, configuration, null, new DocumentNodeManager(server, configuration, model));
+        public DocumentNodeManager? NodeManager { get; private set; }
+
+        protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
+        {
+            NodeManager = new DocumentNodeManager(server, configuration, model);
+            return new(server, configuration, null, NodeManager);
+        }
     }
 
     private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model)
         : CustomNodeManager2(server, configuration, model.NamespaceUris.ToArray())
     {
+        private readonly List<(BaseDataVariableState State, AmlNode Node)> _variables = new();
+
+        /// <summary>The values of the served variables from their elements again; the number that changed.</summary>
+        public int Refresh()
+        {
+            var changed = 0;
+            lock (Lock)
+            {
+                foreach (var (state, node) in _variables)
+                {
+                    if (node.Source?.Attribute["Value"] is not { } attribute) continue;
+                    var (_, value) = Typed(attribute.Value, attribute.AttributeDataType ?? node.DataType);
+                    if (Equals(value, state.Value) || (value is Array a && state.Value is Array b && a.Cast<object>().SequenceEqual(b.Cast<object>()))) continue;
+                    state.Value = value;
+                    state.StatusCode = value == null ? StatusCodes.UncertainInitialValue : StatusCodes.Good;
+                    state.Timestamp = DateTime.UtcNow;
+                    state.ClearChangeMasks(SystemContext, false);
+                    changed++;
+                }
+            }
+            return changed;
+        }
+
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
         {
             lock (Lock)
@@ -136,6 +229,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                     StatusCode = value == null ? StatusCodes.UncertainInitialValue : StatusCodes.Good,
                     Timestamp = DateTime.UtcNow,
                 };
+                _variables.Add(((BaseDataVariableState)state, node));
             }
             else
             {
@@ -180,7 +274,11 @@ public sealed class AmlServerHost : IAsyncDisposable
 
 /// <summary>The part of a document the server exposes, independent of the stack.</summary>
 public sealed record AmlNode(string Name, UaNodeAddress Address, bool IsFolder, bool IsVariable, string? Value, string? DataType,
-    IReadOnlyList<AmlNode> Children);
+    IReadOnlyList<AmlNode> Children)
+{
+    /// <summary>The element the node was made from; its Value is read again on a refresh.</summary>
+    public InternalElementType? Source { get; init; }
+}
 
 public sealed class AmlAddressSpace
 {
@@ -223,7 +321,7 @@ public sealed class AmlAddressSpace
             : ie.Attribute["Value"] != null && children.Count == 0;
         var value = ie.Attribute["Value"];
         Count++;
-        return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children);
+        return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children) { Source = ie };
     }
 
     /// <summary>Two elements can carry the same NodeId (copied instances); the second gets a path id.</summary>

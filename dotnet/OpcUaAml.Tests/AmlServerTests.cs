@@ -74,6 +74,43 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task Served_values_follow_the_document()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Live");
+        var speed = ih.InternalElement.Append("Line").InternalElement.Append("Speed");
+        var value = speed.Attribute.Append("Value");
+        value.AttributeDataType = "xs:double";
+        value.Value = "1.5";
+
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        using var follow = host.FollowDocument(refresh => refresh(), quiet: TimeSpan.FromMilliseconds(50));
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl,
+            UseSecurity = false,
+            AcceptUntrustedServerCertificates = true,
+            PkiRoot = Path.Combine(pki, "client"),
+        });
+        var node = new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Live/Line/Speed");
+        var seen = new System.Collections.Concurrent.ConcurrentQueue<string?>();
+        await using (await client.WatchAsync(new[] { node }, r => seen.Enqueue(r.ValueText), publishingIntervalMs: 100))
+        {
+            value.Value = "2.5";
+            for (var i = 0; i < 50 && !seen.Contains("2.5"); i++) await Task.Delay(100);
+        }
+
+        Assert.Contains("2.5", seen);
+        Assert.Equal("2.5", (await client.ReadAsync(node)).ValueText);
+        Assert.False(host.StructureChanged);
+
+        ih.InternalElement.Append("Pump");
+        host.RefreshValues();
+        Assert.True(host.StructureChanged);
+    }
+
+    [Fact]
     public void Duplicate_NodeIds_are_made_unique()
     {
         var doc = CAEXDocument.New_CAEXDocument();

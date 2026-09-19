@@ -171,8 +171,11 @@ Variables if their UA type is a VariableType or they carry a `Value` and no
 children. Elements with an Annex A NodeId keep it (the namespace is
 registered), the others get a string NodeId from their path in
 `urn:amlopcua:document`. Values come from the `Value` attributes, typed by
-their AttributeDataType. The address space is a snapshot of the document at
-start; restart to pick up changes. `AmlServerTests` serves a document and
+their AttributeDataType. The nodes are those of the document at start; their
+values follow it: a change in the document reaches the served nodes after a
+short quiet time, and subscribed clients see it (`FollowDocument`,
+`RefreshValues`). Added or removed elements need a restart; the plugin says
+so once. `AmlServerTests` serves a document and
 mirrors it back: structure and values survive.
 
 Values are written as AML holds them: invariant culture, XML Schema lexical
