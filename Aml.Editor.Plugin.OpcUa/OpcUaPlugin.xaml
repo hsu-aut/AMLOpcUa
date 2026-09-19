@@ -7,6 +7,8 @@
     xmlns:aml="clr-namespace:Aml.Editor.Plugin.WPFBase;assembly=Aml.Editor.Plugin.Contract"
     xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
     mc:Ignorable="d"
+    AllowDrop="True" PreviewDragEnter="Plugin_PreviewDragOver" PreviewDragOver="Plugin_PreviewDragOver"
+    PreviewDragLeave="Plugin_PreviewDragLeave" PreviewDrop="Plugin_PreviewDrop"
     d:DesignHeight="500" d:DesignWidth="800">
 
     <!-- The toolbars follow the other plugins of this family (FPD, Petri net):
@@ -94,6 +96,7 @@
             </StatusBarItem>
         </StatusBar>
 
+        <Grid>
         <TabControl x:Name="Tabs">
             <!-- ── OPC UA: the models in the document ─────────────────────── -->
             <TabItem Header="OPC UA">
@@ -183,8 +186,13 @@
                             <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="{DynamicResource Ua.Muted}" TextWrapping="Wrap"
                                        Text="Open a CAEX 3.0 document to import OPC UA NodeSets."/>
                             <Grid>
-                                <ListView x:Name="NamespaceList" MouseDoubleClick="NamespaceList_DoubleClick"
-                                          ToolTip="Double click to edit a namespace in the modeler.">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ListView x:Name="NamespaceList" MouseDoubleClick="NamespaceList_DoubleClick" SelectionChanged="NamespaceList_SelectionChanged"
+                                          ToolTip="Select a namespace for its details; double click to edit it in the modeler.">
                                     <ListView.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Edit in the modeler" Click="NamespaceEdit_Click"/>
@@ -200,8 +208,15 @@
                                         </GridView>
                                     </ListView.View>
                                 </ListView>
+                                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+                                <Border x:Name="NamespaceDetailsBorder" Grid.Column="2" Width="380" Visibility="Collapsed"
+                                        BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1" Background="{DynamicResource Ua.Band}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <StackPanel x:Name="NamespaceDetailsPanel" Margin="14,12"/>
+                                    </ScrollViewer>
+                                </Border>
                                 <!-- First steps, while the document has no OPC UA model yet. -->
-                                <ScrollViewer x:Name="StartPanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Background="{DynamicResource Ua.Band}">
+                                <ScrollViewer x:Name="StartPanel" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Background="{DynamicResource Ua.Band}">
                                     <StackPanel Margin="18,16">
                                         <TextBlock Text="Bring OPC UA into this document" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <TextBlock Style="{StaticResource CardText}" Margin="0,0,0,14"
@@ -211,7 +226,7 @@
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE8B5;" Foreground="{StaticResource Exchange}"/>
                                                     <TextBlock Style="{StaticResource CardTitle}" Text="Import a NodeSet"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="A companion specification or your own model as NodeSet2.xml; required models are found in the NodeSet folders."/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="A companion specification or your own model as NodeSet2.xml, or drop the files here; required models are found in the NodeSet folders."/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartCloud_Click">
@@ -639,5 +654,19 @@
                 </DockPanel>
             </TabItem>
         </TabControl>
+            <!-- Shown while NodeSet files are dragged over the plugin. -->
+            <Grid x:Name="DropOverlay" Visibility="Collapsed" IsHitTestVisible="False">
+                <Rectangle Margin="10" RadiusX="8" RadiusY="8" Stroke="#2070C0" StrokeThickness="2" StrokeDashArray="5 3" Fill="#262070C0"/>
+                <Border Background="{DynamicResource Ua.Surface}" BorderBrush="#2070C0" BorderThickness="1" CornerRadius="8" Padding="28,18"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel>
+                        <TextBlock Text="&#xE8B5;" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="#2070C0" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Drop NodeSet files to import" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Each file becomes AutomationML libraries by OPC 10000-83 Annex A, with the models it requires."
+                                   Foreground="{DynamicResource Ua.Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
     </DockPanel>
 </aml:PluginViewBase>

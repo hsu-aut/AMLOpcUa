@@ -68,7 +68,16 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   UA base model and DI are built in. The same menu holds "Replace existing
   libraries", "Save after import" and the debug log.
 - The list shows the UA namespaces the document holds, with model version and
-  publication date; a double click opens one in the modeler. A document
+  publication date; a double click opens one in the modeler. Beside it, the
+  selected namespace in detail: its ObjectTypes, VariableTypes, DataTypes and
+  ReferenceTypes, the namespaces it builds on and those built on it, the
+  elements using its types, its types to draw, and **Remove** when nothing
+  needs it any more.
+- NodeSet files dropped on the plugin are imported. When a NodeSet requires
+  models no folder holds, a dialog names them and offers to add a folder or
+  to fetch them from the Cloud Library; the import then tries again. Models
+  the plugin keeps itself (from the modeler, the Cloud Library, servers) are
+  always searched. A document
   without OPC UA shows the first steps instead: import a NodeSet, search the
   Cloud Library, connect to a server, model a new information model.
 - A second import of a namespace replaces its libraries in place; a newer model

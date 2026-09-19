@@ -24,12 +24,13 @@ public sealed class CloudLibraryWindow : Window
     public CloudModel? Selected { get; private set; }
     public string? UserName => string.IsNullOrWhiteSpace(_user.Text) ? null : _user.Text.Trim();
 
-    public CloudLibraryWindow(string? rememberedUser)
+    public CloudLibraryWindow(string? rememberedUser, string? search = null)
     {
         Width = 780;
         Height = 580;
         ResizeMode = ResizeMode.CanResizeWithGrip;
         _user.Text = rememberedUser ?? "";
+        _search.Text = search ?? "";
         _password.Password = _sessionPassword ?? "";
         _apiKey.Password = _sessionApiKey ?? "";
 

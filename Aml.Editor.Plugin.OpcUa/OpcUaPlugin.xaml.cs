@@ -176,7 +176,24 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// </summary>
     private async Task ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
     {
-        var folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Distinct().ToList();
+        // Besides the given folders, the models the plugin keeps itself: from the
+        // modeler, the Cloud Library and servers.
+        var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists)
+            .Concat(Directory.Exists(ServerNodeSetsFolder) ? Directory.GetDirectories(ServerNodeSetsFolder) : Array.Empty<string>());
+        var folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Concat(own).Distinct().ToList();
+
+        // Missing models are asked about before the conversion, which takes seconds.
+        if (NodeSetInfo.TryRead(file) is { } info)
+        {
+            var missing = await Task.Run(() => NodeSetCatalog.Create(folders).MissingDependencies(info));
+            if (missing.Count > 0)
+            {
+                PluginLog.Warn($"{Path.GetFileName(file)} requires models that are not available: {string.Join(", ", missing.Select(m => m.ModelUri))}.");
+                if (await ResolveMissingAsync(file, missing)) await ImportFileAsync(document, file, extraFolders);
+                else SetStatus($"Import of {Path.GetFileName(file)} cancelled: required models are missing.");
+                return;
+            }
+        }
         var options = new MergeOptions { ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries };
 
         SetBusy(true, $"Converting {Path.GetFileName(file)} …");
@@ -233,31 +250,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
             return;
         }
-        var window = new CloudLibraryWindow(_settings.CloudLibraryUser) { Owner = Window.GetWindow(this) };
-        if (window.ShowDialog() != true || window.Selected == null) return;
-        _settings.CloudLibraryUser = window.UserName;
-        _settings.Save();
-
-        var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "cloudlibrary");
-        SetBusy(true, $"Downloading {window.Selected.NamespaceUri} …");
-        IReadOnlyList<string> files;
-        try
-        {
-            var catalog = NodeSetCatalog.Create(new[] { cache }.Concat(_settings.NodeSetFolders));
-            files = await window.CreateClient().DownloadWithDependenciesAsync(window.Selected.Identifier, cache, catalog);
-            foreach (var f in files) PluginLog.Info("Downloaded " + f);
-        }
-        catch (CloudLibraryException ex)
-        {
-            PluginLog.Error(ex.Message);
-            SetStatus(ex.Message);
-            return;
-        }
-        finally
-        {
-            SetBusy(false, null);
-        }
-        await ImportFileAsync(document, files[0], new[] { cache });
+        var files = await DownloadFromCloudAsync("");
+        if (files == null || files.Count == 0) return;
+        await ImportFileAsync(document, files[0], new[] { CloudCache });
     }
 
     private void InstanceButton_Click(object sender, RoutedEventArgs e)
