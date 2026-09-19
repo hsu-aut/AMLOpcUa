@@ -23,6 +23,13 @@ public enum ExportMode
     /// docs/export.md but not implemented.
     /// </summary>
     AmlUaXslt,
+
+    /// <summary>
+    /// The inverse of OPC 10000-83 Annex A, for libraries Annex A generated: the
+    /// namespace's types, DataTypes, ReferenceTypes and objects as the OPC UA
+    /// nodes they were (<see cref="AnnexAInverse"/>). Not a standard.
+    /// </summary>
+    AnnexAInverse,
 }
 
 public sealed class NodeSetExportOptions
@@ -43,6 +50,13 @@ public sealed class NodeSetExportOptions
 
     /// <summary>Write section comments into the NodeSet.</summary>
     public bool Comments { get; init; } = true;
+
+    /// <summary>
+    /// For <see cref="ExportMode.AnnexAInverse"/>: the namespace to export. When
+    /// not given, the document must hold the Annex A libraries of exactly one
+    /// namespace besides those of the UA base model.
+    /// </summary>
+    public string? NamespaceUri { get; init; }
 }
 
 public static class NodeSetExporter
@@ -60,6 +74,11 @@ public static class NodeSetExporter
         return options.Mode switch
         {
             ExportMode.AmlUaXslt => new AmlUaXsltTranslator(root, options).Translate(),
+            ExportMode.AnnexAInverse => AnnexAInverse.Export(caex, new AnnexAInverseOptions
+            {
+                NamespaceUri = options.NamespaceUri ?? AnnexAInverse.SingleNamespace(root),
+                PublicationDate = options.PublicationDate,
+            }),
             _ => throw new NotSupportedException($"Export mode {options.Mode} is not implemented."),
         };
     }
