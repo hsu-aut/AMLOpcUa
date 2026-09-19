@@ -6,6 +6,8 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Engine.CAEX;
@@ -49,10 +51,30 @@ public partial class OpcUaPlugin : ISupportsSelection
 
     private void InitServerTab()
     {
+        EndpointBox.ItemsSource = _settings.RecentEndpoints;
         EndpointBox.Text = _settings.LastEndpointUrl ?? "opc.tcp://localhost:4840";
         SecurityToggle.IsChecked = _settings.UseSecurity;
         InitSelection();
         UpdateServerState();
+    }
+
+    private void EndpointBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Enter || _client != null || _busy) return;
+        e.Handled = true;
+        ConnectButton_Click(sender, e);
+    }
+
+    /// <summary>Keeps an endpoint at the top of the recently used ones.</summary>
+    private void RememberEndpoint(string url)
+    {
+        _settings.RecentEndpoints.RemoveAll(u => string.Equals(u, url, StringComparison.OrdinalIgnoreCase));
+        _settings.RecentEndpoints.Insert(0, url);
+        if (_settings.RecentEndpoints.Count > 8) _settings.RecentEndpoints.RemoveRange(8, _settings.RecentEndpoints.Count - 8);
+        _settings.Save();
+        EndpointBox.ItemsSource = null;
+        EndpointBox.ItemsSource = _settings.RecentEndpoints;
+        EndpointBox.Text = url;
     }
 
     private async void ConnectButton_Click(object sender, RoutedEventArgs e)
@@ -74,6 +96,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             _client = await ConnectWithTrustPromptAsync(url);
             PluginLog.Info($"Connected to {url} ({_client.SecurityMode}); {_client.NamespaceTable.Count} namespaces.");
             SetStatus($"Connected to {url}.");
+            RememberEndpoint(url);
             await LoadRootAsync();
         }
         catch (UaConnectionException ex)
@@ -350,10 +373,24 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    /// <summary>"SignAndEncrypt Basic256Sha256" as "signed and encrypted, Basic256Sha256"; "None None" as "not secured".</summary>
+    private static string SecurityText(string mode)
+    {
+        var parts = mode.Split(' ', 2);
+        return parts[0] switch
+        {
+            "None" => "not secured",
+            "Sign" => "signed" + (parts.Length > 1 ? ", " + parts[1] : ""),
+            "SignAndEncrypt" => "signed and encrypted" + (parts.Length > 1 ? ", " + parts[1] : ""),
+            _ => mode,
+        };
+    }
+
     private void UpdateServerState()
     {
         var connected = _client != null;
-        ConnectButton.Content = connected ? "Disconnect" : "Connect";
+        ConnectText.Text = connected ? "Disconnect" : "Connect";
+        ConnectGlyph.Text = connected ? "\uE711" : "\uE703";
         EndpointBox.IsEnabled = !connected;
         SecurityToggle.IsEnabled = !connected;
         UserBox.IsEnabled = !connected;
@@ -372,11 +409,16 @@ public partial class OpcUaPlugin : ISupportsSelection
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
-        ServeButton.Content = _host != null ? "Stop serving" : "Serve this document";
+        ServeText.Text = _host != null ? "Stop serving" : "Serve this document";
+        ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";
+        ServeGlyph.Foreground = _host != null ? new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30)) : (Brush)FindResource("Create");
         ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;
         ServePortBox.IsEnabled = _host == null;
-        ServerStateText.Text = (connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.")
-                               + (_host != null ? $"    Serving this document at {_host.EndpointUrl}" : "");
+        ServerStateText.Text = (connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
+                               + (_host != null ? $"  ·  serving at {_host.EndpointUrl}" : "");
+        ConnectionDot.Fill = new SolidColorBrush(connected ? Color.FromRgb(0x2E, 0x9E, 0x4F) : Color.FromRgb(0x9A, 0xA0, 0xA6));
+        ConnectionPill.Background = new SolidColorBrush(connected ? Color.FromRgb(0xE3, 0xF4, 0xE8) : Color.FromRgb(0xE6, 0xE8, 0xEB));
+        ConnectionPill.ToolTip = connected ? _client!.EndpointUrl : null;
     }
 }
 
@@ -385,7 +427,19 @@ public enum NamespaceAction { Import, Modeler, Save }
 /// <summary>Picks a namespace of a server and what to do with its NodeSet.</summary>
 public sealed class NamespacePickerWindow : Window
 {
-    private readonly ListBox _list = new();
+    private readonly ListView _list = new()
+    {
+        View = new GridView
+        {
+            Columns =
+            {
+                new GridViewColumn { Header = "Namespace", Width = 330, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Uri)) },
+                new GridViewColumn { Header = "Version", Width = 70, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Version)) },
+                new GridViewColumn { Header = "Published", Width = 80, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Published)) },
+                new GridViewColumn { Header = "NodeSet", Width = 110, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Source)) },
+            },
+        },
+    };
     private readonly CheckBox _instances = new()
     {
         Content = "Include the namespace's objects (for the modeler or a file; an import takes the types)",
@@ -399,7 +453,7 @@ public sealed class NamespacePickerWindow : Window
     public NamespacePickerWindow(IReadOnlyList<ServerNamespace> namespaces, bool canImport)
     {
         Title = "Types of the server";
-        Width = 640;
+        Width = 680;
         Height = 420;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         _list.ItemsSource = namespaces.Select(n => new Row(n)).ToList();
@@ -424,7 +478,7 @@ public sealed class NamespacePickerWindow : Window
 
         var hint = new TextBlock
         {
-            Text = "Namespaces marked 'file' are published by the server as a NodeSet; the others are rebuilt by browsing, "
+            Text = "Where the server publishes a namespace's NodeSet, that file is taken; otherwise the NodeSet is rebuilt by browsing, "
                    + "without documentation links and without nodes no reference leads to.",
             TextWrapping = TextWrapping.Wrap,
             Foreground = System.Windows.Media.Brushes.Gray,
@@ -443,8 +497,11 @@ public sealed class NamespacePickerWindow : Window
 
     private sealed record Row(ServerNamespace Namespace)
     {
-        public override string ToString() =>
-            $"{Namespace.Uri}   {Namespace.Version}{(Namespace.PublicationDate is { } d ? $" ({d:yyyy-MM-dd})" : "")}{(Namespace.HasFile ? "   file" : "")}";
+        public string Uri => Namespace.Uri;
+        public string Version => Namespace.Version ?? "";
+        public string Published => Namespace.PublicationDate is { } d ? d.ToString("yyyy-MM-dd") : "";
+        public string Source => Namespace.HasFile ? "published file" : "by browsing";
+        public override string ToString() => Uri;
     }
 }
 

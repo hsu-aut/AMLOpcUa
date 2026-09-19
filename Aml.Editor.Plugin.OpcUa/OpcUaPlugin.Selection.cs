@@ -11,6 +11,7 @@ using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
 using OpcUaAml.Server;
 
@@ -27,6 +28,7 @@ public partial class OpcUaPlugin
     private readonly ObservableCollection<SelectionRow> _selectionRows = new();
     private readonly Dictionary<UaNodeAddress, string> _names = new();
     private readonly List<Action> _showChecks = new();
+    private readonly HashSet<UaNodeAddress> _inDocument = new();
 
     private sealed record SelectionRow(string Text, MirrorItem? Item, UaNodeAddress? Excluded)
     {
@@ -103,11 +105,59 @@ public partial class OpcUaPlugin
 
     // ── address space tree ──────────────────────────────────────────────────
 
+    /// <summary>The nodes the hierarchy named under 'into' already holds a mirror of, for the marks in the tree.</summary>
+    private void RefreshInDocument()
+    {
+        _inDocument.Clear();
+        if (_document != null && _client != null && _document.CAEXFile.InstanceHierarchy[HierarchyName()] is { } ih
+            && AddressSpaceMirror.MirroredServer(ih, _client) is { } server)
+        {
+            foreach (var e in server.Descendants<InternalElementType>())
+            {
+                try { if (AnnexANodeId.Of(e) is { } a) _inDocument.Add(Key(a)); }
+                catch (AddressingException) { /* not a node of the server */ }
+            }
+        }
+        foreach (var show in _showChecks) show();
+    }
+
+    private void MirrorHierarchyBox_TextChanged(object sender, TextChangedEventArgs e) => RefreshInDocument();
+
+    /// <summary>The shape of a NodeClass as OPC 10000-3 draws it, small: rectangle, rounded, ellipse.</summary>
+    private static FrameworkElement ClassShape(string nodeClass)
+    {
+        Color stroke, fill;
+        switch (nodeClass)
+        {
+            case "Object": stroke = Color.FromRgb(0x20, 0x70, 0xC0); fill = Color.FromRgb(0xE4, 0xEE, 0xF9); break;
+            case "Variable": stroke = Color.FromRgb(0x20, 0xA0, 0x40); fill = Color.FromRgb(0xE3, 0xF4, 0xE8); break;
+            case "Method": stroke = Color.FromRgb(0xE0, 0x80, 0x20); fill = Color.FromRgb(0xFC, 0xEF, 0xE0); break;
+            case "View": stroke = Color.FromRgb(0x80, 0x40, 0xA0); fill = Color.FromRgb(0xF0, 0xE7, 0xF6); break;
+            default: return new FrameworkElement { Width = 14 };
+        }
+        FrameworkElement shape = nodeClass == "Method"
+            ? new System.Windows.Shapes.Ellipse { Stroke = new SolidColorBrush(stroke), Fill = new SolidColorBrush(fill), StrokeThickness = 1.2 }
+            : new Border
+            {
+                BorderBrush = new SolidColorBrush(stroke),
+                Background = new SolidColorBrush(fill),
+                BorderThickness = new Thickness(nodeClass == "View" ? 1.6 : 1.2),
+                CornerRadius = new CornerRadius(nodeClass == "Variable" ? 4 : nodeClass == "View" ? 1 : 0),
+            };
+        shape.Width = 14;
+        shape.Height = 10;
+        shape.Margin = new Thickness(0, 0, 5, 0);
+        shape.VerticalAlignment = VerticalAlignment.Center;
+        shape.ToolTip = nodeClass;
+        return shape;
+    }
+
     private async Task LoadRootAsync()
     {
         AddressTree.Items.Clear();
         _showChecks.Clear();
         if (_client == null) return;
+        RefreshInDocument();
         var filter = CurrentFilter();
         foreach (var item in await _client.BrowseAsync())
             if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
@@ -115,7 +165,10 @@ public partial class OpcUaPlugin
         {
             var views = await _client.ViewsAsync();
             if (views.Count == 0) return;
-            var folder = new TreeViewItem { Header = $"Views ({views.Count})", ToolTip = "The Views the server defines: parts of its address space for a purpose." };
+            var folderHeader = new StackPanel { Orientation = Orientation.Horizontal };
+            folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x40, 0xA0)) });
+            folderHeader.Children.Add(new TextBlock { Text = $"Views ({views.Count})", VerticalAlignment = VerticalAlignment.Center });
+            var folder = new TreeViewItem { Header = folderHeader, ToolTip = "The Views the server defines: parts of its address space for a purpose." };
             foreach (var v in views) folder.Items.Add(NodeItem(v, v.Address));
             AddressTree.Items.Add(folder);
         }
@@ -129,15 +182,24 @@ public partial class OpcUaPlugin
     {
         _names[Key(node.Address)] = node.DisplayName;
         var check = new CheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0), IsEnabled = node.NodeClass != "Method" };
-        var scope = new TextBlock { Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center };
-        var header = new StackPanel { Orientation = Orientation.Horizontal };
+        var scope = new TextBlock { Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center, FontStyle = FontStyles.Italic };
+        var inDocument = new TextBlock
+        {
+            FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE73E", FontSize = 10, Margin = new Thickness(6, 1, 0, 0),
+            Foreground = new SolidColorBrush(Color.FromRgb(0x2E, 0x9E, 0x4F)), VerticalAlignment = VerticalAlignment.Center,
+            ToolTip = "Already in the document",
+        };
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 1) };
         header.Children.Add(check);
-        header.Children.Add(new TextBlock { Text = $"{node.DisplayName}   [{node.NodeClass}]", VerticalAlignment = VerticalAlignment.Center });
+        header.Children.Add(ClassShape(node.NodeClass));
+        header.Children.Add(new TextBlock { Text = node.DisplayName, VerticalAlignment = VerticalAlignment.Center });
+        header.Children.Add(inDocument);
         header.Children.Add(scope);
-        var item = new TreeViewItem { Header = header, Tag = node, ToolTip = node.Address.ToString() };
+        var item = new TreeViewItem { Header = header, Tag = node, ToolTip = $"{node.NodeClass}  {node.Address}" };
 
         void Show()
         {
+            inDocument.Visibility = _inDocument.Contains(Key(node.Address)) ? Visibility.Visible : Visibility.Collapsed;
             var selected = ItemFor(node.Address);
             check.IsChecked = selected != null;
             scope.Text = selected?.Scope switch
@@ -364,6 +426,7 @@ public partial class OpcUaPlugin
             foreach (var gone in result.Vanished) PluginLog.Warn("Not on the server any more: " + gone);
             foreach (var note in result.Notes) PluginLog.Info("Mirror: " + note);
             SetStatus(message + " Press Ctrl+S to save.");
+            RefreshInDocument();
             Selected?.Invoke(this, new SelectionEventArgs(result.Server));
         }
         catch (Exception ex)

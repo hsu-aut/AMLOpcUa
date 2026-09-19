@@ -12,6 +12,7 @@ using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.WPFBase;
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
 using OpcUaAml.Checks;
 using OpcUaAml.Import;
@@ -380,6 +381,47 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
+    // ── first steps and the namespace list ─────────────────────────────────
+
+    private void StartCloud_Click(object sender, RoutedEventArgs e) => CloudButton_Click(sender, e);
+
+    private void StartServer_Click(object sender, RoutedEventArgs e)
+    {
+        Tabs.SelectedItem = ServerTab;
+        EndpointBox.Focus();
+    }
+
+    private void StartModeler_Click(object sender, RoutedEventArgs e) => Tabs.SelectedItem = ModelerTab;
+
+    private void NamespaceList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => NamespaceEdit_Click(sender, e);
+
+    private void NamespaceEdit_Click(object sender, RoutedEventArgs e)
+    {
+        if (NamespaceList.SelectedItem is not NamespaceRow row) return;
+        Tabs.SelectedItem = ModelerTab;
+        ModelerNamespaceBox.SelectedItem = row.NamespaceUri;
+        ModelerEdit_Click(sender, e);
+    }
+
+    private void NamespaceCopy_Click(object sender, RoutedEventArgs e)
+    {
+        if (NamespaceList.SelectedItem is NamespaceRow row) Clipboard.SetText(row.NamespaceUri);
+    }
+
+    private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        SettingsMenu.PlacementTarget = SettingsMenuButton;
+        SettingsMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        SettingsMenu.IsOpen = true;
+    }
+
+    /// <summary>Selects the element of a finding in the editor.</summary>
+    private void FindingList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (FindingList.SelectedItem is not OpcUaAml.Checks.Finding { ElementId: { } id } || _document == null) return;
+        if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
+    }
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
@@ -426,10 +468,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             : $"This document uses CAEX {doc.CAEXFile.SchemaVersion}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).";
 
         RefreshDiagramSources();
-        NamespaceList.ItemsSource = usable
+        var rows = usable
             ? NamespaceOverview.Of(doc!).Select(n => new NamespaceRow(
                 n.NamespaceUri, n.ModelVersion ?? "", n.PublicationDate?.ToString("yyyy-MM-dd") ?? "", n.Libraries.Count)).ToList()
             : null;
+        NamespaceList.ItemsSource = rows;
+        StartPanel.Visibility = usable && rows!.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         RefreshModelerNamespaces();
     }
 
