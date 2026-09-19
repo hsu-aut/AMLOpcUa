@@ -269,6 +269,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var result = TypeInstantiator.Instantiate(window.SelectedType, window.InstanceName, new InstantiationOptions
             {
                 IncludeOptional = chosen.Contains,
+                FillPlaceholder = p => window.Fills.TryGetValue(p, out var fills) ? fills : Array.Empty<PlaceholderFill>(),
                 AllowAbstract = true,
             });
             var ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
@@ -277,8 +278,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
             var message = $"Created '{result.Instance.Name}' ({window.SelectedType.Name}) in '{ih.Name}' with {result.Included.Count} children.";
             PluginLog.Info(message);
+            if (result.Filled.Count > 0)
+                PluginLog.Info("Created for placeholders: " + string.Join(", ", result.Filled));
             if (result.OmittedPlaceholders.Count > 0)
-                PluginLog.Info("Placeholders to fill by hand: " + string.Join(", ", result.OmittedPlaceholders));
+                PluginLog.Info("Placeholders left empty: " + string.Join(", ", result.OmittedPlaceholders));
             if (UaTypes.IsAbstract(window.SelectedType))
                 PluginLog.Warn($"'{window.SelectedType.Name}' is abstract; OPC UA only instantiates concrete subtypes.");
 
