@@ -36,6 +36,14 @@ public sealed class CloudLibraryClient
 
     private readonly HttpClient _http;
 
+    /// <summary>
+    /// A client for the Cloud Library that follows no redirect: the credentials
+    /// are sent with every request, and a redirect to another host would carry
+    /// the API key there.
+    /// </summary>
+    public static HttpClient CreateHttp() =>
+        new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(60) };
+
     /// <param name="http">A client; its BaseAddress is set to <paramref name="baseUrl"/> if missing.</param>
     /// <param name="userName">Account for basic authentication, or null when an API key is used.</param>
     public CloudLibraryClient(HttpClient http, string? userName = null, string? password = null, string? apiKey = null,
@@ -94,7 +102,14 @@ public sealed class CloudLibraryClient
             if (!seen.Add(id)) continue;
             var (model, xml) = await DownloadAsync(id, ct).ConfigureAwait(false);
             var file = Path.Combine(folder, FileNameFor(model));
-            await File.WriteAllTextAsync(file, xml, ct).ConfigureAwait(false);
+            try
+            {
+                await File.WriteAllTextAsync(file, xml, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                throw new CloudLibraryException($"'{file}' could not be written: {ex.Message}", ex);
+            }
             catalog.AddFile(file);
             written.Add(file);
 
@@ -132,15 +147,32 @@ public sealed class CloudLibraryClient
         {
             throw new CloudLibraryException($"The Cloud Library cannot be reached: {ex.Message}", ex);
         }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new CloudLibraryException($"The Cloud Library did not answer within {_http.Timeout.TotalSeconds:0} s.", ex);
+        }
         using (response)
         {
+            if ((int)response.StatusCode is >= 300 and < 400)
+                throw new CloudLibraryException($"The Cloud Library redirects to {response.Headers.Location}; it is not followed, the credentials would go along.");
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 throw new CloudLibraryException("The Cloud Library refused the credentials. It needs an account or an API key (uacloudlibrary.opcfoundation.org).");
             if (response.StatusCode == HttpStatusCode.NotFound) return default;
             if (!response.IsSuccessStatusCode)
                 throw new CloudLibraryException($"The Cloud Library answered {(int)response.StatusCode} {response.ReasonPhrase}.");
-            var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct).ConfigureAwait(false);
+            try
+            {
+                var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+                return await JsonSerializer.DeserializeAsync<T>(stream, JsonOptions, ct).ConfigureAwait(false);
+            }
+            catch (JsonException ex)
+            {
+                throw new CloudLibraryException($"The Cloud Library answered something that is not a model description: {ex.Message}", ex);
+            }
+            catch (Exception ex) when (ex is IOException or HttpRequestException || (ex is TaskCanceledException && !ct.IsCancellationRequested))
+            {
+                throw new CloudLibraryException($"The answer of the Cloud Library broke off: {ex.Message}", ex);
+            }
         }
     }
 

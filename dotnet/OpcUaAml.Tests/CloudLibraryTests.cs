@@ -19,11 +19,13 @@ public class CloudLibraryTests
         public List<string> Requests { get; } = new();
         public string? Authorization { get; private set; }
         public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
+        public Func<HttpResponseMessage>? Answer { get; set; }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             Requests.Add(request.RequestUri!.PathAndQuery);
             Authorization = request.Headers.Authorization?.ToString();
+            if (Answer != null) return Task.FromResult(Answer());
             if (Status != HttpStatusCode.OK) return Task.FromResult(new HttpResponseMessage(Status));
 
             var path = request.RequestUri.AbsolutePath;
@@ -115,5 +117,19 @@ public class CloudLibraryTests
         var ex = await Assert.ThrowsAsync<CloudLibraryException>(() => client.SearchAsync(new[] { "DI" }));
 
         Assert.Contains("account or an API key", ex.Message);
+    }
+
+    [Fact]
+    public async Task A_garbled_answer_or_a_redirect_is_a_library_error()
+    {
+        var garbled = new FakeLibrary { Answer = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<html>maintenance</html>") } };
+        var redirect = new FakeLibrary
+        {
+            Answer = () => new HttpResponseMessage(HttpStatusCode.Found) { Headers = { Location = new Uri("https://elsewhere.example/") } },
+        };
+
+        await Assert.ThrowsAsync<CloudLibraryException>(() => new CloudLibraryClient(new HttpClient(garbled)).SearchAsync(new[] { "DI" }));
+        var ex = await Assert.ThrowsAsync<CloudLibraryException>(() => new CloudLibraryClient(new HttpClient(redirect), apiKey: "key").SearchAsync(new[] { "DI" }));
+        Assert.Contains("elsewhere.example", ex.Message);
     }
 }
