@@ -676,20 +676,9 @@ public static class Program
 /// <summary>Loading and saving .aml and .amlx the same way.</summary>
 public static class Documents
 {
-    public static CAEXDocument Load(string path)
-    {
-        if (!File.Exists(path)) throw new ImportException($"'{path}' does not exist.");
-        return Path.GetExtension(path).Equals(".amlx", StringComparison.OrdinalIgnoreCase)
-            ? NodeSetImporter.ReadContainer(path)
-            : CAEXDocument.LoadFromFile(path);
-    }
+    public static CAEXDocument Load(string path) => AmlFiles.Load(path);
 
-    public static void Save(CAEXDocument doc, string path)
-    {
-        if (Path.GetExtension(path).Equals(".amlx", StringComparison.OrdinalIgnoreCase))
-            throw new ImportException("Writing .amlx is not supported; use .aml.");
-        doc.SaveToFile(path, true);
-    }
+    public static void Save(CAEXDocument doc, string path) => AmlFiles.Save(doc, path);
 }
 
 /// <summary>A small argument parser: positionals, valued options (repeatable) and flags.</summary>

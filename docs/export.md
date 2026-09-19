@@ -318,7 +318,9 @@ trip measures it node by node (chain C in [roundtrip](roundtrip.md)):
   Aml.Engine; only its root document is exported.
 - Size: the AML libraries of UA and DI (`Opc.Ua.Di.NodeSet2.xml.amlx`) give
   285 000 nodes in 13 seconds; the whole NodeSet is built in memory.
-- Writing `.amlx` is not supported.
+- The command line reads and writes `.amlx` containers as it does `.aml`
+  files (`AmlFiles`); saved into a container that exists, only its root
+  document is replaced and the other parts stay.
 - An ExternalDataConnector's `refURI` (a reference into another file) gives
   no reference. Wassilew et al. (2016, 2017) propose `HasAMLExternalLink` for
   it; the draft base types have no such ReferenceType.
