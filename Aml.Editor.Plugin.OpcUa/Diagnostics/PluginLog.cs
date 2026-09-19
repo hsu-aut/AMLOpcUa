@@ -68,7 +68,15 @@ public static class PluginLog
                 Directory.CreateDirectory(LogDirectory);
                 var candidate = Path.Combine(LogDirectory, "opcua-plugin-debug.log");
                 ArchiveIfTooLarge_NoLock(candidate);
-                OpenWriter_NoLock(candidate);
+                try
+                {
+                    OpenWriter_NoLock(candidate);
+                }
+                catch (IOException)
+                {
+                    // A second editor holds the file: this one writes its own.
+                    OpenWriter_NoLock(Path.Combine(LogDirectory, $"opcua-plugin-debug.{Environment.ProcessId}.log"));
+                }
                 WriteLineLocked($"================== PLUGIN START {DateTime.Now:yyyy-MM-dd HH:mm:ss} ==================");
             }
             catch

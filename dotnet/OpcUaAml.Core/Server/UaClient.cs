@@ -477,7 +477,16 @@ public sealed class UaClient : IAsyncDisposable
             subscription.AddItem(item);
         }
         _session.AddSubscription(subscription);
-        await subscription.CreateAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await subscription.CreateAsync(ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Refused by the server: not left behind on the session.
+            await new Watch(_session, subscription).DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
         return new Watch(_session, subscription);
     }
 

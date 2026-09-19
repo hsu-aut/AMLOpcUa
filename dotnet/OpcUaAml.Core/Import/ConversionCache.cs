@@ -104,7 +104,18 @@ public sealed class ConversionCache
 
     private void Trim()
     {
-        var entries = new DirectoryInfo(Folder).GetFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc).Skip(Capacity);
+        var folder = new DirectoryInfo(Folder);
+        // Left by a run that ended between writing and moving: temporary files
+        // older than any conversion takes, and containers without their description.
+        foreach (var orphan in folder.GetFiles("*.tmp").Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))
+                     .Concat(folder.GetFiles("*.amlx").Where(f => !File.Exists(Path.ChangeExtension(f.FullName, ".json"))
+                                                                  && f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))))
+        {
+            try { orphan.Delete(); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+        var entries = folder.GetFiles("*.json").OrderByDescending(f => f.LastWriteTimeUtc).Skip(Capacity);
         foreach (var meta in entries)
         {
             try
