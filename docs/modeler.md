@@ -4,7 +4,8 @@ The Modeler tab hosts the graphical modeler
 [UaModeler.js](../../UaModeler.js) (working name) in a WebView2 control. It
 draws OPC UA types and instances in the notation of OPC 10000-3 Annex C and
 edits NodeSet2 files: types, instance declarations with ModellingRules,
-method arguments, structure fields and enumeration values, references,
+method arguments, structure and union fields, enumeration values and
+OptionSets, values including simple structures, references,
 instances by ModellingRule, checks, undo.
 
 The modeler edits NodeSets, not the document. The document gets what the
