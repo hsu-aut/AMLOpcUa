@@ -120,6 +120,11 @@ public partial class OpcUaPlugin
         doc.ToolTip = "One HTML page of the model: its types with their declarations and diagrams, its DataTypes and ReferenceTypes.";
         doc.Click += (_, __) => DocumentNamespace(details.NamespaceUri);
         actions.Children.Add(doc);
+        var publish = DialogKit.Action("Publish…");
+        publish.Margin = new Thickness(6, 0, 0, 0);
+        publish.ToolTip = "Publish the model's NodeSet to the UA Cloud Library, for others to find and download.";
+        publish.Click += async (_, __) => await PublishNamespaceAsync(details.NamespaceUri);
+        actions.Children.Add(publish);
         var blockers = NamespaceInspector.RemovalBlockers(document, details.NamespaceUri);
         var remove = DialogKit.Action("Remove…");
         remove.Margin = new Thickness(6, 0, 0, 0);
@@ -129,6 +134,41 @@ public partial class OpcUaPlugin
         remove.Click += (_, __) => RemoveNamespace(details.NamespaceUri);
         actions.Children.Add(remove);
         panel.Children.Add(actions);
+    }
+
+    private static readonly System.Net.Http.HttpClient CloudUploadHttp = CloudLibraryClient.CreateHttp();
+
+    /// <summary>Publishes the NodeSet a namespace came from to the UA Cloud Library, after asking what the library needs.</summary>
+    private async Task PublishNamespaceAsync(string uri)
+    {
+        if (_busy) return;
+        var info = ModelerCatalog().Find(uri);
+        if (info == null)
+        {
+            SetStatus($"No NodeSet file of {uri} in the modeler's models or the NodeSet folders; publishing sends that file.");
+            return;
+        }
+        var model = info.Models.FirstOrDefault(m => m.Model.ModelUri == uri)?.Model;
+        var window = new CloudUploadWindow(uri, model?.Version, _settings.CloudLibraryUser) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true || window.Metadata is not { } metadata) return;
+        _settings.CloudLibraryUser = window.UserName;
+        _settings.Save();
+        SetBusy(true, $"Publishing {uri} to the UA Cloud Library …");
+        try
+        {
+            var answer = await window.CreateClient(CloudUploadHttp).UploadAsync(await File.ReadAllTextAsync(info.FilePath), metadata, window.Overwrite);
+            PluginLog.Info($"Published {uri} ({info.FilePath}) to the UA Cloud Library: {answer}");
+            SetStatus($"Published {uri}; the OPC Foundation reviews it before it is listed.");
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Publishing {uri} failed", ex);
+            SetStatus($"Publishing {uri} failed: {ex.Message}");
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
     }
 
     /// <summary>Writes the model's documentation as HTML and opens it.</summary>

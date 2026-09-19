@@ -3,8 +3,12 @@
 // models they require, into a folder the NodeSetCatalog can use.
 //
 // REST API v1 as described by its swagger: GET /infomodel/find2 and
-// GET /infomodel/download/{identifier}. Access needs an account (HTTP basic
-// authentication) or an API key; anonymous requests are answered with 401.
+// GET /infomodel/download/{identifier}, and PUT /infomodel/upload to publish a
+// model (the body the server's UANameSpace class reads: title, copyrightText
+// and description are required, the NodeSet XML goes in nodeset.nodesetXml;
+// the OPC Foundation reviews an upload before it is listed). Access needs an
+// account (HTTP basic authentication) or an API key; anonymous requests are
+// answered with 401.
 
 using System.Net;
 using System.Net.Http.Headers;
@@ -29,6 +33,16 @@ public sealed record CloudModel(
     IReadOnlyList<CloudRequiredModel> RequiredModels);
 
 public sealed record CloudRequiredModel(string NamespaceUri, string? Version, DateTime? PublicationDate, int? AvailableIdentifier);
+
+/// <summary>What the Cloud Library asks about a model when it is published.</summary>
+public sealed record CloudUpload(string Title, string Description, string CopyrightText)
+{
+    /// <summary>MIT, ApacheLicense20 or Custom, the values the Cloud Library knows.</summary>
+    public string License { get; init; } = "MIT";
+    public IReadOnlyList<string> Keywords { get; init; } = Array.Empty<string>();
+    public Uri? DocumentationUrl { get; init; }
+    public Uri? LicenseUrl { get; init; }
+}
 
 public sealed class CloudLibraryClient
 {
@@ -124,6 +138,66 @@ public sealed class CloudLibraryClient
             }
         }
         return written;
+    }
+
+    /// <summary>
+    /// Publishes a NodeSet with its description. Returns the library's answer.
+    /// With <paramref name="overwrite"/> an earlier upload of the same model by
+    /// the same contributor is replaced; without it, that is refused.
+    /// </summary>
+    public async Task<string> UploadAsync(string nodeSetXml, CloudUpload metadata, bool overwrite = false, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(metadata.Title) || string.IsNullOrWhiteSpace(metadata.Description) || string.IsNullOrWhiteSpace(metadata.CopyrightText))
+            throw new CloudLibraryException("The Cloud Library needs a title, a description and a copyright text.");
+        if (metadata.License is not ("MIT" or "ApacheLicense20" or "Custom"))
+            throw new CloudLibraryException($"The Cloud Library knows the licenses MIT, ApacheLicense20 and Custom, not '{metadata.License}'.");
+        var body = new Dictionary<string, object?>
+        {
+            ["title"] = metadata.Title.Trim(),
+            ["license"] = metadata.License,
+            ["copyrightText"] = metadata.CopyrightText.Trim(),
+            ["description"] = metadata.Description.Trim(),
+            ["keywords"] = metadata.Keywords.Where(k => k.Trim().Length > 0).Select(k => k.Trim()).ToArray(),
+            ["documentationUrl"] = metadata.DocumentationUrl,
+            ["licenseUrl"] = metadata.LicenseUrl,
+            ["nodeset"] = new Dictionary<string, object?> { ["nodesetXml"] = nodeSetXml },
+        };
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"infomodel/upload?overwrite={(overwrite ? "true" : "false")}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"),
+        };
+        request.Headers.Authorization = _authorization;
+        if (_apiKey != null) request.Headers.Add("X-API-Key", _apiKey);
+        HttpResponseMessage response;
+        try
+        {
+            response = await _http.SendAsync(request, ct).ConfigureAwait(false);
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new CloudLibraryException($"The Cloud Library cannot be reached: {ex.Message}", ex);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            throw new CloudLibraryException($"The Cloud Library did not answer within {_http.Timeout.TotalSeconds:0} s.", ex);
+        }
+        using (response)
+        {
+            var text = (await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false)).Trim().Trim('"');
+            return response.StatusCode switch
+            {
+                HttpStatusCode.OK or HttpStatusCode.Created => text.Length > 0 ? text : "Uploaded.",
+                HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden =>
+                    throw new CloudLibraryException("The Cloud Library refused the credentials. Publishing needs an account or an API key (uacloudlibrary.opcfoundation.org)."),
+                HttpStatusCode.Conflict =>
+                    throw new CloudLibraryException("The Cloud Library already holds this model, uploaded by you or another contributor. Replace your earlier upload, or publish a new version."),
+                HttpStatusCode.BadRequest or HttpStatusCode.NotFound =>
+                    throw new CloudLibraryException($"The Cloud Library did not accept the NodeSet: {(text.Length > 0 ? text : response.ReasonPhrase)}"),
+                _ when (int)response.StatusCode is >= 300 and < 400 =>
+                    throw new CloudLibraryException($"The Cloud Library redirects to {response.Headers.Location}; it is not followed, the credentials would go along."),
+                _ => throw new CloudLibraryException($"The Cloud Library answered {(int)response.StatusCode} {response.ReasonPhrase}{(text.Length > 0 ? ": " + text : "")}."),
+            };
+        }
     }
 
     /// <summary>A file name from the namespace URI, e.g. <c>opcfoundation.org_UA_Machinery.NodeSet2.xml</c>.</summary>

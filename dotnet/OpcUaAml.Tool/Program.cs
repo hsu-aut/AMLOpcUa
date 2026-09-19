@@ -132,7 +132,11 @@ public static class Program
 
         uaaml cloud search <keywords...> [--user <u>]
         uaaml cloud download <id> <folder> [--user <u>]
-            Search the UA Cloud Library, or download a model with the models it requires.
+        uaaml cloud upload <NodeSet.xml> --title <t> --description <d> --copyright <c>
+                           [--license MIT|ApacheLicense20|Custom] [--keywords <a,b>] [--doc-url <url>] [--overwrite] [--user <u>]
+            Search the UA Cloud Library, download a model with the models it requires,
+            or publish one (the OPC Foundation reviews it before it is listed;
+            --overwrite replaces your earlier upload of the same model).
             The password comes from UACLOUD_PASSWORD or is asked for; an API key
             from UACLOUD_API_KEY instead.
 
@@ -742,8 +746,9 @@ public static class Program
 
     private static async Task<int> CloudCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--user" }, flags: Array.Empty<string>());
-        if (o.Positional.Count < 2) throw new ArgumentException("cloud needs 'search <keywords>' or 'download <id> <folder>'.");
+        var o = Options.Parse(args, valued: new[] { "--user", "--title", "--description", "--copyright", "--license", "--keywords", "--doc-url" },
+            flags: new[] { "--overwrite" });
+        if (o.Positional.Count < 2) throw new ArgumentException("cloud needs 'search <keywords>', 'download <id> <folder>' or 'upload <NodeSet.xml>'.");
         // Secrets never on the command line, where the process list and the shell history show them.
         var apiKey = Environment.GetEnvironmentVariable("UACLOUD_API_KEY");
         var user = o.One("--user");
@@ -761,8 +766,22 @@ public static class Program
                 var catalog = NodeSetCatalog.Create(new[] { folder });
                 foreach (var f in await client.DownloadWithDependenciesAsync(id, folder, catalog)) Console.WriteLine(f);
                 return 0;
+            case "upload" when o.Positional.Count == 2:
+                var file = o.Positional[1];
+                if (NodeSetInfo.TryRead(file) is not { } info) throw new ArgumentException($"'{file}' is not an OPC UA NodeSet.");
+                var answer = await client.UploadAsync(File.ReadAllText(file), new CloudUpload(
+                    o.One("--title") ?? throw new ArgumentException("upload needs --title."),
+                    o.One("--description") ?? throw new ArgumentException("upload needs --description."),
+                    o.One("--copyright") ?? throw new ArgumentException("upload needs --copyright."))
+                {
+                    License = o.One("--license") ?? "MIT",
+                    Keywords = (o.One("--keywords") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    DocumentationUrl = o.One("--doc-url") is { } url ? new Uri(url) : null,
+                }, o.Has("--overwrite"));
+                Console.WriteLine($"{info.Models[0].Model.ModelUri}: {answer}");
+                return 0;
             default:
-                throw new ArgumentException("cloud needs 'search <keywords>' or 'download <id> <folder>'.");
+                throw new ArgumentException("cloud needs 'search <keywords>', 'download <id> <folder>' or 'upload <NodeSet.xml>'.");
         }
     }
 

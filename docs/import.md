@@ -50,9 +50,16 @@ Library…**, `CloudLibraryClient`): search, then download the chosen model and
 every required model the catalog lacks into
 `%LOCALAPPDATA%\AMLOpcUa\cloudlibrary`, which is searched on import. The
 library needs an account or an API key; the password or key is kept for the
-editor session only. Tests run against a fake of its REST API (v1,
-`/infomodel/find2` and `/infomodel/download/{id}`), since the real service
-cannot be used without credentials.
+editor session only. **Publish…** in a namespace's details, and `uaaml cloud
+upload`, send the NodeSet the namespace came from (found in the modeler's
+models or the NodeSet folders) with what the library requires: title,
+description, copyright text, license (MIT, ApacheLicense20 or Custom),
+keywords and a documentation URL, by `PUT /infomodel/upload` as the library's
+server source reads it. The OPC Foundation reviews an upload before it is
+listed; the plugin asks once more before it sends. Tests run against a fake of
+its REST API (v1, `/infomodel/find2`, `/infomodel/download/{id}` and
+`/infomodel/upload`), since the real service cannot be used without
+credentials, and an upload would publish.
 
 When two files declare the same model, the newer publication wins; at the same
 date the first one found wins. Missing models are named before Opc2Aml runs.

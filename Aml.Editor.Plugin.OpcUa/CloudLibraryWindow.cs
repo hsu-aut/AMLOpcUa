@@ -13,6 +13,13 @@ public sealed class CloudLibraryWindow : Window
     private static string? _sessionPassword;
     private static string? _sessionApiKey;
 
+    /// <summary>The password and API key given in this editor session, for the upload dialog; never written anywhere.</summary>
+    internal static (string? Password, string? ApiKey) SessionSecrets
+    {
+        get => (_sessionPassword, _sessionApiKey);
+        set => (_sessionPassword, _sessionApiKey) = value;
+    }
+
     private readonly TextBox _user = new() { Width = 140, Padding = new Thickness(3) };
     private readonly PasswordBox _password = new() { Width = 120, Padding = new Thickness(3) };
     private readonly PasswordBox _apiKey = new() { Width = 170, Padding = new Thickness(3) };

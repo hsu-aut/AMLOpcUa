@@ -85,7 +85,10 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its fi
   builds on and those built on it, the elements using its types, its types to
   draw, **Edit in the modeler**, **Documentation…** (one HTML page of the
   model: its types with their declarations and diagrams, its DataTypes and
-  ReferenceTypes; `uaaml doc`), and **Remove** when nothing needs it any more.
+  ReferenceTypes; `uaaml doc`), **Publish…** (the model's NodeSet to the UA
+  Cloud Library, with title, description, copyright and license; the plugin
+  asks once more before it sends; `uaaml cloud upload`), and **Remove** when
+  nothing needs it any more.
 - **Companion specs…** lists the NodeSets the OPC Foundation publishes on
   GitHub (OPCFoundation/UA-Nodeset), every released companion specification,
   and imports one with the models it requires, without an account. The list

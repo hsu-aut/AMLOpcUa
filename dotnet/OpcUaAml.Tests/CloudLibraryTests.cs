@@ -119,6 +119,60 @@ public class CloudLibraryTests
         Assert.Contains("account or an API key", ex.Message);
     }
 
+    private sealed class FakeUpload : HttpMessageHandler
+    {
+        public HttpStatusCode Status { get; set; } = HttpStatusCode.OK;
+        public string? Body { get; private set; }
+        public HttpRequestMessage? Request { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            Request = request;
+            Body = request.Content == null ? null : await request.Content.ReadAsStringAsync(ct);
+            return new HttpResponseMessage(Status) { Content = new StringContent(Status == HttpStatusCode.OK ? "\"4711\"" : "The nodeset failed verification") };
+        }
+    }
+
+    [Fact]
+    public async Task Uploads_a_model_with_the_fields_the_library_requires()
+    {
+        var fake = new FakeUpload();
+        var client = new CloudLibraryClient(new HttpClient(fake), apiKey: "key");
+        var xml = File.ReadAllText(Fixtures.Path("uafx", "opc.ua.fx.data.nodeset2.xml"));
+
+        var answer = await client.UploadAsync(xml, new CloudUpload("FX Data", "Data types of UAFX", "(c) OPC Foundation")
+        {
+            Keywords = new[] { "UAFX", " ", "Data" },
+        }, overwrite: true);
+
+        Assert.Equal("4711", answer);
+        Assert.Equal(HttpMethod.Put, fake.Request!.Method);
+        Assert.Equal("/infomodel/upload?overwrite=true", fake.Request.RequestUri!.PathAndQuery);
+        Assert.Equal("key", fake.Request.Headers.GetValues("X-API-Key").Single());
+        using var json = JsonDocument.Parse(fake.Body!);
+        var root = json.RootElement;
+        Assert.Equal("FX Data", root.GetProperty("title").GetString());
+        Assert.Equal("MIT", root.GetProperty("license").GetString());
+        Assert.Equal("(c) OPC Foundation", root.GetProperty("copyrightText").GetString());
+        Assert.Equal(new[] { "UAFX", "Data" }, root.GetProperty("keywords").EnumerateArray().Select(k => k.GetString()));
+        Assert.Equal(xml, root.GetProperty("nodeset").GetProperty("nodesetXml").GetString());
+    }
+
+    [Fact]
+    public async Task An_upload_that_is_refused_says_why()
+    {
+        var xml = "<UANodeSet/>";
+        var meta = new CloudUpload("T", "D", "C");
+        await Assert.ThrowsAsync<CloudLibraryException>(() => new CloudLibraryClient(new HttpClient(new FakeUpload())).UploadAsync(xml, meta with { Title = " " }));
+        await Assert.ThrowsAsync<CloudLibraryException>(() => new CloudLibraryClient(new HttpClient(new FakeUpload())).UploadAsync(xml, meta with { License = "GPL" }));
+        var conflict = await Assert.ThrowsAsync<CloudLibraryException>(() =>
+            new CloudLibraryClient(new HttpClient(new FakeUpload { Status = HttpStatusCode.Conflict })).UploadAsync(xml, meta));
+        Assert.Contains("already holds", conflict.Message);
+        var invalid = await Assert.ThrowsAsync<CloudLibraryException>(() =>
+            new CloudLibraryClient(new HttpClient(new FakeUpload { Status = HttpStatusCode.NotFound })).UploadAsync(xml, meta));
+        Assert.Contains("failed verification", invalid.Message);
+    }
+
     [Fact]
     public async Task A_garbled_answer_or_a_redirect_is_a_library_error()
     {
