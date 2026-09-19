@@ -35,6 +35,8 @@ public sealed class CloudLibraryClient
     public const string DefaultBaseUrl = "https://uacloudlibrary.opcfoundation.org/";
 
     private readonly HttpClient _http;
+    private readonly AuthenticationHeaderValue? _authorization;
+    private readonly string? _apiKey;
 
     /// <summary>
     /// A client for the Cloud Library that follows no redirect: the credentials
@@ -44,7 +46,7 @@ public sealed class CloudLibraryClient
     public static HttpClient CreateHttp() =>
         new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(60) };
 
-    /// <param name="http">A client; its BaseAddress is set to <paramref name="baseUrl"/> if missing.</param>
+    /// <param name="http">A client, which may be shared: the credentials go with each request, not into it. Its BaseAddress is set to <paramref name="baseUrl"/> if missing.</param>
     /// <param name="userName">Account for basic authentication, or null when an API key is used.</param>
     public CloudLibraryClient(HttpClient http, string? userName = null, string? password = null, string? apiKey = null,
         string baseUrl = DefaultBaseUrl)
@@ -52,10 +54,8 @@ public sealed class CloudLibraryClient
         _http = http;
         _http.BaseAddress ??= new Uri(baseUrl);
         if (userName != null)
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic",
-                Convert.ToBase64String(Encoding.UTF8.GetBytes($"{userName}:{password}")));
-        if (apiKey != null)
-            _http.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+            _authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{userName}:{password}")));
+        _apiKey = apiKey;
     }
 
     /// <summary>Models matching all keywords (<c>*</c> lists everything), optionally one namespace.</summary>
@@ -141,7 +141,10 @@ public sealed class CloudLibraryClient
         HttpResponseMessage response;
         try
         {
-            response = await _http.GetAsync(path, ct).ConfigureAwait(false);
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            request.Headers.Authorization = _authorization;
+            if (_apiKey != null) request.Headers.Add("X-API-Key", _apiKey);
+            response = await _http.SendAsync(request, ct).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
         {

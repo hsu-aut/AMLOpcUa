@@ -81,8 +81,11 @@ public sealed class CloudLibraryWindow : Window
     private static TextBlock Caption(string text, double left = 0) =>
         new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(left, 0, 6, 0) };
 
+    /// <summary>One connection pool for the editor session; the credentials go with each request.</summary>
+    private static readonly System.Net.Http.HttpClient Http = CloudLibraryClient.CreateHttp();
+
     public CloudLibraryClient CreateClient() =>
-        new(CloudLibraryClient.CreateHttp(),
+        new(Http,
             _apiKey.Password.Length == 0 ? UserName : null,
             _apiKey.Password.Length == 0 ? _password.Password : null,
             _apiKey.Password.Length > 0 ? _apiKey.Password : null);
