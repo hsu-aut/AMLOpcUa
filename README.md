@@ -6,8 +6,9 @@ OPC UA information models in AutomationML.
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A
 - Instances of UA types with their Mandatory children and chosen Optional
   children, and a check of instances against their types
-- Running servers: browse, take nodes into the document, bind, read and
-  watch values, and serve the document itself as an OPC UA server
+- Running servers: browse, import the server's types (its published NodeSet,
+  or rebuilt by browsing), take nodes into the document, bind, read and watch
+  values, and serve the document itself as an OPC UA server
 - Diagrams of UA types and instances (OPC 10000-3 notation, SVG export),
   UA Cloud Library import, instance updates after a type change, and links
   from a VDI 3682 process description to OPC UA objects and methods

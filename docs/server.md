@@ -52,6 +52,41 @@ server it was bound to ([export](export.md), D16).
   them in a live list under the address space. Watched values are not written
   into the document.
 
+## The server's types
+
+A mirrored element gets its UA type as class only when the document holds the
+library of that type. **Types of the server** (`ServerNodeSets`, on the command
+line `uaaml nodeset`) takes the NodeSet of a namespace from the server itself,
+so the libraries come from the same Annex A import as a NodeSet file:
+
+1. If the server publishes the NodeSet as the `NamespaceFile` of the
+   namespace's metadata (`Server/Namespaces`, OPC 10000-5 6.3.13), that file
+   is read (FileType Open, Read, Close) and taken unchanged.
+2. Otherwise the NodeSet is rebuilt by browsing: the namespace's types, found
+   along HasSubtype from the roots of the four type hierarchies in every
+   namespace, what they hold along hierarchical references (instance
+   declarations of any depth) and their DataTypeEncodings. With "Include the
+   namespace's objects" (`--instances`) also what the Objects folder leads to.
+   The stack's NodeSet2 export writes attributes and references; values,
+   DataType definitions (structures, unions, enumerations, OptionSets),
+   ParentNodeId and MethodDeclarationId are read or derived here, because the
+   export leaves them out. Each reference appears once where NodeSets usually
+   put it (HasSubtype at the subtype, HasEncoding at the encoding).
+3. A model the NodeSet requires that neither the NodeSet folders nor the
+   bundled NodeSets provide is fetched from the server the same way.
+
+The files go to `%LOCALAPPDATA%\AMLOpcUa\server-nodesets\<server>`. The
+dialog offers to import the types into the document, to open the NodeSet in
+the modeler, or to save it.
+
+A rebuilt NodeSet lacks what a server does not expose: Documentation links,
+Category, SymbolicName, the deprecated type dictionaries (OPC 10000-5 D) and
+nodes that no reference leads to. DI, for instance, defines nine objects that
+only name well-known FunctionalGroups and hang below nothing. Checked with DI
+served from its NodeSet: apart from these, the rebuilt NodeSet equals the
+original, and its import gives the same AML libraries as the import of the
+file (`ServerNodeSetTests`).
+
 ## Into the document
 
 - **Take into document** (`AddressSpaceMirror`): the selected node and the
@@ -100,6 +135,8 @@ forms, arrays separated by spaces.
 
 ## Tests
 
+`ServerNodeSetTests` serve DI from its NodeSet, once without and once with a
+NamespaceFile, and compare what comes back with the file.
 `ServerTests` and `MirrorTests` start an OPC UA server inside the test process
 (`TestServer`, a small plant namespace on a free port, with a counter that
 changes every 100 ms) and cover secured and unsecured sessions, the refused

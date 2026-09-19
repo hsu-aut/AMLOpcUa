@@ -128,7 +128,8 @@ and compares our NodeSets with the XSLT output as graphs, using
 aliases, models without PublicationDate, and per NodeId the node class,
 BrowseName, DisplayName, Description, Documentation, ParentNodeId, DataType,
 ValueRank, IsAbstract, Symmetric, InverseName, the value (XML text compared
-structurally) and the set of references, with aliases resolved and namespace
+structurally), the DataType definition with its fields (compared since
+2026-09-19; the fifteen graphs stay equal) and the set of references, with aliases resolved and namespace
 indexes replaced by URIs.
 
 - Compatibility mode: all fifteen graphs are equal.
