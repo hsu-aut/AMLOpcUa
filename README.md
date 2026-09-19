@@ -63,21 +63,31 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   open document: one `ATL_`, `ICL_`, `RCL_` and `SUC_` library per UA
   namespace, for the NodeSet and every model it requires, together with the
   `OpcAmlMetaModel` libraries.
-- **NodeSet folders** lists folders searched for required NodeSets. The folder
-  of the imported NodeSet is always searched first. The UA base model and DI
-  are built in.
+- **Settings ▾ › NodeSet folders** lists folders searched for required
+  NodeSets. The folder of the imported NodeSet is always searched first. The
+  UA base model and DI are built in. The same menu holds "Replace existing
+  libraries", "Save after import" and the debug log.
 - The list shows the UA namespaces the document holds, with model version and
-  publication date.
+  publication date; a double click opens one in the modeler. A document
+  without OPC UA shows the first steps instead: import a NodeSet, search the
+  Cloud Library, connect to a server, model a new information model.
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
 - **New instance** creates an instance of a UA type: every Mandatory child,
   the Optional children ticked in the dialog, no placeholders.
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
-  mismatched reference links.
+  mismatched reference links. A double click selects the element.
+- The **Server** tab connects to a running server (recent endpoints are
+  kept), imports its types, and takes the parts of its address space you
+  check into the document; see [docs/server.md](docs/server.md).
 - The **Modeler** tab draws and edits OPC UA types and instances (OPC 10000-3
   Annex C) and applies the result to the document as a NodeSet import; see
   [docs/modeler.md](docs/modeler.md).
+
+Every tab has a toolbar in the style of the other plugins of this family
+(icons of the editor's font, colour by kind of command); messages and
+progress appear in one status bar below all tabs.
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor

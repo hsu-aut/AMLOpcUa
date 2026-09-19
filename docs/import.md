@@ -50,7 +50,8 @@ already has is replaced at the same position, unless
 
 - the document's copy was generated from a newer publication of the model
   (it is kept, with a note), or
-- "Replace existing" / `--keep` says to keep existing libraries.
+- "Replace existing libraries" is off (menu Settings) / `--keep` says to keep
+  existing libraries.
 
 The AutomationML base libraries are never replaced. IDs are kept as Opc2Aml
 wrote them, so a second import of a namespace produces the same IDs and
