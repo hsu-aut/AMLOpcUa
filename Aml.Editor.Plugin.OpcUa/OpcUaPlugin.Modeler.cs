@@ -36,7 +36,9 @@ public partial class OpcUaPlugin
         // The WebView2 control starts only when the tab is first shown.
         Tabs.SelectionChanged += async (_, e) =>
         {
-            if (e.Source == Tabs && Tabs.SelectedItem == ModelerTab) await EnsureModelerAsync();
+            if (e.Source != Tabs || Tabs.SelectedItem != ModelerTab) return;
+            try { await EnsureModelerAsync(); }
+            catch (Exception ex) { ModelerFailed("Starting the modeler", ex); }
         };
     }
 
@@ -60,6 +62,13 @@ public partial class OpcUaPlugin
         await _modeler.InitAsync();
     }
 
+    /// <summary>Tells what went wrong in the modeler's status line and the log.</summary>
+    private void ModelerFailed(string what, Exception ex)
+    {
+        PluginLog.Error($"{what} failed", ex);
+        ModelerStatus.Text = $"{what} failed: {ex.Message}";
+    }
+
     private void RefreshModelerNamespaces()
     {
         var rows = NamespaceList.ItemsSource as IEnumerable<NamespaceRow>;
@@ -79,18 +88,28 @@ public partial class OpcUaPlugin
     private async void ModelerEdit_Click(object sender, RoutedEventArgs e)
     {
         if (ModelerNamespaceBox.SelectedItem is not string uri) return;
-        await EnsureModelerAsync();
-        var catalog = ModelerCatalog();
-        var info = catalog.Find(uri);
-        if (info == null)
+        try
         {
-            ModelerStatus.Text = $"No NodeSet of {uri} in the NodeSet folders or the models folder. Add its folder under 'NodeSet folders'.";
-            return;
+            await EnsureModelerAsync();
+            var catalog = ModelerCatalog();
+            var info = catalog.Find(uri);
+            if (info == null)
+            {
+                ModelerStatus.Text = $"No NodeSet of {uri} in the NodeSet folders or the models folder. Add its folder under 'NodeSet folders'.";
+                return;
+            }
+            OpenInModeler(info, catalog);
         }
-        OpenInModeler(info, catalog);
+        catch (Exception ex) { ModelerFailed($"Opening {uri}", ex); }
     }
 
     private async void ModelerOpenFile_Click(object sender, RoutedEventArgs e)
+    {
+        try { await OpenFileInModelerAsync(); }
+        catch (Exception ex) { ModelerFailed("Opening the NodeSet", ex); }
+    }
+
+    private async Task OpenFileInModelerAsync()
     {
         var dialog = new OpenFileDialog
         {
@@ -146,8 +165,12 @@ public partial class OpcUaPlugin
             ModelerStatus.Text = $"'{uri}' is not an absolute URI.";
             return;
         }
-        await EnsureModelerAsync();
-        _modeler!.NewModel(uri, Array.Empty<string>());
+        try
+        {
+            await EnsureModelerAsync();
+            _modeler!.NewModel(uri, Array.Empty<string>());
+        }
+        catch (Exception ex) { ModelerFailed("Starting a new model", ex); }
     }
 
     private void ModelerReload_Click(object sender, RoutedEventArgs e) => _modeler?.Reload();
@@ -155,10 +178,18 @@ public partial class OpcUaPlugin
     /// <summary>Keeps the applied NodeSet in the models folder and imports it into the document.</summary>
     private async Task ApplyModelAsync(string xml, string modelUri)
     {
-        Directory.CreateDirectory(ModelsFolder);
         var name = SafeFileName(modelUri) + ".NodeSet2.xml";
         var file = Path.Combine(ModelsFolder, name);
-        await File.WriteAllTextAsync(file, xml);
+        try
+        {
+            Directory.CreateDirectory(ModelsFolder);
+            await File.WriteAllTextAsync(file, xml);
+        }
+        catch (Exception ex)
+        {
+            ModelerFailed($"Saving {modelUri}", ex);
+            return;
+        }
         PluginLog.Info($"Modeler: {modelUri} saved to {file}.");
 
         var document = _document;

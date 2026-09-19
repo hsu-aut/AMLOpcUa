@@ -2,7 +2,6 @@
 // editor session only; the user name is remembered, the password or API key
 // never written anywhere.
 
-using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using OpcUaAml.NodeSets;
@@ -20,6 +19,7 @@ public sealed class CloudLibraryWindow : Window
     private readonly TextBox _search = new();
     private readonly ListBox _results = new();
     private readonly TextBlock _info = DialogKit.Message();
+    private readonly Button import;
 
     public CloudModel? Selected { get; private set; }
     public string? UserName => string.IsNullOrWhiteSpace(_user.Text) ? null : _user.Text.Trim();
@@ -44,17 +44,23 @@ public sealed class CloudLibraryWindow : Window
 
         var searchButton = DialogKit.Action("Search", primary: true);
         searchButton.Margin = new Thickness(6, 0, 0, 0);
-        searchButton.Click += async (_, __) => await SearchAsync();
+        searchButton.Click += async (_, __) =>
+        {
+            // One search at a time; the button says so while it runs.
+            searchButton.IsEnabled = false;
+            try { await SearchAsync(); }
+            finally { searchButton.IsEnabled = true; }
+        };
         var searchRow = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         DockPanel.SetDock(searchButton, Dock.Right);
         searchRow.Children.Add(searchButton);
         searchRow.Children.Add(DialogKit.WithPlaceholder(_search, "Keywords, e.g. Machinery, or * for all"));
 
-        var import = DialogKit.Action("Download and import");
+        import = DialogKit.Action("Download and import");
         import.Click += (_, __) =>
         {
             Selected = DialogKit.Selected<CloudModel>(_results);
-            if (Selected == null) { _info.Text = "Choose a model."; return; }
+            if (Selected == null) { DialogKit.ShowError(_info, "Choose a model."); return; }
             Remember();
             DialogResult = true;
         };
@@ -76,7 +82,7 @@ public sealed class CloudLibraryWindow : Window
         new() { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(left, 0, 6, 0) };
 
     public CloudLibraryClient CreateClient() =>
-        new(new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
+        new(CloudLibraryClient.CreateHttp(),
             _apiKey.Password.Length == 0 ? UserName : null,
             _apiKey.Password.Length == 0 ? _password.Password : null,
             _apiKey.Password.Length > 0 ? _apiKey.Password : null);
@@ -89,7 +95,7 @@ public sealed class CloudLibraryWindow : Window
 
     private async Task SearchAsync()
     {
-        _info.Text = "Searching …";
+        DialogKit.ShowInfo(_info, "Searching …");
         try
         {
             var keywords = _search.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -97,11 +103,16 @@ public sealed class CloudLibraryWindow : Window
             Remember();
             _results.ItemsSource = models.OrderBy(m => m.NamespaceUri)
                 .Select(m => DialogKit.Entry(m.Title ?? m.NamespaceUri, $"{m.NamespaceUri}   {m.Version} ({m.PublicationDate:yyyy-MM-dd})", m)).ToList();
-            _info.Text = $"{models.Count} model(s).";
+            DialogKit.ShowInfo(_info, models.Count == 0 ? "No model matches." : $"{models.Count} model(s). Choose one and download it.");
+            if (models.Count > 0) import.IsDefault = true;
         }
         catch (CloudLibraryException ex)
         {
-            _info.Text = ex.Message;
+            DialogKit.ShowError(_info, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            DialogKit.ShowError(_info, "The search failed: " + ex.Message);
         }
     }
 }

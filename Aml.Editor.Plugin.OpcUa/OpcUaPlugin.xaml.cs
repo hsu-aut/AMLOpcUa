@@ -27,13 +27,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private CAEXDocument? _document;
     private bool _busy;
-    private readonly PluginSettings _settings = PluginSettings.Load();
+    private bool _importing;
+    private readonly PluginSettings _settings;
 
     /// <summary>A row of the namespace list.</summary>
     public sealed record NamespaceRow(string NamespaceUri, string ModelVersion, string Published, int LibraryCount);
 
     public OpcUaPlugin()
     {
+        // The log first, so that a problem reading the settings is written down.
+        PluginLog.Init();
+        _settings = PluginSettings.Load(out var settingsProblem);
         InitializeComponent();
         // The editor's theme is known once the view sits in its window.
         Loaded += (_, __) => ThemePalette.Current(this).ApplyTo(this);
@@ -50,12 +54,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         DisplayName = "AMLOpcUa";
         IsReactive = true;
 
-        PluginLog.Init();
         PluginLog.DebugEnabled = _settings.DebugLogging;
         PluginLog.OnLine += AppendLog;
         var version = typeof(OpcUaPlugin).Assembly.GetName().Version?.ToString(3) ?? "?";
         PluginLog.Info($"AMLOpcUa v{version}. Log file: {PluginLog.FilePath}");
         PluginLog.Info($"Built-in NodeSets: {NodeSetCatalog.BundledFolder}");
+        if (settingsProblem != null) PluginLog.Warn(settingsProblem);
+        PluginErrors.Install(Dispatcher, ex =>
+        {
+            PluginLog.Error("Unexpected error", ex);
+            SetStatus($"Something went wrong: {ex.Message} The log has the details.");
+        });
 
         ReplaceToggle.IsChecked = _settings.ReplaceExistingLibraries;
         SaveToggle.IsChecked = _settings.SaveAfterImport;
@@ -149,6 +158,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         _document = null;
         _ = StopLiveAsync();
+        // A closed document is not served on.
+        _ = StopServingAsync("the document was closed");
         UpdateState();
         UpdateServerState();
         PluginLog.Info("Document closed.");
@@ -168,7 +179,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void Attach(CAEXDocument document)
     {
-        if (!ReferenceEquals(_document, document)) _ = StopLiveAsync();
+        if (!ReferenceEquals(_document, document))
+        {
+            _ = StopLiveAsync();
+            _ = StopServingAsync("another document was opened");
+        }
         _document = document;
         PluginLog.Debug($"Document attached: {document.CAEXFile?.FileName} (CAEX {document.CAEXFile?.SchemaVersion}).");
         UpdateState();
@@ -208,21 +223,50 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// </summary>
     private async Task ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
     {
-        // Besides the given folders, the models the plugin keeps itself: from the
-        // modeler, the Cloud Library and servers.
-        var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists)
-            .Concat(Directory.Exists(ServerNodeSetsFolder) ? Directory.GetDirectories(ServerNodeSetsFolder) : Array.Empty<string>());
-        var folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Concat(own).Distinct().ToList();
-
-        // Missing models are asked about before the conversion, which takes seconds.
-        if (NodeSetInfo.TryRead(file) is { } info)
+        // One import at a time: each merges into the document and clears the busy state when done.
+        if (_importing)
         {
-            var missing = await Task.Run(() => NodeSetCatalog.Create(folders).MissingDependencies(info));
-            if (missing.Count > 0)
+            SetStatus($"An import is running; import {Path.GetFileName(file)} when it is done.");
+            return;
+        }
+        _importing = true;
+        try
+        {
+            await ImportOneAsync(document, file, extraFolders);
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+
+    private async Task ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    {
+        List<string> folders;
+        // Missing models are asked about before the conversion, which takes seconds;
+        // after the user fixed them, the check runs again.
+        while (true)
+        {
+            try
             {
+                // Besides the given folders, the models the plugin keeps itself: from the
+                // modeler, the Cloud Library and servers.
+                var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists)
+                    .Concat(Directory.Exists(ServerNodeSetsFolder) ? Directory.GetDirectories(ServerNodeSetsFolder) : Array.Empty<string>());
+                folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Concat(own).Distinct().ToList();
+                var info = NodeSetInfo.TryRead(file);
+                if (info == null) break;
+                var missing = await Task.Run(() => NodeSetCatalog.Create(folders).MissingDependencies(info));
+                if (missing.Count == 0) break;
                 PluginLog.Warn($"{Path.GetFileName(file)} requires models that are not available: {string.Join(", ", missing.Select(m => m.ModelUri))}.");
-                if (await ResolveMissingAsync(file, missing)) await ImportFileAsync(document, file, extraFolders);
-                else SetStatus($"Import of {Path.GetFileName(file)} cancelled: required models are missing.");
+                if (await ResolveMissingAsync(file, missing)) continue;
+                SetStatus($"Import of {Path.GetFileName(file)} cancelled: required models are missing.");
+                return;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                PluginLog.Error($"Reading {file} failed", ex);
+                SetStatus($"{Path.GetFileName(file)} cannot be read: {ex.Message}");
                 return;
             }
         }
@@ -241,6 +285,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             });
             foreach (var note in catalog.Warnings) PluginLog.Debug(note);
 
+            // The user may have closed the document, or opened another, meanwhile.
+            if (!ReferenceEquals(_document, document))
+            {
+                PluginLog.Warn($"{Path.GetFileName(file)} was converted after its document was closed; nothing was imported.");
+                SetStatus($"The document changed while {Path.GetFileName(file)} was converted; import it again into the open one.");
+                return;
+            }
             var merge = LibraryMerger.Merge(document, conversion.Document, options);
             var result = new ImportResult(conversion, merge);
 
@@ -357,7 +408,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
-    private void UpgradeButton_Click(object sender, RoutedEventArgs e)
+    private void UpgradeButton_Click(object sender, RoutedEventArgs e) => Guard("Adding the Mandatory children", () => Upgrade(sender, e));
+
+    private void Upgrade(object sender, RoutedEventArgs e)
     {
         var document = _document;
         if (document == null) return;
@@ -371,7 +424,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         CheckSummary.Text = message + " " + CheckSummary.Text;
     }
 
-    private void LinkButton_Click(object sender, RoutedEventArgs e)
+    private void LinkButton_Click(object sender, RoutedEventArgs e) => Guard("Linking", () =>
     {
         var document = _document;
         if (document == null) return;
@@ -383,7 +436,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             SetStatus("VDI 3682 link set. Press Ctrl+S to save.");
             Selected?.Invoke(this, new SelectionEventArgs(window.Linked));
         }
-    }
+    });
 
     private async void ExportButton_Click(object sender, RoutedEventArgs e)
     {
@@ -450,7 +503,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void NamespaceCopy_Click(object sender, RoutedEventArgs e)
     {
-        if (NamespaceList.SelectedItem is NamespaceRow row) Clipboard.SetText(row.NamespaceUri);
+        if (NamespaceList.SelectedItem is NamespaceRow row) CopyText(row.NamespaceUri);
     }
 
     private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
@@ -577,6 +630,24 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void SetStatus(string text) => StatusText.Text = text;
 
+    /// <summary>Runs a command; what it throws is logged and told, never passed on to the editor.</summary>
+    private void Guard(string what, Action command)
+    {
+        try { command(); }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"{what} failed", ex);
+            SetStatus($"{what} failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>Another program may hold the clipboard; that is told, not thrown.</summary>
+    private void CopyText(string text)
+    {
+        try { Clipboard.SetText(text); }
+        catch (System.Runtime.InteropServices.ExternalException ex) { SetStatus("The clipboard is held by another program: " + ex.Message); }
+    }
+
     /// <summary>A log line as the list shows it: time, level, message.</summary>
     public sealed record LogLine(string Time, string Level, string Message, string Text)
     {
@@ -611,12 +682,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     private void LogCopy_Click(object sender, RoutedEventArgs e)
     {
         var lines = LogList.SelectedItems.Cast<LogLine>().Select(l => l.Text).ToList();
-        if (lines.Count > 0) Clipboard.SetText(string.Join(Environment.NewLine, lines));
+        if (lines.Count > 0) CopyText(string.Join(Environment.NewLine, lines));
     }
 
     private void LogCopyAll_Click(object sender, RoutedEventArgs e)
     {
-        if (_log.Count > 0) Clipboard.SetText(string.Join(Environment.NewLine, _log.Select(l => l.Text)));
+        if (_log.Count > 0) CopyText(string.Join(Environment.NewLine, _log.Select(l => l.Text)));
     }
 
     private void LogClear_Click(object sender, RoutedEventArgs e) => _log.Clear();

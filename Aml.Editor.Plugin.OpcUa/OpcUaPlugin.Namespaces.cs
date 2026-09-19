@@ -54,7 +54,7 @@ public partial class OpcUaPlugin
         // Title, URI, version
         panel.Children.Add(new TextBlock { Text = ShortName(details.NamespaceUri), FontSize = 18, FontWeight = FontWeights.SemiBold });
         var uriRow = new DockPanel { Margin = new Thickness(0, 2, 0, 8) };
-        var copy = IconButton("", "Copy the namespace URI", () => Clipboard.SetText(details.NamespaceUri));
+        var copy = IconButton("", "Copy the namespace URI", () => CopyText(details.NamespaceUri));
         DockPanel.SetDock(copy, Dock.Right);
         uriRow.Children.Add(copy);
         uriRow.Children.Add(new TextBlock { Text = details.NamespaceUri, Foreground = palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
@@ -127,21 +127,18 @@ public partial class OpcUaPlugin
     private void RemoveNamespace(string uri)
     {
         if (_document == null) return;
-        var answer = MessageBox.Show(Window.GetWindow(this),
-            $"Remove the libraries of {uri} from the document?\n\nNo other namespace builds on it and no element uses its types. Importing the NodeSet again brings it back.",
-            "Remove namespace", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-        if (answer != MessageBoxResult.OK) return;
-        try
+        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, "Remove the namespace?",
+                $"The libraries of {uri} leave the document. No other namespace builds on it and no element uses its types. " +
+                "Ctrl+Z in the editor does not bring them back; importing the NodeSet again does.",
+                "Remove", risky: true))
+            return;
+        Guard($"Removing {uri}", () =>
         {
             var removed = NamespaceInspector.Remove(_document, uri);
             foreach (var lib in removed) PluginLog.Info("Removed library " + lib);
             UpdateState();
             SetStatus($"Removed {uri} ({removed.Count} libraries). Press Ctrl+S to save.");
-        }
-        catch (InvalidOperationException ex)
-        {
-            SetStatus(ex.Message);
-        }
+        });
     }
 
     private FrameworkElement Links(IEnumerable<string> uris)
@@ -320,6 +317,12 @@ public partial class OpcUaPlugin
         {
             PluginLog.Error(ex.Message);
             SetStatus(ex.Message);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Downloading from the Cloud Library failed", ex);
+            SetStatus("Downloading from the Cloud Library failed: " + ex.Message);
             return null;
         }
         finally

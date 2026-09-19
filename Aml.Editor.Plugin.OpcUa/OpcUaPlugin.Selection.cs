@@ -161,15 +161,32 @@ public partial class OpcUaPlugin
         return shape;
     }
 
-    private async Task LoadRootAsync()
+    /// <summary>Fills the tree from the Objects folder; false, with the reason in the status, when the server did not answer.</summary>
+    private async Task<bool> LoadRootAsync()
     {
         AddressTree.Items.Clear();
         _showChecks.Clear();
-        if (_client == null) return;
+        if (_client == null) return false;
         RefreshInDocument();
         var filter = CurrentFilter();
-        foreach (var item in await _client.BrowseAsync())
-            if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
+        try
+        {
+            foreach (var item in await _client.BrowseAsync())
+                if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Browsing the Objects folder failed", ex);
+            SetStatus($"The server did not answer: {ex.Message} Disconnect and connect again if it restarted.");
+            return false;
+        }
+        await LoadViewsAsync();
+        return true;
+    }
+
+    private async Task LoadViewsAsync()
+    {
+        if (_client == null) return;
         try
         {
             var views = await _client.ViewsAsync();
@@ -296,7 +313,7 @@ public partial class OpcUaPlugin
         IReadOnlyList<UaBrowseItem> types;
         SetBusy(true, "Reading the server's types …");
         try { types = await client.TypesAsync(); }
-        catch (Exception ex) { SetStatus("Reading the types failed: " + ex.Message); return; }
+        catch (Exception ex) { PluginLog.Error("Reading the types failed", ex); SetStatus("Reading the types failed: " + ex.Message); return; }
         finally { SetBusy(false, null); }
 
         var picker = new TypePickerWindow(types, $"Instances of which type below {Label(start)}?") { Owner = Window.GetWindow(this) };
@@ -306,7 +323,7 @@ public partial class OpcUaPlugin
         IReadOnlyList<UaBrowseItem> found;
         SetBusy(true, $"Searching instances of {type.DisplayName} …");
         try { found = await client.InstancesOfAsync(start, await client.SubtypesAsync(type.Address)); }
-        catch (Exception ex) { SetStatus("The search failed: " + ex.Message); return; }
+        catch (Exception ex) { PluginLog.Error("Searching instances failed", ex); SetStatus("The search failed: " + ex.Message); return; }
         finally { SetBusy(false, null); }
         if (found.Count == 0)
         {
@@ -347,7 +364,9 @@ public partial class OpcUaPlugin
         RefreshSelection();
     }
 
-    private void LoadSelectionButton_Click(object sender, RoutedEventArgs e)
+    private void LoadSelectionButton_Click(object sender, RoutedEventArgs e) => Guard("Loading the kept selection", LoadSelection);
+
+    private void LoadSelection()
     {
         if (_client == null || _document == null) return;
         var ihName = HierarchyName();
@@ -384,6 +403,7 @@ public partial class OpcUaPlugin
         }
         catch (Exception ex)
         {
+            PluginLog.Error("Counting failed", ex);
             SetStatus("Counting failed: " + ex.Message);
         }
         finally

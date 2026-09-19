@@ -44,26 +44,50 @@ public sealed class PluginSettings
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa", "settings.json");
 
-    public static PluginSettings Load()
+    /// <summary>
+    /// The saved settings, or the defaults with <paramref name="problem"/> saying
+    /// why. An unreadable file is kept as settings.json.unreadable, since the
+    /// next save overwrites it.
+    /// </summary>
+    public static PluginSettings Load(out string? problem)
     {
+        problem = null;
         try
         {
             if (File.Exists(FilePath))
-                return JsonSerializer.Deserialize<PluginSettings>(File.ReadAllText(FilePath)) ?? new PluginSettings();
+                return (JsonSerializer.Deserialize<PluginSettings>(File.ReadAllText(FilePath)) ?? new PluginSettings()).Normalized();
         }
         catch (Exception ex)
         {
-            PluginLog.Warn($"Settings could not be read, using defaults: {ex.Message}");
+            problem = $"Settings could not be read, using defaults: {ex.Message}";
+            try
+            {
+                File.Copy(FilePath, FilePath + ".unreadable", overwrite: true);
+                problem += $" The file was kept as {FilePath}.unreadable.";
+            }
+            catch (Exception) { /* the defaults work without it */ }
         }
         return new PluginSettings();
+    }
+
+    /// <summary>Lists a hand-edited file set to null are empty lists again.</summary>
+    private PluginSettings Normalized()
+    {
+        NodeSetFolders ??= new();
+        RecentEndpoints ??= new();
+        if (MirrorMaxNodes <= 0) MirrorMaxNodes = OpcUaAml.Server.MirrorOptions.DefaultMaxNodes;
+        return this;
     }
 
     public void Save()
     {
         try
         {
+            // Written beside and moved over, so a crash or a second editor never leaves half a file.
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            var temp = FilePath + "." + Environment.ProcessId + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(temp, FilePath, overwrite: true);
         }
         catch (Exception ex)
         {

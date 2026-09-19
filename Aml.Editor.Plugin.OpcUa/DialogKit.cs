@@ -5,6 +5,7 @@
 // Built in code like the dialogs themselves.
 
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -91,6 +92,69 @@ internal static class DialogKit
         new() { Text = text, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, top, 0, 3) };
 
     public static TextBlock Message() => new() { Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 12, 0) };
+
+    /// <summary>Red in both themes, for what went wrong and for what cannot be undone.</summary>
+    public static readonly Brush Danger = Frozen(0xD1, 0x34, 0x38);
+
+    /// <summary>Shows a problem in a message line: a warning glyph and the text in red, not grey like a hint.</summary>
+    public static void ShowError(TextBlock message, string text)
+    {
+        message.Inlines.Clear();
+        message.Inlines.Add(new System.Windows.Documents.Run("  ") { FontFamily = Icons, Foreground = Danger });
+        message.Inlines.Add(new System.Windows.Documents.Run(text) { Foreground = Danger });
+    }
+
+    /// <summary>Shows a hint or progress in a message line, in grey.</summary>
+    public static void ShowInfo(TextBlock message, string text)
+    {
+        message.Inlines.Clear();
+        message.Text = text;
+        message.Foreground = Muted;
+    }
+
+    /// <summary>
+    /// Asks before an action. With <paramref name="risky"/>, Enter does not
+    /// confirm: the safe answer is the default, as for what cannot be undone.
+    /// </summary>
+    public static bool Confirm(Window? owner, string glyph, Brush accent, string title, string text, string confirm,
+        UIElement? body = null, bool risky = false)
+    {
+        var window = new Window { Owner = owner, Width = 560, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize };
+        var yes = Action(confirm, primary: !risky);
+        yes.Click += (_, __) => window.DialogResult = true;
+        var no = Action("Cancel", cancel: true);
+        if (risky) no.IsDefault = true;
+        Frame(window, glyph, accent, title, text, body ?? new Border(), null, yes, no);
+        return window.ShowDialog() == true;
+    }
+
+    /// <summary>Rows of a label and a value the user can select and copy, for details to check.</summary>
+    public static Grid Facts(params (string Label, string Value, bool Mono)[] facts)
+    {
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        foreach (var (label, value, mono) in facts)
+        {
+            var row = grid.RowDefinitions.Count;
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            var name = new TextBlock { Text = label, Foreground = Muted, Margin = new Thickness(0, 3, 12, 3) };
+            Grid.SetRow(name, row);
+            grid.Children.Add(name);
+            var text = new TextBox
+            {
+                Text = value, IsReadOnly = true, BorderThickness = new Thickness(0), Background = Brushes.Transparent,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 3), Padding = new Thickness(0),
+                FontFamily = mono ? new FontFamily("Consolas") : SystemFonts.MessageFontFamily,
+                Foreground = ThemePalette.Current().Foreground,
+            };
+            AutomationProperties.SetName(text, label);
+            Grid.SetRow(text, row);
+            Grid.SetColumn(text, 1);
+            grid.Children.Add(text);
+        }
+        return grid;
+    }
 
     /// <summary>A text box with a grey hint while it is empty, and a search glyph.</summary>
     public static UIElement WithPlaceholder(TextBox box, string placeholder, bool search = true)

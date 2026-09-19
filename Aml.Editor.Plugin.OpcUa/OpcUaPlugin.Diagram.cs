@@ -117,8 +117,13 @@ public partial class OpcUaPlugin
         if (_diagram == null) return;
         var dialog = new SaveFileDialog { Filter = "SVG (*.svg)|*.svg", FileName = _diagram.Title + ".svg" };
         if (dialog.ShowDialog() != true) return;
-        File.WriteAllText(dialog.FileName, SvgWriter.Write(_diagram));
-        PluginLog.Info($"Diagram written to {dialog.FileName}");
+        var diagram = _diagram;
+        Guard("Saving the SVG", () =>
+        {
+            File.WriteAllText(dialog.FileName, SvgWriter.Write(diagram));
+            PluginLog.Info($"Diagram written to {dialog.FileName}");
+            DiagramInfo.Text = $"Saved as {System.IO.Path.GetFileName(dialog.FileName)}.";
+        });
     }
 
     private void DiagramZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -471,14 +471,18 @@
                         </Button>
                         <Separator/>
                         <Button x:Name="ServeButton" Click="ServeButton_Click"
-                                ToolTip="Start a local OPC UA server whose address space is this document's instance hierarchies (a snapshot; restart to update).">
+                                ToolTip="Start an OPC UA server whose address space is this document's instance hierarchies; values follow the document, added elements need a restart.">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="ServeGlyph" Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{StaticResource Create}"/>
                                 <TextBlock x:Name="ServeText" Text="Serve this document" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <TextBlock Text="port" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
-                        <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center"/>
+                        <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="Port of the document server"/>
+                        <CheckBox x:Name="ServeNetworkBox" Content="to the network" VerticalAlignment="Center" Margin="8,0,4,0"
+                                  ToolTip="Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session."/>
+                        <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="Clients…" Padding="4,1"
+                                ToolTip="The clients the document server refused over the network, to trust, and those it trusts."/>
                     </ToolBar>
 
                     <!-- What to take -->
