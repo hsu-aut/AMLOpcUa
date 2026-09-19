@@ -1,14 +1,18 @@
 // The "Server" tab: connect to a running OPC UA server, browse its address
-// space, take parts of it into the document, bind nodes to elements and read
-// current values. All server work goes through OpcUaAml.Core.Server.
+// space, take its types and parts of its address space into the document, bind
+// nodes to elements and read current values. All server work goes through
+// OpcUaAml.Core.Server.
 
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
+using Microsoft.Win32;
 using OpcUaAml.Addressing;
+using OpcUaAml.NodeSets;
 using OpcUaAml.Server;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -295,6 +299,85 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    /// <summary>Where NodeSets fetched from servers are kept, one folder per server.</summary>
+    internal static string ServerNodeSetsFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "server-nodesets");
+
+    private async void ServerTypesButton_Click(object sender, RoutedEventArgs e)
+    {
+        var client = _client;
+        if (client == null || _busy) return;
+        IReadOnlyList<ServerNamespace> namespaces;
+        SetBusy(true, "Reading the server's namespaces …");
+        try
+        {
+            namespaces = await ServerNodeSets.ListAsync(client);
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Reading the namespaces failed", ex);
+            SetStatus("Reading the namespaces failed: " + ex.Message);
+            return;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+
+        var picker = new NamespacePickerWindow(namespaces.Where(n => n.Index > 0).ToList(), _document != null) { Owner = Window.GetWindow(this) };
+        if (picker.ShowDialog() != true || picker.Selected is not { } ns) return;
+
+        var folder = Path.Combine(ServerNodeSetsFolder, SafeFileName(client.ServerUri ?? client.EndpointUrl));
+        ServerNodeSetFiles files;
+        SetBusy(true, $"Reading the NodeSet of {ns.Uri} …");
+        try
+        {
+            Directory.CreateDirectory(ModelsFolder);
+            var catalog = NodeSetCatalog.Create(new[] { ModelsFolder }.Concat(_settings.NodeSetFolders));
+            files = await ServerNodeSets.FetchForImportAsync(client, ns.Uri, catalog, folder,
+                new ServerNodeSetOptions { IncludeInstances = picker.IncludeInstances });
+            foreach (var set in files.NodeSets)
+            {
+                PluginLog.Info($"{set.ModelUri}: {set.NodeCount} node(s) from the "
+                               + (set.Source == ServerNodeSetSource.NamespaceFile ? "file the server publishes." : "server's address space (rebuilt by browsing)."));
+                foreach (var note in set.Notes) PluginLog.Info($"{set.ModelUri}: {note}");
+            }
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Reading the NodeSet of {ns.Uri} failed", ex);
+            SetStatus($"Reading the NodeSet of {ns.Uri} failed: " + ex.Message);
+            return;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+
+        switch (picker.Action)
+        {
+            case NamespaceAction.Import when _document is { } document:
+                await ImportFileAsync(document, files.Paths[0], new[] { folder, ModelsFolder });
+                break;
+            case NamespaceAction.Modeler:
+                Tabs.SelectedItem = ModelerTab;
+                await EnsureModelerAsync();
+                OpenInModeler(NodeSetInfo.TryRead(files.Paths[0])!, ModelerCatalog(folder));
+                break;
+            case NamespaceAction.Save:
+                var dialog = new SaveFileDialog
+                {
+                    Title = $"Save the NodeSet of {ns.Uri}",
+                    Filter = "OPC UA NodeSet (*.xml)|*.xml",
+                    FileName = Path.GetFileName(files.Paths[0]),
+                };
+                if (dialog.ShowDialog() != true) return;
+                File.Copy(files.Paths[0], dialog.FileName, true);
+                SetStatus($"Saved the NodeSet of {ns.Uri} to {dialog.FileName}.");
+                break;
+        }
+    }
+
     private void BindButton_Click(object sender, RoutedEventArgs e)
     {
         var node = SelectedNode;
@@ -342,6 +425,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         SecurityToggle.IsEnabled = !connected;
         UserBox.IsEnabled = !connected;
         PasswordBox.IsEnabled = !connected;
+        ServerTypesButton.IsEnabled = connected && !_busy;
         var hasNode = connected && SelectedNode != null && _document != null && !_busy;
         MirrorButton.IsEnabled = hasNode && SelectedNode!.NodeClass != "Method";
         BindButton.IsEnabled = hasNode;
@@ -353,6 +437,74 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServePortBox.IsEnabled = _host == null;
         ServerStateText.Text = (connected ? $"{_client!.EndpointUrl}  ({_client.SecurityMode})" : "Not connected.")
                                + (_host != null ? $"    Serving this document at {_host.EndpointUrl}" : "");
+    }
+}
+
+public enum NamespaceAction { Import, Modeler, Save }
+
+/// <summary>Picks a namespace of a server and what to do with its NodeSet.</summary>
+public sealed class NamespacePickerWindow : Window
+{
+    private readonly ListBox _list = new();
+    private readonly CheckBox _instances = new()
+    {
+        Content = "Include the namespace's objects (for the modeler or a file; an import takes the types)",
+        Margin = new Thickness(0, 6, 0, 0),
+    };
+
+    public ServerNamespace? Selected { get; private set; }
+    public NamespaceAction Action { get; private set; }
+    public bool IncludeInstances => _instances.IsChecked == true;
+
+    public NamespacePickerWindow(IReadOnlyList<ServerNamespace> namespaces, bool canImport)
+    {
+        Title = "Types of the server";
+        Width = 640;
+        Height = 420;
+        WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        _list.ItemsSource = namespaces.Select(n => new Row(n)).ToList();
+        _list.SelectedIndex = namespaces.Count > 0 ? 0 : -1;
+
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 8, 0, 0) };
+        void Add(string text, NamespaceAction action, bool enabled, bool isDefault)
+        {
+            var b = new Button { Content = text, MinWidth = 110, Margin = new Thickness(0, 0, 6, 0), IsEnabled = enabled, IsDefault = isDefault };
+            b.Click += (_, __) =>
+            {
+                Selected = (_list.SelectedItem as Row)?.Namespace;
+                Action = action;
+                if (Selected != null) DialogResult = true;
+            };
+            buttons.Children.Add(b);
+        }
+        Add("Import types", NamespaceAction.Import, canImport, canImport);
+        Add("Open in modeler", NamespaceAction.Modeler, true, !canImport);
+        Add("Save as…", NamespaceAction.Save, true, false);
+        buttons.Children.Add(new Button { Content = "Cancel", MinWidth = 90, IsCancel = true });
+
+        var hint = new TextBlock
+        {
+            Text = "Namespaces marked 'file' are published by the server as a NodeSet; the others are rebuilt by browsing, "
+                   + "without documentation links and without nodes no reference leads to.",
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = System.Windows.Media.Brushes.Gray,
+            Margin = new Thickness(0, 0, 0, 6),
+        };
+        var root = new DockPanel { Margin = new Thickness(10) };
+        DockPanel.SetDock(hint, Dock.Top);
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        DockPanel.SetDock(_instances, Dock.Bottom);
+        root.Children.Add(hint);
+        root.Children.Add(buttons);
+        root.Children.Add(_instances);
+        root.Children.Add(_list);
+        Content = root;
+    }
+
+    private sealed record Row(ServerNamespace Namespace)
+    {
+        public override string ToString() =>
+            $"{Namespace.Uri}   {Namespace.Version}{(Namespace.PublicationDate is { } d ? $" ({d:yyyy-MM-dd})" : "")}{(Namespace.HasFile ? "   file" : "")}";
     }
 }
 

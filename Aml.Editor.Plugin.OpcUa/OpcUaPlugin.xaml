@@ -172,6 +172,9 @@
                     <TextBox x:Name="EndpointBox"/>
                 </DockPanel>
                 <ToolBar Grid.Row="1">
+                    <Button x:Name="ServerTypesButton" Content="Types of the server…" Click="ServerTypesButton_Click"
+                            ToolTip="Take the NodeSet of one of the server's namespaces: import its types into the document (OPC 10000-83 Annex A), open it in the modeler, or save it. Uses the file the server publishes for the namespace, otherwise rebuilds the NodeSet by browsing."/>
+                    <Separator/>
                     <Button x:Name="MirrorButton" Content="Take into document" Click="MirrorButton_Click"
                             ToolTip="Create elements for the selected node and the nodes below it, with their NodeIds, UA types and current values."/>
                     <TextBlock Text=" depth " VerticalAlignment="Center"/>
