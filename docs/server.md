@@ -116,6 +116,31 @@ file (`ServerNodeSetTests`).
   source, with the security its description asks for. Nothing is subscribed; the document records one
   point in time.
 
+## Selective mirroring (planned)
+
+A mirror follows Annex A, so every variable and property is an element of its
+own; a DI device alone gives 50 to 100 elements. Decided on 2026-09-19, not
+built yet:
+
+- **Selection** in the address tree with three-state check boxes: the node
+  alone, with its children, or with its whole subtree; several parts at once.
+- **Filters** over the selection, also shown in the tree: leave out
+  properties, objects only, hide Server and diagnostics, namespaces to take.
+- **By type**: all instances of a type below the selected node, checked in the
+  tree and removable one by one.
+- **Views** of the server as a further root of the tree, checked like a subtree.
+- **Preview** of how many elements the selection gives.
+- **Layout**: the ancestors of each selected part up to the Objects folder
+  become lean elements with their NodeId, so the part's place in the server
+  stays visible and a later mirror finds it again.
+- **The selection is kept in the document**, as an attribute of the
+  InstanceHierarchy (endpoint, selected NodeIds and how, filters, depth), so
+  the same part can be mirrored again with one click.
+- **Mirroring again** asks whether to update the existing elements (by NodeId:
+  values and types updated, new nodes added, vanished ones reported, not
+  deleted) or to add a new copy.
+- Variables and properties stay elements of their own (Annex A).
+
 ## The document as a server
 
 **Serve this document** (`AmlServerHost`) starts a local OPC UA server whose
