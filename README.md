@@ -89,13 +89,18 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its fi
   model: its types with their declarations and diagrams, its DataTypes and
   ReferenceTypes; `uaaml doc`), **Publish…** (the model's NodeSet to the UA
   Cloud Library, with title, description, copyright and license; the plugin
-  asks once more before it sends; `uaaml cloud upload`), and **Remove** when
-  nothing needs it any more.
+  asks once more before it sends; `uaaml cloud upload`), **ModelDesign…** (the
+  model as a ModelDesign file with its identifier file, the form the OPC
+  Foundation's ModelCompiler reads; [docs/modeldesign.md](docs/modeldesign.md)),
+  and **Remove** when nothing needs it any more.
 - **Companion specs…** lists the NodeSets the OPC Foundation publishes on
   GitHub (OPCFoundation/UA-Nodeset), every released companion specification,
   and imports one with the models it requires, without an account. The list
   comes from GitHub at most once a day; the UA Cloud Library, which needs an
   account or an API key, is one click away. On the command line: `uaaml opcf`.
+- A ModelDesign file imported or dropped on the plugin is compiled into a
+  NodeSet first, by the ModelCompiler where it is installed; without it, the
+  status line says how to get it.
 - NodeSet files dropped on the plugin are imported. When a NodeSet requires
   models no folder holds, a dialog names them and fetches them from the OPC
   Foundation's published NodeSets, or adds a folder, or searches the Cloud

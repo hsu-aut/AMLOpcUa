@@ -1,4 +1,4 @@
-// What the user chose, kept across editor sessions in
+﻿// What the user chose, kept across editor sessions in
 // %APPDATA%\AMLOpcUa\settings.json. A missing or unreadable file means
 // defaults; the plugin must work on a fresh machine without any setup.
 
@@ -31,6 +31,9 @@ public sealed class PluginSettings
 
     /// <summary>The Cloud Library account last used; the password is never stored.</summary>
     public string? CloudLibraryUser { get; set; }
+
+    /// <summary>The OPC UA ModelCompiler, when it is not where its installer puts it.</summary>
+    public string? ModelCompilerPath { get; set; }
 
     /// <summary>Prefer a secured endpoint when connecting.</summary>
     public bool UseSecurity { get; set; } = true;

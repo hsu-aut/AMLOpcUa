@@ -1,4 +1,4 @@
-// OPC UA plugin for the AutomationML Editor.
+﻿// OPC UA plugin for the AutomationML Editor.
 //
 // Imports OPC UA NodeSets into the open document as AML libraries according to
 // OPC 10000-83 Annex A. All logic lives in OpcUaAml.Core; this class only
@@ -286,8 +286,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
         var dialog = new OpenFileDialog
         {
-            Title = "Import OPC UA NodeSet",
-            Filter = "OPC UA NodeSet (*.xml)|*.xml|All files (*.*)|*.*",
+            Title = "Import OPC UA NodeSet or ModelDesign",
+            Filter = "OPC UA NodeSet or ModelDesign (*.xml)|*.xml|All files (*.*)|*.*",
             InitialDirectory = folder ?? "",
         };
         if (dialog.ShowDialog() != true) return;
@@ -313,13 +313,22 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             return false;
         }
         _importing = true;
+        var compiled = (string?)null;
         try
         {
+            // A ModelDesign is no NodeSet: the ModelCompiler makes one of it first.
+            if (IsModelDesign(file))
+            {
+                compiled = await CompileDesignAsync(file);
+                if (compiled == null) return false;
+                file = compiled;
+            }
             return await ImportOneAsync(document, file, extraFolders);
         }
         finally
         {
             _importing = false;
+            if (compiled != null) DeleteFolder(Path.GetDirectoryName(compiled)!);
         }
     }
 

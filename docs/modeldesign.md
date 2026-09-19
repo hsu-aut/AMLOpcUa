@@ -42,6 +42,19 @@ identifier file. `compile` and `import` use that file when it is there, so the
 compiled model keeps the NodeIds of the original; without one the compiler
 hands out its own.
 
+## In the plugin
+
+The namespace view has **ModelDesign…** beside **Documentation…**: it writes
+the selected model as a design with its identifier file beside it. The model
+comes out of the document itself (the inverse of Annex A), so the design holds
+what the document holds now, including what was changed in the modeler.
+
+The other way round needs no button: a ModelDesign chosen for import or
+dropped on the plugin is recognised by its namespace, compiled, and the NodeSet
+that comes out is imported as any other. Where the compiler is not installed,
+the status line says so and how to get it. `ModelCompilerPath` in the settings
+names a compiler of one's own.
+
 ## What the design holds
 
 Of the model's own nodes: ObjectTypes, VariableTypes, DataTypes and

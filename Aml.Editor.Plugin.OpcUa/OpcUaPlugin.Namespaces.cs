@@ -1,4 +1,4 @@
-// The namespaces of the document in detail: what a namespace brings (its
+﻿// The namespaces of the document in detail: what a namespace brings (its
 // types by kind), what it builds on and what builds on it, how many elements
 // use its types, its types to draw, and removing it when nothing needs it.
 // Also NodeSet files dropped on the plugin, and the dialog for models an
@@ -11,7 +11,9 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Engine.CAEX;
+using OpcUaAml.Export;
 using OpcUaAml.Import;
+using OpcUaAml.ModelDesign;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Types;
 
@@ -120,6 +122,11 @@ public partial class OpcUaPlugin
         doc.ToolTip = "One HTML page of the model: its types with their declarations and diagrams, its DataTypes and ReferenceTypes.";
         doc.Click += (_, __) => DocumentNamespace(details.NamespaceUri);
         actions.Children.Add(doc);
+        var design = DialogKit.Action("ModelDesign…");
+        design.Margin = new Thickness(6, 0, 0, 0);
+        design.ToolTip = "Write the model as a ModelDesign file with its identifier file, the form the OPC Foundation's ModelCompiler reads.";
+        design.Click += (_, __) => WriteModelDesign(details.NamespaceUri);
+        actions.Children.Add(design);
         var publish = DialogKit.Action("Publish…");
         publish.Margin = new Thickness(6, 0, 0, 0);
         publish.ToolTip = "Publish the model's NodeSet to the UA Cloud Library, for others to find and download.";
@@ -187,6 +194,102 @@ public partial class OpcUaPlugin
             SetStatus($"Documentation written to {Path.GetFileName(dialog.FileName)}.");
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dialog.FileName) { UseShellExecute = true });
         });
+    }
+
+    /// <summary>
+    /// Writes the model as a ModelDesign, with the identifier file beside it.
+    /// The model comes out of the document itself (the inverse of Annex A), so
+    /// the design holds what the document holds now.
+    /// </summary>
+    private void WriteModelDesign(string uri)
+    {
+        if (_document is not { } document) return;
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = $"ModelDesign of {uri}", Filter = "ModelDesign (*.xml)|*.xml", FileName = ShortName(uri) + ".xml",
+        };
+        if (dialog.ShowDialog() != true) return;
+        Guard("Writing the ModelDesign", () =>
+        {
+            var nodeSet = NodeSetExporter.Export(document, new NodeSetExportOptions
+            {
+                Mode = ExportMode.AnnexAInverse,
+                NamespaceUri = uri,
+            });
+            var identifiers = ModelDesignWriter.From(nodeSet).Save(dialog.FileName);
+            PluginLog.Info($"ModelDesign of {uri} written to {dialog.FileName}, identifiers to {identifiers}.");
+            SetStatus($"ModelDesign written to {Path.GetFileName(dialog.FileName)}, with {Path.GetFileName(identifiers)} beside it. "
+                      + "The ModelCompiler turns it into a NodeSet and code.");
+        });
+    }
+
+    /// <summary>Whether the file is a ModelDesign rather than a NodeSet.</summary>
+    private static bool IsModelDesign(string file)
+    {
+        if (!Path.GetExtension(file).Equals(".xml", StringComparison.OrdinalIgnoreCase)) return false;
+        try
+        {
+            using var reader = System.Xml.XmlReader.Create(file, new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit });
+            while (reader.Read())
+            {
+                if (reader.NodeType != System.Xml.XmlNodeType.Element) continue;
+                return reader.NamespaceURI == ModelDesignWriter.DesignNamespace;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or System.Xml.XmlException or UnauthorizedAccessException)
+        {
+            // Not readable or not XML: the import says so in its own words.
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Runs the ModelCompiler over a design and returns the NodeSet it wrote,
+    /// or null with a message when the compiler is missing or the design does
+    /// not compile. The folder is the caller's to delete.
+    /// </summary>
+    private async Task<string?> CompileDesignAsync(string design)
+    {
+        if (ModelCompilerTool.Locate(_settings.ModelCompilerPath) is null)
+        {
+            SetStatus($"{Path.GetFileName(design)} is a ModelDesign, not a NodeSet. "
+                      + ModelCompilerTool.InstallHint.Replace(Environment.NewLine, " ").Replace("\n", " "));
+            PluginLog.Warn($"{design} is a ModelDesign and the ModelCompiler is not installed.");
+            return null;
+        }
+        var folder = Directory.CreateTempSubdirectory("amlopcua-design-").FullName;
+        SetBusy(true, $"Compiling {Path.GetFileName(design)} with the ModelCompiler …");
+        try
+        {
+            var result = await ModelCompilerTool.CompileAsync(design, folder,
+                new CompileOptions { Executable = _settings.ModelCompilerPath });
+            PluginLog.Info($"ModelCompiler turned {design} into {result.NodeSetPath}.");
+            return result.NodeSetPath;
+        }
+        catch (ModelCompilerException ex)
+        {
+            PluginLog.Error($"Compiling {design} failed", ex);
+            SetStatus($"The ModelCompiler could not compile {Path.GetFileName(design)}: {FirstLine(ex.Message)}");
+            DeleteFolder(folder);
+            return null;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
+    /// <summary>The first line of a message, which carries what went wrong.</summary>
+    private static string FirstLine(string message) =>
+        new StringReader(message).ReadLine() ?? message;
+
+    private static void DeleteFolder(string folder)
+    {
+        try { Directory.Delete(folder, recursive: true); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The files are in the document now; a folder left in the temp directory is no error.
+        }
     }
 
     private void RemoveNamespace(string uri)
