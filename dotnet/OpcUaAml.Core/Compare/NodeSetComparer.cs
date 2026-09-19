@@ -89,6 +89,24 @@ public sealed class NodeSetComparer
             Fact(facts, p, "Documentation", Texts(node, "Documentation"));
             Fact(facts, p, "InverseName", Texts(node, "InverseName"));
             if (node.Element(Ua + "Value") is { } value) facts[p + "/@Value"] = NormalizeValue(value);
+            if (node.Element(Ua + "Definition") is { } definition)
+            {
+                facts[p + "/definition"] = string.Join(" ", new[] { ctx.BrowseName((string?)definition.Attribute("Name")) }
+                    .Concat(new[] { "IsUnion", "IsOptionSet" }.Where(a => (string?)definition.Attribute(a) == "true")));
+                var i = 0;
+                foreach (var field in definition.Elements(Ua + "Field"))
+                {
+                    var dataType = (string?)field.Attribute("DataType");
+                    facts[$"{p}/definition/field[{i++}]"] = string.Join(" ", new[]
+                    {
+                        (string?)field.Attribute("Name"),
+                        dataType == null ? null : "type=" + ctx.NodeId(dataType),
+                        Named(field, "ValueRank", "-1"), Named(field, "ArrayDimensions", null), Named(field, "Value", null),
+                        Named(field, "IsOptional", "false"),
+                        Texts(field, "Description") is { } d ? "description=" + d : null,
+                    }.Where(s => s != null));
+                }
+            }
 
             foreach (var reference in node.Element(Ua + "References")?.Elements(Ua + "Reference") ?? Enumerable.Empty<XElement>())
             {
@@ -107,6 +125,10 @@ public sealed class NodeSetComparer
     {
         if (value != null) facts[$"{node}/@{name}"] = value;
     }
+
+    /// <summary>"Name=value" of an attribute, or null when it is missing or has its default.</summary>
+    private static string? Named(XElement e, string name, string? defaultValue) =>
+        (string?)e.Attribute(name) is { } v && v != defaultValue ? $"{name}={v}" : null;
 
     private static string Unique(Dictionary<string, string> facts, string path)
     {

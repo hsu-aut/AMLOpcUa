@@ -14,7 +14,7 @@ namespace OpcUaAml.Tests;
 ///   Counter: UInt32, incremented every 100 ms
 /// </code>
 /// </summary>
-public sealed class TestServer : IAsyncLifetime
+public class TestServer : IAsyncLifetime
 {
     public const string Namespace = "http://example.org/Plant/";
 
@@ -37,7 +37,7 @@ public sealed class TestServer : IAsyncLifetime
             .SetAutoAcceptUntrustedCertificates(true)
             .CreateAsync();
         await _app.CheckApplicationInstanceCertificatesAsync(false, null);
-        _server = new PlantServer();
+        _server = new PlantServer(CreateNodeManager);
         await _app.StartAsync(_server);
     }
 
@@ -46,6 +46,10 @@ public sealed class TestServer : IAsyncLifetime
         if (_server != null) await _server.StopAsync();
         try { Directory.Delete(PkiRoot, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
+
+    /// <summary>The address space of the server; the plant by default.</summary>
+    protected virtual INodeManager CreateNodeManager(IServerInternal server, ApplicationConfiguration configuration) =>
+        new PlantNodeManager(server, configuration);
 
     private static int FreePort()
     {
@@ -56,10 +60,10 @@ public sealed class TestServer : IAsyncLifetime
         return port;
     }
 
-    private sealed class PlantServer : StandardServer
+    private sealed class PlantServer(Func<IServerInternal, ApplicationConfiguration, INodeManager> nodeManager) : StandardServer
     {
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration) =>
-            new(server, configuration, null, new PlantNodeManager(server, configuration));
+            new(server, configuration, null, nodeManager(server, configuration));
     }
 
     private sealed class PlantNodeManager : CustomNodeManager2

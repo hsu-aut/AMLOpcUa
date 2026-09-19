@@ -72,6 +72,9 @@ public sealed class UaClient : IAsyncDisposable
     public string EndpointUrl { get; }
     public string SecurityMode { get; }
 
+    /// <summary>The session, for the classes of this library that need more than browsing and reading.</summary>
+    internal ISession Session => _session;
+
     /// <summary>The server's namespace table at connect time.</summary>
     public IReadOnlyList<string> NamespaceTable => _session.NamespaceUris.ToArray();
 
