@@ -46,6 +46,18 @@ public sealed record MirrorResult(InternalElementType Root, int Nodes, int Typed
     public IReadOnlyList<string> Notes { get; init; } = Array.Empty<string>();
 }
 
+/// <summary>What mirroring a selection did.</summary>
+public sealed record SelectionMirrorResult(
+    InternalElementType Server,
+    int Nodes,
+    int Created,
+    int Updated,
+    int Typed,
+    int Linked,
+    bool Truncated,
+    IReadOnlyList<string> Vanished,
+    IReadOnlyList<string> Notes);
+
 public static class AddressSpaceMirror
 {
     /// <summary>
@@ -64,6 +76,118 @@ public static class AddressSpaceMirror
         await Walk(client, start, root, 1, types, state, ct).ConfigureAwait(false);
         if (options.ReadValues) await ReadValues(client, state, ct).ConfigureAwait(false);
         return new MirrorResult(root, state.Nodes, state.Typed, state.Truncated) { Linked = state.Linked, Notes = state.Notes };
+    }
+
+    public const string ServerUriAttribute = "ServerUri";
+    public const string EndpointAttribute = "EndpointUrl";
+
+    /// <summary>
+    /// The element of <paramref name="ih"/> that stands for the server, below
+    /// which a selection was mirrored; null when the hierarchy holds no mirror of it.
+    /// </summary>
+    public static InternalElementType? MirroredServer(InstanceHierarchyType ih, UaClient client) =>
+        ih.InternalElement.FirstOrDefault(e => e.Attribute[MirrorSelection.AttributeName] != null
+            && (client.ServerUri != null ? e.Attribute[ServerUriAttribute]?.Value == client.ServerUri
+                                         : e.Attribute[EndpointAttribute]?.Value == client.EndpointUrl));
+
+    /// <summary>
+    /// Takes what <paramref name="selection"/> covers into <paramref name="ih"/>:
+    /// below an element for the server, each selected part with the nodes on its
+    /// way from the Objects or Views folder. Nodes already mirrored there are
+    /// found by NodeId and updated (type, value) instead of added again; nodes
+    /// of the document the server no longer holds are reported, not deleted.
+    /// The selection is kept at the server element.
+    /// </summary>
+    public static async Task<SelectionMirrorResult> MirrorSelectionAsync(UaClient client, MirrorSelection selection,
+        InstanceHierarchyType ih, MirrorOptions? options = null, CancellationToken ct = default)
+    {
+        options ??= new MirrorOptions();
+        var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct).ConfigureAwait(false);
+        var doc = ih.CAEXDocument;
+        var types = TypeIndex(doc);
+        var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
+        SetText(server, ServerUriAttribute, "xs:anyURI", client.ServerUri);
+        SetText(server, EndpointAttribute, "xs:anyURI", client.EndpointUrl);
+        var state = new State(options) { Planned = options.LinkToPlanned ? PlannedIndex(doc, ih, options.PlannedIn) : new() };
+        var apply = new Apply(client, types, state);
+        foreach (var root in plan.Roots) apply.Node(root, server);
+        selection.WriteTo(server);
+        if (options.ReadValues) await ReadValues(client, state, ct).ConfigureAwait(false);
+        return new SelectionMirrorResult(server, plan.Nodes, apply.Created, apply.Updated, state.Typed, state.Linked, plan.Truncated,
+            apply.Vanished, state.Notes);
+    }
+
+    /// <summary>How many nodes a selection covers, without changing the document.</summary>
+    public static async Task<(int Nodes, bool Truncated)> PreviewAsync(UaClient client, MirrorSelection selection, int maxNodes = 2000,
+        CancellationToken ct = default)
+    {
+        var plan = await MirrorPlan.BuildAsync(client, selection, maxNodes, ct).ConfigureAwait(false);
+        return (plan.Nodes, plan.Truncated);
+    }
+
+    private sealed class Apply(UaClient client, Dictionary<UaNodeAddress, string> types, State state)
+    {
+        public int Created;
+        public int Updated;
+        public List<string> Vanished { get; } = new();
+
+        public void Node(MirrorPlanNode node, InternalElementType parent)
+        {
+            var address = node.Item.Address with { ServerUri = null };
+            var element = parent.InternalElement.FirstOrDefault(e => AddressOf(e) == address);
+            if (element == null)
+            {
+                element = Create(parent, node.Item, types, client, state);
+                Created++;
+            }
+            else
+            {
+                state.Nodes++;
+                Updated++;
+                if (node.Item.TypeDefinition != null && types.TryGetValue(node.Item.TypeDefinition with { ServerUri = null }, out var path))
+                {
+                    element.RefBaseSystemUnitPath = path;
+                    state.Typed++;
+                }
+                if (node.Item.NodeClass == "Variable") state.Variables.Add((element, node.Item.Address));
+            }
+            foreach (var child in node.Children) Node(child, element);
+            if (node.OnServer == null) return;
+            foreach (var child in element.InternalElement)
+            {
+                if (AddressOf(child) is { } a && !node.OnServer.Contains(a)) Vanished.Add($"{PathOf(child)} ({a})");
+            }
+        }
+
+        private static string PathOf(InternalElementType e)
+        {
+            var parts = new List<string>();
+            for (CAEXBasicObject? o = e; o is InternalElementType ie; o = ie.CAEXParent as CAEXBasicObject) parts.Insert(0, ie.Name);
+            return string.Join("/", parts);
+        }
+    }
+
+    private static UaNodeAddress? AddressOf(InternalElementType e)
+    {
+        try { return AnnexANodeId.Of(e) is { } a ? a with { ServerUri = null } : null; }
+        catch (AddressingException) { return null; }
+    }
+
+    /// <summary>A readable name for the server: the last part of its ApplicationUri, or the endpoint's host.</summary>
+    private static string ServerName(UaClient client)
+    {
+        var uri = client.ServerUri;
+        var last = uri?.Split(':', '/').LastOrDefault(s => s.Length > 0);
+        if (!string.IsNullOrEmpty(last)) return last;
+        return Uri.TryCreate(client.EndpointUrl, UriKind.Absolute, out var endpoint) ? endpoint.Host : "Server";
+    }
+
+    private static void SetText(InternalElementType element, string name, string type, string? value)
+    {
+        if (value == null) return;
+        var a = element.Attribute[name] ?? element.Attribute.Append(name);
+        a.AttributeDataType = type;
+        a.Value = value;
     }
 
     private sealed class State(MirrorOptions options)
@@ -181,6 +305,14 @@ public static class AddressSpaceMirror
             catch (AddressingException) { /* a class without a usable NodeId is not addressable */ }
         }
         return index;
+    }
+
+    private static string UniqueName(InstanceHierarchyType ih, string name)
+    {
+        var taken = ih.InternalElement.Select(e => e.Name).ToHashSet(StringComparer.Ordinal);
+        if (!taken.Contains(name)) return name;
+        for (var i = 2; ; i++)
+            if (!taken.Contains($"{name}_{i}")) return $"{name}_{i}";
     }
 
     private static string UniqueName(IInternalElementContainer parent, string name)

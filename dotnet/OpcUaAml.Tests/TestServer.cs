@@ -12,6 +12,7 @@ namespace OpcUaAml.Tests;
 ///   Pump1 (object)   Speed: Double 12.5, Running: Boolean true, Label: String "Pump 1"
 ///     Motor (object) Temperature: Int32 42, Samples: Int32[] {1, 2, 3}
 ///   Counter: UInt32, incremented every 100 ms
+/// Views/Maintenance (view) organizes Motor
 /// </code>
 /// </summary>
 public class TestServer : IAsyncLifetime
@@ -118,6 +119,21 @@ public class TestServer : IAsyncLifetime
                 }, null, 100, 100);
 
                 AddPredefinedNode(SystemContext, plant);
+
+                // A View that shows the motor for maintenance.
+                var view = new ViewState
+                {
+                    NodeId = new NodeId("Maintenance", ns),
+                    BrowseName = new QualifiedName("Maintenance", ns),
+                    DisplayName = "Maintenance",
+                    ContainsNoLoops = true,
+                };
+                view.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ViewsFolder);
+                view.AddReference(ReferenceTypeIds.Organizes, false, motor.NodeId);
+                if (!externalReferences.TryGetValue(ObjectIds.ViewsFolder, out var viewRefs))
+                    externalReferences[ObjectIds.ViewsFolder] = viewRefs = new List<IReference>();
+                viewRefs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, view.NodeId));
+                AddPredefinedNode(SystemContext, view);
             }
         }
 

@@ -140,21 +140,159 @@ public sealed class UaClient : IAsyncDisposable
     /// The children of a node along hierarchical references (the Objects
     /// folder when <paramref name="node"/> is null).
     /// </summary>
-    public async Task<IReadOnlyList<UaBrowseItem>> BrowseAsync(UaNodeAddress? node = null, CancellationToken ct = default)
+    public Task<IReadOnlyList<UaBrowseItem>> BrowseAsync(UaNodeAddress? node = null, CancellationToken ct = default) =>
+        BrowseAsync(node, null, ct);
+
+    /// <summary>
+    /// The children of a node along hierarchical references, restricted to the
+    /// references of a View when <paramref name="view"/> is given.
+    /// </summary>
+    public Task<IReadOnlyList<UaBrowseItem>> BrowseAsync(UaNodeAddress? node, UaNodeAddress? view, CancellationToken ct = default) =>
+        BrowseCoreAsync(node == null ? ObjectIds.ObjectsFolder : ToNodeId(node), BrowseDirection.Forward,
+            NodeClass.Object | NodeClass.Variable | NodeClass.Method, view, ct);
+
+    /// <summary>The Views of the server (the Views folder's children).</summary>
+    public Task<IReadOnlyList<UaBrowseItem>> ViewsAsync(CancellationToken ct = default) =>
+        BrowseCoreAsync(ObjectIds.ViewsFolder, BrowseDirection.Forward, NodeClass.View, null, ct);
+
+    /// <summary>The node itself: names, NodeClass and type definition.</summary>
+    public async Task<UaBrowseItem> DescribeAsync(UaNodeAddress node, CancellationToken ct = default)
     {
-        var start = node == null ? ObjectIds.ObjectsFolder : ToNodeId(node);
+        var id = ToNodeId(node);
+        var request = new ReadValueIdCollection(new[] { Attributes.BrowseName, Attributes.DisplayName, Attributes.NodeClass }
+            .Select(a => new ReadValueId { NodeId = id, AttributeId = a }));
+        var response = await _session.ReadAsync(null, 0, TimestampsToReturn.Neither, request, ct).ConfigureAwait(false);
+        if (StatusCode.IsBad(response.Results[2].StatusCode))
+            throw new UaConnectionException($"The server has no node {node}.");
+        var type = (await BrowseCoreAsync(id, BrowseDirection.Forward, NodeClass.Unspecified, null, ct, ReferenceTypeIds.HasTypeDefinition)
+            .ConfigureAwait(false)).FirstOrDefault();
+        var nodeClass = (NodeClass)(int)response.Results[2].Value;
+        return new UaBrowseItem(node with { ServerUri = null }, (response.Results[0].Value as QualifiedName)?.Name ?? node.Identifier,
+            (response.Results[1].Value as LocalizedText)?.Text ?? node.Identifier, nodeClass.ToString(), type?.Address, "");
+    }
+
+    /// <summary>
+    /// The nodes from the Objects or Views folder down to <paramref name="node"/>,
+    /// both included, along the hierarchical references a node is held by.
+    /// A node that no hierarchical reference leads to is its own path.
+    /// </summary>
+    public async Task<IReadOnlyList<UaBrowseItem>> PathAsync(UaNodeAddress node, CancellationToken ct = default)
+    {
+        var self = await DescribeAsync(node, ct).ConfigureAwait(false);
+        var path = new List<UaBrowseItem> { self };
+        var seen = new HashSet<UaNodeAddress> { self.Address };
+        var roots = new[] { FromExpanded(ObjectIds.ObjectsFolder), FromExpanded(ObjectIds.ViewsFolder) };
+        var current = self;
+        for (var i = 0; i < 64 && !roots.Contains(current.Address); i++)
+        {
+            var holders = await BrowseCoreAsync(ToNodeId(current.Address), BrowseDirection.Inverse,
+                NodeClass.Object | NodeClass.Variable | NodeClass.View, null, ct).ConfigureAwait(false);
+            var holder = holders.Where(h => h.ReferenceType != "HasSubtype" && !seen.Contains(h.Address))
+                .OrderBy(h => Array.IndexOf(PreferredHolders, h.ReferenceType) is var p && p >= 0 ? p : PreferredHolders.Length)
+                .FirstOrDefault();
+            if (holder == null) break;
+            // The reference that holds a node is named on the node, as a browse from its holder would name it.
+            path[0] = path[0] with { ReferenceType = holder.ReferenceType };
+            path.Insert(0, holder with { ReferenceType = "" });
+            seen.Add(holder.Address);
+            current = holder;
+        }
+        return path;
+    }
+
+    private static readonly string[] PreferredHolders = { "HasComponent", "HasOrderedComponent", "Organizes", "HasProperty" };
+
+    /// <summary>A type and its subtypes.</summary>
+    public async Task<IReadOnlySet<UaNodeAddress>> SubtypesAsync(UaNodeAddress type, CancellationToken ct = default)
+    {
+        var result = new HashSet<UaNodeAddress> { type with { ServerUri = null } };
+        var frontier = new List<UaNodeAddress> { type };
+        while (frontier.Count > 0)
+        {
+            var next = new List<UaNodeAddress>();
+            foreach (var t in frontier)
+            {
+                var subtypes = await BrowseCoreAsync(ToNodeId(t), BrowseDirection.Forward, NodeClass.Unspecified, null, ct,
+                    ReferenceTypeIds.HasSubtype).ConfigureAwait(false);
+                next.AddRange(subtypes.Select(s => s.Address).Where(result.Add));
+            }
+            frontier = next;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The ObjectTypes and VariableTypes of the server, found along HasSubtype
+    /// from BaseObjectType and BaseVariableType.
+    /// </summary>
+    public async Task<IReadOnlyList<UaBrowseItem>> TypesAsync(CancellationToken ct = default)
+    {
+        var result = new List<UaBrowseItem>();
+        foreach (var root in new[] { ObjectTypeIds.BaseObjectType, VariableTypeIds.BaseVariableType })
+        {
+            var frontier = new List<NodeId> { root };
+            while (frontier.Count > 0)
+            {
+                var next = new List<NodeId>();
+                foreach (var t in frontier)
+                {
+                    var subtypes = await BrowseCoreAsync(t, BrowseDirection.Forward, NodeClass.ObjectType | NodeClass.VariableType, null, ct,
+                        ReferenceTypeIds.HasSubtype).ConfigureAwait(false);
+                    result.AddRange(subtypes);
+                    next.AddRange(subtypes.Select(s => ToNodeId(s.Address)));
+                }
+                frontier = next;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Objects and variables below <paramref name="start"/> whose type is one of
+    /// <paramref name="types"/>; below a match the search does not go on, the
+    /// match's subtree belongs to it. The Server object is not searched.
+    /// </summary>
+    public async Task<IReadOnlyList<UaBrowseItem>> InstancesOfAsync(UaNodeAddress start, IReadOnlySet<UaNodeAddress> types,
+        int maxNodes = 20000, CancellationToken ct = default)
+    {
+        var result = new List<UaBrowseItem>();
+        var server = FromExpanded(ObjectIds.Server);
+        var seen = new HashSet<UaNodeAddress> { start with { ServerUri = null } };
+        var frontier = new List<UaNodeAddress> { start };
+        while (frontier.Count > 0 && seen.Count < maxNodes)
+        {
+            var next = new List<UaNodeAddress>();
+            foreach (var node in frontier)
+            {
+                foreach (var child in await BrowseAsync(node, ct).ConfigureAwait(false))
+                {
+                    if (child.NodeClass == "Method" || child.Address == server || !seen.Add(child.Address)) continue;
+                    if (child.TypeDefinition != null && types.Contains(child.TypeDefinition)) result.Add(child);
+                    else next.Add(child.Address);
+                }
+            }
+            frontier = next;
+        }
+        return result;
+    }
+
+    private async Task<IReadOnlyList<UaBrowseItem>> BrowseCoreAsync(NodeId start, BrowseDirection direction, NodeClass classes,
+        UaNodeAddress? view, CancellationToken ct, NodeId? referenceType = null)
+    {
         var browser = new BrowseDescription
         {
             NodeId = start,
-            BrowseDirection = BrowseDirection.Forward,
-            ReferenceTypeId = ReferenceTypeIds.HierarchicalReferences,
+            BrowseDirection = direction,
+            ReferenceTypeId = referenceType ?? ReferenceTypeIds.HierarchicalReferences,
             IncludeSubtypes = true,
-            NodeClassMask = (uint)(NodeClass.Object | NodeClass.Variable | NodeClass.Method),
+            NodeClassMask = (uint)classes,
             ResultMask = (uint)BrowseResultMask.All,
         };
+        var viewDescription = view == null ? null : new ViewDescription { ViewId = ToNodeId(view) };
         var items = new List<UaBrowseItem>();
-        var response = await _session.BrowseAsync(null, null, 0, new BrowseDescriptionCollection { browser }, ct).ConfigureAwait(false);
+        var response = await _session.BrowseAsync(null, viewDescription, 0, new BrowseDescriptionCollection { browser }, ct).ConfigureAwait(false);
         var result = response.Results[0];
+        if (StatusCode.IsBad(result.StatusCode)) throw new UaConnectionException($"Browsing {start} failed: {result.StatusCode}.");
         Add(result.References);
         var continuation = result.ContinuationPoint;
         while (continuation != null && continuation.Length > 0)
@@ -169,6 +307,7 @@ public sealed class UaClient : IAsyncDisposable
         {
             foreach (var r in refs)
             {
+                if (r.NodeId.ServerIndex != 0) continue;
                 items.Add(new UaBrowseItem(
                     FromExpanded(r.NodeId),
                     r.BrowseName.Name,
