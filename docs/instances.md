@@ -46,6 +46,17 @@ What only makes sense on a type is removed from the instance:
 
 Abstract types are refused unless explicitly allowed.
 
+In the dialog an Optional child below another Optional child can be ticked
+only once its parent is. Before creating, the dialog says once when a
+MandatoryPlaceholder is left empty or the hierarchy already holds an element
+of that name; Create again goes ahead. Enter in the type search takes the
+first type found and moves on to the name. The new instance is selected in
+the editor.
+
+**Add missing Mandatory children** (`InstanceUpgrader`) brings instances up
+to date after a newer version of their types was imported. The plugin lists
+what it would add (`PreviewDocument`) and asks before it adds anything.
+
 ## Checking a document
 
 `AnnexAChecker` (command line: `uaaml check`, plugin: **Check**) checks the

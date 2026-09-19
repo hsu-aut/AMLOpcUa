@@ -45,10 +45,24 @@ server it was bound to ([export](export.md), D16).
 
 `UaClient` wraps the OPC Foundation .NET Standard stack:
 
-- **Connect** to an endpoint, preferring a secured one; anonymous or user name
-  and password. The client creates its own certificate under
-  `%LOCALAPPDATA%\AMLOpcUa\pki`. An unknown server certificate is refused
-  unless the caller accepts it; the plugin asks the user.
+- **Connect** to an endpoint, anonymous or with user name and password. The
+  client creates its own certificate under `%LOCALAPPDATA%\AMLOpcUa\pki`.
+  - With security on (the default of the plugin and of `uaaml`), only a
+    secured endpoint (Sign or SignAndEncrypt) is taken; a server that offers
+    none is refused rather than used unsecured. `uaaml --insecure` and the
+    unticked "Secure" box allow the unsecured endpoint.
+  - A user name is never sent over an unsecured connection: its password
+    would travel in clear text.
+  - An unknown server certificate is refused; the exception carries the
+    certificate (subject, issuer, validity, SHA-256 fingerprint). The plugin
+    shows it and asks; trusted, exactly that certificate goes to
+    `pki\trusted\certs` (`UaClient.TrustServer`), so every later connection
+    checks it again and a server that shows another one is asked about anew.
+    `uaaml --accept` trusts an unknown certificate for one run, and not
+    for the servers a document names (`snapshot` without an endpoint).
+- **Keep-alive**: every 5 s the session asks the server; `Reachable` and
+  `ReachableChanged` say within seconds when it no longer answers. The plugin
+  then shows "Connection lost" and says to connect again.
 - **Browse** along hierarchical references (Objects folder by default).
 - **Read** values, several in one request; a node that does not exist is a bad
   result, not an exception.
@@ -65,7 +79,10 @@ so the libraries come from the same Annex A import as a NodeSet file:
 
 1. If the server publishes the NodeSet as the `NamespaceFile` of the
    namespace's metadata (`Server/Namespaces`, OPC 10000-5 6.3.13), that file
-   is read (FileType Open, Read, Close) and taken unchanged.
+   is read (FileType Open, Read, Close) and taken unchanged, if it is a
+   NodeSet of that model alone and at most 64 MB. A file that declares further
+   models is not taken: in the plugin's catalog it could stand in for them,
+   for example a forged newer DI, in later imports.
 2. Otherwise the NodeSet is rebuilt by browsing: the namespace's types, found
    along HasSubtype from the roots of the four type hierarchies in every
    namespace, what they hold along hierarchical references (instance
@@ -164,7 +181,7 @@ elements for the refBaseObj link, so a second copy does not link to the first.
 
 ## The document as a server
 
-**Serve this document** (`AmlServerHost`) starts a local OPC UA server whose
+**Serve this document** (`AmlServerHost`) starts an OPC UA server whose
 address space is the document's instance hierarchies, so clients can be tested
 against the engineering model before the plant exists. Each instance
 hierarchy becomes a folder under Objects; elements become Objects, or
@@ -180,7 +197,38 @@ so once. `AmlServerTests` serves a document and
 mirrors it back: structure and values survive.
 
 Values are written as AML holds them: invariant culture, XML Schema lexical
-forms, arrays separated by spaces.
+forms, arrays separated by spaces. A value its type cannot hold (3000000000
+as `xs:int`) is served as text.
+
+By default the server is for this computer only: it listens on 127.0.0.1,
+offers the unsecured endpoint besides the secured ones and admits every
+client, which is what testing a client on the same computer needs. Only
+programs on this computer reach it; they could read the document file
+anyway.
+
+"to the network" (`AmlServerOptions.Network`, `uaaml serve --network`)
+offers it to other computers: it listens on every address under the
+computer's name, offers secured endpoints only (Basic256Sha256 and newer, Sign
+and SignAndEncrypt) and admits only clients whose certificate is trusted. A
+client it refuses lands among `RejectedClients`; **Clients…** in the plugin
+(`uaaml clients --trust <thumbprint>`) trusts it from its next connection on,
+and takes the trust back. The choice is not kept: every editor session starts
+with the server for this computer only. The server stops when its document is
+closed or another is opened. Nothing is writable and no method is offered;
+anonymous sessions stay allowed, so on the network the client certificate is
+the whole access control.
+
+## Robustness
+
+A server is not trusted to behave. Browsing stops after 100000 references of
+one node, the type browse (`TypesAsync`) keeps a set of visited types and a
+limit of 50000 against HasSubtype running in a circle, a published NodeSet
+file is read up to 64 MB and parsed without DTDs (`SafeXml`), and references
+into namespaces the server's own table lacks are left out. Mirroring and
+reading values write the document between awaits; those awaits resume on the
+caller's context, so in the plugin every write happens on the UI thread, as
+Aml.Engine and the editor's tree need (`MirrorSelectionTests` checks it with
+a thread of its own).
 
 ## Tests
 
@@ -189,6 +237,11 @@ NamespaceFile, and compare what comes back with the file.
 `ServerTests` and `MirrorTests` start an OPC UA server inside the test process
 (`TestServer`, a small plant namespace on a free port, with a counter that
 changes every 100 ms) and cover secured and unsecured sessions, the refused
-unknown certificate, browsing, reading, subscriptions, mirroring with types
-and values, limits, and snapshots including DataVariables of another server
-and bindings to missing nodes.
+unknown certificate and trusting exactly it, no password over an unsecured
+connection, browsing, reading, subscriptions, mirroring with types and
+values, limits, and snapshots including DataVariables of another server and
+bindings to missing nodes. `AmlServerTests` check that the document server
+listens on the loopback address only by default, that offered to the network
+it refuses unsecured and untrusted clients and admits a trusted one, and that
+a server that goes away is noticed. `ServerForgedFileTests` serve a
+NamespaceFile that also declares the base model.

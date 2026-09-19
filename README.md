@@ -77,11 +77,10 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   editor's own save command, reached by reflection; when an editor version
   does not have it, the option is switched off with that reason.
 - The list shows the UA namespaces the document holds, with model version and
-  publication date; a double click opens one in the modeler. Beside it, the
-  selected namespace in detail: its ObjectTypes, VariableTypes, DataTypes and
-  ReferenceTypes, the namespaces it builds on and those built on it, the
-  elements using its types, its types to draw, and **Remove** when nothing
-  needs it any more.
+  publication date. Beside it, the selected namespace in detail: its
+  ObjectTypes, VariableTypes, DataTypes and ReferenceTypes, the namespaces it
+  builds on and those built on it, the elements using its types, its types to
+  draw, **Edit in the modeler**, and **Remove** when nothing needs it any more.
 - NodeSet files dropped on the plugin are imported. When a NodeSet requires
   models no folder holds, a dialog names them and offers to add a folder or
   to fetch them from the Cloud Library; the import then tries again. Models
@@ -99,7 +98,7 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   Annex A, see [docs/export.md](docs/export.md)).
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
-  mismatched reference links. A double click selects the element.
+  mismatched reference links. A double click or Enter selects the element.
 - The **Server** tab connects to a running server (recent endpoints are
   kept), imports its types, and takes the parts of its address space you
   check into the document; see [docs/server.md](docs/server.md).
@@ -109,11 +108,19 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
 
 Every tab has a toolbar in the style of the other plugins of this family
 (icons of the editor's font, colour by kind of command); messages and
-progress appear in one status bar below all tabs, the log shows each line's
-level in colour and opens its file. Dialogs share one frame: what the dialog
+progress appear in one status bar below all tabs, with the whole message in
+its tooltip and a link to the log that counts the warnings not seen yet. The
+log shows each line's level in colour and opens its file. Dialogs share one frame: what the dialog
 does in its header, the answer in its footer. Surfaces, lines and grey text are
 mixed from the editor's theme (Aml.Skins on MahApps.Metro), so the plugin
 reads in the light and the dark theme; the diagram stays a white sheet.
+
+The plugin writes into the document directly: Ctrl+Z in the editor does not
+take its changes back. Changes that touch many elements or remove some
+(adding Mandatory children to every instance, removing a namespace or
+elements a server no longer has, replacing a binding) show what they do and
+ask first. An error in one of its commands is written to the log and shown
+in the status bar; it does not reach the editor.
 
 The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 `Aml.Editor.Plugin.Contract.dll` into an installed plugin folder; the editor
@@ -135,6 +142,11 @@ uaaml export  machinery.aml -o Machinery.NodeSet2.xml --annex-a-inverse
 uaaml compare plant.NodeSet2.xml other.NodeSet2.xml
 uaaml roundtrip Opc.Ua.Di.NodeSet2.xml plant.aml -o report.md
 uaaml roundtrip Opc.Ua.Di.NodeSet2.xml --inverse -o report.md
+uaaml browse  opc.tcp://plc:4840                 # secured; --insecure allows an unsecured server
+uaaml serve   plant.aml --port 48400             # to this computer only
+uaaml serve   plant.aml --network                # to other computers, trusted clients only
+uaaml clients --trust 3F2A                       # admit a client the server refused
+uaaml cloud search Machinery --user me           # password from UACLOUD_PASSWORD or asked
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the

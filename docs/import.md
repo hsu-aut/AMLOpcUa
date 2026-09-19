@@ -126,4 +126,10 @@ while the FX NodeSets of the tag define it in FX Data.
   NodeSet and every file it requires, the build of Opc2Aml and a format
   number for how the import runs it. Converting the same files again takes under a second
   (DI: 0.7 s instead of 15 s). `NodeSetImporter.Cache = null` turns it off;
-  the plugin empties it with Settings › Forget earlier conversions.
+  the plugin empties it with Settings › Forget earlier conversions. An entry
+  that cannot be read, whatever the zip or XML reader throws, is converted
+  again and replaced; temporary files and containers a crash left behind are
+  removed after an hour.
+- **In the plugin** one import runs at a time; a second one started meanwhile
+  is told to wait. A conversion whose document was closed or replaced while it
+  ran is not merged anywhere.
