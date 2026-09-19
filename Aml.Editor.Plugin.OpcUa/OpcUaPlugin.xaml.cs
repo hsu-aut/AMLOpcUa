@@ -354,7 +354,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         var document = _document;
         if (document == null || _busy) return;
-        var name = Path.GetFileNameWithoutExtension(document.CAEXFile.FileName ?? "document");
+        var choice = new ExportWindow(document.CAEXFile.Node) { Owner = Window.GetWindow(this) };
+        if (choice.ShowDialog() != true) return;
+        var name = choice.NamespaceUri is { } uri
+            ? uri.TrimEnd('/').Split('/', ':').LastOrDefault(s => s.Length > 0)
+            : Path.GetFileNameWithoutExtension(document.CAEXFile.FileName ?? "document");
         var dialog = new SaveFileDialog
         {
             Title = "Export as OPC UA NodeSet",
@@ -362,6 +366,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             FileName = (string.IsNullOrEmpty(name) ? "document" : name) + ".NodeSet2.xml",
         };
         if (dialog.ShowDialog() != true) return;
+        var options = new OpcUaAml.Export.NodeSetExportOptions { Mode = choice.Mode, NamespaceUri = choice.NamespaceUri };
 
         SetBusy(true, "Exporting …");
         try
@@ -369,7 +374,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             // The exporter reads the document; a copy of its XML keeps the
             // editor's document out of the background thread.
             var xml = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(document.CAEXFile.Node));
-            var nodeSet = await Task.Run(() => OpcUaAml.Export.NodeSetExporter.Export(xml));
+            var nodeSet = await Task.Run(() => OpcUaAml.Export.NodeSetExporter.Export(xml, options));
             nodeSet.Save(dialog.FileName);
             var nodes = nodeSet.Root?.Elements().Count(x => x.Name.LocalName.StartsWith("UA")) ?? 0;
             PluginLog.Info($"Exported {nodes} node(s) to {dialog.FileName}.");
