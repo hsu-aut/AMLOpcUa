@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
@@ -48,6 +49,28 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         var temperature = result.Server.Descendants<InternalElementType>().Single(e => e.Name == "Temperature");
         Assert.Equal("42", temperature.Attribute["Value"]!.Value);
         Assert.Equal(client.ServerUri, result.Server.Attribute[AddressSpaceMirror.ServerUriAttribute]!.Value);
+    }
+
+    [Fact]
+    public async Task Mirror_and_snapshot_write_the_document_on_the_callers_thread_only()
+    {
+        // The editor's tree and Aml.Engine expect every change on the UI thread.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var writers = new ConcurrentBag<int>();
+        doc.CAEXFile.Node.Document!.Changed += (_, __) => writers.Add(Environment.CurrentManagedThreadId);
+        using var ui = new UiThread();
+
+        var read = await ui.Run(async () =>
+        {
+            await using var client = await UaClient.ConnectAsync(Options());
+            var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1.Motor"), MirrorScope.Subtree) } };
+            await AddressSpaceMirror.MirrorSelectionAsync(client, selection, doc.CAEXFile.InstanceHierarchy.Append("Ui"));
+            return (await ValueSnapshot.ApplyAsync(doc, client)).Read;
+        });
+
+        Assert.True(read > 0);
+        Assert.NotEmpty(writers);
+        Assert.All(writers, id => Assert.Equal(ui.ManagedThreadId, id));
     }
 
     [Fact]

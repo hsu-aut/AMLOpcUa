@@ -7,6 +7,10 @@
 // the planned object), the mirrored element becomes an aspect of it: a
 // refBaseObj of the AutomationML object reference types names the planned
 // element as base. The planned model is not changed.
+//
+// The document is written between awaits, so the awaits here resume on the
+// caller's context (no ConfigureAwait(false)): called from the editor's UI
+// thread, every write happens there, as Aml.Engine and the editor's tree need.
 
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
@@ -94,8 +98,8 @@ public static class AddressSpaceMirror
         var state = new State(options) { Planned = options.LinkToPlanned ? PlannedIndex(doc, parent, options.PlannedIn) : new() };
 
         var root = Create(parent, start, types, client, state);
-        await Walk(client, start, root, 1, types, state, ct).ConfigureAwait(false);
-        if (options.ReadValues) await ReadValues(client, state, ct).ConfigureAwait(false);
+        await Walk(client, start, root, 1, types, state, ct);
+        if (options.ReadValues) await ReadValues(client, state, ct);
         return new MirrorResult(root, state.Nodes, state.Typed, state.Truncated) { Linked = state.Linked, Notes = state.Notes };
     }
 
@@ -124,7 +128,7 @@ public static class AddressSpaceMirror
         InstanceHierarchyType ih, MirrorOptions? options = null, CancellationToken ct = default)
     {
         options ??= new MirrorOptions();
-        var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct).ConfigureAwait(false);
+        var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct);
         var doc = ih.CAEXDocument;
         var types = TypeIndex(doc);
         var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
@@ -134,7 +138,7 @@ public static class AddressSpaceMirror
         var apply = new Apply(client, types, state);
         foreach (var root in plan.Roots) apply.Node(root, server);
         selection.WriteTo(server);
-        if (options.ReadValues) await ReadValues(client, state, ct).ConfigureAwait(false);
+        if (options.ReadValues) await ReadValues(client, state, ct);
         return new SelectionMirrorResult(server, plan.Nodes, apply.Created, apply.Updated, state.Typed, state.Linked, plan.Truncated,
             apply.Vanished, state.Notes);
     }
@@ -143,7 +147,7 @@ public static class AddressSpaceMirror
     public static async Task<(int Nodes, bool Truncated)> PreviewAsync(UaClient client, MirrorSelection selection, int maxNodes = 2000,
         CancellationToken ct = default)
     {
-        var plan = await MirrorPlan.BuildAsync(client, selection, maxNodes, ct).ConfigureAwait(false);
+        var plan = await MirrorPlan.BuildAsync(client, selection, maxNodes, ct);
         return (plan.Nodes, plan.Truncated);
     }
 
@@ -243,12 +247,12 @@ public static class AddressSpaceMirror
         Dictionary<UaNodeAddress, string> types, State state, CancellationToken ct)
     {
         if (level > state.Options.Depth) return;
-        foreach (var child in await client.BrowseAsync(node.Address, ct).ConfigureAwait(false))
+        foreach (var child in await client.BrowseAsync(node.Address, ct))
         {
             if (child.NodeClass == "Method") continue;
             if (state.Nodes >= state.Options.MaxNodes) { state.Truncated = true; return; }
             var created = Create(element, child, types, client, state);
-            await Walk(client, child, created, level + 1, types, state, ct).ConfigureAwait(false);
+            await Walk(client, child, created, level + 1, types, state, ct);
         }
     }
 
@@ -327,7 +331,7 @@ public static class AddressSpaceMirror
     private static async Task ReadValues(UaClient client, State state, CancellationToken ct)
     {
         if (state.Variables.Count == 0) return;
-        var results = await client.ReadManyAsync(state.Variables.Select(v => v.Address).ToList(), ct).ConfigureAwait(false);
+        var results = await client.ReadManyAsync(state.Variables.Select(v => v.Address).ToList(), ct);
         for (var i = 0; i < results.Count; i++)
         {
             if (!results[i].Good) continue;

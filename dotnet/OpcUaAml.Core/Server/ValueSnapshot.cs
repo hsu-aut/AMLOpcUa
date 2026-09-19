@@ -3,6 +3,7 @@
 // attribute), BPR DataVariables (the variable attribute itself) and the older
 // "aml-opcua-variable" binding of Kühnert et al. (its parent attribute). The result
 // is a document "as is" at one point in time; nothing is subscribed.
+// Awaits resume on the caller's context, where the document is written.
 
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
@@ -25,13 +26,13 @@ public static class ValueSnapshot
     /// </summary>
     public static async Task<SnapshotResult> ApplyAsync(CAEXDocument doc, UaClient client, CancellationToken ct = default)
     {
-        var (targets, problems, skipped) = await ResolvedTargetsAsync(doc, client, ct).ConfigureAwait(false);
+        var (targets, problems, skipped) = await ResolvedTargetsAsync(doc, client, ct);
 
         var read = 0;
         var failed = 0;
         if (targets.Count > 0)
         {
-            var results = await client.ReadManyAsync(targets.Select(t => t.Address).ToList(), ct).ConfigureAwait(false);
+            var results = await client.ReadManyAsync(targets.Select(t => t.Address).ToList(), ct);
             for (var i = 0; i < results.Count; i++)
             {
                 if (results[i].Good) { targets[i].Write(results[i]); read++; }
@@ -58,7 +59,7 @@ public static class ValueSnapshot
             if (OtherServer(id.ServerUri, client)) { skipped++; continue; }
             try
             {
-                var address = await client.ResolveAsync(id, ct).ConfigureAwait(false);
+                var address = await client.ResolveAsync(id, ct);
                 targets.Add(new Target(r => SetValue(ie, r), address, ie.Name));
             }
             catch (AddressingException ex)

@@ -47,7 +47,7 @@ public sealed class LiveValues : IAsyncDisposable
     public static async Task<LiveValues> FollowAsync(CAEXDocument doc, UaClient client, Action<Action> dispatch,
         Action<LiveUpdate>? changed = null, int publishingIntervalMs = 1000, CancellationToken ct = default)
     {
-        var (targets, problems, skipped) = await ValueSnapshot.ResolvedTargetsAsync(doc, client, ct).ConfigureAwait(false);
+        var (targets, problems, skipped) = await ValueSnapshot.ResolvedTargetsAsync(doc, client, ct);
         // One monitored item per node, even when several elements are bound to it.
         var byAddress = targets.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.ToList());
         // The first values arrive while the subscription is created, before this object exists.
@@ -63,7 +63,7 @@ public sealed class LiveValues : IAsyncDisposable
                     var updates = Interlocked.Add(ref counter.Value, bound.Count);
                     changed?.Invoke(new LiveUpdate(bound[0].What, result.ValueText, updates));
                 });
-            }, publishingIntervalMs, ct).ConfigureAwait(false);
+            }, publishingIntervalMs, ct);
         return new LiveValues(watch, counter, targets.Count, skipped, problems);
     }
 
