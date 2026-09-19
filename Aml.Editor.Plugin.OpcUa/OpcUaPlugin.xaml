@@ -159,6 +159,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -176,7 +177,7 @@
                             ToolTip="Take the NodeSet of one of the server's namespaces: import its types into the document (OPC 10000-83 Annex A), open it in the modeler, or save it. Uses the file the server publishes for the namespace, otherwise rebuilds the NodeSet by browsing."/>
                     <Separator/>
                     <Button x:Name="MirrorButton" Content="Take into document" Click="MirrorButton_Click"
-                            ToolTip="Create elements for the selected node and the nodes below it, with their NodeIds, UA types and current values."/>
+                            ToolTip="Create elements for the checked parts (or, with nothing checked, the selected node and what is below it), each with the way to it from the Objects folder, with NodeIds, UA types and current values. Mirroring a part again updates it."/>
                     <TextBlock Text=" depth " VerticalAlignment="Center"/>
                     <TextBox x:Name="MirrorDepthBox" Text="3" Width="30"/>
                     <TextBlock Text=" into " VerticalAlignment="Center"/>
@@ -197,7 +198,25 @@
                     <TextBlock Text=" port " VerticalAlignment="Center"/>
                     <TextBox x:Name="ServePortBox" Text="48400" Width="50"/>
                 </ToolBar>
-                <Grid Grid.Row="2">
+                <WrapPanel Grid.Row="2" Margin="0,4,0,4">
+                    <TextBlock Text="Filter" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="Gray"/>
+                    <CheckBox x:Name="SkipPropertiesBox" Content="Leave out properties" VerticalAlignment="Center" Margin="0,0,10,0" Click="Filter_Changed"
+                              ToolTip="Leave out nodes held by HasProperty (EURange, EngineeringUnits, Identification properties …)."/>
+                    <CheckBox x:Name="ObjectsOnlyBox" Content="Objects only" VerticalAlignment="Center" Margin="0,0,10,0" Click="Filter_Changed"
+                              ToolTip="Leave out variables."/>
+                    <CheckBox x:Name="ShowServerBox" Content="Show Server object" VerticalAlignment="Center" Margin="0,0,10,0" Click="Filter_Changed"
+                              ToolTip="The Server object holds the server's own diagnostics and capabilities; it is hidden by default."/>
+                    <Button x:Name="NamespacesButton" Content="Namespaces: all" Click="NamespacesButton_Click" Margin="0,0,16,0"
+                            ToolTip="Take only nodes of these namespaces, with what they hold."/>
+                    <Button x:Name="InstancesOfButton" Content="Instances of a type…" Click="InstancesOfButton_Click" Margin="0,0,4,0"
+                            ToolTip="Check every instance of a type below the selected node (below Objects when none is selected), each with everything below it."/>
+                    <Button x:Name="LoadSelectionButton" Content="Load kept selection" Click="LoadSelectionButton_Click" Margin="0,0,4,0"
+                            ToolTip="Take the selection kept for this server in the hierarchy named under 'into', to mirror the same part again."/>
+                    <Button x:Name="PreviewButton" Content="Count" Click="PreviewButton_Click"
+                            ToolTip="Count the elements the selection gives, without changing the document."/>
+                    <TextBlock x:Name="SelectionSummary" VerticalAlignment="Center" Foreground="Gray" Margin="8,0,0,0"/>
+                </WrapPanel>
+                <Grid Grid.Row="3">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
                         <ColumnDefinition Width="5"/>
@@ -205,9 +224,25 @@
                     </Grid.ColumnDefinitions>
                     <TreeView x:Name="AddressTree" Grid.Column="0" SelectedItemChanged="AddressTree_SelectedItemChanged"/>
                     <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch"/>
-                    <TextBox x:Name="NodeDetails" Grid.Column="2" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="5"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBox x:Name="NodeDetails" Grid.Row="0" IsReadOnly="True" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11"/>
+                        <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                        <DockPanel Grid.Row="2">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,2">
+                                <Button x:Name="RemoveSelectionButton" DockPanel.Dock="Right" Content="Remove" Click="RemoveSelection_Click"/>
+                                <Button x:Name="ClearSelectionButton" DockPanel.Dock="Right" Content="Clear" Click="ClearSelection_Click" Margin="0,0,4,0"/>
+                                <TextBlock Text="Selection  (check nodes; right click for how much)" VerticalAlignment="Center" Foreground="Gray"/>
+                            </DockPanel>
+                            <ListBox x:Name="SelectionList"/>
+                        </DockPanel>
+                    </Grid>
                 </Grid>
-                <StackPanel Grid.Row="3">
+                <StackPanel Grid.Row="4">
                     <ListView x:Name="WatchList" MaxHeight="160" Margin="0,4,0,0" Visibility="Collapsed">
                         <ListView.View>
                             <GridView>

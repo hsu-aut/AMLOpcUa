@@ -51,6 +51,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         EndpointBox.Text = _settings.LastEndpointUrl ?? "opc.tcp://localhost:4840";
         SecurityToggle.IsChecked = _settings.UseSecurity;
+        InitSelection();
         UpdateServerState();
     }
 
@@ -208,41 +209,6 @@ public partial class OpcUaPlugin : ISupportsSelection
 
     // ── address space tree ──────────────────────────────────────────────────
 
-    private const string Pending = "…";
-
-    private async Task LoadRootAsync()
-    {
-        AddressTree.Items.Clear();
-        if (_client == null) return;
-        foreach (var item in await _client.BrowseAsync()) AddressTree.Items.Add(NodeItem(item));
-    }
-
-    private TreeViewItem NodeItem(UaBrowseItem node)
-    {
-        var item = new TreeViewItem
-        {
-            Header = $"{node.DisplayName}   [{node.NodeClass}]",
-            Tag = node,
-            ToolTip = node.Address.ToString(),
-        };
-        if (node.NodeClass != "Method") item.Items.Add(Pending);
-        item.Expanded += async (s, e) =>
-        {
-            if (e.OriginalSource != item || _client == null) return;
-            if (item.Items.Count != 1 || item.Items[0] as string != Pending) return;
-            item.Items.Clear();
-            try
-            {
-                foreach (var child in await _client.BrowseAsync(node.Address)) item.Items.Add(NodeItem(child));
-            }
-            catch (Exception ex)
-            {
-                PluginLog.Error($"Browsing {node.Address} failed", ex);
-            }
-        };
-        return item;
-    }
-
     private UaBrowseItem? SelectedNode => (AddressTree.SelectedItem as TreeViewItem)?.Tag as UaBrowseItem;
 
     private async void AddressTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -265,39 +231,6 @@ public partial class OpcUaPlugin : ISupportsSelection
     }
 
     // ── into the document ───────────────────────────────────────────────────
-
-    private async void MirrorButton_Click(object sender, RoutedEventArgs e)
-    {
-        var node = SelectedNode;
-        var document = _document;
-        if (node == null || document == null || _client == null) return;
-
-        var ihName = string.IsNullOrWhiteSpace(MirrorHierarchyBox.Text) ? "OpcUaServer" : MirrorHierarchyBox.Text.Trim();
-        var ih = document.CAEXFile.InstanceHierarchy[ihName] ?? document.CAEXFile.InstanceHierarchy.Append(ihName);
-        int.TryParse(MirrorDepthBox.Text, out var depth);
-        SetBusy(true, $"Reading {node.DisplayName} …");
-        try
-        {
-            var result = await AddressSpaceMirror.MirrorAsync(_client, node, ih, new MirrorOptions { Depth = Math.Clamp(depth, 1, 20) });
-            var message = $"Took {result.Nodes} node(s) of {node.DisplayName} into '{ih.Name}', {result.Typed} typed by an imported UA type"
-                          + (result.Linked > 0 ? $", {result.Linked} linked to their planned element (refBaseObj)." : ".")
-                          + (result.Truncated ? " Stopped at the node limit." : "");
-            PluginLog.Info(message);
-            foreach (var note in result.Notes) PluginLog.Info("Mirror: " + note);
-            SetStatus(message + " Press Ctrl+S to save.");
-            Selected?.Invoke(this, new SelectionEventArgs(result.Root));
-        }
-        catch (Exception ex)
-        {
-            PluginLog.Error("Mirroring failed", ex);
-            SetStatus("Mirroring failed: " + ex.Message);
-        }
-        finally
-        {
-            SetBusy(false, null);
-            UpdateServerState();
-        }
-    }
 
     /// <summary>Where NodeSets fetched from servers are kept, one folder per server.</summary>
     internal static string ServerNodeSetsFolder =>
@@ -427,7 +360,14 @@ public partial class OpcUaPlugin : ISupportsSelection
         PasswordBox.IsEnabled = !connected;
         ServerTypesButton.IsEnabled = connected && !_busy;
         var hasNode = connected && SelectedNode != null && _document != null && !_busy;
-        MirrorButton.IsEnabled = hasNode && SelectedNode!.NodeClass != "Method";
+        MirrorButton.IsEnabled = connected && _document != null && !_busy
+                                 && (_items.Count > 0 || SelectedNode is { NodeClass: not "Method" });
+        InstancesOfButton.IsEnabled = connected && !_busy;
+        LoadSelectionButton.IsEnabled = connected && _document != null && !_busy;
+        PreviewButton.IsEnabled = connected && !_busy && (_items.Count > 0 || SelectedNode != null);
+        NamespacesButton.IsEnabled = connected && !_busy;
+        RemoveSelectionButton.IsEnabled = SelectionList.SelectedItem != null;
+        ClearSelectionButton.IsEnabled = _items.Count > 0 || _excluded.Count > 0;
         BindButton.IsEnabled = hasNode;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
