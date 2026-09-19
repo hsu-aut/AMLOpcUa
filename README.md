@@ -14,7 +14,8 @@ OPC UA information models in AutomationML.
   from a VDI 3682 process description to OPC UA objects and methods
 - Export of AML documents (CAEX 2.15 and 3.0) as OPC UA NodeSets by the rules
   of the AutomationML/OPC Foundation working group (AML-UA-XSLT), a successor
-  of OPC 30040
+  of OPC 30040, and, as a second mode that is not a standard, the inverse of
+  Annex A: an imported OPC UA model written back as the nodes it was
 - Command line tool `uaaml` with the same functions
 - Structural comparison of AML class libraries and of NodeSets, used as test oracles
 
@@ -84,6 +85,9 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
   is never replaced by an older one.
 - **New instance** creates an instance of a UA type: every Mandatory child,
   the Optional children ticked in the dialog, no placeholders.
+- **Export** writes a NodeSet: the whole document by the AML-UA-XSLT rules,
+  or one imported UA namespace back as the nodes it was (the inverse of
+  Annex A, see [docs/export.md](docs/export.md)).
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
   mismatched reference links. A double click selects the element.
@@ -117,8 +121,10 @@ uaaml types   plant.aml --filter Machine
 uaaml instantiate plant.aml --type SoftwareVersionType --name Firmware --optional ReleaseDate
 uaaml check   plant.aml
 uaaml export  plant.aml -o plant.NodeSet2.xml
+uaaml export  machinery.aml -o Machinery.NodeSet2.xml --annex-a-inverse
 uaaml compare plant.NodeSet2.xml other.NodeSet2.xml
 uaaml roundtrip Opc.Ua.Di.NodeSet2.xml plant.aml -o report.md
+uaaml roundtrip Opc.Ua.Di.NodeSet2.xml --inverse -o report.md
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the

@@ -12,14 +12,17 @@ mapping and back through the other, and it reports per concept what arrives.
 ```bash
 uaaml roundtrip Opc.Ua.Di.NodeSet2.xml --search nodesets -o report.md
 uaaml roundtrip plant.aml VDI3682_Lib_v0.1.aml -o report.md
+uaaml roundtrip Opc.Ua.Di.NodeSet2.xml --inverse -o report.md
 ```
 
-A `.xml` file runs chain A, any other file runs chain B:
+A `.xml` file runs chain A, any other file runs chain B; `--inverse` runs a
+NodeSet through chain C:
 
 | Chain | Steps | Matched by |
 |---|---|---|
 | A | NodeSet, Annex A import, export, NodeSet | BrowseName of types and their declarations in the file's own model |
 | B | AML document, export, Annex A import, AML document | path of InternalElements; library and name of classes |
+| C | NodeSet, Annex A import, export by the inverse of Annex A, NodeSet | NodeId: every fact of every node of the file's own model |
 
 A step that fails does not stop the run: the report names the step and the
 error, and the command returns 1. The code is in
@@ -70,6 +73,54 @@ The import keeps the NodeIds, so an AML model can always be related to the
 original NodeSet, which is what [instances](instances.md) and
 [servers](server.md) rely on.
 
+### Chain C: NodeSet to AML and back by the inverse of Annex A
+
+Chain A shows that the two standards do not form a pair. Chain C replaces the
+way back with the inverse of Annex A, a second export mode that is not a
+standard ([export](export.md#second-mode-the-inverse-of-annex-a)). It compares
+the result with the original node by node (`NodeSetComparer.Flatten`): a fact
+is kept when the same NodeId has the same value. A lost fact of a node that
+Annex A did not carry into AML at all, or a reference to such a node, is
+counted as lost on the way in; the table gives the losses of the inverse
+itself in brackets.
+
+| Criterion | DI | Safety | FX Data | FX AC | FX CM |
+|---|---:|---:|---:|---:|---:|
+| Nodes present, with their node class | 413/447 (0) | 85/91 (0) | 65/186 (0) | 432/511 (0) | 414/545 (0) |
+| BrowseName kept | 411/447 (0) | 85/91 (0) | 65/186 (0) | 432/511 (0) | 414/545 (0) |
+| Description kept | 16/16 | 37/40 (3) | 1/7 (2) | 5/11 (2) | 0/4 (0) |
+| ParentNodeId kept | 345/360 (0) | 73/74 (1) | 32/82 (0) | 378/437 (0) | 343/397 (0) |
+| DataType kept | 231/246 (1) | 66/66 | 25/77 (0) | 272/311 (0) | 222/278 (0) |
+| ValueRank and ArrayDimensions kept | 145/145 | 14/14 | 36/36 | 221/242 (0) | 272/272 |
+| IsAbstract, Symmetric, InverseName kept | 28/28 | 2/2 | 7/7 | 20/20 | 23/23 |
+| MethodDeclarationId kept | 28/28 | | 6/6 | 27/35 (0) | 14/14 |
+| Values kept | 96/111 (1) | 12/13 (1) | 18/71 (1) | 73/108 (5) | 56/115 (3) |
+| DataType definitions kept, per field | 29/36 (7) | 16/22 (6) | 113/125 (12) | 37/48 (11) | 230/244 (14) |
+| References kept | 1448/1539 (1) | 220/236 (4) | 128/581 (0) | 1528/1826 (2) | 1433/1940 (16) |
+| Documentation kept | 0/79 | 0/15 | 0/33 | 0/64 | 0/45 |
+
+Every loss in brackets was traced back to the AML Opc2Aml writes:
+
+- Definitions: the descriptions of option set bits; Annex A keeps none. Safety
+  3005 and 3006 are option sets that Annex A writes without their fields.
+- Descriptions: Annex A writes none for some DataTypes (Safety, FX).
+- Values: empty strings, which Annex A leaves out, the EnumValues of variables
+  (FX AC 1251, 1254), which Annex A writes empty, and structures of a model
+  that is neither the exported one nor bundled (FX AC 6351 uses FX Data).
+- References: a declaration's references to declarations of another type, for
+  example to the placeholders of its own type definition (Safety 5000 to 6029),
+  and references between declarations that Annex A does not write at all
+  (FX CM 4001, HasCause 53).
+- DataType: DI 468, a VariableType without a `Value` attribute.
+- ParentNodeId: Safety 5002 is organized by Objects; DI writes no ParentNodeId
+  for organized nodes, Safety does, and the AML cannot tell the two apart.
+- Documentation: Annex A carries none.
+
+The losses outside the brackets are nodes Annex A does not carry: the type
+dictionaries and their variables (most of FX Data), the encodings, and nodes
+no type or folder holds. Methods, DataTypes and ReferenceTypes, 0 % in chain
+A, come back completely.
+
 ### Chain B: AML to NodeSet to AML
 
 | Document | Complete | Findings |
@@ -106,6 +157,7 @@ requirements, and SupportedRoleClasses.
 | Export | D13: CAEX 3.0 bracket paths not resolved | [export](export.md) |
 | Export | D14: models of imported AML libraries not required | [export](export.md), `Opc.Ua.AMLStandardLibraries.NodeSet2.xml` |
 | Export and AML-UA-XSLT | D15: units dropped | [export](export.md) |
+| NodeSetComparer | MethodDeclarationId and NodeIds inside values compared as text, with namespace indexes | resolved by namespace URI; an encoding in a TypeId compares as the DataType it encodes |
 | AML-UA-XSLT | Mirror objects without HasTypeDefinition | open, question for the working group |
 
 Chain B needs two NodeSets that the working group does not publish as files:

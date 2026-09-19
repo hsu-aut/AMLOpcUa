@@ -33,6 +33,9 @@ Options:
 - `XsltCompatibility`: reproduce the XSLT output exactly, including the bugs
   that the default fixes (see "Deviations").
 - `Comments`: section comments in the output (on by default, not part of the graph).
+- `Mode`: `AmlUaXslt` (the default, everything on this page) or
+  `AnnexAInverse`, a second mode that is not a standard (see "Second mode").
+- `NamespaceUri`: for `AnnexAInverse`, the model to write back.
 
 ## Namespaces and NodeIds
 
@@ -242,6 +245,62 @@ are not: the draft base types this export requires define neither, so they
 would need ReferenceTypes of our own; they are questions for the working
 group.
 
+## Second mode: the inverse of Annex A
+
+The rules above export an AML document. An OPC UA model that the import put
+into a document by OPC 10000-83 Annex A is AML too, so they export it as AML:
+its Variables, Methods, DataTypes and ReferenceTypes become Objects and
+ObjectTypes (chain A of the [round trip](roundtrip.md)). That is what the rules
+say, and it is of no use to someone who wants the OPC UA model back.
+
+`ExportMode.AnnexAInverse` (`AnnexAInverse.cs`) reads the Annex A libraries and
+instances of one namespace and writes the nodes they came from:
+
+| Annex A in AML | Written as |
+|---|---|
+| InterfaceClass in `ICL_<uri>`, the inverse as nested class | UAReferenceType with InverseName, Symmetric, IsAbstract |
+| AttributeType in `ATL_<uri>` (not `ListOf…`) | UADataType with its Definition, EnumStrings, EnumValues or OptionSetValues, and new encodings for structures |
+| SystemUnitClass in `SUC_<uri>` | UAObjectType, or UAVariableType when it derives from BaseVariableType |
+| InternalElement of `UaMethodNodeClass` | UAMethod, with MethodDeclarationId found in the types of its holder |
+| InternalElement with a `Value` attribute | UAVariable with DataType, ValueRank, ArrayDimensions and Value |
+| other InternalElement | UAObject |
+| `ModellingRule` of the child's interface | HasModellingRule |
+| SupportedRoleClass or RoleRequirements to `RCL_<uri>` | HasInterface |
+| ExternalInterface with `ReferenceIds` | the listed non hierarchical references |
+| instances below the ns0 folders of the InstanceHierarchy | UAObject and UAVariable below Objects or Server |
+
+NodeIds are the ones Annex A kept in the IDs and `NodeId` attributes, so the
+result can replace the original. Values are written for built in types and
+their subtypes, enumerations (Annex A writes the name, OPC UA the number),
+option sets (Annex A writes one boolean per option), Arguments, and
+structures of the namespace itself or of a bundled model (UA, DI), whose XML
+encodings are known. Children that Opc2Aml repeats below typed declarations
+are recognised by their NodeId and written once.
+
+```bash
+uaaml export Opc.Ua.Di.NodeSet2.xml.amlx -o DI.NodeSet2.xml --annex-a-inverse
+uaaml export plant.aml -o fx-ac.xml --annex-a-inverse --namespace http://opcfoundation.org/UA/FX/AC/
+```
+
+Without `--namespace` the document must hold the libraries of exactly one
+namespace besides the UA base model; otherwise the export names the
+candidates. In the plugin, the export dialog offers both modes and lists the
+namespaces.
+
+What does not come back is what Annex A does not carry into AML. The round
+trip measures it node by node (chain C in [roundtrip](roundtrip.md)):
+
+- Documentation, type dictionaries and their variables, and nodes no type or
+  folder holds.
+- The original NodeIds of encodings; structures get new ones.
+- Descriptions of DataTypes in some models, and of option set bits.
+- Empty strings (Annex A writes no value) and values of structures from models
+  that are neither the exported one nor bundled.
+- References a declaration has to declarations of another type, for example to
+  the placeholders of its own type definition: in AML they look like the
+  children Opc2Aml repeats below every typed declaration.
+- The DataType of a VariableType without a `Value` attribute (DI 468).
+
 ## Known limits
 
 - Classes referenced but not contained in the document are only known through
@@ -252,7 +311,7 @@ group.
   Aml.Engine; only its root document is exported.
 - Size: the AML libraries of UA and DI (`Opc.Ua.Di.NodeSet2.xml.amlx`) give
   285 000 nodes in 13 seconds; the whole NodeSet is built in memory.
-- Writing `.amlx`, and the plugin UI for the export, are not part of this stage.
+- Writing `.amlx` is not supported.
 - An ExternalDataConnector's `refURI` (a reference into another file) gives
   no reference. Wassilew et al. (2016, 2017) propose `HasAMLExternalLink` for
   it; the draft base types have no such ReferenceType.
