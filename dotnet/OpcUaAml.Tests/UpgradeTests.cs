@@ -17,6 +17,12 @@ public class UpgradeTests(DiDocument di) : IClassFixture<DiDocument>
         fw.InternalElement.RemoveElement(fw.InternalElement["Manufacturer"]!);
         fw.InternalElement["SoftwareRevision"]!.Attribute["Value"]!.Value = "2.1";
         Assert.Contains(di.FindingsIn(ih), f => f.Rule == Rules.MissingMandatory);
+        var before = fw.Node.ToString();
+
+        // The preview names what an upgrade adds and changes nothing.
+        var preview = InstanceUpgrader.PreviewDocument(di.Document).Where(c => c.ElementPath.StartsWith("Upgrade/")).ToList();
+        Assert.Equal(new UpgradeChange("Upgrade/Firmware", "Manufacturer"), Assert.Single(preview));
+        Assert.Equal(before, fw.Node.ToString());
 
         var changes = InstanceUpgrader.AddMissingMandatory(fw);
 

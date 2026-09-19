@@ -35,16 +35,41 @@ public static class InstanceUpgrader
         return changes;
     }
 
+    /// <summary>What <see cref="UpgradeDocument"/> would add, without changing the document.</summary>
+    public static IReadOnlyList<UpgradeChange> PreviewDocument(CAEXDocument doc)
+    {
+        var changes = new List<UpgradeChange>();
+        foreach (var ih in doc.CAEXFile.InstanceHierarchy)
+            foreach (var top in ih.InternalElement)
+                Preview(top, ih.Name + "/" + top.Name, changes);
+        return changes;
+    }
+
+    private static void Preview(InternalElementType element, string path, List<UpgradeChange> changes)
+    {
+        changes.AddRange(Missing(element).Select(name => new UpgradeChange(path, name)));
+        foreach (var child in element.InternalElement)
+            Preview(child, path + "/" + child.Name, changes);
+    }
+
+    /// <summary>The Mandatory children the element's UA type declares and the element lacks.</summary>
+    private static HashSet<string> Missing(InternalElementType element)
+    {
+        var type = UaTypes.IsUaLibraryPath(element.RefBaseSystemUnitPath) ? UaTypes.TypeOf(element) : null;
+        if (type == null) return new HashSet<string>();
+        var present = element.InternalElement.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
+        return UaTypes.Declarations(type)
+            .Where(d => d.Rule == ModellingRule.Mandatory && !present.Contains(d.Name))
+            .Select(d => d.Name)
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     private static void Upgrade(InternalElementType element, string path, List<UpgradeChange> changes)
     {
         var type = UaTypes.IsUaLibraryPath(element.RefBaseSystemUnitPath) ? UaTypes.TypeOf(element) : null;
         if (type != null)
         {
-            var present = element.InternalElement.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
-            var missing = UaTypes.Declarations(type)
-                .Where(d => d.Rule == ModellingRule.Mandatory && !present.Contains(d.Name))
-                .Select(d => d.Name)
-                .ToHashSet(StringComparer.Ordinal);
+            var missing = Missing(element);
             if (missing.Count > 0)
             {
                 // A fresh instance of the type provides the children exactly
