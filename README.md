@@ -35,6 +35,7 @@ AMLPetriNet.
 | `Aml.Editor.Plugin.OpcUa/` | AutomationML Editor plugin |
 | `dotnet/OpcUaAml.Core/` | Library: NodeSet catalog, import, merge, export, comparison |
 | `dotnet/OpcUaAml.Tool/` | Command line tool `uaaml` |
+| `Aml.Editor.Plugin.OpcUa.Tests/` | Tests of the plugin's code that needs no editor (the safety net for exceptions) |
 | `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes and with the unit tests of AML-UA-XSLT |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
@@ -52,6 +53,7 @@ expected next to this repository.
 dotnet build AMLOpcUa.sln
 dotnet test dotnet/OpcUaAml.Tests
 dotnet test dotnet/OpcUaAml.Tests --filter "Speed!=Slow"   # without servers and fresh conversions
+dotnet test Aml.Editor.Plugin.OpcUa.Tests                   # the plugin's own code that needs no editor
 ```
 
 Conversions are cached (see [import](docs/import.md)), so a second run of the

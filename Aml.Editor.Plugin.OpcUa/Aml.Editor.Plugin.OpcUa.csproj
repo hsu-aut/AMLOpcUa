@@ -19,6 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aml.Editor.Plugin.OpcUa.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Editor-side dependencies, pinned exactly: a drift changes the surface
          this plugin compiles against without any error. -->
     <PackageReference Include="Aml.Editor.Plugin.Contract" Version="[4.3.0]">

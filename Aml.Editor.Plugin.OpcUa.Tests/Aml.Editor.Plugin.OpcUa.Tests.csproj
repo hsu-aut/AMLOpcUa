@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Tests of the plugin's own code that needs no editor. The namespace is
+       deliberately not Aml.Editor.Plugin.OpcUa.*: the plugin tells its own
+       exceptions from others by that name on the stack. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>PluginTests</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!-- The plugin leaves these to the editor at run time; a test host brings them itself. -->
+    <PackageReference Include="Aml.Editor.Plugin.Contract" Version="[4.3.0]" />
+    <PackageReference Include="Aml.Engine" Version="[4.*, 5.0.0)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Aml.Editor.Plugin.OpcUa\Aml.Editor.Plugin.OpcUa.csproj" />
+    <ProjectReference Include="..\dotnet\OpcUaAml.Core\OpcUaAml.Core.csproj" />
+  </ItemGroup>
+</Project>

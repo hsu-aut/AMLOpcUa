@@ -28,13 +28,24 @@ internal static class PluginErrors
         };
     }
 
-    /// <summary>Whether the plugin's code is on the exception's way, its own or that of an inner exception.</summary>
+    /// <summary>The plugin and its core; an exception whose way leads through them is the plugin's.</summary>
+    private static readonly System.Reflection.Assembly[] Own =
+    {
+        typeof(PluginErrors).Assembly,
+        typeof(OpcUaAml.Addressing.UaNodeAddress).Assembly,
+    };
+
+    /// <summary>
+    /// Whether the plugin's code is on the exception's way, its own or that of
+    /// an inner exception. Judged by the assembly of each frame's method, not by
+    /// the text of the trace, whose file paths may name anything.
+    /// </summary>
     internal static bool IsOurs(Exception? ex)
     {
         for (; ex != null; ex = ex.InnerException)
         {
-            var trace = ex.StackTrace ?? "";
-            if (trace.Contains("Aml.Editor.Plugin.OpcUa.", StringComparison.Ordinal) || trace.Contains("OpcUaAml.", StringComparison.Ordinal)) return true;
+            foreach (var frame in new System.Diagnostics.StackTrace(ex, false).GetFrames())
+                if (frame.GetMethod()?.DeclaringType?.Assembly is { } assembly && Own.Contains(assembly)) return true;
         }
         return false;
     }

@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpcUaAml.Tool", "dotnet\Opc
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aml.Editor.Plugin.OpcUa", "Aml.Editor.Plugin.OpcUa\Aml.Editor.Plugin.OpcUa.csproj", "{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Aml.Editor.Plugin.OpcUa.Tests", "Aml.Editor.Plugin.OpcUa.Tests\Aml.Editor.Plugin.OpcUa.Tests.csproj", "{389427AB-448A-43A5-9698-20432C7D9E2D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -46,6 +48,10 @@ Global
 		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1866A037-1C38-4D71-9DBA-DDD30AA48CB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{389427AB-448A-43A5-9698-20432C7D9E2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{389427AB-448A-43A5-9698-20432C7D9E2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{389427AB-448A-43A5-9698-20432C7D9E2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{389427AB-448A-43A5-9698-20432C7D9E2D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BE0A46ED-23D5-4D7E-8F47-710446966E10} = {9896DBC6-1523-4BA2-A9EE-10B958A93316}
