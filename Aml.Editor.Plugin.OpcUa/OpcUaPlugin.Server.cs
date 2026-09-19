@@ -71,6 +71,15 @@ public partial class OpcUaPlugin : ISupportsSelection
 
     private async void AddressTree_KeyDown(object sender, KeyEventArgs e)
     {
+        // Space checks or unchecks the selected node, as a click on its box does.
+        if (e.Key == System.Windows.Input.Key.Space && AddressTree.SelectedItem is TreeViewItem { Header: StackPanel header }
+            && header.Children.OfType<CheckBox>().FirstOrDefault() is { IsEnabled: true } check)
+        {
+            e.Handled = true;
+            check.IsChecked = check.IsChecked != true;
+            check.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            return;
+        }
         if (e.Key != System.Windows.Input.Key.F5 || _client == null) return;
         e.Handled = true;
         if (await LoadRootAsync()) SetStatus("Address space reloaded.");
@@ -400,6 +409,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE8C8", FontSize = 11 },
                 ToolTip = $"Copy the {label}", Padding = new Thickness(3, 1, 3, 1), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
             };
+            System.Windows.Automation.AutomationProperties.SetName(button, $"Copy the {label}");
             button.Click += (_, __) => CopyText(value);
             DockPanel.SetDock(button, Dock.Right);
             cell.Children.Add(button);

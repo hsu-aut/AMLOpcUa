@@ -23,6 +23,10 @@ public sealed class InstanceWindow : Window
     private readonly TextBlock _placeholderLabel = DialogKit.Label("Children for placeholders");
     private readonly TextBlock _info = DialogKit.Message();
     private readonly List<(PlaceholderInfo Placeholder, TextBox Names, ComboBox Type)> _placeholderRows = new();
+    private readonly CAEXDocument _document;
+
+    /// <summary>A warning shown on the first Create; a second Create goes ahead anyway.</summary>
+    private string? _warned;
 
     public SystemUnitFamilyType? SelectedType { get; private set; }
     public string InstanceName => _name.Text.Trim();
@@ -34,6 +38,7 @@ public sealed class InstanceWindow : Window
 
     public InstanceWindow(CAEXDocument document)
     {
+        _document = document;
         Width = 820;
         Height = 600;
         ResizeMode = ResizeMode.CanResizeWithGrip;
@@ -50,23 +55,46 @@ public sealed class InstanceWindow : Window
         _showAbstract.Unchecked += (_, __) => Filter();
         _typeList.SelectionChanged += (_, __) => TypeChanged();
         _typeList.MouseDoubleClick += (_, __) => _name.Focus();
+        // Enter in the search takes the first type found and goes on to the name, instead of creating.
+        _search.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != System.Windows.Input.Key.Enter || _typeList.Items.Count == 0) return;
+            e.Handled = true;
+            _typeList.SelectedIndex = 0;
+            _name.Focus();
+            _name.SelectAll();
+        };
 
         var ok = DialogKit.Action("Create", primary: true);
         ok.Click += (_, __) =>
         {
-            if (SelectedType == null) { _info.Text = "Choose a type."; return; }
-            if (InstanceName.Length == 0) { _info.Text = "Give the instance a name."; return; }
+            if (SelectedType == null) { DialogKit.ShowError(_info, "Choose a type."); return; }
+            if (InstanceName.Length == 0) { DialogKit.ShowError(_info, "Enter a name for the instance."); return; }
             ChosenOptional.Clear();
             foreach (var cb in _optional.Children.OfType<CheckBox>())
                 if (cb.IsChecked == true) ChosenOptional.Add((string)cb.Tag);
             Fills.Clear();
+            var empty = new List<string>();
             foreach (var (placeholder, names, typeBox) in _placeholderRows)
             {
                 var type = (typeBox.SelectedItem as ComboBoxItem)?.Tag as SystemUnitFamilyType;
                 var list = names.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(n => new PlaceholderFill(n, type == placeholder.Type ? null : type)).ToList();
-                if (list.Select(f => f.Name).Distinct().Count() != list.Count) { _info.Text = $"Two children of {placeholder.Path} have the same name."; return; }
+                if (list.Select(f => f.Name).Distinct().Count() != list.Count) { DialogKit.ShowError(_info, $"Two children of {placeholder.Path} have the same name."); return; }
                 if (list.Count > 0) Fills[placeholder.Path] = list;
+                else if (placeholder.Mandatory) empty.Add(placeholder.Path);
+            }
+            // What the user may mean after all is said once; Create again goes ahead.
+            var warning = empty.Count > 0
+                ? $"{string.Join(", ", empty)} need at least one child (MandatoryPlaceholder). Create again to leave them empty for now."
+                : _document.CAEXFile.InstanceHierarchy[HierarchyName]?.InternalElement[InstanceName] != null
+                    ? $"'{HierarchyName}' already holds an element named '{InstanceName}'. Create again to add a second one."
+                    : null;
+            if (warning != null && warning != _warned)
+            {
+                _warned = warning;
+                DialogKit.ShowError(_info, warning);
+                return;
             }
             DialogResult = true;
         };
@@ -180,11 +208,21 @@ public sealed class InstanceWindow : Window
             var asked = new List<string>();
             var all = TypeInstantiator.Instantiate(SelectedType, "probe", new InstantiationOptions { AllowAbstract = true, IncludeOptional = p => { asked.Add(p); return true; } });
             var mandatory = TypeInstantiator.Instantiate(SelectedType, "probe", new InstantiationOptions { AllowAbstract = true }).Included.ToHashSet();
+            var boxes = new Dictionary<string, CheckBox>(StringComparer.Ordinal);
             foreach (var path in asked)
             {
-                // A choice below another Optional child only counts when that one is ticked.
+                // A choice below another Optional child only counts when that one is ticked,
+                // so it can be ticked only then.
                 var depth = path.Count(c => c == '/');
                 var box = new CheckBox { Content = depth == 0 ? path : path[(path.LastIndexOf('/') + 1)..], Tag = path, ToolTip = path, Margin = new Thickness(18 * depth, 2, 0, 2) };
+                var parent = asked.Where(p => path.StartsWith(p + "/", StringComparison.Ordinal)).OrderByDescending(p => p.Length).FirstOrDefault();
+                if (parent != null && boxes.TryGetValue(parent, out var parentBox))
+                {
+                    box.IsEnabled = false;
+                    parentBox.Checked += (_, __) => box.IsEnabled = true;
+                    parentBox.Unchecked += (_, __) => { box.IsChecked = false; box.IsEnabled = false; };
+                }
+                boxes[path] = box;
                 _optional.Children.Add(box);
             }
             _optionalHint.Text = _optional.Children.Count == 0 ? "The type has no Optional children." : "";
@@ -193,12 +231,13 @@ public sealed class InstanceWindow : Window
             foreach (var placeholder in all.Placeholders) AddPlaceholderRow(placeholder);
             _placeholderLabel.Visibility = _placeholderRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
-            _info.Text = $"{mandatory.Count} Mandatory child(ren) are always created."
-                + (UaTypes.IsAbstract(SelectedType) ? " The type is abstract; OPC UA does not instantiate it." : "");
+            _warned = null;
+            DialogKit.ShowInfo(_info, $"{mandatory.Count} Mandatory child(ren) are always created."
+                + (UaTypes.IsAbstract(SelectedType) ? " The type is abstract; OPC UA does not instantiate it." : ""));
         }
         catch (Exception ex)
         {
-            _info.Text = "Cannot analyse the type: " + ex.Message;
+            DialogKit.ShowError(_info, "Cannot analyse the type: " + ex.Message);
         }
     }
 }

@@ -72,6 +72,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         LogFilePathLabel.Text = PluginLog.FilePath;
         InitServerTab();
         InitModelerTab();
+        Tabs.SelectionChanged += (_, e) =>
+        {
+            if (e.Source != Tabs || Tabs.SelectedIndex != 0) return;
+            _unseenProblems = 0;
+            ShowLogLink();
+        };
 
         Loaded += (_, __) =>
         {
@@ -273,7 +279,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         var options = new MergeOptions { ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries };
 
-        SetBusy(true, $"Converting {Path.GetFileName(file)} …");
+        SetBusy(true, $"Converting {Path.GetFileName(file)} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.");
         try
         {
             // The conversion reads whole NodeSets and takes seconds, so it runs
@@ -362,6 +368,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
                      ?? document.CAEXFile.InstanceHierarchy.Append(window.HierarchyName);
             ih.InternalElement.Insert(result.Instance, asFirst: false);
+            var created = ih.InternalElement.Last();
 
             var message = $"Created '{result.Instance.Name}' ({window.SelectedType.Name}) in '{ih.Name}' with {result.Included.Count} children.";
             PluginLog.Info(message);
@@ -374,6 +381,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             SetStatus(message + (saved ? " Saved." : " Press Ctrl+S to save."));
+            Selected?.Invoke(this, new SelectionEventArgs(created));
         }
         catch (InstantiationException ex)
         {
@@ -418,6 +426,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         var document = _document;
         if (document == null) return;
+        // Counted first; the user sees what is added before anything is.
+        var planned = InstanceUpgrader.PreviewDocument(document);
+        if (planned.Count > 0)
+        {
+            var instances = planned.Select(c => c.ElementPath).Distinct().ToList();
+            var list = string.Join(Environment.NewLine, planned.Take(15).Select(c => $"{c.ElementPath}  +{c.Added}"))
+                       + (planned.Count > 15 ? $"{Environment.NewLine}… and {planned.Count - 15} more" : "");
+            if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Create, $"Add {planned.Count} Mandatory child(ren)?",
+                    $"{instances.Count} instance(s) lack children their types now declare as Mandatory. They are added as a new instance would get them; " +
+                    "nothing that exists changes. Ctrl+Z in the editor does not take them back.",
+                    "Add", DialogKit.Facts(("Adds", list, false))))
+                return;
+        }
         var changes = InstanceUpgrader.UpgradeDocument(document);
         foreach (var c in changes) PluginLog.Info($"Added '{c.Added}' to {c.ElementPath}.");
         var message = changes.Count == 0
@@ -495,8 +516,6 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void StartModeler_Click(object sender, RoutedEventArgs e) => Tabs.SelectedItem = ModelerTab;
 
-    private void NamespaceList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => NamespaceEdit_Click(sender, e);
-
     private void NamespaceEdit_Click(object sender, RoutedEventArgs e)
     {
         if (NamespaceList.SelectedItem is not NamespaceRow row) return;
@@ -517,8 +536,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SettingsMenu.IsOpen = true;
     }
 
+    private void FindingList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Enter) return;
+        e.Handled = true;
+        SelectFinding();
+    }
+
+    private void FindingList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => SelectFinding();
+
     /// <summary>Selects the element of a finding in the editor.</summary>
-    private void FindingList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void SelectFinding()
     {
         if (FindingList.SelectedItem is not OpcUaAml.Checks.Finding { ElementId: { } id } || _document == null) return;
         if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
@@ -592,17 +620,26 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     // ── view state ──────────────────────────────────────────────────────────
 
-    private void UpdateState()
+    /// <summary>Which commands the document and the busy state allow; the one place that decides it.</summary>
+    private void UpdateCommands()
     {
         var doc = _document;
         var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
-
         ImportButton.IsEnabled = usable && !_busy;
         CloudButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
+        FoldersButton.IsEnabled = !_busy;
+    }
+
+    private void UpdateState()
+    {
+        var doc = _document;
+        var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
+
+        UpdateCommands();
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Caex3Button.Visibility = doc != null && !usable ? Visibility.Visible : Visibility.Collapsed;
         Placeholder.Text = doc == null
@@ -623,16 +660,35 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         _busy = busy;
         Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-        ImportButton.IsEnabled = !busy && _document != null;
-        CloudButton.IsEnabled = !busy && _document != null;
-        InstanceButton.IsEnabled = !busy && _document != null;
-        CheckButton.IsEnabled = !busy && _document != null;
-        FoldersButton.IsEnabled = !busy;
+        UpdateCommands();
         if (status != null) SetStatus(status);
         UpdateServerState();
     }
 
-    private void SetStatus(string text) => StatusText.Text = text;
+    /// <summary>The status line; the whole text is in its tooltip when the line is too short.</summary>
+    private void SetStatus(string text)
+    {
+        StatusText.Text = text;
+        StatusText.ToolTip = string.IsNullOrEmpty(text) ? null : new System.Windows.Controls.TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 600 };
+    }
+
+    /// <summary>Warnings and errors logged since the user last looked at the log.</summary>
+    private int _unseenProblems;
+
+    private void LogLink_Click(object sender, RoutedEventArgs e)
+    {
+        Tabs.SelectedIndex = 0;
+        if (_log.Count > 0) LogList.ScrollIntoView(_log[^1]);
+        LogList.Focus();
+        _unseenProblems = 0;
+        ShowLogLink();
+    }
+
+    private void ShowLogLink()
+    {
+        LogLinkText.Text = _unseenProblems == 0 ? "Log" : $"Log ({_unseenProblems} new warning{(_unseenProblems == 1 ? "" : "s")})";
+        LogLinkGlyph.Visibility = _unseenProblems == 0 ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     /// <summary>Runs a command; what it throws is logged and told, never passed on to the editor.</summary>
     private void Guard(string what, Action command)
@@ -678,7 +734,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             return;
         }
         if (LogList.ItemsSource == null) LogList.ItemsSource = _log;
-        _log.Add(LogLine.Parse(line));
+        var parsed = LogLine.Parse(line);
+        _log.Add(parsed);
+        // Counted unless the log is in view.
+        if (parsed.Level is "WARN" or "ERROR" && !(Tabs.SelectedIndex == 0 && LogList.IsVisible))
+        {
+            _unseenProblems++;
+            ShowLogLink();
+        }
         while (_log.Count > MaxLogLines) _log.RemoveAt(0);
         LogList.ScrollIntoView(_log[^1]);
     }

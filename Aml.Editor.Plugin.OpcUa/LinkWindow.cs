@@ -91,7 +91,7 @@ public sealed class LinkWindow : Window
     {
         if (DialogKit.Selected<InternalElementType>(_sources) is not { } source || DialogKit.Selected<InternalElementType>(_targets) is not { } target)
         {
-            _info.Text = "Choose one element on each side.";
+            DialogKit.ShowError(_info, "Choose one element on each side.");
             return;
         }
         try
@@ -103,7 +103,7 @@ public sealed class LinkWindow : Window
         }
         catch (LinkException ex)
         {
-            _info.Text = ex.Message;
+            DialogKit.ShowError(_info, ex.Message);
         }
     }
 

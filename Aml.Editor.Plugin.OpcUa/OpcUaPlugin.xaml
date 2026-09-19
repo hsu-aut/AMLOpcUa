@@ -88,8 +88,23 @@
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom" Background="{DynamicResource Ua.Band}" Foreground="{DynamicResource Ua.Foreground}"
                    BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,1,0,0">
-            <StatusBarItem>
+            <StatusBar.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <DockPanel LastChildFill="True"/>
+                </ItemsPanelTemplate>
+            </StatusBar.ItemsPanel>
+            <StatusBarItem DockPanel.Dock="Left">
                 <ProgressBar x:Name="Busy" Width="80" Height="12" IsIndeterminate="True" Visibility="Collapsed"/>
+            </StatusBarItem>
+            <!-- The log sits on the first tab; this reaches it from every tab and counts what it has not shown yet. -->
+            <StatusBarItem DockPanel.Dock="Right">
+                <Button x:Name="LogLink" Click="LogLink_Click" Padding="6,0" ToolTip="Show the log"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="LogLinkGlyph" Style="{StaticResource IconText}" Text="&#xE7BA;" FontSize="12" Foreground="#D08020" Visibility="Collapsed"/>
+                        <TextBlock x:Name="LogLinkText" Text="Log" TextDecorations="Underline" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StatusBarItem>
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" TextTrimming="CharacterEllipsis"/>
@@ -202,8 +217,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ListView x:Name="NamespaceList" MouseDoubleClick="NamespaceList_DoubleClick" SelectionChanged="NamespaceList_SelectionChanged"
-                                          ToolTip="Select a namespace for its details; double click to edit it in the modeler.">
+                                <ListView x:Name="NamespaceList" SelectionChanged="NamespaceList_SelectionChanged" AutomationProperties.Name="Namespaces of the document"
+                                          ToolTip="Select a namespace for its details, its types and what builds on it.">
                                     <ListView.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Edit in the modeler" Click="NamespaceEdit_Click"/>
@@ -340,7 +355,7 @@
                     </ToolBar>
                     <TextBlock x:Name="CheckSummary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="6,6,6,4"
                                Text="Run Check to verify the instances against their UA types. Double click a finding to select its element."/>
-                    <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick">
+                    <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick" KeyDown="FindingList_KeyDown" AutomationProperties.Name="Findings; Enter selects the element">
                         <ListView.View>
                             <GridView>
                                 <GridViewColumn Header="Severity" Width="90">
@@ -390,9 +405,9 @@
                             </Button>
                             <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="Secure" VerticalAlignment="Center" Margin="8,0,0,0"
                                       ToolTip="Prefer a signed and encrypted endpoint."/>
-                            <PasswordBox x:Name="PasswordBox" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="Password (empty for anonymous)"/>
+                            <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="Password" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="Password (empty for anonymous)"/>
                             <TextBlock DockPanel.Dock="Right" Text="Password" Style="{StaticResource Hint}" Margin="8,0,4,0"/>
-                            <TextBox x:Name="UserBox" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="User name (empty for anonymous)"/>
+                            <TextBox x:Name="UserBox" AutomationProperties.Name="User name" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="User name (empty for anonymous)"/>
                             <TextBlock DockPanel.Dock="Right" Text="User" Style="{StaticResource Hint}" Margin="8,0,4,0"/>
                             <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
@@ -400,7 +415,7 @@
                                     <TextBlock x:Name="ServerStateText" Text="Not connected" VerticalAlignment="Center" FontSize="11"/>
                                 </StackPanel>
                             </Border>
-                            <ComboBox x:Name="EndpointBox" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
+                            <ComboBox x:Name="EndpointBox" AutomationProperties.Name="Endpoint URL" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
                                       ToolTip="Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently."/>
                         </DockPanel>
                     </Border>
@@ -429,13 +444,13 @@
                             </StackPanel>
                         </Button>
                         <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorDepthBox" Text="3" Width="28" VerticalContentAlignment="Center"
+                        <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="Depth" Text="3" Width="28" VerticalContentAlignment="Center"
                                  ToolTip="Levels below a node taken with everything below it; 0 has no limit but the node limit."/>
                         <TextBlock Text="max" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorMaxNodesBox" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus"
+                        <TextBox x:Name="MirrorMaxNodesBox" AutomationProperties.Name="Most nodes" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus"
                                  ToolTip="Upper bound on nodes taken in one mirror, against mirroring a whole server by accident."/>
                         <TextBlock Text="into" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
-                        <TextBox x:Name="MirrorHierarchyBox" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged"
+                        <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="Into instance hierarchy" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged"
                                  ToolTip="The InstanceHierarchy that receives the mirror."/>
                         <Separator/>
                         <Button x:Name="BindButton" Click="BindButton_Click"
@@ -466,7 +481,7 @@
                                 <TextBlock Text="Watch" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="UnwatchButton" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
+                        <Button x:Name="UnwatchButton" AutomationProperties.Name="Stop watching" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{StaticResource Plain}" Margin="0"/>
                         </Button>
                         <Separator/>
@@ -550,10 +565,10 @@
                             <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
                             <DockPanel Grid.Row="2">
                                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,3">
-                                    <Button x:Name="RemoveSelectionButton" DockPanel.Dock="Right" Click="RemoveSelection_Click" ToolTip="Remove the part selected in the list." Padding="3,0">
+                                    <Button x:Name="RemoveSelectionButton" AutomationProperties.Name="Remove the part" DockPanel.Dock="Right" Click="RemoveSelection_Click" ToolTip="Remove the part selected in the list." Padding="3,0">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE738;" FontSize="12" Margin="0"/>
                                     </Button>
-                                    <Button x:Name="ClearSelectionButton" DockPanel.Dock="Right" Click="ClearSelection_Click" ToolTip="Clear the selection." Padding="3,0" Margin="0,0,4,0">
+                                    <Button x:Name="ClearSelectionButton" AutomationProperties.Name="Clear the selection" DockPanel.Dock="Right" Click="ClearSelection_Click" ToolTip="Clear the selection." Padding="3,0" Margin="0,0,4,0">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" FontSize="12" Margin="0"/>
                                     </Button>
                                     <TextBlock Text="Selection" Style="{StaticResource Caption}"/>
@@ -611,7 +626,7 @@
                                  VerticalContentAlignment="Center" ToolTip="Filter types and instances by name; Enter draws the first"/>
                         <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="Type or instance to draw" SelectionChanged="DiagramSourceBox_SelectionChanged"/>
                         <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
-                        <TextBox x:Name="DiagramDepthBox" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="Levels to draw"/>
+                        <TextBox x:Name="DiagramDepthBox" AutomationProperties.Name="Diagram depth" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="Levels to draw"/>
                         <Button x:Name="DiagramShowButton" Click="DiagramShowButton_Click" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{StaticResource Create}"/>

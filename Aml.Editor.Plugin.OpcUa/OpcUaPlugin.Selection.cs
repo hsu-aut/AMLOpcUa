@@ -412,6 +412,24 @@ public partial class OpcUaPlugin
         }
     }
 
+    /// <summary>
+    /// Asks whether to remove the elements a mirror found gone from the server
+    /// (marked with NotOnServer), naming them; removes them on yes.
+    /// </summary>
+    private bool RemoveVanished(InternalElementType server, IReadOnlyList<string> vanished)
+    {
+        var shown = string.Join(Environment.NewLine, vanished.Take(12)) + (vanished.Count > 12 ? $"{Environment.NewLine}… and {vanished.Count - 12} more (see log)" : "");
+        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, $"Remove {vanished.Count} element(s)?",
+                "The server no longer has their nodes. Removed, they leave the document with everything below them; Ctrl+Z in the editor does not bring them back. " +
+                "Not removed, they stay, marked with NotOnServer.",
+                "Remove", DialogKit.Facts(("Elements", shown, false)), risky: true))
+            return false;
+        var marked = server.Descendants<InternalElementType>().Where(e => e.Attribute[MirrorOptions.NotOnServerAttribute] != null).ToList();
+        foreach (var e in marked)
+            if (e.CAEXParent is InternalElementType parent) parent.InternalElement.RemoveElement(e);
+        return true;
+    }
+
     private string HierarchyName() => string.IsNullOrWhiteSpace(MirrorHierarchyBox.Text) ? "OpcUaServer" : MirrorHierarchyBox.Text.Trim();
 
     // ── into the document ───────────────────────────────────────────────────
@@ -446,9 +464,15 @@ public partial class OpcUaPlugin
         SetBusy(true, "Reading the selection from the server …");
         try
         {
+            // Removing asks first, with the count: the elements are marked, and removed once the user agrees.
             var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
-                new MirrorOptions { MaxNodes = CurrentMaxNodes(), Vanished = vanished });
-            var fate = vanished switch { VanishedNodes.Mark => "marked", VanishedNodes.Remove => "removed", _ => "kept" };
+                new MirrorOptions { MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished });
+            var fate = vanished switch { VanishedNodes.Mark => "marked", _ => "kept" };
+            if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)
+            {
+                SetBusy(false, null);
+                fate = RemoveVanished(result.Server, result.Vanished) ? "removed" : "marked with NotOnServer, not removed";
+            }
             var message = $"'{ih.Name}': {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed by an imported UA type"
                           + (result.Linked > 0 ? $", {result.Linked} linked to their planned element (refBaseObj)" : "")
                           + (result.Vanished.Count > 0 ? $", {result.Vanished.Count} no longer on the server ({fate}, see log)" : "")

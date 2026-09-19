@@ -29,7 +29,7 @@ public sealed class MirrorAgainWindow : Window
                  {
                      (VanishedNodes.Report, "keep them, list them in the log"),
                      (VanishedNodes.Mark, "keep them, mark them with NotOnServer"),
-                     (VanishedNodes.Remove, "remove them from the document"),
+                     (VanishedNodes.Remove, "remove them from the document, after asking"),
                  })
             _vanished.Items.Add(new ComboBoxItem { Content = text, Tag = mode });
         _vanished.SelectedIndex = (int)vanished;

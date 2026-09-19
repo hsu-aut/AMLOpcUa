@@ -95,14 +95,16 @@ public partial class OpcUaPlugin
                 .Where(t => search.Text.Length == 0 || t.Type.Name.Contains(search.Text, StringComparison.OrdinalIgnoreCase))
                 .Select(t => DialogKit.Entry(t.Type.Name, UaTypes.IsAbstract(t.Type) ? "abstract" : "", t.Type)).ToList();
             search.TextChanged += (_, __) => Fill();
-            list.MouseDoubleClick += (_, __) =>
+            void Draw()
             {
                 if (DialogKit.Selected<SystemUnitFamilyType>(list) is not { } type) return;
                 Tabs.SelectedItem = DiagramTab;
                 DrawDiagramOf(type);
-            };
+            }
+            list.MouseDoubleClick += (_, __) => Draw();
+            list.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) { e.Handled = true; Draw(); } };
             Fill();
-            var box = DialogKit.WithPlaceholder(search, "Search; double click draws a type");
+            var box = DialogKit.WithPlaceholder(search, "Search; double click or Enter draws a type");
             ((FrameworkElement)box).Margin = new Thickness(0, 0, 0, 4);
             panel.Children.Add(box);
             panel.Children.Add(list);
@@ -198,6 +200,7 @@ public partial class OpcUaPlugin
             Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = glyph, FontSize = 11 },
             ToolTip = tip, Padding = new Thickness(3, 1, 3, 1), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
         };
+        System.Windows.Automation.AutomationProperties.SetName(b, tip);
         b.Click += (_, __) => action();
         return b;
     }
