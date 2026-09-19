@@ -174,7 +174,7 @@ public static class ServerNodeSets
         for (var i = 0; i < ids.Count; i += 500)
         {
             var batch = await session.NodeCache.FetchNodesAsync(ids.Skip(i).Take(500).ToList(), ct).ConfigureAwait(false);
-            nodes.AddRange(batch.Where(n => n != null));
+            nodes.AddRange(batch.OfType<INode>());
         }
         var definitions = await ReadValuesAsync(session, nodes, ct).ConfigureAwait(false);
         var declarations = await MethodDeclarationsAsync(session, nodes, ct).ConfigureAwait(false);
@@ -490,7 +490,7 @@ public static class ServerNodeSets
                 return aliases.FirstOrDefault(a => a.Value == id).Key ?? id;
             }
             static XElement? Text(string name, LocalizedText? text) =>
-                LocalizedText.IsNullOrEmpty(text) ? null
+                text == null || LocalizedText.IsNullOrEmpty(text) ? null
                     : new XElement(Ua + name, string.IsNullOrEmpty(text.Locale) ? null : new XAttribute("Locale", text.Locale), text.Text);
             switch (definition.Body)
             {
