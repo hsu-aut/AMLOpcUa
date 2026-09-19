@@ -134,6 +134,13 @@ public static class TypeInstantiator
                 Remove(owner, child, run);
                 continue;
             }
+            // Without a ModellingRule a child is no instance declaration (OPC 10000-3 6.4.4.4):
+            // it describes the type, like DefaultInstanceBrowseName, and is not instantiated.
+            if (rule == ModellingRule.None)
+            {
+                Remove(owner, child, run);
+                continue;
+            }
             if (rule == ModellingRule.Optional && !run.Options.IncludeOptional(path))
             {
                 run.OmittedOptional.Add(path);

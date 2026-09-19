@@ -10,7 +10,7 @@ creates an instance of a UA type the way an OPC UA server creates one:
 | Mandatory, ExposesItsArray | always |
 | Optional | only if chosen (by path relative to the instance, e.g. `Identification/Manufacturer`) |
 | MandatoryPlaceholder, OptionalPlaceholder (`<Name>`) | the concrete children named for it (`--fill`, or in the dialog), else none |
-| none (not an instance declaration) | always |
+| none (not an instance declaration, such as DefaultInstanceBrowseName) | never |
 
 A placeholder's child is a copy of the placeholder's declaration, which Annex
 A writes with the whole structure of its type, renamed and linked to its
