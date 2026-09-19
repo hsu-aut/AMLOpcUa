@@ -190,6 +190,11 @@ public static class Program
         {
             return Fail(ex.Message + "\n\n" + Usage);
         }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Xml.XmlException)
+        {
+            // A file that is missing, locked or not XML: a sentence, not a stack trace.
+            return Fail(ex.Message);
+        }
     }
 
     private static int Info(List<string> args)
@@ -535,19 +540,29 @@ public static class Program
         }
 
         var catalog = NodeSetCatalog.Create(o.All("--search"));
-        var folder = Path.Combine(Path.GetTempPath(), "uaaml-nodesets", Guid.NewGuid().ToString("N")[..8]);
-        var files = await OpcUaAml.Server.ServerNodeSets.FetchForImportAsync(client, uri, catalog, folder, options);
-        foreach (var set in files.NodeSets)
+        var folder = Directory.CreateTempSubdirectory("uaaml-nodesets-").FullName;
+        try
         {
-            foreach (var note in set.Notes) Console.Error.WriteLine($"note ({set.ModelUri}): {note}");
-            Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
+            var files = await OpcUaAml.Server.ServerNodeSets.FetchForImportAsync(client, uri, catalog, folder, options);
+            foreach (var set in files.NodeSets)
+            {
+                foreach (var note in set.Notes) Console.Error.WriteLine($"note ({set.ModelUri}): {note}");
+                Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
+            }
+            var doc = Documents.Load(into);
+            var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog);
+            foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
+            Documents.Save(doc, output ?? into);
+            Console.WriteLine(result.Summary);
+            return 0;
         }
-        var doc = Documents.Load(into);
-        var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog);
-        foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
-        Documents.Save(doc, output ?? into);
-        Console.WriteLine(result.Summary);
-        return 0;
+        finally
+        {
+            // The fetched NodeSets are in the document now; the files are not needed.
+            try { Directory.Delete(folder, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
     }
 
     private static async Task<int> SnapshotCommand(List<string> args)
