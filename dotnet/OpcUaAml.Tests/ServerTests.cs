@@ -93,6 +93,34 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
     }
 
     [Fact]
+    public async Task A_server_certificate_once_trusted_is_checked_again_on_each_connect()
+    {
+        var options = Options(security: true, accept: false);
+        var ex = await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
+        var certificate = Assert.IsType<ServerCertificate>(ex.UntrustedCertificate);
+        Assert.Matches("^([0-9A-F]{2}:){31}[0-9A-F]{2}$", certificate.Sha256);
+        Assert.True(certificate.NotAfter > DateTime.Now);
+
+        UaClient.TrustServer(certificate, options.PkiRoot);
+
+        await using var client = await UaClient.ConnectAsync(options);
+        Assert.Contains("SignAndEncrypt", client.SecurityMode);
+    }
+
+    [Fact]
+    public async Task A_password_is_never_sent_over_an_unsecured_connection()
+    {
+        var options = Options(security: false);
+        var ex = await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = options.EndpointUrl, UseSecurity = false, UserName = "operator", Password = "secret", PkiRoot = options.PkiRoot,
+            AcceptUntrustedServerCertificates = true,
+        }));
+
+        Assert.Contains("clear text", ex.Message);
+    }
+
+    [Fact]
     public async Task A_secured_session_works_once_the_certificate_is_accepted()
     {
         await using var client = await UaClient.ConnectAsync(Options(security: true, accept: true));

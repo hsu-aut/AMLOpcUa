@@ -101,9 +101,13 @@ public static class ServerNodeSets
             {
                 var bytes = await ReadFileAsync(session, file, ct).ConfigureAwait(false);
                 using var stream = new MemoryStream(bytes);
-                var doc = XDocument.Load(stream);
-                if (doc.Root?.Name == Ua + "UANodeSet"
-                    && doc.Root.Element(Ua + "Models")?.Elements(Ua + "Model").Any(m => (string?)m.Attribute("ModelUri") == namespaceUri) == true)
+                var doc = SafeXml.Load(stream);
+                var models = doc.Root?.Element(Ua + "Models")?.Elements(Ua + "Model").ToList() ?? new();
+                // A file that declares further models could stand in for them (a newer DI, say)
+                // in the catalog of later imports; only a file of this model alone is taken.
+                if (doc.Root?.Name == Ua + "UANodeSet" && models.Count > 1)
+                    notes.Add("The file the server publishes for the namespace declares further models; the NodeSet was rebuilt by browsing.");
+                else if (doc.Root?.Name == Ua + "UANodeSet" && models.Any(m => (string?)m.Attribute("ModelUri") == namespaceUri))
                 {
                     var required = doc.Root.Element(Ua + "Models")!.Elements(Ua + "Model")
                         .Where(m => (string?)m.Attribute("ModelUri") == namespaceUri)
@@ -111,7 +115,7 @@ public static class ServerNodeSets
                     var count = doc.Root.Elements().Count(e => e.Name.LocalName.StartsWith("UA", StringComparison.Ordinal));
                     return new ServerNodeSet(namespaceUri, doc, ServerNodeSetSource.NamespaceFile, count, required, notes);
                 }
-                notes.Add("The file the server publishes for the namespace is not its NodeSet; the NodeSet was rebuilt by browsing.");
+                else notes.Add("The file the server publishes for the namespace is not its NodeSet; the NodeSet was rebuilt by browsing.");
             }
             catch (Exception ex) when (ex is ServiceResultException or System.Xml.XmlException)
             {
@@ -183,7 +187,7 @@ public static class ServerNodeSets
         var exportOptions = new NodeSetExportOptions { ExportValues = true, ExportParentNodeId = true };
         CoreClientUtils.ExportNodesToNodeSet2(session.SystemContext, nodes, stream, exportOptions, null);
         stream.Position = 0;
-        var doc = XDocument.Load(stream);
+        var doc = SafeXml.Load(stream);
         var required = Tidy(doc, namespaceUri, wanted, hierarchical, declarations, definitions, session.NamespaceUris, metadata, notes);
         return new ServerNodeSet(namespaceUri, doc, ServerNodeSetSource.Browsed, nodes.Count, required, notes);
     }
@@ -380,6 +384,8 @@ public static class ServerNodeSets
                 var continuation = r.ContinuationPoint;
                 while (continuation != null && continuation.Length > 0)
                 {
+                    if (all.Count > UaClient.MaxReferencesPerNode)
+                        throw new UaConnectionException($"The server keeps sending references of one node (more than {UaClient.MaxReferencesPerNode}).");
                     var next = await session.BrowseNextAsync(null, false, new ByteStringCollection { continuation }, ct).ConfigureAwait(false);
                     all.AddRange(next.Results[0].References);
                     continuation = next.Results[0].ContinuationPoint;
@@ -589,6 +595,9 @@ public static class ServerNodeSets
         return response.Results;
     }
 
+    /// <summary>The largest NodeSet file taken from a server; the largest companion specifications have a few MB.</summary>
+    public const long MaxFileBytes = 64L << 20;
+
     /// <summary>Reads a FileType object: Open for reading, Read until the end, Close (OPC 10000-5 C.2).</summary>
     private static async Task<byte[]> ReadFileAsync(ISession session, NodeId file, CancellationToken ct)
     {
@@ -608,12 +617,16 @@ public static class ServerNodeSets
                 var read = await CallAsync(session, file, Method("Read"), ct, handle, 1 << 20).ConfigureAwait(false);
                 if (read[0] is not byte[] chunk || chunk.Length == 0) break;
                 content.Write(chunk);
+                if (content.Length > MaxFileBytes)
+                    throw new ServiceResultException(StatusCodes.BadEncodingLimitsExceeded, $"The file is larger than {MaxFileBytes >> 20} MB.");
             }
             return content.ToArray();
         }
         finally
         {
-            await CallAsync(session, file, Method("Close"), ct, handle).ConfigureAwait(false);
+            // A failing Close must not hide why reading stopped.
+            try { await CallAsync(session, file, Method("Close"), ct, handle).ConfigureAwait(false); }
+            catch (ServiceResultException) { /* the server drops the handle with the session */ }
         }
     }
 

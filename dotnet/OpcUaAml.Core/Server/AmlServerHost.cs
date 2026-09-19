@@ -33,9 +33,19 @@ public sealed class AmlServerOptions
     public string PkiRoot { get; init; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "pki-server");
 
-    /// <summary>Offer an unsecured endpoint besides the secured ones (for local testing).</summary>
-    public bool AllowUnsecured { get; init; } = true;
+    /// <summary>
+    /// Offer the server to other computers. Off by default: the server then
+    /// listens on the loopback address only, offers an unsecured endpoint as
+    /// well and admits every client, which is what testing on this computer
+    /// needs. On: it listens on every address, offers secured endpoints only
+    /// and admits only clients whose certificate was trusted; the others are
+    /// refused and kept among <see cref="AmlServerHost.RejectedClients"/>.
+    /// </summary>
+    public bool Network { get; init; }
 }
+
+/// <summary>A client certificate the document server refused or trusts.</summary>
+public sealed record ClientCertificate(string Subject, string Thumbprint, DateTime NotAfter, string File);
 
 public sealed class AmlServerHost : IAsyncDisposable
 {
@@ -67,9 +77,13 @@ public sealed class AmlServerHost : IAsyncDisposable
     public int RefreshValues()
     {
         var changed = _server.NodeManager?.Refresh() ?? 0;
-        StructureChanged = AmlAddressSpace.From(_document, _documentNamespace).Count != Nodes;
+        StructureChanged = ElementCount(_document) != Nodes;
         return changed;
     }
+
+    /// <summary>What <see cref="AmlAddressSpace.Count"/> gives, counted in the XML: runs on every edit burst.</summary>
+    private static int ElementCount(CAEXDocument document) =>
+        document.CAEXFile.InstanceHierarchy.Sum(ih => 1 + ih.Node.Descendants(ih.Node.Name.Namespace + "InternalElement").Count());
 
     /// <summary>
     /// Refreshes the served values whenever the document changes: after a
@@ -120,23 +134,72 @@ public sealed class AmlServerHost : IAsyncDisposable
     {
         options ??= new AmlServerOptions();
         var model = AmlAddressSpace.From(document, options.DocumentNamespace);
-        var url = $"opc.tcp://localhost:{options.Port}/AMLOpcUa";
+        // The stack listens on every address for a host name, on that address alone for an IP address.
+        var host = options.Network ? System.Net.Dns.GetHostName() : "127.0.0.1";
+        var url = $"opc.tcp://{host}:{options.Port}/AMLOpcUa";
 
         var app = new ApplicationInstance { ApplicationName = "AMLOpcUa document server", ApplicationType = ApplicationType.Server };
         var builder = app.Build("urn:" + System.Net.Dns.GetHostName() + ":AMLOpcUa:DocumentServer", "uri:hsu-aut:AMLOpcUa")
             .AsServer(new[] { url });
-        var withPolicies = options.AllowUnsecured
-            ? builder.AddUnsecurePolicyNone().AddSignAndEncryptPolicies()
-            : builder.AddSignAndEncryptPolicies();
+        var withPolicies = options.Network
+            ? builder.AddSignAndEncryptPolicies()
+            : builder.AddUnsecurePolicyNone().AddSignAndEncryptPolicies();
         await withPolicies
             .AddSecurityConfiguration("CN=AMLOpcUa document server", options.PkiRoot)
-            .SetAutoAcceptUntrustedCertificates(true)
+            .SetAutoAcceptUntrustedCertificates(!options.Network)
             .CreateAsync(ct).ConfigureAwait(false);
         await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
 
         var server = new DocumentServer(model);
-        await app.StartAsync(server).ConfigureAwait(false);
+        try
+        {
+            await app.StartAsync(server).ConfigureAwait(false);
+        }
+        catch
+        {
+            server.Dispose();
+            throw;
+        }
         return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace);
+    }
+
+    /// <summary>
+    /// The client certificates a server offered to the network refused, newest
+    /// first. Trusting one (<see cref="TrustClient"/>) admits that client from
+    /// its next connection on.
+    /// </summary>
+    public static IReadOnlyList<ClientCertificate> RejectedClients(string? pkiRoot = null) =>
+        Certificates(Path.Combine(pkiRoot ?? new AmlServerOptions().PkiRoot, "rejected", "certs"));
+
+    /// <summary>The client certificates the document server trusts.</summary>
+    public static IReadOnlyList<ClientCertificate> TrustedClients(string? pkiRoot = null) =>
+        Certificates(Path.Combine(pkiRoot ?? new AmlServerOptions().PkiRoot, "trusted", "certs"));
+
+    /// <summary>Moves a refused client certificate to the trusted ones.</summary>
+    public static void TrustClient(ClientCertificate certificate, string? pkiRoot = null)
+    {
+        var trusted = Path.Combine(pkiRoot ?? new AmlServerOptions().PkiRoot, "trusted", "certs");
+        Directory.CreateDirectory(trusted);
+        File.Move(certificate.File, Path.Combine(trusted, Path.GetFileName(certificate.File)), overwrite: true);
+    }
+
+    /// <summary>Removes a client certificate from the trusted ones.</summary>
+    public static void DistrustClient(ClientCertificate certificate) => File.Delete(certificate.File);
+
+    private static IReadOnlyList<ClientCertificate> Certificates(string folder)
+    {
+        if (!Directory.Exists(folder)) return Array.Empty<ClientCertificate>();
+        var result = new List<ClientCertificate>();
+        foreach (var file in Directory.EnumerateFiles(folder).OrderByDescending(File.GetLastWriteTimeUtc))
+        {
+            try
+            {
+                using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(file);
+                result.Add(new ClientCertificate(cert.Subject, cert.Thumbprint, cert.NotAfter, file));
+            }
+            catch (System.Security.Cryptography.CryptographicException) { /* not a certificate */ }
+        }
+        return result;
     }
 
     public async ValueTask DisposeAsync()
@@ -264,8 +327,9 @@ public sealed class AmlServerHost : IAsyncDisposable
                     _ => (DataTypeIds.String, text),
                 };
             }
-            catch (FormatException)
+            catch (Exception ex) when (ex is FormatException or OverflowException)
             {
+                // A value its type cannot hold, typed while serving: shown as the text it is.
                 return (DataTypeIds.String, text);
             }
         }

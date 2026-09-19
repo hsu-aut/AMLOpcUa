@@ -14,13 +14,13 @@ public class DiTestServer : TestServer
 {
     public static string DiPath => Path.Combine(NodeSetCatalog.BundledFolder, "Opc.Ua.Di.NodeSet2.xml");
 
-    /// <summary>Whether the namespace metadata of DI offers the NodeSet as its NamespaceFile.</summary>
-    protected virtual bool PublishFile => false;
+    /// <summary>What the namespace metadata of DI offers as its NamespaceFile; nothing when null.</summary>
+    protected virtual byte[]? PublishedFile => null;
 
     protected override INodeManager CreateNodeManager(IServerInternal server, ApplicationConfiguration configuration) =>
-        new NodeSetNodeManager(server, configuration, DiPath, Fixtures.DiUri, PublishFile);
+        new NodeSetNodeManager(server, configuration, DiPath, Fixtures.DiUri, PublishedFile);
 
-    private sealed class NodeSetNodeManager(IServerInternal server, ApplicationConfiguration configuration, string path, string uri, bool publishFile)
+    private sealed class NodeSetNodeManager(IServerInternal server, ApplicationConfiguration configuration, string path, string uri, byte[]? published)
         : CustomNodeManager2(server, configuration, uri)
     {
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
@@ -31,16 +31,15 @@ public class DiTestServer : TestServer
                 var set = Opc.Ua.Export.UANodeSet.Read(stream);
                 var nodes = new NodeStateCollection();
                 set.Import(SystemContext, nodes);
-                if (publishFile) AddNamespaceFile(nodes.Single(n => n.NodeId == new NodeId(15001u, NamespaceIndexes[0])));
+                if (published != null) AddNamespaceFile(nodes.Single(n => n.NodeId == new NodeId(15001u, NamespaceIndexes[0])), published);
                 foreach (var n in nodes) AddPredefinedNode(SystemContext, n);
                 AddReverseReferences(externalReferences);
             }
         }
 
         /// <summary>A FileType object that serves the NodeSet file, read in small chunks.</summary>
-        private void AddNamespaceFile(NodeState metadata)
+        private void AddNamespaceFile(NodeState metadata, byte[] content)
         {
-            var content = File.ReadAllBytes(path);
             var position = 0;
             var file = new FileState(metadata) { ReferenceTypeId = ReferenceTypeIds.HasComponent };
             file.Create(SystemContext, new NodeId("DI.NamespaceFile", NamespaceIndexes[0]), new QualifiedName("NamespaceFile"), "NamespaceFile", true);
@@ -67,7 +66,45 @@ public class DiTestServer : TestServer
 /// <summary>DI again, this time offering its NodeSet as the NamespaceFile of its metadata.</summary>
 public sealed class DiFileTestServer : DiTestServer
 {
-    protected override bool PublishFile => true;
+    protected override byte[]? PublishedFile => File.ReadAllBytes(DiPath);
+}
+
+/// <summary>DI whose published file also declares the base model, newer than the real one.</summary>
+public sealed class DiForgedFileTestServer : DiTestServer
+{
+    protected override byte[]? PublishedFile
+    {
+        get
+        {
+            var doc = XDocument.Load(DiPath);
+            XNamespace ua = "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd";
+            doc.Root!.Element(ua + "Models")!.Add(new XElement(ua + "Model",
+                new XAttribute("ModelUri", "http://opcfoundation.org/UA/"), new XAttribute("Version", "9.99"),
+                new XAttribute("PublicationDate", "2099-01-01T00:00:00Z")));
+            using var stream = new MemoryStream();
+            doc.Save(stream);
+            return stream.ToArray();
+        }
+    }
+}
+
+[Trait("Speed", "Slow")]
+public class ServerForgedFileTests(DiForgedFileTestServer server) : IClassFixture<DiForgedFileTestServer>
+{
+    [Fact]
+    public async Task A_published_file_that_declares_further_models_is_not_taken()
+    {
+        // Taken, it would stand in for the base model in the catalog of later imports.
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = server.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(server.PkiRoot, "client"),
+        });
+
+        var set = await ServerNodeSets.FetchAsync(client, Fixtures.DiUri);
+
+        Assert.Equal(ServerNodeSetSource.Browsed, set.Source);
+        Assert.Contains(set.Notes, n => n.Contains("further models"));
+    }
 }
 
 [Trait("Speed", "Slow")]

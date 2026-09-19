@@ -57,13 +57,16 @@ public static class Program
                                were. Not a standard. --namespace names the model when
                                the document holds several.
 
-        uaaml browse <endpoint> [<nsu=...;s=...>] [--secure] [--accept]
+        uaaml browse <endpoint> [<nsu=...;s=...>] [--insecure] [--accept]
             Children of a node of a running server (Objects when omitted).
+            Connections to servers are secured; a server without a secured
+            endpoint is refused unless --insecure. --accept trusts an unknown
+            server certificate for this run.
 
         uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
                      [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
                      [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--max-nodes <n>]
-                     [--vanished report|mark|remove] [--secure] [--accept] [-o <out.aml>]
+                     [--vanished report|mark|remove] [--insecure] [--accept] [-o <out.aml>]
             Take the nodes into the document below an element for the server, each
             with the way to it from the Objects (or Views) folder, with NodeIds, UA
             types (where the document holds them) and current values. --scope says
@@ -80,7 +83,7 @@ public static class Program
             in --plan or anywhere) is linked to that planned element with
             refBaseObj, unless --no-link.
 
-        uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--secure] [--accept]
+        uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--insecure] [--accept]
             The server's namespaces, or the NodeSet of one of them: the file the
             server publishes for it, else rebuilt by browsing its types (with
             --instances also its objects; --browse ignores a published file).
@@ -88,12 +91,20 @@ public static class Program
             or in place), with the models it requires that neither --search nor
             the bundled NodeSets provide, fetched from the server too.
 
-        uaaml snapshot [<endpoint>] <doc.aml> [--secure] [--accept] [-o <out.aml>]
+        uaaml snapshot [<endpoint>] <doc.aml> [--insecure] [--accept] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
-            an endpoint, from every server the document names as a data source.
+            an endpoint, from every server the document names as a data source
+            (--accept then needs an endpoint: the servers a document names are
+            not trusted blindly).
 
-        uaaml serve <doc.aml> [--port <n>]
-            Serve the document's instance hierarchies as an OPC UA server until Enter.
+        uaaml serve <doc.aml> [--port <n>] [--network]
+            Serve the document's instance hierarchies as an OPC UA server until Enter,
+            to this computer only. --network offers it to other computers: secured
+            endpoints only, and only to clients whose certificate is trusted.
+
+        uaaml clients [--trust <thumbprint>] [--distrust <thumbprint>]
+            The client certificates the document server refused and those it
+            trusts; --trust admits a refused one, --distrust removes a trusted one.
 
         uaaml diagram <doc.aml> (--type <name|path> | --instance <name|id>) [--depth <n>] -o <out.svg>
             Draw a UA type or an instance as SVG.
@@ -105,9 +116,11 @@ public static class Program
             Link a VDI 3682 TechnicalResource to a UA object or a ProcessOperator
             to a UA method (elements by name or ID).
 
-        uaaml cloud search <keywords...> (--user <u> --password <p> | --api-key <k>)
-        uaaml cloud download <id> <folder> (--user <u> --password <p> | --api-key <k>)
+        uaaml cloud search <keywords...> [--user <u>]
+        uaaml cloud download <id> <folder> [--user <u>]
             Search the UA Cloud Library, or download a model with the models it requires.
+            The password comes from UACLOUD_PASSWORD or is asked for; an API key
+            from UACLOUD_API_KEY instead.
 
         uaaml roundtrip <file>... [--search <dir>]... [--inverse] [-o <report.md>]
             Run each file through both mappings and back and report what survives:
@@ -152,6 +165,7 @@ public static class Program
                 "snapshot" => Run(SnapshotCommand(rest)),
                 "nodeset" => Run(NodeSetCommand(rest)),
                 "serve" => Run(ServeCommand(rest)),
+                "clients" => ClientsCommand(rest),
                 "diagram" => DiagramCommand(rest),
                 "upgrade" => UpgradeCommand(rest),
                 "link" => LinkCommand(rest),
@@ -384,16 +398,31 @@ public static class Program
 
     private static int Run(Task<int> task) => task.GetAwaiter().GetResult();
 
+    /// <summary>A line typed without echo.</summary>
+    private static string ReadSecret(string prompt)
+    {
+        Console.Error.Write(prompt);
+        if (Console.IsInputRedirected) return Console.ReadLine() ?? "";
+        var text = new System.Text.StringBuilder();
+        for (var key = Console.ReadKey(true); key.Key != ConsoleKey.Enter; key = Console.ReadKey(true))
+        {
+            if (key.Key == ConsoleKey.Backspace) { if (text.Length > 0) text.Length--; }
+            else if (!char.IsControl(key.KeyChar)) text.Append(key.KeyChar);
+        }
+        Console.Error.WriteLine();
+        return text.ToString();
+    }
+
     private static OpcUaAml.Server.UaConnectOptions Connect(Options o, string endpoint) => new()
     {
         EndpointUrl = endpoint,
-        UseSecurity = o.Has("--secure"),
+        UseSecurity = !o.Has("--insecure"),
         AcceptUntrustedServerCertificates = o.Has("--accept"),
     };
 
     private static async Task<int> BrowseCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--accept" });
+        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("browse needs an endpoint and optionally a node.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         var node = o.Positional.Count == 2 ? OpcUaAml.Addressing.UaNodeAddress.Parse(o.Positional[1], client.NamespaceTable) : null;
@@ -406,7 +435,7 @@ public static class Program
     {
         var o = Options.Parse(args,
             valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude", "--max-nodes", "--vanished" },
-            flags: new[] { "--secure", "--accept", "--no-link", "--skip-properties", "--objects-only", "--show-server", "--copy", "--preview" });
+            flags: new[] { "--secure", "--insecure", "--accept", "--no-link", "--skip-properties", "--objects-only", "--show-server", "--copy", "--preview" });
         if (o.Positional.Count < 2) throw new ArgumentException("mirror needs an endpoint and a document, and the nodes to take.");
         var docPath = o.Positional[^1];
         var doc = Documents.Load(docPath);
@@ -482,7 +511,7 @@ public static class Program
 
     private static async Task<int> NodeSetCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "-o", "--into", "--search" }, flags: new[] { "--secure", "--accept", "--instances", "--browse" });
+        var o = Options.Parse(args, valued: new[] { "-o", "--into", "--search" }, flags: new[] { "--secure", "--insecure", "--accept", "--instances", "--browse" });
         if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("nodeset needs an endpoint and optionally a namespace URI.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         if (o.Positional.Count == 1)
@@ -523,13 +552,16 @@ public static class Program
 
     private static async Task<int> SnapshotCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--secure", "--accept" });
+        var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count is not (1 or 2)) throw new ArgumentException("snapshot needs a document, optionally after an endpoint.");
         var docPath = o.Positional[^1];
         var doc = Documents.Load(docPath);
 
         // Without an endpoint: every server the document names as a data
-        // source, with the security its description asks for.
+        // source, with the security its description asks for. A document from
+        // elsewhere may name any server, so none is trusted blindly.
+        if (o.Positional.Count == 1 && o.Has("--accept"))
+            throw new ArgumentException("--accept needs an endpoint: the servers a document names are not trusted blindly.");
         var connections = o.Positional.Count == 2
             ? new List<OpcUaAml.Server.UaConnectOptions> { Connect(o, o.Positional[0]) }
             : OpcUaAml.Addressing.BprDataVariable.SourcesIn(doc).Where(s => s.Url != null)
@@ -551,12 +583,34 @@ public static class Program
 
     private static async Task<int> ServeCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--port" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--port" }, flags: new[] { "--network" });
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
-        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port });
-        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}. Press Enter to stop.");
+        var network = o.Has("--network");
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network });
+        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}"
+                          + (network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.")
+                          + " Press Enter to stop.");
         Console.ReadLine();
+        return 0;
+    }
+
+    private static int ClientsCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--trust", "--distrust" }, flags: Array.Empty<string>());
+        static OpcUaAml.Server.ClientCertificate Find(IReadOnlyList<OpcUaAml.Server.ClientCertificate> list, string thumbprint)
+        {
+            var found = list.Where(c => c.Thumbprint.StartsWith(thumbprint, StringComparison.OrdinalIgnoreCase)).ToList();
+            return found.Count == 1 ? found[0] : throw new ArgumentException($"No single certificate with thumbprint {thumbprint}.");
+        }
+        if (o.One("--trust") is { } trust)
+            OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(), trust));
+        if (o.One("--distrust") is { } distrust)
+            OpcUaAml.Server.AmlServerHost.DistrustClient(Find(OpcUaAml.Server.AmlServerHost.TrustedClients(), distrust));
+        foreach (var c in OpcUaAml.Server.AmlServerHost.RejectedClients())
+            Console.WriteLine($"refused  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
+        foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients())
+            Console.WriteLine($"trusted  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
         return 0;
     }
 
@@ -604,10 +658,14 @@ public static class Program
 
     private static async Task<int> CloudCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--user", "--password", "--api-key" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--user" }, flags: Array.Empty<string>());
         if (o.Positional.Count < 2) throw new ArgumentException("cloud needs 'search <keywords>' or 'download <id> <folder>'.");
-        var client = new CloudLibraryClient(new HttpClient { Timeout = TimeSpan.FromSeconds(60) },
-            o.One("--user"), o.One("--password"), o.One("--api-key"));
+        // Secrets never on the command line, where the process list and the shell history show them.
+        var apiKey = Environment.GetEnvironmentVariable("UACLOUD_API_KEY");
+        var user = o.One("--user");
+        var password = Environment.GetEnvironmentVariable("UACLOUD_PASSWORD");
+        if (user != null && password == null && apiKey == null) password = ReadSecret($"Password for {user}: ");
+        var client = new CloudLibraryClient(CloudLibraryClient.CreateHttp(), user, password, apiKey);
         switch (o.Positional[0])
         {
             case "search":

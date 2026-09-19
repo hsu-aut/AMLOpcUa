@@ -111,6 +111,51 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task By_default_the_server_is_reachable_from_this_computer_only()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Local");
+        var port = FreePort();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") });
+
+        var listeners = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
+            .Where(l => l.Port == port).ToList();
+        Assert.NotEmpty(listeners);
+        Assert.All(listeners, l => Assert.True(System.Net.IPAddress.IsLoopback(l.Address), $"listens on {l.Address}"));
+    }
+
+    [Fact]
+    public async Task Offered_to_the_network_the_server_admits_trusted_clients_only()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var value = doc.CAEXFile.InstanceHierarchy.Append("Net").InternalElement.Append("Speed").Attribute.Append("Value");
+        value.AttributeDataType = "xs:int";
+        value.Value = "3000000000"; // more than an Int32 holds: served as text, not a failure
+        var pki = TempPki();
+        var serverPki = Path.Combine(pki, "server");
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = serverPki, Network = true });
+        var options = new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = true, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        };
+
+        await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        }));
+        await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
+        var rejected = Assert.Single(AmlServerHost.RejectedClients(serverPki));
+        Assert.Contains("AMLOpcUa", rejected.Subject);
+
+        AmlServerHost.TrustClient(rejected, serverPki);
+        await using var client = await UaClient.ConnectAsync(options);
+        Assert.StartsWith("SignAndEncrypt", client.SecurityMode);
+        var read = await client.ReadAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Net/Speed"));
+        Assert.Equal("3000000000", read.ValueText);
+        Assert.Single(AmlServerHost.TrustedClients(serverPki));
+    }
+
+    [Fact]
     public void Duplicate_NodeIds_are_made_unique()
     {
         var doc = CAEXDocument.New_CAEXDocument();

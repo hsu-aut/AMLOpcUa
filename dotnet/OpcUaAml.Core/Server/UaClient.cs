@@ -16,7 +16,12 @@ public sealed class UaConnectOptions
 {
     public required string EndpointUrl { get; init; }
 
-    /// <summary>Prefer a secured endpoint (Sign or SignAndEncrypt) when the server offers one.</summary>
+    /// <summary>
+    /// Connect secured (Sign or SignAndEncrypt) only; a server that offers no
+    /// secured endpoint is refused rather than used unsecured. Off: the
+    /// unsecured endpoint is taken, and a user name is refused, since its
+    /// password would travel in clear text.
+    /// </summary>
     public bool UseSecurity { get; init; } = true;
 
     /// <summary>Anonymous when null.</summary>
@@ -40,6 +45,21 @@ public sealed class UaConnectOptions
 public sealed class UaConnectionException : Exception
 {
     public UaConnectionException(string message, Exception? inner = null) : base(message, inner) { }
+
+    /// <summary>The server's certificate, when the connection failed because it is not trusted.</summary>
+    public ServerCertificate? UntrustedCertificate { get; init; }
+}
+
+/// <summary>A server's certificate, as the user checks it before trusting it.</summary>
+public sealed record ServerCertificate(string Subject, string Issuer, string Sha256, DateTime NotBefore, DateTime NotAfter, byte[] Raw)
+{
+    public static ServerCertificate From(byte[] raw)
+    {
+        using var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(raw);
+        var sha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(raw));
+        return new ServerCertificate(cert.Subject, cert.Issuer, string.Join(":", sha.Chunk(2).Select(c => new string(c))),
+            cert.NotBefore, cert.NotAfter, raw);
+    }
 }
 
 /// <summary>A node found while browsing.</summary>
@@ -72,6 +92,9 @@ public sealed class UaClient : IAsyncDisposable
     public string EndpointUrl { get; }
     public string SecurityMode { get; }
 
+    /// <summary>More references of one node than any real server has: a server that sends more is not answered further.</summary>
+    public const int MaxReferencesPerNode = 100000;
+
     /// <summary>The session, for the classes of this library that need more than browsing and reading.</summary>
     internal ISession Session => _session;
 
@@ -83,7 +106,15 @@ public sealed class UaClient : IAsyncDisposable
 
     public static async Task<UaClient> ConnectAsync(UaConnectOptions options, CancellationToken ct = default)
     {
-        var config = await CreateConfigurationAsync(options, ct).ConfigureAwait(false);
+        ApplicationConfiguration config;
+        try
+        {
+            config = await CreateConfigurationAsync(options, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new UaConnectionException($"The client's certificate in '{options.PkiRoot}' could not be set up: {ex.Message}", ex);
+        }
         EndpointDescription endpoint;
         try
         {
@@ -94,6 +125,10 @@ public sealed class UaClient : IAsyncDisposable
         {
             throw new UaConnectionException($"No endpoint at '{options.EndpointUrl}': {ex.Message}", ex);
         }
+        if (options.UseSecurity && endpoint.SecurityMode == MessageSecurityMode.None)
+            throw new UaConnectionException($"'{options.EndpointUrl}' offers no secured endpoint. Switch security off to connect unsecured.");
+        if (!options.UseSecurity && endpoint.SecurityMode == MessageSecurityMode.None && options.UserName != null)
+            throw new UaConnectionException("A user name over an unsecured connection would send its password in clear text. Switch security on, or connect anonymously.");
 
         var configured = new ConfiguredEndpoint(null, endpoint, EndpointConfiguration.Create(config));
         IUserIdentity identity = options.UserName == null
@@ -109,13 +144,28 @@ public sealed class UaClient : IAsyncDisposable
                                                  || ex.StatusCode == StatusCodes.BadCertificateChainIncomplete)
         {
             throw new UaConnectionException(
-                $"The server certificate of '{options.EndpointUrl}' is not trusted. Accept it once, or copy it into " +
-                $"'{Path.Combine(options.PkiRoot, "trusted", "certs")}'.", ex);
+                $"The server certificate of '{options.EndpointUrl}' is not trusted. Trust it, or copy it into " +
+                $"'{Path.Combine(options.PkiRoot, "trusted", "certs")}'.", ex)
+            {
+                UntrustedCertificate = endpoint.ServerCertificate is { Length: > 0 } raw ? ServerCertificate.From(raw) : null,
+            };
         }
         catch (Exception ex)
         {
             throw new UaConnectionException($"Connecting to '{options.EndpointUrl}' failed: {ex.Message}", ex);
         }
+    }
+
+    /// <summary>
+    /// Trusts exactly this server certificate from now on: it is added to the
+    /// client's trusted certificates, so later connections check it again.
+    /// </summary>
+    public static void TrustServer(ServerCertificate certificate, string? pkiRoot = null)
+    {
+        var folder = Path.Combine(pkiRoot ?? new UaConnectOptions { EndpointUrl = "" }.PkiRoot, "trusted", "certs");
+        Directory.CreateDirectory(folder);
+        var name = new string(certificate.Subject.Select(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '.' ? c : '_').ToArray()).Trim();
+        File.WriteAllBytes(Path.Combine(folder, $"{name} [{certificate.Sha256.Replace(":", "")[..16]}].der"), certificate.Raw);
     }
 
     private static async Task<ApplicationConfiguration> CreateConfigurationAsync(UaConnectOptions options, CancellationToken ct)
@@ -225,21 +275,26 @@ public sealed class UaClient : IAsyncDisposable
     /// The ObjectTypes and VariableTypes of the server, found along HasSubtype
     /// from BaseObjectType and BaseVariableType.
     /// </summary>
-    public async Task<IReadOnlyList<UaBrowseItem>> TypesAsync(CancellationToken ct = default)
+    public async Task<IReadOnlyList<UaBrowseItem>> TypesAsync(int maxTypes = 50000, CancellationToken ct = default)
     {
         var result = new List<UaBrowseItem>();
+        // A server may, by mistake or on purpose, make HasSubtype run in a circle.
+        var seen = new HashSet<UaNodeAddress>();
         foreach (var root in new[] { ObjectTypeIds.BaseObjectType, VariableTypeIds.BaseVariableType })
         {
             var frontier = new List<NodeId> { root };
-            while (frontier.Count > 0)
+            while (frontier.Count > 0 && result.Count < maxTypes)
             {
                 var next = new List<NodeId>();
                 foreach (var t in frontier)
                 {
                     var subtypes = await BrowseCoreAsync(t, BrowseDirection.Forward, NodeClass.ObjectType | NodeClass.VariableType, null, ct,
                         ReferenceTypeIds.HasSubtype).ConfigureAwait(false);
-                    result.AddRange(subtypes);
-                    next.AddRange(subtypes.Select(s => ToNodeId(s.Address)));
+                    foreach (var s in subtypes.Where(s => seen.Add(s.Address)))
+                    {
+                        result.Add(s);
+                        next.Add(ToNodeId(s.Address));
+                    }
                 }
                 frontier = next;
             }
@@ -264,6 +319,7 @@ public sealed class UaClient : IAsyncDisposable
             var next = new List<UaNodeAddress>();
             foreach (var node in frontier)
             {
+                if (seen.Count >= maxNodes) break;
                 foreach (var child in await BrowseAsync(node, ct).ConfigureAwait(false))
                 {
                     if (child.NodeClass == "Method" || child.Address == server || !seen.Add(child.Address)) continue;
@@ -297,6 +353,8 @@ public sealed class UaClient : IAsyncDisposable
         var continuation = result.ContinuationPoint;
         while (continuation != null && continuation.Length > 0)
         {
+            if (items.Count > MaxReferencesPerNode)
+                throw new UaConnectionException($"Browsing {start}: the server keeps sending references (more than {MaxReferencesPerNode}).");
             var next = await _session.BrowseNextAsync(null, false, new ByteStringCollection { continuation }, ct).ConfigureAwait(false);
             Add(next.Results[0].References);
             continuation = next.Results[0].ContinuationPoint;
@@ -307,7 +365,8 @@ public sealed class UaClient : IAsyncDisposable
         {
             foreach (var r in refs)
             {
-                if (r.NodeId.ServerIndex != 0) continue;
+                // Another server's node, or one in a namespace the server's own table lacks.
+                if (r.NodeId.ServerIndex != 0 || ExpandedNodeId.ToNodeId(r.NodeId, _session.NamespaceUris) == null) continue;
                 items.Add(new UaBrowseItem(
                     FromExpanded(r.NodeId),
                     r.BrowseName.Name,
