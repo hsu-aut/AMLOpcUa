@@ -29,6 +29,21 @@ transitively, must be available as a file:
 2. the folders given with `--search` or under "NodeSet folders",
 3. the NodeSets shipped in `nodesets/` (UA base model 1.05.07, DI 1.05.0).
 
+Without an account the plugin fetches the NodeSets the OPC Foundation
+publishes on GitHub, [OPCFoundation/UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset),
+branch `latest`: every released companion specification (**Companion
+specs…**, `OpcFoundationNodeSets`, `uaaml opcf`). The repository's folders do
+not name the namespaces reliably, so an index records the models each file
+declares: the file list comes from GitHub's API in one call (60 calls an hour
+are allowed without login), and of each file only its beginning up to
+`</Models>` is read, by a Range request. The index is kept in
+`%LOCALAPPDATA%\AMLOpcUa\opcfoundation` with each file's blob SHA and asked
+again at most once a day; then only files that changed are read (143 files in
+about seven seconds the first time). A chosen model is downloaded with every
+model it requires that the catalog lacks. When GitHub cannot be reached or the
+hourly limit is spent, the index on disk still serves. Tests run against a fake
+of the tree API and the raw files.
+
 The plugin can also fetch NodeSets from the OPC Foundation's
 [UA Cloud Library](https://uacloudlibrary.opcfoundation.org) (**Cloud
 Library…**, `CloudLibraryClient`): search, then download the chosen model and
@@ -61,9 +76,10 @@ references into the library stay valid.
 
 Before converting, the plugin checks that every model a NodeSet requires is
 in its folder, the NodeSet folders or the plugin's own folders (models from
-the modeler, the Cloud Library and servers). If not, a dialog names the
-missing models and offers to add a folder or to fetch them from the Cloud
-Library, then tries again.
+the modeler, the OPC Foundation, the Cloud Library and servers). If not, a
+dialog names the missing models and offers to fetch them from the OPC
+Foundation's published NodeSets (at once, by their URIs), to add a folder or to
+search the Cloud Library, then tries again.
 
 `NamespaceInspector` tells what a namespace contributes: ObjectTypes and
 VariableTypes (SUC_), DataTypes (ATL_, without the `ListOf` array types),

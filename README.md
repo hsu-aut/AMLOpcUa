@@ -84,9 +84,15 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its fi
   ObjectTypes, VariableTypes, DataTypes and ReferenceTypes, the namespaces it
   builds on and those built on it, the elements using its types, its types to
   draw, **Edit in the modeler**, and **Remove** when nothing needs it any more.
+- **Companion specs…** lists the NodeSets the OPC Foundation publishes on
+  GitHub (OPCFoundation/UA-Nodeset), every released companion specification,
+  and imports one with the models it requires, without an account. The list
+  comes from GitHub at most once a day; the UA Cloud Library, which needs an
+  account or an API key, is one click away. On the command line: `uaaml opcf`.
 - NodeSet files dropped on the plugin are imported. When a NodeSet requires
-  models no folder holds, a dialog names them and offers to add a folder or
-  to fetch them from the Cloud Library; the import then tries again. Models
+  models no folder holds, a dialog names them and fetches them from the OPC
+  Foundation's published NodeSets, or adds a folder, or searches the Cloud
+  Library; the import then tries again. Models
   the plugin keeps itself (from the modeler, the Cloud Library, servers) are
   always searched. A document
   without OPC UA shows the first steps instead: import a NodeSet, search the
@@ -165,6 +171,8 @@ uaaml browse  opc.tcp://plc:4840                 # secured; --insecure allows an
 uaaml serve   plant.aml --port 48400             # to this computer only
 uaaml serve   plant.aml --network                # to other computers, trusted clients only
 uaaml clients --trust 3F2A                       # admit a client the server refused
+uaaml opcf search Machinery                      # the OPC Foundation's NodeSets, no account
+uaaml opcf download http://opcfoundation.org/UA/Machinery/ -o ./nodesets
 uaaml cloud search Machinery --user me           # password from UACLOUD_PASSWORD or asked
 ```
 
