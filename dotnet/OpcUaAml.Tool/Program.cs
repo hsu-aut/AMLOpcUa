@@ -116,6 +116,13 @@ public static class Program
             Link a VDI 3682 TechnicalResource to a UA object or a ProcessOperator
             to a UA method (elements by name or ID).
 
+        uaaml opcf search <keywords...> [--refresh]
+        uaaml opcf download <model-uri> [-o <folder>]
+            The NodeSets the OPC Foundation publishes on GitHub (OPCFoundation/UA-Nodeset),
+            without an account: search by name or namespace, or download a model with
+            the models it requires. The list is kept in %LOCALAPPDATA%\AMLOpcUa\opcfoundation
+            and asked of GitHub at most once a day.
+
         uaaml cloud search <keywords...> [--user <u>]
         uaaml cloud download <id> <folder> [--user <u>]
             Search the UA Cloud Library, or download a model with the models it requires.
@@ -170,6 +177,7 @@ public static class Program
                 "upgrade" => UpgradeCommand(rest),
                 "link" => LinkCommand(rest),
                 "cloud" => Run(CloudCommand(rest)),
+                "opcf" => Run(OpcfCommand(rest)),
                 _ => Fail($"Unknown command '{args[0]}'.\n\n{Usage}"),
             };
         }
@@ -182,7 +190,8 @@ public static class Program
             return Fail(ex.Message);
         }
         catch (Exception ex) when (ex is OpcUaAml.Server.UaConnectionException or OpcUaAml.Links.LinkException
-                                   or OpcUaAml.NodeSets.CloudLibraryException or OpcUaAml.Addressing.AddressingException)
+                                   or OpcUaAml.NodeSets.CloudLibraryException or OpcUaAml.NodeSets.OpcFoundationNodeSetsException
+                                   or OpcUaAml.Addressing.AddressingException)
         {
             return Fail(ex.Message);
         }
@@ -669,6 +678,42 @@ public static class Program
         Documents.Save(doc, o.One("-o") ?? file);
         Console.WriteLine($"{from.Name}.{attr.Name} = {to.Name}");
         return 0;
+    }
+
+    /// <summary>Where the OPC Foundation's NodeSets from GitHub are kept, the same folder the plugin uses.</summary>
+    private static string OpcfFolder => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "opcfoundation");
+
+    private static async Task<int> OpcfCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--refresh" });
+        if (o.Positional.Count < 1) throw new ArgumentException("opcf needs 'search <keywords>' or 'download <model-uri>'.");
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+        var source = new OpcFoundationNodeSets(http, OpcfFolder);
+        var models = await source.ModelsAsync(o.Has("--refresh"));
+        switch (o.Positional[0])
+        {
+            case "search":
+                foreach (var m in OpcFoundationNodeSets.Search(models, o.Positional.Skip(1)))
+                    Console.WriteLine($"{m.ModelUri,-60} {m.Version,-10} {m.PublicationDate:yyyy-MM-dd}  {m.Path}");
+                return 0;
+            case "download" when o.Positional.Count == 2:
+                var model = OpcFoundationNodeSets.Find(models, o.Positional[1])
+                    ?? throw new ArgumentException($"The OPC Foundation's repository has no model '{o.Positional[1]}'; 'opcf search' lists them.");
+                var missing = new List<string>();
+                var files = await source.DownloadWithDependenciesAsync(model, NodeSetCatalog.Create(Array.Empty<string>()), missing);
+                var target = o.One("-o");
+                if (target != null) Directory.CreateDirectory(target);
+                foreach (var f in files)
+                {
+                    var written = target == null ? f : Path.Combine(target, Path.GetFileName(f));
+                    if (target != null) File.Copy(f, written, overwrite: true);
+                    Console.WriteLine(written);
+                }
+                foreach (var m in missing) Console.Error.WriteLine($"warning: the repository has no model {m}");
+                return 0;
+            default:
+                throw new ArgumentException("opcf needs 'search <keywords>' or 'download <model-uri>'.");
+        }
     }
 
     private static async Task<int> CloudCommand(List<string> args)
