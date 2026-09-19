@@ -37,7 +37,11 @@ public sealed class DiagramNode
     public double Height { get; set; }
 }
 
-public sealed record DiagramEdge(string From, string To, string ReferenceType, bool Hierarchical);
+public sealed record DiagramEdge(string From, string To, string ReferenceType, bool Hierarchical)
+{
+    /// <summary>A symmetric reference type (ConnectsTo …): drawn with a head at both ends.</summary>
+    public bool Symmetric { get; init; }
+}
 
 public sealed class UaDiagram
 {
@@ -91,7 +95,8 @@ public static class DiagramBuilder
                 if (!interfaceOwner.TryGetValue(link.RefPartnerSideA, out var a) ||
                     !interfaceOwner.TryGetValue(link.RefPartnerSideB, out var b) || a == b) continue;
                 if (diagram.Edges.Any(e => (e.From == a && e.To == b) || (e.From == b && e.To == a))) continue;
-                diagram.Edges.Add(new DiagramEdge(a, b, ReferenceOf(owner.CAEXDocument, link.RefPartnerSideA) ?? "References", false));
+                var (name, symmetric) = ReferenceOf(owner.CAEXDocument, link.RefPartnerSideA);
+                diagram.Edges.Add(new DiagramEdge(a, b, name ?? "References", false) { Symmetric = symmetric });
             }
         }
         return diagram;
@@ -133,22 +138,34 @@ public static class DiagramBuilder
     /// child's end: an interface of class e.g. [HasComponent]/[ComponentOf]
     /// belongs to HasComponent.
     /// </summary>
+    /// <summary>
+    /// The reference that holds a child: its end of it is the inverse class
+    /// ([HasComponent]/[ComponentOf]). Its forward interfaces ([HasProperty] of
+    /// a method with arguments) are references to its own children.
+    /// </summary>
     private static string HierarchicalReference(SystemUnitClassType child)
     {
         foreach (var ei in child.ExternalInterface)
         {
             var parts = Segments(ei.RefBaseClassPath);
-            if (parts.Count >= 2 && parts[0].StartsWith("ICL_", StringComparison.Ordinal))
-                return parts.Count >= 3 ? parts[^2] : parts[^1];
+            if (parts.Count >= 3 && parts[0].StartsWith("ICL_", StringComparison.Ordinal)) return parts[^2];
         }
         return "HasComponent";
     }
 
-    private static string? ReferenceOf(CAEXDocument doc, string interfaceId)
+    /// <summary>
+    /// The reference type of an interface, and whether it is symmetric: Annex A
+    /// gives a symmetric type a RefClassConnectsToPath to its own class.
+    /// </summary>
+    private static (string? Name, bool Symmetric) ReferenceOf(CAEXDocument doc, string interfaceId)
     {
-        if (doc.FindByID(interfaceId, true, null) is not ExternalInterfaceType ei) return null;
+        if (doc.FindByID(interfaceId, true, null) is not ExternalInterfaceType ei) return (null, false);
         var parts = Segments(ei.RefBaseClassPath);
-        return parts.Count >= 2 ? parts[^1] : null;
+        var name = parts.Count >= 2 ? parts[^1] : null;
+        var symmetric = doc.FindByPath(ei.RefBaseClassPath) is InterfaceFamilyType cls
+                        && cls.Attribute["RefClassConnectsToPath"]?.Value is { } connects
+                        && Segments(connects).SequenceEqual(parts);
+        return (name, symmetric);
     }
 
     private static UaNodeKind KindOf(SystemUnitClassType element)

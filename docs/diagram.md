@@ -20,12 +20,16 @@ Ctrl + mouse wheel zoom.
   it, read from the child's interface class (`[HasComponent]/[ComponentOf]`
   belongs to HasComponent);
 - non-hierarchical references (InternalLinks between elements that are not
-  parent and child) as dashed arrows.
+  parent and child).
 
 Shapes follow the node classes of OPC 10000-3: Object a rectangle, Variable a
 rounded rectangle, Method an ellipse, ObjectType and VariableType the same
-shapes shaded. References are arrows labelled with their type rather than the
-reference symbols of OPC 10000-3, which are hard to tell apart at small sizes.
+shapes shaded. References use the notation of OPC 10000-3 Annex C, as
+InfoModel.js draws it (`EdgeGlyphs`): HasComponent one stroke across the line,
+HasProperty two, HasTypeDefinition two filled heads, HasSubtype two hollow
+heads at the supertype, other hierarchical references an open head,
+non-hierarchical ones a filled head, symmetric ones a filled head at both
+ends. All but HasComponent and HasProperty carry their name in italic.
 
 The layout is a left-to-right tree: one column per level, leaves stacked,
 parents centred on their children. Depth and node count are limited (default

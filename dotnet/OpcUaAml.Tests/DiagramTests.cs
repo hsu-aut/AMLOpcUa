@@ -26,6 +26,25 @@ public class DiagramTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void A_method_with_arguments_hangs_by_HasComponent_and_is_drawn_so()
+    {
+        // The method's own HasProperty interface leads to its arguments; its
+        // end of the reference from the type is [HasComponent]/[ComponentOf].
+        var d = DiagramLayout.Apply(DiagramBuilder.Build(di.Type("LockingServicesType")));
+        var initLock = d.Nodes.Single(n => n.Name == "InitLock");
+        var toMethod = d.Edges.Single(e => e.To == initLock.Id);
+        var toArguments = d.Edges.First(e => e.From == initLock.Id);
+
+        Assert.Equal("HasComponent", toMethod.ReferenceType);
+        Assert.Equal("HasProperty", toArguments.ReferenceType);
+        var line = new[] { (0.0, 0.0), (100.0, 0.0) };
+        Assert.Single(EdgeGlyphs.For(EdgeGlyphs.NotationOf(toMethod), line));
+        Assert.Equal(2, EdgeGlyphs.For(EdgeGlyphs.NotationOf(toArguments), line).Count);
+        Assert.False(EdgeGlyphs.Labelled(EdgeGlyphs.NotationOf(toMethod)));
+        Assert.Equal(2, EdgeGlyphs.For(EdgeNotation.Symmetric, line).Count(g => g.Closed && g.Filled));
+    }
+
+    [Fact]
     public void Inherited_declarations_are_part_of_the_picture()
     {
         var d = DiagramBuilder.Build(di.Type("SoftwareType"), maxDepth: 1);

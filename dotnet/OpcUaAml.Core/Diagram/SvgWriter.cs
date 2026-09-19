@@ -1,7 +1,8 @@
 // SVG of a laid-out diagram, for papers and documentation. Shapes follow the
 // node classes of OPC 10000-3: Object a rectangle, Variable a rounded
-// rectangle, Method an ellipse, types the same shapes shaded. References are
-// arrows labelled with their type; non-hierarchical ones are dashed.
+// rectangle, Method an ellipse, types the same shapes shaded. References use
+// the notation of Annex C (EdgeGlyphs); those other than HasComponent and
+// HasProperty carry their name in italic.
 
 using System.Globalization;
 using System.Security;
@@ -18,8 +19,6 @@ public static class SvgWriter
         sb.AppendLine($"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{F(diagram.Width)}\" height=\"{F(diagram.Height)}\" " +
                       $"viewBox=\"0 0 {F(diagram.Width)} {F(diagram.Height)}\" font-family=\"Segoe UI, Arial, sans-serif\" font-size=\"12\">");
         sb.AppendLine($"  <title>{Esc(diagram.Title)}</title>");
-        sb.AppendLine("  <defs><marker id=\"arrow\" viewBox=\"0 0 10 10\" refX=\"10\" refY=\"5\" markerWidth=\"7\" markerHeight=\"7\" orient=\"auto-start-reverse\">" +
-                      "<path d=\"M0,0 L10,5 L0,10 z\" fill=\"#444\"/></marker></defs>");
 
         var byId = diagram.Nodes.ToDictionary(n => n.Id);
         foreach (var e in diagram.Edges)
@@ -28,13 +27,22 @@ public static class SvgWriter
             var (x1, y1, x2, y2) = e.Hierarchical
                 ? (a.X + a.Width, a.Y + a.Height / 2, b.X, b.Y + b.Height / 2)
                 : (a.X + a.Width / 2, a.Y + a.Height, b.X + b.Width / 2, b.Y);
-            var path = e.Hierarchical
-                ? $"M{F(x1)},{F(y1)} H{F((x1 + x2) / 2)} V{F(y2)} H{F(x2)}"
-                : $"M{F(x1)},{F(y1)} L{F(x2)},{F(y2)}";
-            sb.AppendLine($"  <path d=\"{path}\" fill=\"none\" stroke=\"#444\" stroke-width=\"1\"{(e.Hierarchical ? "" : " stroke-dasharray=\"4 3\"")} marker-end=\"url(#arrow)\"/>");
+            var points = e.Hierarchical
+                ? new[] { (x1, y1), ((x1 + x2) / 2, y1), ((x1 + x2) / 2, y2), (x2, y2) }
+                : new[] { (x1, y1), (x2, y2) };
+            sb.AppendLine($"  <polyline points=\"{string.Join(" ", points.Select(p => $"{F(p.Item1)},{F(p.Item2)}"))}\" fill=\"none\" stroke=\"#444\" stroke-width=\"1\"/>");
+            var notation = EdgeGlyphs.NotationOf(e);
+            foreach (var g in EdgeGlyphs.For(notation, points))
+            {
+                var pts = string.Join(" ", g.Points.Select(p => $"{F(p.X)},{F(p.Y)}"));
+                sb.AppendLine(g.Closed
+                    ? $"  <polygon points=\"{pts}\" fill=\"{(g.Filled ? "#444" : "#fff")}\" stroke=\"#444\" stroke-width=\"1\"/>"
+                    : $"  <polyline points=\"{pts}\" fill=\"none\" stroke=\"#444\" stroke-width=\"1.2\"/>");
+            }
+            if (!EdgeGlyphs.Labelled(notation)) continue;
             var lx = e.Hierarchical ? (x1 + x2) / 2 + 3 : (x1 + x2) / 2 + 4;
             var ly = e.Hierarchical ? y2 - 4 : (y1 + y2) / 2;
-            sb.AppendLine($"  <text x=\"{F(lx)}\" y=\"{F(ly)}\" font-size=\"9\" fill=\"#666\">{Esc(e.ReferenceType)}</text>");
+            sb.AppendLine($"  <text x=\"{F(lx)}\" y=\"{F(ly)}\" font-size=\"9\" font-style=\"italic\" fill=\"#666\">{Esc(e.ReferenceType)}</text>");
         }
 
         foreach (var n in diagram.Nodes)

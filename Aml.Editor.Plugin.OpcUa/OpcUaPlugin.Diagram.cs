@@ -139,24 +139,36 @@ public partial class OpcUaPlugin
         foreach (var edge in d.Edges)
         {
             if (!byId.TryGetValue(edge.From, out var a) || !byId.TryGetValue(edge.To, out var b)) continue;
-            var line = new Polyline { Stroke = stroke, StrokeThickness = 1 };
+            // The notation of OPC 10000-3 Annex C, as InfoModel.js and the SVG export draw it.
+            (double X, double Y)[] points;
+            double lx, ly;
             if (edge.Hierarchical)
             {
                 double x1 = a.X + a.Width, y1 = a.Y + a.Height / 2, x2 = b.X, y2 = b.Y + b.Height / 2, mx = (x1 + x2) / 2;
-                line.Points = new PointCollection { new(x1, y1), new(mx, y1), new(mx, y2), new(x2, y2) };
-                Arrow(canvas, x2, y2, 1, 0, stroke);
-                Label(canvas, edge.ReferenceType, mx + 3, y2 - 14, 9, grey);
+                points = new[] { (x1, y1), (mx, y1), (mx, y2), (x2, y2) };
+                (lx, ly) = (mx + 3, y2 - 14);
             }
             else
             {
                 double x1 = a.X + a.Width / 2, y1 = a.Y + a.Height, x2 = b.X + b.Width / 2, y2 = b.Y;
-                line.Points = new PointCollection { new(x1, y1), new(x2, y2) };
-                line.StrokeDashArray = new DoubleCollection { 4, 3 };
-                var len = Math.Max(1, Math.Sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
-                Arrow(canvas, x2, y2, (x2 - x1) / len, (y2 - y1) / len, stroke);
-                Label(canvas, edge.ReferenceType, (x1 + x2) / 2 + 4, (y1 + y2) / 2 - 7, 9, grey);
+                points = new[] { (x1, y1), (x2, y2) };
+                (lx, ly) = ((x1 + x2) / 2 + 4, (y1 + y2) / 2 - 7);
             }
-            canvas.Children.Add(line);
+            canvas.Children.Add(new Polyline
+            {
+                Stroke = stroke,
+                StrokeThickness = 1,
+                Points = new PointCollection(points.Select(p => new Point(p.X, p.Y))),
+            });
+            var notation = EdgeGlyphs.NotationOf(edge);
+            foreach (var glyph in EdgeGlyphs.For(notation, points))
+            {
+                var glyphPoints = new PointCollection(glyph.Points.Select(p => new Point(p.X, p.Y)));
+                canvas.Children.Add(glyph.Closed
+                    ? new Polygon { Points = glyphPoints, Fill = glyph.Filled ? stroke : Brushes.White, Stroke = stroke, StrokeThickness = 1 }
+                    : new Polyline { Points = glyphPoints, Stroke = stroke, StrokeThickness = 1.2 });
+            }
+            if (EdgeGlyphs.Labelled(notation)) Label(canvas, edge.ReferenceType, lx, ly, 9, grey, italic: true);
         }
 
         foreach (var n in d.Nodes)
@@ -204,18 +216,13 @@ public partial class OpcUaPlugin
         canvas.Children.Add(element);
     }
 
-    private static void Label(Canvas canvas, string text, double x, double y, double size, Brush brush) =>
-        Place(canvas, new TextBlock { Text = text, FontSize = size, Foreground = brush, IsHitTestVisible = false }, x, y);
-
-    private static void Arrow(Canvas canvas, double x, double y, double dx, double dy, Brush brush)
-    {
-        const double length = 7, width = 3.5;
-        var bx = x - dx * length;
-        var by = y - dy * length;
-        canvas.Children.Add(new Polygon
+    private static void Label(Canvas canvas, string text, double x, double y, double size, Brush brush, bool italic = false) =>
+        Place(canvas, new TextBlock
         {
-            Fill = brush,
-            Points = new PointCollection { new(x, y), new(bx - dy * width, by + dx * width), new(bx + dy * width, by - dx * width) },
-        });
-    }
+            Text = text,
+            FontSize = size,
+            Foreground = brush,
+            FontStyle = italic ? FontStyles.Italic : FontStyles.Normal,
+            IsHitTestVisible = false,
+        }, x, y);
 }
