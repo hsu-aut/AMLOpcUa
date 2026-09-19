@@ -13,11 +13,12 @@ namespace Aml.Editor.Plugin.OpcUa;
 
 internal static class DialogKit
 {
-    public static readonly Brush Exchange = Frozen(0x20, 0x70, 0xC0);
-    public static readonly Brush Create = Frozen(0x20, 0xA0, 0x40);
-    public static readonly Brush Verify = Frozen(0xE0, 0x80, 0x20);
-    public static readonly Brush Relate = Frozen(0x80, 0x40, 0xA0);
-    public static readonly Brush Plain = Frozen(0x80, 0x80, 0x80);
+    // The kinds of command, in the current theme's shade.
+    public static Brush Exchange => ThemePalette.Current().Exchange;
+    public static Brush Create => ThemePalette.Current().Create;
+    public static Brush Verify => ThemePalette.Current().Verify;
+    public static Brush Relate => ThemePalette.Current().Relate;
+    public static Brush Plain => ThemePalette.Current().Plain;
 
     /// <summary>Grey text in the current theme.</summary>
     public static Brush Muted => ThemePalette.Current().Muted;

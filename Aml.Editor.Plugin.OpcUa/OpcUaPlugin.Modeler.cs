@@ -136,7 +136,8 @@ public partial class OpcUaPlugin
             var info = catalog.Find(uri);
             if (info == null)
             {
-                ModelerStatus.Text = $"No NodeSet of {uri} in the NodeSet folders or the models folder. Add its folder under 'NodeSet folders'.";
+                ModelerStatus.Text = $"No NodeSet of {uri} in the NodeSet folders or the models folder.";
+                SetStatus($"The modeler needs the NodeSet file of {uri}: add the folder that holds it under Settings › NodeSet folders.");
                 return;
             }
             OpenInModeler(info, catalog);

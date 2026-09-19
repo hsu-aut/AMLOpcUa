@@ -14,6 +14,26 @@ namespace Aml.Editor.Plugin.OpcUa;
 internal sealed record ThemePalette(
     Brush Surface, Brush Foreground, Brush Band, Brush Line, Brush Muted, Brush CardHover, Brush PillIdle, Brush PillOn, bool Dark)
 {
+    // The colours of the kinds of command: exchange, create, verify, relate, plain.
+    // On a dark background the light theme's blue, purple and grey are too dim to
+    // read; the dark theme gets lighter ones of the same hue.
+    public Brush Exchange => Dark ? DarkExchange : LightExchange;
+    public Brush Create => Dark ? DarkCreate : LightCreate;
+    public Brush Verify => Dark ? DarkVerify : LightVerify;
+    public Brush Relate => Dark ? DarkRelate : LightRelate;
+    public Brush Plain => Dark ? DarkPlain : LightPlain;
+
+    private static readonly Brush LightExchange = Frozen(Color.FromRgb(0x20, 0x70, 0xC0));
+    private static readonly Brush LightCreate = Frozen(Color.FromRgb(0x20, 0xA0, 0x40));
+    private static readonly Brush LightVerify = Frozen(Color.FromRgb(0xE0, 0x80, 0x20));
+    private static readonly Brush LightRelate = Frozen(Color.FromRgb(0x80, 0x40, 0xA0));
+    private static readonly Brush LightPlain = Frozen(Color.FromRgb(0x80, 0x80, 0x80));
+    private static readonly Brush DarkExchange = Frozen(Color.FromRgb(0x5A, 0xA2, 0xE8));
+    private static readonly Brush DarkCreate = Frozen(Color.FromRgb(0x4C, 0xC0, 0x6A));
+    private static readonly Brush DarkVerify = Frozen(Color.FromRgb(0xF0, 0x9A, 0x40));
+    private static readonly Brush DarkRelate = Frozen(Color.FromRgb(0xB8, 0x8C, 0xE0));
+    private static readonly Brush DarkPlain = Frozen(Color.FromRgb(0xA8, 0xA8, 0xA8));
+
     public static ThemePalette Current(FrameworkElement? scope = null)
     {
         Color Find(string key, Color fallback)
@@ -52,6 +72,11 @@ internal sealed record ThemePalette(
         root.Resources["Ua.Line"] = Line;
         root.Resources["Ua.Muted"] = Muted;
         root.Resources["Ua.CardHover"] = CardHover;
+        root.Resources["Exchange"] = Exchange;
+        root.Resources["Create"] = Create;
+        root.Resources["Verify"] = Verify;
+        root.Resources["Relate"] = Relate;
+        root.Resources["Plain"] = Plain;
     }
 
     private static Color Mix(Color a, Color b, double t) => Color.FromRgb(

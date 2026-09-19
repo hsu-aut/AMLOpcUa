@@ -39,15 +39,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         PluginLog.Init();
         _settings = PluginSettings.Load(out var settingsProblem);
         InitializeComponent();
-        // The editor's theme is known once the view sits in its window.
-        Loaded += (_, __) => ThemePalette.Current(this).ApplyTo(this);
-        IsVisibleChanged += (_, __) =>
-        {
-            if (!IsVisible) return;
-            var palette = ThemePalette.Current(this);
-            palette.ApplyTo(this);
-            _modeler?.SetTheme(palette.Dark);
-        };
+        // The editor's theme is known once the view sits in its window, and may change while it is shown.
+        Loaded += (_, __) => ApplyTheme();
+        IsVisibleChanged += (_, __) => { if (IsVisible) ApplyTheme(); };
+        FollowThemeChanges();
 
         // No dots or slashes: the editor turns DisplayName into a WPF x:Name and
         // an XML element name in its config, and both reject them.
@@ -72,6 +67,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         LogFilePathLabel.Text = PluginLog.FilePath;
         InitServerTab();
         InitModelerTab();
+        InitNumberFields();
+        // Closed by the user, the view is gone; what it holds must not stay behind (the port above all).
+        PluginTerminated += (_, _) => ReleaseResources();
         Tabs.SelectionChanged += (_, e) =>
         {
             if (e.Source != Tabs || Tabs.SelectedIndex != 0) return;
@@ -91,6 +89,37 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             }
             UpdateState();
         };
+    }
+
+    private void ApplyTheme()
+    {
+        var palette = ThemePalette.Current(this);
+        palette.ApplyTo(this);
+        _modeler?.SetTheme(palette.Dark);
+        UpdateServerState();
+    }
+
+    private EventHandler<ControlzEx.Theming.ThemeChangedEventArgs>? _themeChanged;
+
+    /// <summary>
+    /// The editor switches themes through MahApps' theme manager (ControlzEx);
+    /// its event says when. Without ControlzEx (a host without MahApps) the
+    /// theme is read again whenever the plugin becomes visible.
+    /// </summary>
+    private void FollowThemeChanges()
+    {
+        try { Subscribe(); }
+        catch (Exception ex) when (ex is System.IO.FileNotFoundException or System.IO.FileLoadException or TypeLoadException)
+        {
+            PluginLog.Debug("No theme manager; the theme is read when the plugin is shown.");
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        void Subscribe()
+        {
+            _themeChanged = (_, __) => Dispatcher.BeginInvoke(ApplyTheme);
+            ControlzEx.Theming.ThemeManager.Current.ThemeChanged += _themeChanged;
+        }
     }
 
     private bool _bridgeProbed;
@@ -162,6 +191,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             Dispatcher.Invoke(DocumentUnLoaded);
             return;
         }
+        Watch(_document, false);
         _document = null;
         _ = StopLiveAsync();
         // A closed document is not served on.
@@ -173,13 +203,47 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     public void ApplicationClose()
     {
+        ReleaseResources();
+        try { PluginLog.Shutdown(); }
+        catch { /* shutting down */ }
+    }
+
+    /// <summary>Follows the document's changes, for the indexes the Server tab keeps of it.</summary>
+    private void Watch(CAEXDocument? document, bool on)
+    {
+        if (document?.CAEXFile.Node.Document is not { } xml) return;
+        xml.Changed -= DocumentChanged;
+        if (on) xml.Changed += DocumentChanged;
+        DocumentChanged(null, System.Xml.Linq.XObjectChangeEventArgs.Value);
+    }
+
+    private bool _released;
+
+    /// <summary>
+    /// Ends what outlives the view otherwise: the session with its
+    /// subscriptions, the document server and its port, the modeler, the log
+    /// listener. When the editor ends, and when the plugin is closed.
+    /// </summary>
+    private void ReleaseResources()
+    {
+        if (_released) return;
+        _released = true;
+        PluginLog.OnLine -= AppendLog;
+        try { if (_themeChanged != null) ControlzEx.Theming.ThemeManager.Current.ThemeChanged -= _themeChanged; }
+        catch { /* shutting down */ }
+        var live = _live;
+        _live = null;
+        try { live?.DisposeAsync().AsTask().Wait(2000); }
+        catch { /* shutting down */ }
+        try { _watch?.DisposeAsync().AsTask().Wait(2000); }
+        catch { /* shutting down */ }
         try { _client?.DisposeAsync().AsTask().Wait(3000); }
         catch { /* shutting down */ }
+        _client = null;
         try { _hostFollow?.Dispose(); _host?.DisposeAsync().AsTask().Wait(3000); }
         catch { /* shutting down */ }
+        _host = null;
         try { _modeler?.Dispose(); }
-        catch { /* shutting down */ }
-        try { PluginLog.Shutdown(); }
         catch { /* shutting down */ }
     }
 
@@ -189,10 +253,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             _ = StopLiveAsync();
             _ = StopServingAsync("another document was opened");
+            Watch(_document, false);
+            Watch(document, true);
         }
         _document = document;
         PluginLog.Debug($"Document attached: {document.CAEXFile?.FileName} (CAEX {document.CAEXFile?.SchemaVersion}).");
         UpdateState();
+        // Serve, Take and the value commands depend on the document too.
+        UpdateServerState();
     }
 
     // ── commands ────────────────────────────────────────────────────────────
@@ -591,6 +659,26 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SetStatus("Earlier conversions forgotten; the next import converts again.");
     }
 
+    /// <summary>The folders of NodeSets fetched from servers and the Cloud Library grow with every fetch; this empties them.</summary>
+    private void ForgetFetched_Click(object sender, RoutedEventArgs e) => Guard("Forgetting the fetched NodeSets", () =>
+    {
+        var folders = new[] { ServerNodeSetsFolder, CloudCache }.Where(Directory.Exists).ToList();
+        var files = folders.SelectMany(f => Directory.EnumerateFiles(f, "*", SearchOption.AllDirectories)).Select(f => new FileInfo(f)).ToList();
+        if (files.Count == 0)
+        {
+            SetStatus("No fetched NodeSets are kept.");
+            return;
+        }
+        var megabytes = files.Sum(f => f.Length) / 1048576.0;
+        if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Plain, "Forget fetched NodeSets?",
+                $"{files.Count} file(s), {megabytes:0.0} MB, taken from servers and the Cloud Library. They are fetched again when an import needs them. " +
+                "Models applied from the modeler stay; the document is not changed.", "Forget"))
+            return;
+        foreach (var folder in folders) Directory.Delete(folder, recursive: true);
+        PluginLog.Info($"Removed {files.Count} fetched NodeSet file(s) from {string.Join(" and ", folders)}.");
+        SetStatus($"Forgot {files.Count} fetched NodeSet file(s).");
+    });
+
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new FolderListWindow(_settings.NodeSetFolders) { Owner = Window.GetWindow(this) };
@@ -726,22 +814,35 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private readonly System.Collections.ObjectModel.ObservableCollection<LogLine> _log = new();
 
+    private readonly System.Collections.Concurrent.ConcurrentQueue<string> _pendingLog = new();
+    private int _logFlushScheduled;
+
+    /// <summary>
+    /// Lines arrive from any thread, in bursts when debugging; they are shown
+    /// together, with one scroll, once the UI is idle.
+    /// </summary>
     private void AppendLog(string line)
     {
-        if (!Dispatcher.CheckAccess())
-        {
-            Dispatcher.BeginInvoke(() => AppendLog(line));
-            return;
-        }
+        _pendingLog.Enqueue(line);
+        if (Interlocked.Exchange(ref _logFlushScheduled, 1) == 0)
+            Dispatcher.BeginInvoke(FlushLog, System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    private void FlushLog()
+    {
+        Interlocked.Exchange(ref _logFlushScheduled, 0);
         if (LogList.ItemsSource == null) LogList.ItemsSource = _log;
-        var parsed = LogLine.Parse(line);
-        _log.Add(parsed);
-        // Counted unless the log is in view.
-        if (parsed.Level is "WARN" or "ERROR" && !(Tabs.SelectedIndex == 0 && LogList.IsVisible))
+        var added = false;
+        while (_pendingLog.TryDequeue(out var line))
         {
-            _unseenProblems++;
-            ShowLogLink();
+            var parsed = LogLine.Parse(line);
+            _log.Add(parsed);
+            added = true;
+            // Counted unless the log is in view.
+            if (parsed.Level is "WARN" or "ERROR" && !(Tabs.SelectedIndex == 0 && LogList.IsVisible)) _unseenProblems++;
         }
+        if (!added) return;
+        ShowLogLink();
         while (_log.Count > MaxLogLines) _log.RemoveAt(0);
         LogList.ScrollIntoView(_log[^1]);
     }

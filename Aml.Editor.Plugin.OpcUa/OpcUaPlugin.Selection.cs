@@ -53,15 +53,23 @@ public partial class OpcUaPlugin
         Namespaces = _namespaces.ToList(),
     };
 
-    private int CurrentDepth() => int.TryParse(MirrorDepthBox.Text, out var d) ? Math.Clamp(d, 0, 50) : 3;
+    // Commands check the fields first (NumbersValid); the defaults only stand in for a field being typed.
+    private int CurrentDepth() => ValueOf(MirrorDepthBox) ?? 3;
 
-    private int CurrentMaxNodes() => int.TryParse(MirrorMaxNodesBox.Text, out var n) && n > 0 ? n : MirrorOptions.DefaultMaxNodes;
+    private int CurrentMaxNodes() => ValueOf(MirrorMaxNodesBox) ?? MirrorOptions.DefaultMaxNodes;
 
     private void MirrorMaxNodesBox_LostFocus(object sender, RoutedEventArgs e)
     {
-        _settings.MirrorMaxNodes = CurrentMaxNodes();
-        MirrorMaxNodesBox.Text = _settings.MirrorMaxNodes.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (ValueOf(MirrorMaxNodesBox) is not { } max) return;
+        _settings.MirrorMaxNodes = max;
         _settings.Save();
+    }
+
+    /// <summary>"Reading … 250 of at most 2000 node(s)" while a selection is read.</summary>
+    private IProgress<int> NodesFound(string doing)
+    {
+        var max = CurrentMaxNodes();
+        return new Progress<int>(n => SetStatus($"{doing} … {n} of at most {max} node(s) found."));
     }
 
     /// <summary>The checked parts, or with nothing checked the selected node with what is below it.</summary>
@@ -114,19 +122,47 @@ public partial class OpcUaPlugin
 
     // ── address space tree ──────────────────────────────────────────────────
 
-    /// <summary>The nodes the hierarchy named under 'into' already holds a mirror of, for the marks in the tree.</summary>
-    private void RefreshInDocument()
+    // What was taken from the connected server into the hierarchy named under 'into', by node:
+    // built once, and again only after the document changed (DocumentChanged), not on every
+    // selection in the tree or keystroke in the name.
+    private Dictionary<UaNodeAddress, InternalElementType>? _takenIndex;
+    private string? _takenIndexFor;
+    private Dictionary<UaNodeAddress, string>? _typeIndex;
+
+    /// <summary>Forgets the indexes of the document; called whenever its XML changes.</summary>
+    private void DocumentChanged(object? sender, System.Xml.Linq.XObjectChangeEventArgs e)
     {
-        _inDocument.Clear();
+        _takenIndex = null;
+        _typeIndex = null;
+    }
+
+    private Dictionary<UaNodeAddress, InternalElementType> TakenIndex()
+    {
+        var key = HierarchyName() + "|" + _client?.ServerUri + "|" + _client?.EndpointUrl;
+        if (_takenIndex != null && _takenIndexFor == key) return _takenIndex;
+        var index = new Dictionary<UaNodeAddress, InternalElementType>();
         if (_document != null && _client != null && _document.CAEXFile.InstanceHierarchy[HierarchyName()] is { } ih
             && AddressSpaceMirror.MirroredServer(ih, _client) is { } server)
         {
             foreach (var e in server.Descendants<InternalElementType>())
             {
-                try { if (AnnexANodeId.Of(e) is { } a) _inDocument.Add(Key(a)); }
+                try { if (AnnexANodeId.Of(e) is { } a) index.TryAdd(Key(a), e); }
                 catch (AddressingException) { /* not a node of the server */ }
             }
         }
+        _takenIndexFor = key;
+        return _takenIndex = index;
+    }
+
+    /// <summary>UA type NodeId to class path of the document's types, kept until the document changes.</summary>
+    private Dictionary<UaNodeAddress, string> TypeIndex() =>
+        _typeIndex ??= _document == null ? new() : AddressSpaceMirror.TypeIndex(_document);
+
+    /// <summary>The nodes the hierarchy named under 'into' already holds, for the marks in the tree.</summary>
+    private void RefreshInDocument()
+    {
+        _inDocument.Clear();
+        _inDocument.UnionWith(TakenIndex().Keys);
         foreach (var show in _showChecks) show();
     }
 
@@ -192,7 +228,7 @@ public partial class OpcUaPlugin
             var views = await _client.ViewsAsync();
             if (views.Count == 0) return;
             var folderHeader = new StackPanel { Orientation = Orientation.Horizontal };
-            folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = new SolidColorBrush(Color.FromRgb(0x80, 0x40, 0xA0)) });
+            folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = DialogKit.Relate });
             folderHeader.Children.Add(new TextBlock { Text = $"Views ({views.Count})", VerticalAlignment = VerticalAlignment.Center });
             var folder = new TreeViewItem { Header = folderHeader, ToolTip = "The Views the server defines: parts of its address space for a purpose." };
             foreach (var v in views) folder.Items.Add(NodeItem(v, v.Address));
@@ -394,11 +430,12 @@ public partial class OpcUaPlugin
 
     private async void PreviewButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_client == null || CurrentSelection() is not { } selection) return;
+        if (_client == null || !NumbersValid(MirrorDepthBox, MirrorMaxNodesBox) || CurrentSelection() is not { } selection) return;
         SetBusy(true, "Counting …");
         try
         {
-            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes());
+            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(), progress: NodesFound("Counting"));
+            SetStatus("");
             SelectionSummary.Text = $"{nodes} element(s){(truncated ? ", stopped at the node limit" : "")}.";
         }
         catch (Exception ex)
@@ -438,7 +475,7 @@ public partial class OpcUaPlugin
     {
         var document = _document;
         var client = _client;
-        if (document == null || client == null || CurrentSelection() is not { } selection) return;
+        if (document == null || client == null || !NumbersValid(MirrorDepthBox, MirrorMaxNodesBox) || CurrentSelection() is not { } selection) return;
 
         var ihName = HierarchyName();
         var ih = document.CAEXFile.InstanceHierarchy[ihName];
@@ -466,7 +503,11 @@ public partial class OpcUaPlugin
         {
             // Removing asks first, with the count: the elements are marked, and removed once the user agrees.
             var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
-                new MirrorOptions { MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished });
+                new MirrorOptions
+                {
+                    MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished,
+                    Progress = NodesFound("Reading the selection from the server"),
+                });
             var fate = vanished switch { VanishedNodes.Mark => "marked", _ => "kept" };
             if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)
             {

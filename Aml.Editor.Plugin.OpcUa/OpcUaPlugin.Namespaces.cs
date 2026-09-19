@@ -292,7 +292,17 @@ public partial class OpcUaPlugin
                 PluginLog.Info("NodeSet folder added: " + dialog.FolderName);
                 return true;
             case MissingModelsWindow.Action.Cloud:
-                return await DownloadFromCloudAsync(ShortName(missing[0].ModelUri)) != null;
+                // One search per missing model; a download brings what it requires,
+                // so a later one may be there already. Cancelling stops the round.
+                var any = false;
+                foreach (var model in missing)
+                {
+                    var have = NodeSetCatalog.Create(new[] { CloudCache }.Where(Directory.Exists).Concat(_settings.NodeSetFolders));
+                    if (have.Find(model.ModelUri) != null) continue;
+                    if (await DownloadFromCloudAsync(ShortName(model.ModelUri)) == null) break;
+                    any = true;
+                }
+                return any;
             default:
                 return false;
         }

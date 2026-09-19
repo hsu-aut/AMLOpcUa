@@ -29,6 +29,13 @@ public partial class OpcUaPlugin : ISupportsSelection
     private IDisposable? _hostFollow;
     private bool _structureNoted;
     private bool _liveStarting;
+
+    /// <summary>
+    /// The live session writes while this is its token: set before the
+    /// subscription exists, so the first values, which arrive while it is set
+    /// up, are written too; cleared when it stops.
+    /// </summary>
+    private object? _liveToken;
     private readonly SemaphoreSlim _watchGate = new(1, 1);
     private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
@@ -243,7 +250,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         var document = _document;
         if (document == null) return;
-        if (!int.TryParse(ServePortBox.Text, out var port) || port is < 1 or > 65535) { SetStatus("Enter a port between 1 and 65535."); return; }
+        if (!NumbersValid(ServePortBox)) return;
+        var port = ValueOf(ServePortBox)!.Value;
         var network = ServeNetworkBox.IsChecked == true;
         SetBusy(true, "Starting the document server …");
         try
@@ -365,7 +373,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             {
                 var type = await client.DescribeAsync(node.TypeDefinition);
                 if (version != _detailsVersion) return;
-                var inDocument = _document != null && AddressSpaceMirror.TypeIndex(_document).ContainsKey(node.TypeDefinition with { ServerUri = null });
+                var inDocument = TypeIndex().ContainsKey(node.TypeDefinition with { ServerUri = null });
                 typeRow.Text = type.DisplayName + (inDocument ? "" : "   (not imported)");
                 typeRow.FontFamily = FontFamily;
                 typeRow.ToolTip = node.TypeDefinition.ToString();
@@ -433,18 +441,8 @@ public partial class OpcUaPlugin : ISupportsSelection
     }
 
     /// <summary>The element that mirrors a node in the hierarchy named under 'into', if any.</summary>
-    private InternalElementType? MirroredElement(UaNodeAddress address)
-    {
-        if (_document == null || _client == null || _document.CAEXFile.InstanceHierarchy[HierarchyName()] is not { } ih
-            || AddressSpaceMirror.MirroredServer(ih, _client) is not { } server) return null;
-        var key = address with { ServerUri = null };
-        foreach (var e in server.Descendants<InternalElementType>())
-        {
-            try { if (AnnexANodeId.Of(e) is { } a && a with { ServerUri = null } == key) return e; }
-            catch (AddressingException) { /* not a node */ }
-        }
-        return null;
-    }
+    private InternalElementType? MirroredElement(UaNodeAddress address) =>
+        TakenIndex().TryGetValue(address with { ServerUri = null }, out var e) ? e : null;
 
     private static string ElementPath(InternalElementType e)
     {
@@ -617,8 +615,10 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             // Writes run on the UI thread, and only while the same document is open.
+            var token = new object();
+            _liveToken = token;
             _live = await LiveValues.FollowAsync(document, _client,
-                write => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_document, document) && _live != null) write(); }),
+                write => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_document, document) && ReferenceEquals(_liveToken, token)) write(); }),
                 update =>
                 {
                     if ((DateTime.Now - _liveStatusShown).TotalSeconds < 1) return;
@@ -649,6 +649,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var live = _live;
         _live = null;
+        _liveToken = null;
         if (live != null)
         {
             PluginLog.Info($"Live values stopped after {live.Updates} value(s).");
@@ -673,6 +674,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     private void UpdateServerState()
     {
         var connected = _client != null;
+        AddressTreeEmpty.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         // Not while connecting or while an operation uses the connection.
         ConnectButton.IsEnabled = !_busy;
         ConnectText.Text = connected ? "Disconnect" : "Connect";

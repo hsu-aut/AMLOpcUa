@@ -61,10 +61,14 @@ public partial class OpcUaPlugin
 
     private void DrawDiagramOf(SystemUnitClassType element)
     {
-        int.TryParse(DiagramDepthBox.Text, out var depth);
+        if (ValueOf(DiagramDepthBox) is not { } depth)
+        {
+            DiagramInfo.Text = Problem(DiagramDepthBox);
+            return;
+        }
         try
         {
-            _diagram = DiagramLayout.Apply(DiagramBuilder.Build(element, Math.Clamp(depth, 1, 10)));
+            _diagram = DiagramLayout.Apply(DiagramBuilder.Build(element, depth));
             Draw(_diagram);
             DiagramInfo.Text = $"{element.Name}: {_diagram.Nodes.Count} nodes" + (_diagram.Truncated ? ", truncated" : "")
                                + ". Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.";
