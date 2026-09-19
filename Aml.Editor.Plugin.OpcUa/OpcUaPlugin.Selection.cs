@@ -55,6 +55,15 @@ public partial class OpcUaPlugin
 
     private int CurrentDepth() => int.TryParse(MirrorDepthBox.Text, out var d) ? Math.Clamp(d, 0, 50) : 3;
 
+    private int CurrentMaxNodes() => int.TryParse(MirrorMaxNodesBox.Text, out var n) && n > 0 ? n : MirrorOptions.DefaultMaxNodes;
+
+    private void MirrorMaxNodesBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _settings.MirrorMaxNodes = CurrentMaxNodes();
+        MirrorMaxNodesBox.Text = _settings.MirrorMaxNodes.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        _settings.Save();
+    }
+
     /// <summary>The checked parts, or with nothing checked the selected node with what is below it.</summary>
     private MirrorSelection? CurrentSelection()
     {
@@ -370,7 +379,7 @@ public partial class OpcUaPlugin
         SetBusy(true, "Counting …");
         try
         {
-            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection);
+            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes());
             SelectionSummary.Text = $"{nodes} element(s){(truncated ? ", stopped at the node limit" : "")}.";
         }
         catch (Exception ex)
@@ -395,15 +404,15 @@ public partial class OpcUaPlugin
 
         var ihName = HierarchyName();
         var ih = document.CAEXFile.InstanceHierarchy[ihName];
+        var vanished = VanishedNodes.Report;
         if (ih != null && AddressSpaceMirror.MirroredServer(ih, client) != null)
         {
-            var answer = MessageBox.Show(Window.GetWindow(this),
-                $"'{ihName}' already holds a mirror of this server.\n\n"
-                + "Yes: update it. Values and types are read again, new nodes are added, nodes the server no longer has are reported.\n"
-                + "No: mirror into a new InstanceHierarchy, keeping the earlier state.",
-                "Mirror again", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (answer == MessageBoxResult.Cancel) return;
-            if (answer == MessageBoxResult.No)
+            var again = new MirrorAgainWindow(ihName, _settings.MirrorVanished) { Owner = Window.GetWindow(this) };
+            if (again.ShowDialog() != true) return;
+            vanished = again.Vanished;
+            _settings.MirrorVanished = vanished;
+            _settings.Save();
+            if (!again.Update)
             {
                 var n = 2;
                 while (document.CAEXFile.InstanceHierarchy[$"{ihName}_{n}"] != null) n++;
@@ -417,10 +426,12 @@ public partial class OpcUaPlugin
         SetBusy(true, "Reading the selection from the server …");
         try
         {
-            var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih);
+            var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
+                new MirrorOptions { MaxNodes = CurrentMaxNodes(), Vanished = vanished });
+            var fate = vanished switch { VanishedNodes.Mark => "marked", VanishedNodes.Remove => "removed", _ => "kept" };
             var message = $"'{ih.Name}': {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed by an imported UA type"
                           + (result.Linked > 0 ? $", {result.Linked} linked to their planned element (refBaseObj)" : "")
-                          + (result.Vanished.Count > 0 ? $", {result.Vanished.Count} no longer on the server (see log)" : "")
+                          + (result.Vanished.Count > 0 ? $", {result.Vanished.Count} no longer on the server ({fate}, see log)" : "")
                           + (result.Truncated ? ". Stopped at the node limit." : ".");
             PluginLog.Info(message);
             foreach (var gone in result.Vanished) PluginLog.Warn("Not on the server any more: " + gone);

@@ -95,7 +95,7 @@ file (`ServerNodeSetTests`).
 
 - **Take into document** (`AddressSpaceMirror`): the checked parts (see
   above), or with nothing checked the selected node and the nodes below it (up
-  to a depth, at most 2000 nodes), become InternalElements.
+  to a depth, at most 2000 nodes by default, the "max" field or `--max-nodes`), become InternalElements.
   Each carries its Annex A NodeId including the server's ApplicationUri, and
   its UA type as RefBaseSystemUnitPath when the document holds the type's
   library (matched by the NodeId every generated class carries). Variables get
@@ -134,7 +134,7 @@ is therefore chosen (`MirrorSelection`, `MirrorPlan`):
 
 - **Check boxes** in the address tree mark parts; right click says how much:
   the node only, with its children, or with everything below it (down to the
-  depth given, 0 for no limit but the node limit of 2000).
+  depth given, 0 for no limit but the node limit, 2000 unless set otherwise).
 - **Filters** apply to the tree and to what is taken: leave out properties,
   objects only, show or hide the Server object (hidden by default),
   namespaces to take (nodes of other namespaces are left out with what they
@@ -154,10 +154,11 @@ content. The selection is kept as attribute `MirrorSelection` of that server
 element; **Load kept selection** takes it back into the tree.
 
 When the hierarchy already holds a mirror of the server, the plugin asks:
-update it (found by NodeId: types and values read again, new nodes added,
-nodes the server no longer holds reported in the log, not deleted) or mirror
-into a new hierarchy. On the command line `uaaml mirror` updates, `--copy`
-mirrors anew, `--preview` counts, and without nodes the kept selection is
+update it (found by NodeId: types and values read again, new nodes added)
+or mirror into a new hierarchy. Elements whose node the server no longer
+holds are reported, and as chosen in that dialog kept, marked with the
+attribute `NotOnServer` (the mark goes when the node is back) or removed. On the command line `uaaml mirror` updates (`--vanished
+report|mark|remove`), `--copy` mirrors anew, `--preview` counts, and without nodes the kept selection is
 mirrored again. Elements of a mirrored selection never count as planned
 elements for the refBaseObj link, so a second copy does not link to the first.
 

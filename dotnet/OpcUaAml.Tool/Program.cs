@@ -62,7 +62,8 @@ public static class Program
 
         uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
                      [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
-                     [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--secure] [--accept] [-o <out.aml>]
+                     [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--max-nodes <n>]
+                     [--vanished report|mark|remove] [--secure] [--accept] [-o <out.aml>]
             Take the nodes into the document below an element for the server, each
             with the way to it from the Objects (or Views) folder, with NodeIds, UA
             types (where the document holds them) and current values. --scope says
@@ -72,7 +73,9 @@ public static class Program
             namespaces; the Server object is left out unless --show-server.
             Without nodes, the selection kept in the hierarchy is mirrored again.
             A part mirrored before is updated in place, or with --copy mirrored
-            into a new hierarchy; nodes the server no longer has are reported.
+            into a new hierarchy; nodes the server no longer has are reported, and
+            with --vanished marked (attribute NotOnServer) or removed. At most
+            --max-nodes nodes are taken (default 2000).
             --preview only counts. A node the document already models (same NodeId,
             in --plan or anywhere) is linked to that planned element with
             refBaseObj, unless --no-link.
@@ -402,7 +405,7 @@ public static class Program
     private static async Task<int> MirrorCommand(List<string> args)
     {
         var o = Options.Parse(args,
-            valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude" },
+            valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude", "--max-nodes", "--vanished" },
             flags: new[] { "--secure", "--accept", "--no-link", "--skip-properties", "--objects-only", "--show-server", "--copy", "--preview" });
         if (o.Positional.Count < 2) throw new ArgumentException("mirror needs an endpoint and a document, and the nodes to take.");
         var docPath = o.Positional[^1];
@@ -441,9 +444,16 @@ public static class Program
             };
         }
 
+        var maxNodes = o.One("--max-nodes") is { } m
+            ? int.TryParse(m, out var max) && max > 0 ? max : throw new ArgumentException($"--max-nodes: '{m}' is not a positive number.")
+            : OpcUaAml.Server.MirrorOptions.DefaultMaxNodes;
+        var vanished = o.One("--vanished") is { } vn
+            ? Enum.TryParse<OpcUaAml.Server.VanishedNodes>(vn, ignoreCase: true, out var mode) ? mode : throw new ArgumentException($"--vanished: give report, mark or remove, not '{vn}'.")
+            : OpcUaAml.Server.VanishedNodes.Report;
+
         if (o.Has("--preview"))
         {
-            var (count, truncated) = await OpcUaAml.Server.AddressSpaceMirror.PreviewAsync(client, selection);
+            var (count, truncated) = await OpcUaAml.Server.AddressSpaceMirror.PreviewAsync(client, selection, maxNodes);
             Console.WriteLine($"{count} element(s){(truncated ? ", stopped at the node limit" : "")}.");
             return 0;
         }
@@ -460,9 +470,10 @@ public static class Program
             ? doc.CAEXFile.InstanceHierarchy[planName] ?? throw new ArgumentException($"No InstanceHierarchy '{planName}'.")
             : null;
         var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
-            new OpcUaAml.Server.MirrorOptions { PlannedIn = plan, LinkToPlanned = !o.Has("--no-link") });
+            new OpcUaAml.Server.MirrorOptions { PlannedIn = plan, LinkToPlanned = !o.Has("--no-link"), MaxNodes = maxNodes, Vanished = vanished });
         foreach (var note in result.Notes) Console.Error.WriteLine("note: " + note);
-        foreach (var gone in result.Vanished) Console.Error.WriteLine("not on the server: " + gone);
+        foreach (var gone in result.Vanished)
+            Console.Error.WriteLine((vanished == OpcUaAml.Server.VanishedNodes.Remove ? "removed, not on the server: " : "not on the server: ") + gone);
         Documents.Save(doc, o.One("-o") ?? docPath);
         Console.WriteLine($"{ih.Name}: {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed, "
                           + $"{result.Linked} linked to the plan{(result.Truncated ? ", stopped at the node limit" : "")}.");

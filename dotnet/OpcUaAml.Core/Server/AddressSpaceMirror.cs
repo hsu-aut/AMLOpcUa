@@ -15,6 +15,19 @@ using OpcUaAml.Links;
 
 namespace OpcUaAml.Server;
 
+/// <summary>What mirroring again does with elements whose node the server no longer has.</summary>
+public enum VanishedNodes
+{
+    /// <summary>Keep them and report them.</summary>
+    Report,
+
+    /// <summary>Keep them, report them and mark them with the attribute NotOnServer; the mark goes when the node is back.</summary>
+    Mark,
+
+    /// <summary>Report them and remove them from the document.</summary>
+    Remove,
+}
+
 public sealed class MirrorOptions
 {
     /// <summary>Levels below the start node; 1 takes only its children.</summary>
@@ -24,7 +37,15 @@ public sealed class MirrorOptions
     public bool ReadValues { get; init; } = true;
 
     /// <summary>Upper bound on nodes, against mirroring a whole server by accident.</summary>
-    public int MaxNodes { get; init; } = 2000;
+    public int MaxNodes { get; init; } = DefaultMaxNodes;
+
+    public const int DefaultMaxNodes = 2000;
+
+    /// <summary>What mirroring again does with elements whose node the server no longer has.</summary>
+    public VanishedNodes Vanished { get; init; } = VanishedNodes.Report;
+
+    /// <summary>The attribute that marks an element whose node the server no longer has (<see cref="VanishedNodes.Mark"/>).</summary>
+    public const string NotOnServerAttribute = "NotOnServer";
 
     /// <summary>Reference the planned element of a node, found by NodeId, with refBaseObj.</summary>
     public bool LinkToPlanned { get; init; } = true;
@@ -95,7 +116,8 @@ public static class AddressSpaceMirror
     /// below an element for the server, each selected part with the nodes on its
     /// way from the Objects or Views folder. Nodes already mirrored there are
     /// found by NodeId and updated (type, value) instead of added again; nodes
-    /// of the document the server no longer holds are reported, not deleted.
+    /// of the document the server no longer holds are reported, and kept,
+    /// marked or removed as <see cref="MirrorOptions.Vanished"/> says.
     /// The selection is kept at the server element.
     /// </summary>
     public static async Task<SelectionMirrorResult> MirrorSelectionAsync(UaClient client, MirrorSelection selection,
@@ -144,6 +166,8 @@ public static class AddressSpaceMirror
             {
                 state.Nodes++;
                 Updated++;
+                // Back on the server: an earlier mark goes.
+                if (element.Attribute[MirrorOptions.NotOnServerAttribute] is { } mark) element.Attribute.RemoveElement(mark);
                 if (node.Item.TypeDefinition != null && types.TryGetValue(node.Item.TypeDefinition with { ServerUri = null }, out var path))
                 {
                     element.RefBaseSystemUnitPath = path;
@@ -153,9 +177,22 @@ public static class AddressSpaceMirror
             }
             foreach (var child in node.Children) Node(child, element);
             if (node.OnServer == null) return;
-            foreach (var child in element.InternalElement)
+            foreach (var child in element.InternalElement.ToList())
             {
-                if (AddressOf(child) is { } a && !node.OnServer.Contains(a)) Vanished.Add($"{PathOf(child)} ({a})");
+                if (AddressOf(child) is not { } a || node.OnServer.Contains(a)) continue;
+                Vanished.Add($"{PathOf(child)} ({a})");
+                switch (state.Options.Vanished)
+                {
+                    case VanishedNodes.Mark when child.Attribute[MirrorOptions.NotOnServerAttribute] == null:
+                        var mark = child.Attribute.Append(MirrorOptions.NotOnServerAttribute);
+                        mark.AttributeDataType = "xs:boolean";
+                        mark.Value = "true";
+                        mark.Description = "The server no longer had this node when the mirror was last updated.";
+                        break;
+                    case VanishedNodes.Remove:
+                        element.InternalElement.RemoveElement(child);
+                        break;
+                }
             }
         }
 

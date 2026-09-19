@@ -35,6 +35,12 @@ public sealed class PluginSettings
     /// <summary>Prefer a secured endpoint when connecting.</summary>
     public bool UseSecurity { get; set; } = true;
 
+    /// <summary>Upper bound on nodes taken in one mirror.</summary>
+    public int MirrorMaxNodes { get; set; } = OpcUaAml.Server.MirrorOptions.DefaultMaxNodes;
+
+    /// <summary>What mirroring again does with elements whose node the server no longer has.</summary>
+    public OpcUaAml.Server.VanishedNodes MirrorVanished { get; set; } = OpcUaAml.Server.VanishedNodes.Report;
+
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa", "settings.json");
 

@@ -96,6 +96,37 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
     }
 
     [Fact]
+    public async Task Vanished_nodes_can_be_marked_and_removed()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var ih = di.Hierarchy("Vanishing");
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1"), MirrorScope.Subtree) } };
+        var first = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih);
+        var motor = first.Server.Descendants<InternalElementType>().Single(e => e.Name == "Motor");
+        var gone = motor.InternalElement.Append("Gearbox");
+        AnnexANodeId.Write(gone, Plant("Plant.Pump1.Motor.Gearbox"));
+
+        await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih, new MirrorOptions { Vanished = VanishedNodes.Mark });
+        Assert.Equal("true", motor.InternalElement["Gearbox"]!.Attribute[MirrorOptions.NotOnServerAttribute]?.Value);
+        Assert.Null(motor.Attribute[MirrorOptions.NotOnServerAttribute]);
+
+        var third = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih, new MirrorOptions { Vanished = VanishedNodes.Remove });
+        Assert.Contains(third.Vanished, v => v.Contains("Motor/Gearbox", StringComparison.Ordinal));
+        Assert.Null(motor.InternalElement["Gearbox"]);
+        Assert.NotNull(motor.InternalElement["Temperature"]);
+    }
+
+    [Fact]
+    public async Task The_node_limit_is_the_callers()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant"), MirrorScope.Subtree) } };
+        var capped = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, di.Hierarchy("Capped3"), new MirrorOptions { MaxNodes = 3 });
+        Assert.True(capped.Truncated);
+        Assert.Equal((3, true), await AddressSpaceMirror.PreviewAsync(client, selection, maxNodes: 3));
+    }
+
+    [Fact]
     public async Task A_selection_survives_the_document()
     {
         var selection = new MirrorSelection

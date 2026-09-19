@@ -431,6 +431,9 @@
                         <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
                         <TextBox x:Name="MirrorDepthBox" Text="3" Width="28" VerticalContentAlignment="Center"
                                  ToolTip="Levels below a node taken with everything below it; 0 has no limit but the node limit."/>
+                        <TextBlock Text="max" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
+                        <TextBox x:Name="MirrorMaxNodesBox" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus"
+                                 ToolTip="Upper bound on nodes taken in one mirror, against mirroring a whole server by accident."/>
                         <TextBlock Text="into" Style="{StaticResource Hint}" Margin="6,0,4,0"/>
                         <TextBox x:Name="MirrorHierarchyBox" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged"
                                  ToolTip="The InstanceHierarchy that receives the mirror."/>

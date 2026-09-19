@@ -62,6 +62,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         EndpointBox.ItemsSource = _settings.RecentEndpoints;
         EndpointBox.Text = _settings.LastEndpointUrl ?? "opc.tcp://localhost:4840";
         SecurityToggle.IsChecked = _settings.UseSecurity;
+        MirrorMaxNodesBox.Text = _settings.MirrorMaxNodes.ToString(System.Globalization.CultureInfo.InvariantCulture);
         InitSelection();
         UpdateServerState();
     }
