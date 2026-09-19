@@ -17,6 +17,8 @@ OPC UA information models in AutomationML.
   of the AutomationML/OPC Foundation working group (AML-UA-XSLT), a successor
   of OPC 30040, and, as a second mode that is not a standard, the inverse of
   Annex A: an imported OPC UA model written back as the nodes it was
+- ModelDesign in and out: a model written in the form the OPC Foundation's
+  ModelCompiler reads, and a design compiled and imported ([docs/modeldesign.md](docs/modeldesign.md))
 - Command line tool `uaaml` with the same functions
 - Structural comparison of AML class libraries and of NodeSets, used as test oracles
 
@@ -179,6 +181,8 @@ uaaml clients --trust 3F2A                       # admit a client the server ref
 uaaml opcf search Machinery                      # the OPC Foundation's NodeSets, no account
 uaaml opcf download http://opcfoundation.org/UA/Machinery/ -o ./nodesets
 uaaml cloud search Machinery --user me           # password from UACLOUD_PASSWORD or asked
+uaaml design export Opc.Ua.Di.NodeSet2.xml -o DI.xml    # the model as a ModelDesign
+uaaml design import DI.xml --into plant.aml             # a design, compiled and imported (needs the ModelCompiler)
 ```
 
 `info` exits with 1 when a required model cannot be found, `compare` when the

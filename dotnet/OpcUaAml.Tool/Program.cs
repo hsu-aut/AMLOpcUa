@@ -1,4 +1,4 @@
-// uaaml: the command line face of OpcUaAml.Core. Everything the plugin does
+﻿// uaaml: the command line face of OpcUaAml.Core. Everything the plugin does
 // can be done here too, so it can be scripted and tested without the editor.
 
 using Aml.Engine.CAEX;
@@ -7,6 +7,7 @@ using OpcUaAml.Checks;
 using OpcUaAml.Compare;
 using OpcUaAml.Export;
 using OpcUaAml.Import;
+using OpcUaAml.ModelDesign;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Types;
 
@@ -140,6 +141,18 @@ public static class Program
             The password comes from UACLOUD_PASSWORD or is asked for; an API key
             from UACLOUD_API_KEY instead.
 
+        uaaml design export <NodeSet.xml> -o <design.xml> [--namespace <uri>] [--name <n>]
+        uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105]
+        uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]...
+            ModelDesign, the form the OPC Foundation's ModelCompiler reads and
+            writes. export writes the model of a NodeSet as a design (its types,
+            declarations, fields and references, with the NodeIds kept); compile
+            runs the ModelCompiler over a design and reports the NodeSet it wrote;
+            import compiles it and puts the model into a document (Annex A) in one
+            go. The ModelCompiler is not part of uaaml; install it with
+            "dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool"
+            or name it with --compiler. Nothing of its code generation is used.
+
         uaaml roundtrip <file>... [--search <dir>]... [--inverse] [-o <report.md>]
             Run each file through both mappings and back and report what survives:
             a NodeSet (.xml) UA -> AML (Annex A) -> UA (AML-UA-XSLT rules),
@@ -190,6 +203,7 @@ public static class Program
                 "link" => LinkCommand(rest),
                 "cloud" => Run(CloudCommand(rest)),
                 "opcf" => Run(OpcfCommand(rest)),
+                "design" => Run(DesignCommand(rest)),
                 _ => Fail($"Unknown command '{args[0]}'.\n\n{Usage}"),
             };
         }
@@ -203,7 +217,7 @@ public static class Program
         }
         catch (Exception ex) when (ex is OpcUaAml.Server.UaConnectionException or OpcUaAml.Links.LinkException
                                    or OpcUaAml.NodeSets.CloudLibraryException or OpcUaAml.NodeSets.OpcFoundationNodeSetsException
-                                   or OpcUaAml.Addressing.AddressingException)
+                                   or OpcUaAml.Addressing.AddressingException or ModelCompilerException or InvalidDataException)
         {
             return Fail(ex.Message);
         }
@@ -742,6 +756,88 @@ public static class Program
             default:
                 throw new ArgumentException("opcf needs 'search <keywords>' or 'download <model-uri>'.");
         }
+    }
+
+    /// <summary>
+    /// ModelDesign, the form the OPC Foundation's ModelCompiler reads: written
+    /// from a NodeSet, or compiled back into one (and into a document).
+    /// </summary>
+    private static async Task<int> DesignCommand(List<string> args)
+    {
+        var o = Options.Parse(args,
+            valued: new[] { "-o", "--namespace", "--name", "--include", "--into", "--search", "--compiler", "--version" },
+            flags: new[] { "--keep" });
+        if (o.Positional.Count < 1) throw new ArgumentException("design needs 'export', 'compile' or 'import'.");
+
+        switch (o.Positional[0])
+        {
+            case "export" when o.Positional.Count == 2:
+            {
+                var output = o.One("-o") ?? throw new ArgumentException("design export needs -o <design.xml>.");
+                var result = ModelDesignWriter.FromFile(o.Positional[1],
+                    new ModelDesignOptions { NamespaceUri = o.One("--namespace"), ModelName = o.One("--name") });
+                var identifiers = result.Save(output);
+                var root = result.Design.Root!;
+                Console.WriteLine($"{(string?)root.Attribute("TargetNamespace")}: "
+                    + $"{root.Elements().Count(e => e.Name.LocalName != "Namespaces")} design(s) written to {Path.GetFullPath(output)}");
+                Console.WriteLine($"Identifiers: {Path.GetFullPath(identifiers)}");
+                return 0;
+            }
+
+            case "compile" when o.Positional.Count == 2:
+            {
+                var folder = o.One("-o") ?? Path.Combine(Environment.CurrentDirectory, "compiled");
+                var result = await Compile(o, o.Positional[1], folder);
+                foreach (var f in result.Files) Console.WriteLine(f);
+                Console.WriteLine($"NodeSet: {Path.GetFullPath(result.NodeSetPath)}");
+                return 0;
+            }
+
+            case "import" when o.Positional.Count == 2:
+            {
+                var into = o.One("--into");
+                var output = o.One("-o") ?? into
+                    ?? throw new ArgumentException("Give -o <out.aml>, or --into <doc.aml> to merge into a document.");
+                var folder = Directory.CreateTempSubdirectory("uaaml-design-").FullName;
+                try
+                {
+                    var result = await Compile(o, o.Positional[1], folder);
+                    Console.WriteLine($"Compiled into {Path.GetFileName(result.NodeSetPath)}");
+                    var catalog = NodeSetCatalog.Create(o.All("--search").Append(folder));
+                    foreach (var w in catalog.Warnings) Console.Error.WriteLine($"note: {w}");
+                    var target = into != null ? Documents.Load(into) : CAEXDocument.New_CAEXDocument();
+                    if (CaexUpgrade.IsNeeded(target)) target = CaexUpgrade.ToCaex3(target);
+                    var imported = OpcUaImport.ImportInto(target, result.NodeSetPath, catalog,
+                        new MergeOptions { ReplaceGeneratedLibraries = !o.Has("--keep") });
+                    foreach (var w in imported.Warnings) Console.Error.WriteLine($"warning: {w}");
+                    Documents.Save(target, output);
+                    Console.WriteLine(imported.Summary);
+                    Console.WriteLine($"Written to {Path.GetFullPath(output)}");
+                    return 0;
+                }
+                finally
+                {
+                    // The compiled NodeSet is in the document now.
+                    try { Directory.Delete(folder, recursive: true); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+
+            default:
+                throw new ArgumentException("design needs 'export <NodeSet.xml>', 'compile <design.xml>' or 'import <design.xml>'.");
+        }
+    }
+
+    private static async Task<CompileResult> Compile(Options o, string design, string folder)
+    {
+        if (ModelCompilerTool.Locate(o.One("--compiler")) is null) throw new ArgumentException(ModelCompilerTool.InstallHint);
+        return await ModelCompilerTool.CompileAsync(design, folder, new CompileOptions
+        {
+            Executable = o.One("--compiler"),
+            Included = o.All("--include"),
+            SpecificationVersion = o.One("--version"),
+        });
     }
 
     private static async Task<int> CloudCommand(List<string> args)
