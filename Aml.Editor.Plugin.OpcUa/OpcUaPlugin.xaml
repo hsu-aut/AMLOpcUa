@@ -177,6 +177,13 @@
                                 <TextBlock Text="Cloud Library…" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="OpcfButton" Click="OpcfButton_Click"
+                                ToolTip="The companion specifications the OPC Foundation publishes, with the models they require; no account needed.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE774;" Foreground="{DynamicResource Exchange}"/>
+                                <TextBlock Text="Companion specs…" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <Separator/>
                         <Button x:Name="InstanceButton" Click="InstanceButton_Click"
                                 ToolTip="Create an instance of a UA type with its Mandatory children and the Optional children you choose.">
@@ -298,8 +305,8 @@
                                             <Button Style="{StaticResource Card}" Click="StartCloud_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Search the Cloud Library"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="The OPC Foundation's UA Cloud Library, with the models a specification requires."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Get a companion specification"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="The NodeSets the OPC Foundation publishes, with the models they require, no account needed; or the UA Cloud Library."/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartServer_Click">

@@ -20,7 +20,7 @@ internal static class HelpTopics
             new[] { "NodeSet", "Namespace", "Annex A", "Companion specification" }, "models"),
         ["namespaces.commands"] = new(
             "Import, export and more",
-            "Import NodeSet and Cloud Library bring models in; a second import of a namespace updates it, an older version never "
+            "Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never "
             + "replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the "
             + "nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties "
             + "process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before.",

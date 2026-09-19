@@ -334,7 +334,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             {
                 // Besides the given folders, the models the plugin keeps itself: from the
                 // modeler, the Cloud Library and servers.
-                var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists)
+                var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists).Concat(OpcfFolders())
                     .Concat(Directory.Exists(ServerNodeSetsFolder) ? Directory.GetDirectories(ServerNodeSetsFolder) : Array.Empty<string>());
                 folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Concat(own).Distinct().ToList();
                 var info = NodeSetInfo.TryRead(file);
@@ -583,7 +583,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     // ── first steps and the namespace list ─────────────────────────────────
 
-    private void StartCloud_Click(object sender, RoutedEventArgs e) => CloudButton_Click(sender, e);
+    private void StartCloud_Click(object sender, RoutedEventArgs e) => OpcfButton_Click(sender, e);
 
     private void StartServer_Click(object sender, RoutedEventArgs e)
     {
@@ -671,7 +671,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>The folders of NodeSets fetched from servers and the Cloud Library grow with every fetch; this empties them.</summary>
     private void ForgetFetched_Click(object sender, RoutedEventArgs e) => Guard("Forgetting the fetched NodeSets", () =>
     {
-        var folders = new[] { ServerNodeSetsFolder, CloudCache }.Where(Directory.Exists).ToList();
+        var folders = new[] { ServerNodeSetsFolder, CloudCache, OpcfFolder }.Where(Directory.Exists).ToList();
         var files = folders.SelectMany(f => Directory.EnumerateFiles(f, "*", SearchOption.AllDirectories)).Select(f => new FileInfo(f)).ToList();
         if (files.Count == 0)
         {
@@ -680,7 +680,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         var megabytes = files.Sum(f => f.Length) / 1048576.0;
         if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Plain, "Forget fetched NodeSets?",
-                $"{files.Count} file(s), {megabytes:0.0} MB, taken from servers and the Cloud Library. They are fetched again when an import needs them. " +
+                $"{files.Count} file(s), {megabytes:0.0} MB, taken from servers, the OPC Foundation and the Cloud Library. They are fetched again when an import needs them. " +
                 "Models applied from the modeler stay; the document is not changed.", "Forget"))
             return;
         foreach (var folder in folders) Directory.Delete(folder, recursive: true);
@@ -724,6 +724,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
         ImportButton.IsEnabled = usable && !_busy;
         CloudButton.IsEnabled = usable && !_busy;
+        OpcfButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
         LinkButton.IsEnabled = usable && !_busy;

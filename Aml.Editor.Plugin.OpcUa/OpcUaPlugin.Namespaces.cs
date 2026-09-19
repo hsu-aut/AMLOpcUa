@@ -274,6 +274,94 @@ public partial class OpcUaPlugin
     private static string CloudCache =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "cloudlibrary");
 
+    /// <summary>The index and the files of the OPC Foundation's NodeSets from GitHub; the same folder uaaml uses.</summary>
+    private static string OpcfFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "opcfoundation");
+
+    /// <summary>The folders holding downloaded files: they keep the repository's folders, and the catalog reads one level.</summary>
+    private static IEnumerable<string> OpcfFolders()
+    {
+        var files = Path.Combine(OpcfFolder, "files");
+        return Directory.Exists(files) ? Directory.GetDirectories(files, "*", SearchOption.AllDirectories).Prepend(files) : Array.Empty<string>();
+    }
+
+    private static readonly System.Net.Http.HttpClient OpcfHttp = new() { Timeout = TimeSpan.FromSeconds(60) };
+
+    private static OpcFoundationNodeSets OpcfSource() => new(OpcfHttp, OpcfFolder);
+
+    private async void OpcfButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        if (document == null || _busy) return;
+        if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
+        {
+            SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
+            return;
+        }
+        var files = await DownloadFromOpcFoundationAsync("");
+        if (files == null || files.Count == 0) return;
+        await ImportFileAsync(document, files[0], Array.Empty<string>());
+    }
+
+    /// <summary>
+    /// Lets the user pick one of the OPC Foundation's NodeSets and downloads it
+    /// with the models it requires; the files, the chosen model's first, or
+    /// null. The dialog leads to the Cloud Library when the user asks for it.
+    /// </summary>
+    private async Task<IReadOnlyList<string>?> DownloadFromOpcFoundationAsync(string search)
+    {
+        var window = new OpcFoundationWindow(OpcfSource(), search) { Owner = Window.GetWindow(this) };
+        var chosen = window.ShowDialog() == true ? window.Selected : null;
+        if (window.CloudLibraryWanted) return await DownloadFromCloudAsync(search);
+        if (chosen == null) return null;
+        SetBusy(true, $"Downloading {chosen.ModelUri} …");
+        try
+        {
+            var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
+            var missing = new List<string>();
+            var files = await OpcfSource().DownloadWithDependenciesAsync(chosen, catalog, missing);
+            foreach (var f in files) PluginLog.Info("Downloaded " + f);
+            foreach (var m in missing) PluginLog.Warn($"The OPC Foundation's repository has no model {m}; the import will ask for it.");
+            return files;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Downloading from the OPC Foundation failed", ex);
+            SetStatus("Downloading from the OPC Foundation failed: " + ex.Message);
+            return null;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
+    /// <summary>The missing models the OPC Foundation's repository has, downloaded; true when any arrived.</summary>
+    private async Task<bool> FetchMissingFromOpcFoundationAsync(IReadOnlyList<ModelRef> missing)
+    {
+        SetBusy(true, "Fetching the missing models from the OPC Foundation …");
+        try
+        {
+            var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
+            var notThere = new List<string>();
+            var files = await OpcfSource().DownloadModelsAsync(missing.Select(m => m.ModelUri), catalog, notThere);
+            foreach (var f in files) PluginLog.Info("Downloaded " + f);
+            if (notThere.Count > 0)
+                PluginLog.Warn("Not published by the OPC Foundation: " + string.Join(", ", notThere) + ". A NodeSet folder or the UA Cloud Library may have them.");
+            return files.Count > 0;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Fetching from the OPC Foundation failed", ex);
+            SetStatus("Fetching from the OPC Foundation failed: " + ex.Message);
+            return false;
+        }
+        finally
+        {
+            SetBusy(false, null);
+        }
+    }
+
     /// <summary>
     /// Asks what to do about models a NodeSet requires and no folder holds;
     /// true when they may be there now and the import should try again.
@@ -284,6 +372,8 @@ public partial class OpcUaPlugin
         if (window.ShowDialog() != true) return false;
         switch (window.Choice)
         {
+            case MissingModelsWindow.Action.OpcFoundation:
+                return await FetchMissingFromOpcFoundationAsync(missing);
             case MissingModelsWindow.Action.AddFolder:
                 var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Folder with the NodeSets " + Path.GetFileName(file) + " requires" };
                 if (dialog.ShowDialog() != true) return false;
@@ -348,13 +438,13 @@ public partial class OpcUaPlugin
 /// <summary>The models a NodeSet requires that no folder holds, and what to do about them.</summary>
 public sealed class MissingModelsWindow : Window
 {
-    public enum Action { AddFolder, Cloud }
+    public enum Action { OpcFoundation, AddFolder, Cloud }
 
     public Action Choice { get; private set; }
 
     public MissingModelsWindow(string file, IReadOnlyList<ModelRef> missing)
     {
-        Width = 620;
+        Width = 760;
         Height = 400;
         ResizeMode = ResizeMode.CanResizeWithGrip;
         var list = new ListBox
@@ -369,9 +459,11 @@ public sealed class MissingModelsWindow : Window
             return b;
         }
         DialogKit.Frame(this, "", DialogKit.Verify, "Models missing",
-            $"{file} requires models that neither its folder nor the NodeSet folders hold. Add a folder that holds them, or fetch them from the UA Cloud Library; the import then tries again.",
+            $"{file} requires models that neither its folder nor the NodeSet folders hold. Fetch them from the OPC Foundation's published NodeSets "
+            + "(no account needed), add a folder that holds them, or search the UA Cloud Library; the import then tries again.",
             list, null,
-            Choose("Add NodeSet folder…", Action.AddFolder, true),
+            Choose("From the OPC Foundation", Action.OpcFoundation, true),
+            Choose("Add NodeSet folder…", Action.AddFolder, false),
             Choose("Search the Cloud Library…", Action.Cloud, false),
             DialogKit.Action("Cancel", cancel: true));
     }
