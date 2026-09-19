@@ -1,0 +1,20 @@
+diff --git a/NodeSetToAML.cs b/NodeSetToAML.cs
+index 58add87..724bdab 100644
+--- a/NodeSetToAML.cs
++++ b/NodeSetToAML.cs
+@@ -2798,9 +2798,14 @@ namespace MarkdownProcessor
+                 string newId = WebUtility.UrlEncode(preId);
+                 sourceInterface.ID = newId;
+ 
++                // AMLOpcUa patch 0008: a symmetric reference type has no InverseName;
++                // its other end is the same interface class.
++                string inverseName = sourceInterface.Attribute["InverseName"]?.Value;
+                 ExternalInterfaceType destInterface = FindOrAddInterface(ref targetSystemUnitClass,
+                     refURI, 
+-                    referenceTypeNode.DecodedBrowseName.Name + "]/[" + sourceInterface.Attribute["InverseName"].Value,
++                    string.IsNullOrEmpty(inverseName)
++                        ? referenceTypeNode.DecodedBrowseName.Name
++                        : referenceTypeNode.DecodedBrowseName.Name + "]/[" + inverseName,
+                     referenceHolder.Reference.TargetId,
+                     addAttribute: true);
+ 

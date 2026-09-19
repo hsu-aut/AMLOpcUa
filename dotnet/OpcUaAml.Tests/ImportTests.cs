@@ -137,6 +137,130 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
     }
 
     [Fact]
+    public void A_structure_containing_itself_is_converted()
+    {
+        // Patch 0006: a tree node with a list of tree nodes used to overflow the stack.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-tree-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Tree.NodeSet2.xml");
+            File.WriteAllText(file, """
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>urn:test:tree</Uri></NamespaceUris>
+                  <Models><Model ModelUri="urn:test:tree" Version="1.0.0" PublicationDate="2026-09-19T00:00:00Z">
+                    <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.02" PublicationDate="2022-11-01T00:00:00Z" /></Model></Models>
+                  <Aliases><Alias Alias="HasSubtype">i=45</Alias><Alias Alias="String">i=12</Alias></Aliases>
+                  <UADataType NodeId="ns=1;i=3000" BrowseName="1:TreeNode">
+                    <DisplayName>TreeNode</DisplayName>
+                    <References><Reference ReferenceType="HasSubtype" IsForward="false">i=22</Reference></References>
+                    <Definition Name="1:TreeNode">
+                      <Field Name="Label" DataType="String" />
+                      <Field Name="Children" DataType="ns=1;i=3000" ValueRank="1" ArrayDimensions="0" />
+                    </Definition>
+                  </UADataType>
+                </UANodeSet>
+                """);
+            var result = NodeSetImporter.Convert(file, di.Catalog);
+
+            var tree = result.Document.CAEXFile.AttributeTypeLib["ATL_urn:test:tree"]!.AttributeType["TreeNode"]!;
+            Assert.NotNull(tree.Attribute["Label"]);
+            Assert.NotNull(tree.Attribute["Children"]);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_reference_to_a_node_no_model_defines_is_skipped_with_a_warning()
+    {
+        // Patch 0007: dictionary entries of IRDI live outside every NodeSet.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-dangling-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Dangling.NodeSet2.xml");
+            File.WriteAllText(file, """
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>urn:test:dangling</Uri></NamespaceUris>
+                  <Models><Model ModelUri="urn:test:dangling" Version="1.0.0" PublicationDate="2026-09-19T00:00:00Z">
+                    <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.02" PublicationDate="2022-11-01T00:00:00Z" /></Model></Models>
+                  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:PumpType">
+                    <DisplayName>PumpType</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=45" IsForward="false">i=58</Reference>
+                      <Reference ReferenceType="i=17597">ns=1;s=0112/2///61987#ABB271#007</Reference>
+                    </References>
+                  </UAObjectType>
+                </UANodeSet>
+                """);
+            var result = NodeSetImporter.Convert(file, di.Catalog);
+
+            Assert.NotNull(result.Document.CAEXFile.SystemUnitClassLib["SUC_urn:test:dangling"]!.SystemUnitClass["PumpType"]);
+            Assert.Contains(result.Warnings, w => w.Contains("0112/2///61987#ABB271#007", StringComparison.Ordinal));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_symmetric_reference_between_declarations_is_converted()
+    {
+        // Patch 0008: a symmetric reference type has no InverseName.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-symmetric-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Symmetric.NodeSet2.xml");
+            File.WriteAllText(file, """
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>urn:test:symmetric</Uri></NamespaceUris>
+                  <Models><Model ModelUri="urn:test:symmetric" Version="1.0.0" PublicationDate="2026-09-19T00:00:00Z">
+                    <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.02" PublicationDate="2022-11-01T00:00:00Z" /></Model></Models>
+                  <UAReferenceType NodeId="ns=1;i=4000" BrowseName="1:PairedWith" Symmetric="true">
+                    <DisplayName>PairedWith</DisplayName>
+                    <References><Reference ReferenceType="i=45" IsForward="false">i=32</Reference></References>
+                  </UAReferenceType>
+                  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:CellType">
+                    <DisplayName>CellType</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=45" IsForward="false">i=58</Reference>
+                      <Reference ReferenceType="i=47">ns=1;i=5001</Reference>
+                      <Reference ReferenceType="i=47">ns=1;i=5002</Reference>
+                    </References>
+                  </UAObjectType>
+                  <UAObject NodeId="ns=1;i=5001" BrowseName="1:Left" ParentNodeId="ns=1;i=1000">
+                    <DisplayName>Left</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=47" IsForward="false">ns=1;i=1000</Reference>
+                      <Reference ReferenceType="i=40">i=58</Reference>
+                      <Reference ReferenceType="i=37">i=78</Reference>
+                      <Reference ReferenceType="ns=1;i=4000">ns=1;i=5002</Reference>
+                    </References>
+                  </UAObject>
+                  <UAObject NodeId="ns=1;i=5002" BrowseName="1:Right" ParentNodeId="ns=1;i=1000">
+                    <DisplayName>Right</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=47" IsForward="false">ns=1;i=1000</Reference>
+                      <Reference ReferenceType="i=40">i=58</Reference>
+                      <Reference ReferenceType="i=37">i=78</Reference>
+                    </References>
+                  </UAObject>
+                </UANodeSet>
+                """);
+            var result = NodeSetImporter.Convert(file, di.Catalog);
+
+            var cell = result.Document.CAEXFile.SystemUnitClassLib["SUC_urn:test:symmetric"]!.SystemUnitClass["CellType"]!;
+            Assert.Contains(cell.InternalElement["Right"]!.ExternalInterface, ei => ei.Name == "PairedWith");
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void A_file_that_is_not_a_NodeSet_is_refused()
     {
         var file = Path.GetTempFileName();

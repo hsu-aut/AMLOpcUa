@@ -1502,7 +1502,11 @@ namespace MarkdownProcessor
                     {
                         if (referenceInfo.IsForward)
                         {
-                            UANode foundNodeId = FindNode<UANode>(referenceInfo.TargetId);
+                            // AMLOpcUa patch 0007: a target no model defines (an IRDI dictionary
+                            // entry, for instance) is no Variable; skip it instead of failing.
+                            UANode foundNodeId = m_modelManager.FindNode<UANode>(referenceInfo.TargetId);
+                            if (foundNodeId == null)
+                                continue;
                             if (foundNodeId.NodeClass == NodeClass.Variable)
                             {
                                 UAVariable foundVariable = foundNodeId as UAVariable;
@@ -2731,6 +2735,19 @@ namespace MarkdownProcessor
             foreach (NonHierarchicalReferenceHolder referenceHolder in _nonHierarchicalReferences.ReferenceList)
             {
                 UANode sourceNode = m_modelManager.FindNode<UANode>(referenceHolder.Reference.SourceId);
+                UANode targetNodeOrNull = m_modelManager.FindNode<UANode>(referenceHolder.Reference.TargetId);
+                // AMLOpcUa patch 0007: a reference to a node no model defines (an IRDI
+                // dictionary entry, a node of a model not required) has no element at
+                // that end; skip and report it like patch 0001.
+                if (sourceNode == null || targetNodeOrNull == null)
+                {
+                    string skipped = string.Format("Skipped reference {0} -> {1}: no model defines the {2}.",
+                        referenceHolder.Reference.SourceId, referenceHolder.Reference.TargetId,
+                        sourceNode == null ? "source" : "target");
+                    Utils.LogWarning(skipped);
+                    Warnings.Add(skipped);
+                    continue;
+                }
                 SystemUnitClassType sourceSystemUnitClass = FindNonHierarchicalReference(referenceHolder,
                     sourceNode);
                 string sourcePath = GetCreatedPathName(sourceNode);
@@ -2781,9 +2798,14 @@ namespace MarkdownProcessor
                 string newId = WebUtility.UrlEncode(preId);
                 sourceInterface.ID = newId;
 
+                // AMLOpcUa patch 0008: a symmetric reference type has no InverseName;
+                // its other end is the same interface class.
+                string inverseName = sourceInterface.Attribute["InverseName"]?.Value;
                 ExternalInterfaceType destInterface = FindOrAddInterface(ref targetSystemUnitClass,
                     refURI, 
-                    referenceTypeNode.DecodedBrowseName.Name + "]/[" + sourceInterface.Attribute["InverseName"].Value,
+                    string.IsNullOrEmpty(inverseName)
+                        ? referenceTypeNode.DecodedBrowseName.Name
+                        : referenceTypeNode.DecodedBrowseName.Name + "]/[" + inverseName,
                     referenceHolder.Reference.TargetId,
                     addAttribute: true);
 
@@ -3247,6 +3269,11 @@ namespace MarkdownProcessor
 
 
 
+        // AMLOpcUa patch 0006: the structures being expanded. A structure may contain
+        // itself, directly or through other structures (a tree node with a list of
+        // children); expanding it again would recurse until the stack overflows.
+        private readonly HashSet<NodeId> m_expandingStructures = new HashSet<NodeId>();
+
         private void RecurseStructures(ref AttributeTypeType att, NodeId nodeId)
         {
             if( nodeId == RelativePathElementNodeId)
@@ -3254,6 +3281,23 @@ namespace MarkdownProcessor
                 ProcessRelativePathElement(ref att);
             }
             if (m_modelManager.IsTypeOf(nodeId, structureNode.DecodedNodeId))
+            {
+                // AMLOpcUa patch 0006: a structure met inside itself keeps its type reference, without fields.
+                if (!m_expandingStructures.Add(nodeId))
+                    return;
+                try
+                {
+                    RecurseStructureFields(ref att, nodeId);
+                }
+                finally
+                {
+                    m_expandingStructures.Remove(nodeId);
+                }
+            }
+        }
+
+        private void RecurseStructureFields(ref AttributeTypeType att, NodeId nodeId)
+        {
             {
                 bool debugMessage = false;
                 att.AttributeDataType = "";

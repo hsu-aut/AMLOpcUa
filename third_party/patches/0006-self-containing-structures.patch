@@ -1,0 +1,40 @@
+diff --git a/NodeSetToAML.cs b/NodeSetToAML.cs
+index 9031f33..2b4bea9 100644
+--- a/NodeSetToAML.cs
++++ b/NodeSetToAML.cs
+@@ -3247,6 +3247,11 @@ namespace MarkdownProcessor
+ 
+ 
+ 
++        // AMLOpcUa patch 0006: the structures being expanded. A structure may contain
++        // itself, directly or through other structures (a tree node with a list of
++        // children); expanding it again would recurse until the stack overflows.
++        private readonly HashSet<NodeId> m_expandingStructures = new HashSet<NodeId>();
++
+         private void RecurseStructures(ref AttributeTypeType att, NodeId nodeId)
+         {
+             if( nodeId == RelativePathElementNodeId)
+@@ -3254,6 +3259,23 @@ namespace MarkdownProcessor
+                 ProcessRelativePathElement(ref att);
+             }
+             if (m_modelManager.IsTypeOf(nodeId, structureNode.DecodedNodeId))
++            {
++                // AMLOpcUa patch 0006: a structure met inside itself keeps its type reference, without fields.
++                if (!m_expandingStructures.Add(nodeId))
++                    return;
++                try
++                {
++                    RecurseStructureFields(ref att, nodeId);
++                }
++                finally
++                {
++                    m_expandingStructures.Remove(nodeId);
++                }
++            }
++        }
++
++        private void RecurseStructureFields(ref AttributeTypeType att, NodeId nodeId)
++        {
+             {
+                 bool debugMessage = false;
+                 att.AttributeDataType = "";
