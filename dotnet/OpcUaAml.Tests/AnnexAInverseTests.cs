@@ -37,14 +37,12 @@ public class AnnexAInverseTests(BundledDiConversion di) : IClassFixture<BundledD
         Assert.True(report.Completed, report.Error);
         Assert.Equal(RoundtripRunner.ChainC, report.Chain);
         AllKept(report, "Description kept", "ValueRank and ArrayDimensions kept", "IsAbstract, Symmetric, InverseName kept", "MethodDeclarationId kept");
-        OnlyAnnexALosses(report, "Nodes present, with their node class", "BrowseName kept", "DisplayName kept", "ParentNodeId kept");
-        // A VariableType without a Value attribute loses its DataType in Annex A (DI i=468, BaseDataType).
-        Assert.Equal("nsu=http://opcfoundation.org/UA/DI/;i=468/@DataType (i=26)", Assert.Single(C(report, "DataType kept").LostExamples));
+        // The DataType of a VariableType without a Value attribute (DI i=468) and an
+        // empty string (Annex A writes no value) count as lost on the way in.
+        OnlyAnnexALosses(report, "Nodes present, with their node class", "BrowseName kept", "DisplayName kept", "ParentNodeId kept", "DataType kept", "Values kept");
         // 447 nodes; the 34 missing are the type dictionaries, their encodings and nodes no type holds.
         Assert.Equal(447, C(report, "Nodes present, with their node class").Total);
         Assert.Equal(413, C(report, "Nodes present, with their node class").Kept);
-        // One empty string, which Annex A leaves out.
-        Assert.Single(C(report, "Values kept").LostExamples);
         Assert.Equal(0, C(report, "Documentation kept").Kept);
     }
 

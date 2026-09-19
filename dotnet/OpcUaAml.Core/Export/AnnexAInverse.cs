@@ -56,6 +56,7 @@ public static class AnnexAInverse
     {
         "Boolean", "SByte", "Byte", "Int16", "UInt16", "Int32", "UInt32", "Int64", "UInt64", "Float", "Double",
         "String", "DateTime", "Guid", "ByteString", "LocalizedText", "QualifiedName", "Duration", "UtcTime",
+        "NodeId", "ExpandedNodeId",
     };
 
     public static XDocument Export(XDocument caex, AnnexAInverseOptions options) => new Writer(caex.Root!, options).Write();
@@ -106,13 +107,81 @@ public static class AnnexAInverse
             .Select(Writer.NodeIdOf).Where(id => id != null).Select(id => id!.ToString())
             .ToHashSet(StringComparer.Ordinal);
 
+    /// <summary>
+    /// The references an Annex A document carries at all, as "node|referenceType"
+    /// for every ExternalInterface: a reference type that never appears on
+    /// either end of a reference was not carried into AML. NodeIds of the base
+    /// model are written without their namespace, as NodeSetComparer writes them.
+    /// </summary>
+    public static IReadOnlySet<string> CarriedReferences(XElement caexRoot)
+    {
+        var caex = caexRoot.Name.Namespace;
+        var classes = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        void Index(XElement c, string path)
+        {
+            classes[path] = c;
+            foreach (var nested in c.Elements(caex + "InterfaceClass")) Index(nested, $"{path}/[{(string?)nested.Attribute("Name")}]");
+        }
+        foreach (var lib in caexRoot.Elements(caex + "InterfaceClassLib"))
+            foreach (var c in lib.Elements(caex + "InterfaceClass"))
+                Index(c, $"[{(string?)lib.Attribute("Name")}]/[{(string?)c.Attribute("Name")}]");
+        static string Short(string id) => id.StartsWith("nsu=" + UaUri + ";", StringComparison.Ordinal) ? id[(UaUri.Length + 5)..] : id;
+
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var ei in caexRoot.Descendants(caex + "ExternalInterface"))
+        {
+            if (ei.Parent == null || Writer.NodeIdOf(ei.Parent) is not { } owner) continue;
+            var path = (string?)ei.Attribute("RefBaseClassPath") ?? "";
+            if (!classes.TryGetValue(path, out var refClass) || Writer.NodeIdOf(refClass) is not { } type) continue;
+            result.Add($"{Short(owner.ToString())}|{Short(type.ToString())}");
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// The nodes whose Value an Annex A document carries with content: a value,
+    /// or fields, items or a locale below it. Opc2Aml writes an empty Value
+    /// attribute for no value, an empty one, and a matrix alike.
+    /// </summary>
+    public static IReadOnlySet<string> NodesWithValues(XElement caexRoot)
+    {
+        var caex = caexRoot.Name.Namespace;
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var value in caexRoot.Descendants(caex + "Attribute").Where(a => (string?)a.Attribute("Name") == "Value"))
+        {
+            if (value.Parent == null || value.Parent.Name.LocalName is "Attribute") continue;
+            if (!value.Elements(caex + "Value").Any(v => v.Value.Length > 0) && !value.Elements(caex + "Attribute").Any()) continue;
+            if (Writer.NodeIdOf(value.Parent) is { } id)
+                result.Add(id.NamespaceUri == UaUri ? id.ToString()[(UaUri.Length + 5)..] : id.ToString());
+        }
+        return result;
+    }
+
+    /// <summary>The nodes that have a Value attribute at all; a VariableType without one has no DataType in AML.</summary>
+    public static IReadOnlySet<string> NodesWithValueAttributes(XElement caexRoot) => NodesWithAttribute(caexRoot, "Value");
+
+    /// <summary>
+    /// The nodes whose element or class has one of the named attributes directly:
+    /// "Description", or the field definitions of a DataType. What Annex A does
+    /// not write there cannot come back.
+    /// </summary>
+    public static IReadOnlySet<string> NodesWithAttribute(XElement caexRoot, params string[] names)
+    {
+        var caex = caexRoot.Name.Namespace;
+        var wanted = new HashSet<string>(names, StringComparer.Ordinal);
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var attribute in caexRoot.Descendants(caex + "Attribute").Where(a => wanted.Contains((string?)a.Attribute("Name") ?? "")))
+            if (attribute.Parent is { } owner && owner.Name.LocalName != "Attribute" && Writer.NodeIdOf(owner) is { } id)
+                result.Add(id.NamespaceUri == UaUri ? id.ToString()[(UaUri.Length + 5)..] : id.ToString());
+        return result;
+    }
+
     /// <summary>The namespaces a document holds Annex A libraries of, besides the UA base model's.</summary>
     public static IReadOnlyList<string> Namespaces(XElement caexRoot) =>
         caexRoot.Elements()
-            .Where(e => e.Name.LocalName == "SystemUnitClassLib")
+            .Where(e => e.Name.LocalName is "SystemUnitClassLib" or "AttributeTypeLib" or "InterfaceClassLib")
             .Select(e => (string?)e.Attribute("Name") ?? "")
-            .Where(n => n.StartsWith("SUC_", StringComparison.Ordinal) && n != "SUC_" + UaUri && n != "SUC_OpcAmlMetaModel"
-                        && Uri.IsWellFormedUriString(n[4..], UriKind.Absolute))
+            .Where(n => n.Length > 4 && n[3] == '_' && n[4..] != UaUri && Uri.IsWellFormedUriString(n[4..], UriKind.Absolute))
             .Select(n => n[4..]).Distinct().ToList();
 
     /// <summary>The one namespace to export when none is named.</summary>
@@ -340,8 +409,7 @@ public static class AnnexAInverse
             var suc = Lib("SystemUnitClassLib");
             var atl = Lib("AttributeTypeLib");
             var icl = Lib("InterfaceClassLib");
-            if (suc == null && atl == null && icl == null)
-                throw new ArgumentException($"The document holds no Annex A libraries of '{_ns}'.");
+            // A model may hold instances only (a dictionary such as IRDI); then there are no libraries.
 
             foreach (var rt in icl?.Elements(_caex + "InterfaceClass") ?? Enumerable.Empty<XElement>()) ReferenceType(rt);
             foreach (var dt in atl?.Elements(_caex + "AttributeType") ?? Enumerable.Empty<XElement>())
@@ -357,6 +425,8 @@ public static class AnnexAInverse
                 if (_nodes.TryGetValue(to.ToString(), out var toNode)) Reference(toNode, type, from, !forward);
             }
 
+            if (_order.Count == 0)
+                throw new ArgumentException($"The document holds no types or instances of '{_ns}'.");
             return Document();
         }
 
@@ -589,9 +659,18 @@ public static class AnnexAInverse
             var isMethod = typePath == MethodClass;
             var type = isMethod ? null : Resolve(typePath);
             var nodeClass = isMethod ? "UAMethod" : type != null && ChainHas(type, "BaseVariableType") ? "UAVariable" : "UAObject";
+            var (reference, rule) = HeldBy(e);
+
+            // A node held by two parents: Opc2Aml writes it below each, the NodeSet once,
+            // with a reference from each parent.
+            if (_nodes.TryGetValue(id.ToString(), out var written))
+            {
+                if (parent != null) Reference(parent, reference, id);
+                Reference(written, reference, parentId, forward: false);
+                return;
+            }
             var node = Node(nodeClass, id, Name(e), BrowseNamespace(e));
 
-            var (reference, rule) = HeldBy(e);
             // ParentNodeId names the node that holds this one: one of the file, or a node of the base
             // model (Objects, Server) an instance hangs below. A folder organizes, it holds nothing.
             var organizes = reference.NamespaceUri == UaUri && reference.Identifier == "35";
@@ -674,11 +753,17 @@ public static class AnnexAInverse
             }
         }
 
+        private Dictionary<string, XElement>? _interfaces;
+
+        /// <summary>An ExternalInterface by ID, and its owner; the index is built once (a document may hold tens of thousands of links).</summary>
         private (XElement Interface, XElement Owner)? Interface(string? id)
         {
             if (id == null) return null;
-            var ei = _root.Descendants(_caex + "ExternalInterface").FirstOrDefault(x => (string?)x.Attribute("ID") == id);
-            return ei?.Parent == null ? null : (ei, ei.Parent);
+            _interfaces ??= _root.Descendants(_caex + "ExternalInterface")
+                .Where(x => x.Attribute("ID") != null)
+                .GroupBy(x => (string)x.Attribute("ID")!, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+            return _interfaces.TryGetValue(id, out var ei) && ei.Parent != null ? (ei, ei.Parent) : null;
         }
 
         private bool IsInverseEnd(XElement ei)
@@ -817,7 +902,7 @@ public static class AnnexAInverse
             if (HasMask(type)) return null;
             var uri = NodeIdOf(type)?.NamespaceUri ?? _ns;
             var ns = uri == UaUri ? Types : XNamespace.Get(uri + "Types.xsd");
-            var body = new XElement(ns + elementName);
+            var body = new XElement(ns + XmlName(elementName));
             foreach (var field in item.Elements(_caex + "Attribute"))
             {
                 var path = (string?)field.Attribute("RefAttributeType") ?? "";
@@ -828,15 +913,15 @@ public static class AnnexAInverse
                 if (field.Elements(_caex + "Attribute").Any() && AllowsSubTypes(type, Name(field))) return null;
                 if (isList)
                 {
-                    var list = new XElement(ns + Name(field));
+                    var list = new XElement(ns + XmlName(Name(field)));
                     foreach (var i in field.Elements(_caex + "Attribute"))
                     {
-                        if (FieldValue(i, element, fieldType, ns + element) is not { } encoded) return null;
+                        if (FieldValue(i, element, fieldType, ns + XmlName(element)) is not { } encoded) return null;
                         list.Add(encoded);
                     }
                     body.Add(list);
                 }
-                else if (FieldValue(field, element, fieldType, ns + Name(field)) is { } encoded) body.Add(encoded);
+                else if (FieldValue(field, element, fieldType, ns + XmlName(Name(field))) is { } encoded) body.Add(encoded);
                 else return null;
             }
             return body;
@@ -882,6 +967,16 @@ public static class AnnexAInverse
                 if ((string?)option.Element(_caex + "Value") == "true" && bits.TryGetValue(Name(option), out var bit) && bit is >= 0 and < 64)
                     number |= 1UL << bit;
             return number.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A type or field name as an XML element name. The XML encoding spells the
+        /// base model's 3D types out (ThreeDFrame); other invalid names are escaped.
+        /// </summary>
+        private static string XmlName(string name)
+        {
+            if (name.StartsWith("3D", StringComparison.Ordinal)) name = "ThreeD" + name[2..];
+            return System.Xml.XmlConvert.EncodeLocalName(name);
         }
 
         private static string EnumText(string text, Dictionary<string, string> values)
@@ -949,8 +1044,19 @@ public static class AnnexAInverse
             var name = Types + Base(type);
             switch (type)
             {
+                case "NodeId" or "ExpandedNodeId":
+                    // Annex A writes a NodeId value as a NodeId attribute (RootNodeId, NamespaceUri, identifier).
+                    return ReadNodeId(attribute) is { } nodeId ? new XElement(name, new XElement(Types + "Identifier", Text(nodeId))) : null;
                 case "LocalizedText":
-                    return text == null ? null : new XElement(name, new XElement(Types + "Text", text));
+                {
+                    // Annex A writes the locale as a LocalizedAttribute named after it.
+                    var locale = attribute.Elements(_caex + "Attribute")
+                        .FirstOrDefault(a => ((string?)a.Attribute("RefAttributeType"))?.EndsWith("LocalizedAttribute", StringComparison.Ordinal) == true);
+                    if (text == null) return null;
+                    return new XElement(name,
+                        locale == null ? null : new XElement(Types + "Locale", Name(locale)),
+                        new XElement(Types + "Text", text));
+                }
                 case "QualifiedName":
                     var uri = Value(attribute, "NamespaceUri");
                     var qn = Value(attribute, "Name");
@@ -991,6 +1097,9 @@ public static class AnnexAInverse
 
         private void Describe(XElement node, XElement e)
         {
+            // Annex A writes a DisplayName only when it is not the BrowseName.
+            if (Localized(e, "DisplayName") is { Length: > 0 } display)
+                node.Element(Ua + "DisplayName")!.Value = display;
             if (Localized(e, "Description") is { Length: > 0 } text)
                 node.Element(Ua + "DisplayName")!.AddAfterSelf(new XElement(Ua + "Description", text));
         }
