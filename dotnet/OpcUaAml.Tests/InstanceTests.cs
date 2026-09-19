@@ -74,6 +74,71 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void Placeholders_are_filled_with_the_named_children()
+    {
+        var ih = di.Hierarchy("Filled");
+        var result = TypeInstantiator.Instantiate(di.Type("ConfigurableObjectType"), "Modules", new InstantiationOptions
+        {
+            FillPlaceholder = p => p == "<ObjectIdentifier>" ? new[] { new PlaceholderFill("ModuleA"), new PlaceholderFill("ModuleB") } : Array.Empty<PlaceholderFill>(),
+        });
+        ih.InternalElement.Insert(result.Instance, asFirst: false);
+        var modules = ih.InternalElement["Modules"]!;
+
+        Assert.Equal(new[] { "ModuleA", "ModuleB" }, result.Filled);
+        Assert.Empty(result.OmittedPlaceholders);
+        Assert.Contains("ModuleA", ChildNames(modules));
+        Assert.Contains("ModuleB", ChildNames(modules));
+        Assert.DoesNotContain(ChildNames(modules), n => n.StartsWith('<'));
+        // Each child is linked to its owner as the placeholder was, through an interface of its own.
+        var a = modules.InternalElement["ModuleA"]!.ExternalInterface.Select(e => e.ID).ToHashSet();
+        var b = modules.InternalElement["ModuleB"]!.ExternalInterface.Select(e => e.ID).ToHashSet();
+        Assert.Empty(a.Intersect(b));
+        Assert.Contains(modules.InternalLink, l => l.Name == "ModuleA" && a.Contains(l.RefPartnerSideB));
+        Assert.Contains(modules.InternalLink, l => l.Name == "ModuleB" && b.Contains(l.RefPartnerSideB));
+        Assert.Empty(di.FindingsIn(ih));
+    }
+
+    [Fact]
+    public void A_filled_mandatory_placeholder_is_no_finding()
+    {
+        var ih = di.Hierarchy("NetworkFilled");
+        var result = TypeInstantiator.Instantiate(di.Type("NetworkType"), "Net", new InstantiationOptions
+        {
+            FillPlaceholder = p => p == "<ProfileIdentifier>" ? new[] { new PlaceholderFill("Ethernet") } : Array.Empty<PlaceholderFill>(),
+        });
+        ih.InternalElement.Insert(result.Instance, asFirst: false);
+
+        Assert.Contains("Ethernet", result.Filled);
+        Assert.DoesNotContain(di.FindingsIn(ih), f => f.Rule == Rules.MissingMandatoryPlaceholder);
+    }
+
+    [Fact]
+    public void A_placeholder_can_be_filled_with_an_instance_of_another_type()
+    {
+        var ih = di.Hierarchy("Typed");
+        var result = TypeInstantiator.Instantiate(di.Type("ConfigurableObjectType"), "Modules", new InstantiationOptions
+        {
+            FillPlaceholder = p => p == "<ObjectIdentifier>" ? new[] { new PlaceholderFill("Firmware", di.Type("SoftwareVersionType")) } : Array.Empty<PlaceholderFill>(),
+        });
+        ih.InternalElement.Insert(result.Instance, asFirst: false);
+        var firmware = ih.InternalElement["Modules"]!.InternalElement["Firmware"]!;
+
+        Assert.Equal("[SUC_http://opcfoundation.org/UA/DI/]/[SoftwareVersionType]", firmware.RefBaseSystemUnitPath);
+        Assert.Contains("Manufacturer", ChildNames(firmware));
+        Assert.Contains(ih.InternalElement["Modules"]!.InternalLink, l => l.Name == "Firmware");
+        Assert.Empty(di.FindingsIn(ih));
+    }
+
+    [Fact]
+    public void Two_children_of_one_name_are_refused()
+    {
+        Assert.Throws<InstantiationException>(() => TypeInstantiator.Instantiate(di.Type("ConfigurableObjectType"), "Modules", new InstantiationOptions
+        {
+            FillPlaceholder = p => p == "<ObjectIdentifier>" ? new[] { new PlaceholderFill("SupportedTypes") } : Array.Empty<PlaceholderFill>(),
+        }));
+    }
+
+    [Fact]
     public void Abstract_types_are_refused_unless_allowed()
     {
         var ex = Assert.Throws<InstantiationException>(() => TypeInstantiator.Instantiate(di.Type("DeviceType"), "Dev"));

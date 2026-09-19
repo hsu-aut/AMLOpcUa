@@ -32,10 +32,13 @@ public static class Program
             The UA types (SystemUnitClasses of SUC_ libraries) in a document.
 
         uaaml instantiate <doc.aml> --type <name|path> --name <name> [--hierarchy <name>]
-                          [--optional <a,b/c|all>] [--allow-abstract] [-o <out.aml>]
+                          [--optional <a,b/c|all>] [--fill <placeholder>=<name>[:<type>],...]...
+                          [--allow-abstract] [-o <out.aml>]
             Create an instance with every Mandatory child and the chosen Optional
             children (paths relative to the instance) in the instance hierarchy
-            (created if missing, default "OpcUaInstances").
+            (created if missing, default "OpcUaInstances"). --fill creates concrete
+            children for a placeholder, of its type or of the given one, e.g.
+            --fill "<ObjectIdentifier>=ModuleA,Firmware:SoftwareVersionType".
 
         uaaml check <doc.aml>
             Check the instance hierarchies against their UA types. Exits with 1
@@ -296,7 +299,7 @@ public static class Program
     private static int InstantiateCommand(List<string> args)
     {
         var options = Options.Parse(args,
-            valued: new[] { "--type", "--name", "--hierarchy", "--optional", "-o" },
+            valued: new[] { "--type", "--name", "--hierarchy", "--optional", "--fill", "-o" },
             flags: new[] { "--allow-abstract" });
         var file = options.SinglePositional("document");
         var doc = Documents.Load(file);
@@ -307,11 +310,28 @@ public static class Program
         var optional = options.One("--optional");
         var chosen = optional == null ? new HashSet<string>()
             : optional.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
+        var fills = new Dictionary<string, List<PlaceholderFill>>(StringComparer.Ordinal);
+        foreach (var fill in options.All("--fill"))
+        {
+            var eq = fill.IndexOf('=');
+            if (eq <= 0) throw new ArgumentException($"--fill '{fill}': give <placeholder>=<name>[:<type>],...");
+            var list = fills.TryGetValue(fill[..eq].Trim(), out var known) ? known : fills[fill[..eq].Trim()] = new List<PlaceholderFill>();
+            foreach (var entry in fill[(eq + 1)..].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                // The type may be a path with colons of its own; the name ends at the first one.
+                var colon = entry.IndexOf(':');
+                list.Add(colon < 0 ? new PlaceholderFill(entry) : new PlaceholderFill(entry[..colon], ResolveType(doc, entry[(colon + 1)..])));
+            }
+        }
+        var asked = new HashSet<string>(StringComparer.Ordinal);
         var result = TypeInstantiator.Instantiate(type, name, new InstantiationOptions
         {
             IncludeOptional = p => optional == "all" || chosen.Contains(p),
+            FillPlaceholder = p => { asked.Add(p); return fills.TryGetValue(p, out var list) ? list : Array.Empty<PlaceholderFill>(); },
             AllowAbstract = options.Has("--allow-abstract"),
         });
+        foreach (var unused in fills.Keys.Where(k => !asked.Contains(k)))
+            Console.WriteLine($"The type has no placeholder '{unused}'; it has: {string.Join(", ", asked)}");
 
         var hierarchyName = options.One("--hierarchy") ?? "OpcUaInstances";
         var ih = doc.CAEXFile.InstanceHierarchy[hierarchyName] ?? doc.CAEXFile.InstanceHierarchy.Append(hierarchyName);
@@ -320,8 +340,10 @@ public static class Program
         Console.WriteLine($"Created '{name}' of {type.Name} in '{hierarchyName}': {result.Included.Count} children.");
         if (result.OmittedOptional.Count > 0)
             Console.WriteLine($"Optional, not created: {string.Join(", ", result.OmittedOptional)}");
+        if (result.Filled.Count > 0)
+            Console.WriteLine($"For placeholders: {string.Join(", ", result.Filled)}");
         if (result.OmittedPlaceholders.Count > 0)
-            Console.WriteLine($"Placeholders, add concrete children as needed: {string.Join(", ", result.OmittedPlaceholders)}");
+            Console.WriteLine($"Placeholders, fill with --fill as needed: {string.Join(", ", result.OmittedPlaceholders)}");
         var output = options.One("-o") ?? file;
         Documents.Save(doc, output);
         Console.WriteLine($"Written to {Path.GetFullPath(output)}");
