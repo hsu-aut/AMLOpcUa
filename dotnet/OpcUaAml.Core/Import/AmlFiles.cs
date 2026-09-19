@@ -19,7 +19,8 @@ public static class AmlFiles
     public static CAEXDocument Load(string path)
     {
         if (!File.Exists(path)) throw new ImportException($"'{path}' does not exist.");
-        return IsContainer(path) ? NodeSetImporter.ReadContainer(path) : CAEXDocument.LoadFromFile(path);
+        if (IsContainer(path)) return NodeSetImporter.ReadContainer(path);
+        lock (NodeSetImporter.EngineGate) return CAEXDocument.LoadFromFile(path);
     }
 
     public static void Save(CAEXDocument document, string path)

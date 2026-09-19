@@ -37,6 +37,31 @@ public class ConversionCacheTests
     }
 
     [Fact]
+    public void Conversions_on_several_threads_do_not_disturb_each_other()
+    {
+        // Aml.Engine keeps static state while Opc2Aml runs; conversions and
+        // document loads share one lock. Without it this failed with
+        // "Collection was modified".
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-cache-parallel-").FullName;
+        var previous = NodeSetImporter.Cache;
+        try
+        {
+            NodeSetImporter.Cache = new ConversionCache(folder);
+            var catalog = NodeSetCatalog.Create(new[] { Fixtures.Path("uafx") });
+            var files = new[] { Safety, Fixtures.Path("uafx", "opc.ua.fx.data.nodeset2.xml"), Safety };
+            var results = new ConversionResult[files.Length];
+            Parallel.For(0, files.Length, i => results[i] = NodeSetImporter.Convert(files[i], catalog));
+
+            Assert.All(results, r => Assert.NotEmpty(r.Document.CAEXFile.SystemUnitClassLib));
+        }
+        finally
+        {
+            NodeSetImporter.Cache = previous;
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void A_changed_file_gets_another_key()
     {
         var folder = Directory.CreateTempSubdirectory("opcuaaml-cache-key-").FullName;

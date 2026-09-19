@@ -116,6 +116,11 @@ while the FX NodeSets of the tag define it in FX Data.
   Value (`ConversionIds`), and patch 0005 compares IDs ordinally. Most of the
   rest is spent inside Aml.Engine (service lookups, path queries, class
   instances).
+- **One at a time.** Aml.Engine keeps static state while Opc2Aml copies
+  classes and resolves paths; two conversions at once, or a document loaded
+  during one, failed with "Collection was modified". Conversions and document
+  loads therefore share a lock in the process; cached results are read
+  under it too, briefly.
 - **Cache.** A conversion is kept in `%LOCALAPPDATA%\AMLOpcUa\conversions`
   (`ConversionCache`, the last 40), under a key made of the content of the
   NodeSet and every file it requires, the build of Opc2Aml and a format

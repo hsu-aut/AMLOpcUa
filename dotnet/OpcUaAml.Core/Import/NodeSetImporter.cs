@@ -34,6 +34,16 @@ public static class NodeSetImporter
     public static ConversionCache? Cache { get; set; } = ConversionCache.Default;
 
     /// <summary>
+    /// Opc2Aml runs one at a time in a process, and no document is loaded
+    /// meanwhile: Aml.Engine keeps static state while it copies classes and
+    /// resolves paths (the ID map of XmlOperation, the loaded documents), and a
+    /// conversion fails with "Collection was modified" when another thread
+    /// changes it. Loading a document takes the same lock (ReadContainer,
+    /// AmlFiles.Load).
+    /// </summary>
+    internal static readonly object EngineGate = new();
+
+    /// <summary>
     /// Converts one NodeSet into a CAEX 3.0 document holding the AML libraries
     /// of Annex A: the metamodel libraries and one ATL/ICL/RCL/SUC library per
     /// model, the model itself and everything it requires.
@@ -94,7 +104,8 @@ public static class NodeSetImporter
             var converter = new NodeSetToAML(manager);
             try
             {
-                using (ConversionIds.Use()) converter.CreateAML(fullPath, baseName);
+                lock (EngineGate)
+                    using (ConversionIds.Use()) converter.CreateAML(fullPath, baseName);
             }
             catch (ImportException)
             {
@@ -127,7 +138,7 @@ public static class NodeSetImporter
         using var copy = new MemoryStream();
         root.CopyTo(copy);
         copy.Position = 0;
-        return CAEXDocument.LoadFromStream(copy);
+        lock (EngineGate) return CAEXDocument.LoadFromStream(copy);
     }
 
     private static string SafeFileName(string name)
