@@ -56,6 +56,14 @@ public static class Program
             document already models (same NodeId, in --plan or anywhere) is linked
             to that planned element with refBaseObj, unless --no-link.
 
+        uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--secure] [--accept]
+            The server's namespaces, or the NodeSet of one of them: the file the
+            server publishes for it, else rebuilt by browsing its types (with
+            --instances also its objects; --browse ignores a published file).
+            -o writes it. --into imports it into a document (Annex A, saved to -o
+            or in place), with the models it requires that neither --search nor
+            the bundled NodeSets provide, fetched from the server too.
+
         uaaml snapshot [<endpoint>] <doc.aml> [--secure] [--accept] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
             an endpoint, from every server the document names as a data source.
@@ -116,6 +124,7 @@ public static class Program
                 "browse" => Run(BrowseCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
+                "nodeset" => Run(NodeSetCommand(rest)),
                 "serve" => Run(ServeCommand(rest)),
                 "diagram" => DiagramCommand(rest),
                 "upgrade" => UpgradeCommand(rest),
@@ -360,6 +369,47 @@ public static class Program
         foreach (var note in result.Notes) Console.Error.WriteLine("note: " + note);
         Documents.Save(doc, o.One("-o") ?? o.Positional[2]);
         Console.WriteLine($"{result.Nodes} node(s), {result.Typed} typed, {result.Linked} linked to the plan{(result.Truncated ? ", truncated" : "")}.");
+        return 0;
+    }
+
+    private static async Task<int> NodeSetCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o", "--into", "--search" }, flags: new[] { "--secure", "--accept", "--instances", "--browse" });
+        if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("nodeset needs an endpoint and optionally a namespace URI.");
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        if (o.Positional.Count == 1)
+        {
+            foreach (var ns in await OpcUaAml.Server.ServerNodeSets.ListAsync(client))
+                Console.WriteLine($"{ns.Index,3} {ns.Uri,-50} {ns.Version,-10} {ns.PublicationDate:yyyy-MM-dd} {(ns.HasFile ? "file" : "")}");
+            return 0;
+        }
+        var uri = o.Positional[1];
+        var options = new OpcUaAml.Server.ServerNodeSetOptions { IncludeInstances = o.Has("--instances"), PreferNamespaceFile = !o.Has("--browse") };
+        var into = o.One("--into");
+        var output = o.One("-o");
+        if (into == null)
+        {
+            if (output == null) throw new ArgumentException("Give -o <out.xml>, or --into <doc.aml> to import the types.");
+            var set = await OpcUaAml.Server.ServerNodeSets.FetchAsync(client, uri, options);
+            foreach (var note in set.Notes) Console.Error.WriteLine("note: " + note);
+            set.Document.Save(output);
+            Console.WriteLine($"{set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}, written to {Path.GetFullPath(output)}");
+            return 0;
+        }
+
+        var catalog = NodeSetCatalog.Create(o.All("--search"));
+        var folder = Path.Combine(Path.GetTempPath(), "uaaml-nodesets", Guid.NewGuid().ToString("N")[..8]);
+        var files = await OpcUaAml.Server.ServerNodeSets.FetchForImportAsync(client, uri, catalog, folder, options);
+        foreach (var set in files.NodeSets)
+        {
+            foreach (var note in set.Notes) Console.Error.WriteLine($"note ({set.ModelUri}): {note}");
+            Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
+        }
+        var doc = Documents.Load(into);
+        var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog);
+        foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
+        Documents.Save(doc, output ?? into);
+        Console.WriteLine(result.Summary);
         return 0;
     }
 
