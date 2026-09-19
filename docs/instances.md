@@ -9,8 +9,21 @@ creates an instance of a UA type the way an OPC UA server creates one:
 |---|---|
 | Mandatory, ExposesItsArray | always |
 | Optional | only if chosen (by path relative to the instance, e.g. `Identification/Manufacturer`) |
-| MandatoryPlaceholder, OptionalPlaceholder (`<Name>`) | never; concrete children are added by hand |
+| MandatoryPlaceholder, OptionalPlaceholder (`<Name>`) | the concrete children named for it (`--fill`, or in the dialog), else none |
 | none (not an instance declaration) | always |
+
+A placeholder's child is a copy of the placeholder's declaration, which Annex
+A writes with the whole structure of its type, renamed and linked to its
+owner the way the placeholder was; its own children follow the same rules.
+Given another type (a subtype of the placeholder's, for instance a concrete
+one for an abstract `<DeviceName>`), the child is an instance of that type and
+gets the placeholder's end of the link. The dialog offers the declared type
+and its concrete subtypes, and preselects a concrete one when the declared
+type is abstract.
+
+```bash
+uaaml instantiate plant.aml --type ConfigurableObjectType --name Modules     --fill "<ObjectIdentifier>=ModuleA,Firmware:SoftwareVersionType"
+```
 
 Annex A puts a child's rule on the child's end of the reference that attaches
 it to its parent (for instance the `ComponentOf` interface), which is where it

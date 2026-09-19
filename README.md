@@ -4,8 +4,9 @@ OPC UA information models in AutomationML.
 
 - Plugin for the AutomationML Editor that imports OPC UA NodeSets as AML
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A
-- Instances of UA types with their Mandatory children and chosen Optional
-  children, and a check of instances against their types
+- Instances of UA types with their Mandatory children, chosen Optional
+  children and named children for placeholders, and a check of instances
+  against their types
 - Running servers: browse, import the server's types (its published NodeSet,
   or rebuilt by browsing), take nodes into the document, bind, read and watch
   values, and serve the document itself as an OPC UA server
@@ -21,7 +22,7 @@ OPC UA information models in AutomationML.
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
 the OPC Foundation's reference implementation of Annex A, included as source
-with two documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
+with five documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
 
 The counterparts for the Formalised Process Description (VDI/VDE 3682) and for
 Petri nets are [AMLFPB.js](https://github.com/hsu-aut/AMLFPB.js) and
@@ -84,7 +85,8 @@ Editor and install the plugin from there. It opens as the tab "AMLOpcUa".
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
 - **New instance** creates an instance of a UA type: every Mandatory child,
-  the Optional children ticked in the dialog, no placeholders.
+  the Optional children ticked in the dialog, and for each placeholder the
+  children named there, of its type or a concrete subtype.
 - **Export** writes a NodeSet: the whole document by the AML-UA-XSLT rules,
   or one imported UA namespace back as the nodes it was (the inverse of
   Annex A, see [docs/export.md](docs/export.md)).
@@ -119,6 +121,7 @@ uaaml import  Opc.Ua.Machinery.NodeSet2.xml --into plant.aml
 uaaml compare machinery.aml Opc.Ua.Machinery.NodeSet2.xml.amlx --skeleton
 uaaml types   plant.aml --filter Machine
 uaaml instantiate plant.aml --type SoftwareVersionType --name Firmware --optional ReleaseDate
+uaaml instantiate plant.aml --type ConfigurableObjectType --name Modules --fill "<ObjectIdentifier>=ModuleA,ModuleB"
 uaaml check   plant.aml
 uaaml export  plant.aml -o plant.NodeSet2.xml
 uaaml export  machinery.aml -o Machinery.NodeSet2.xml --annex-a-inverse
