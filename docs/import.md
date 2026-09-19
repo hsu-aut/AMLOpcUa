@@ -57,6 +57,21 @@ The AutomationML base libraries are never replaced. IDs are kept as Opc2Aml
 wrote them, so a second import of a namespace produces the same IDs and
 references into the library stay valid.
 
+## Missing models and removing a namespace
+
+Before converting, the plugin checks that every model a NodeSet requires is
+in its folder, the NodeSet folders or the plugin's own folders (models from
+the modeler, the Cloud Library and servers). If not, a dialog names the
+missing models and offers to add a folder or to fetch them from the Cloud
+Library, then tries again.
+
+`NamespaceInspector` tells what a namespace contributes: ObjectTypes and
+VariableTypes (SUC_), DataTypes (ATL_, without the `ListOf` array types),
+ReferenceTypes (ICL_), the namespaces it builds on (any path of its libraries
+into another's) and the elements typed by it. `Remove` deletes its four
+libraries, and refuses while another namespace builds on it or an element
+uses its types. Checked with DI: 42, 2, 9 and 5, as its NodeSet declares.
+
 ## Verification
 
 `OracleTests` converts DI 1.04.0 with UA 1.05.05, the inputs the OPC Foundation
