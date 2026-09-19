@@ -250,7 +250,8 @@ public static class AddressSpaceMirror
     /// <summary>
     /// Elements that model a node, by NodeId: everything with an Annex A NodeId
     /// in the scope and outside the target container, except elements that are
-    /// aspects themselves (they carry a refBaseObj, as linked mirrors do).
+    /// aspects themselves (they carry a refBaseObj, as linked mirrors do) and
+    /// elements of a mirrored selection.
     /// </summary>
     private static Dictionary<UaNodeAddress, List<InternalElementType>> PlannedIndex(CAEXDocument doc,
         IInternalElementContainer target, IInternalElementContainer? scope)
@@ -266,7 +267,7 @@ public static class AddressSpaceMirror
         var index = new Dictionary<UaNodeAddress, List<InternalElementType>>();
         foreach (var ie in candidates)
         {
-            if (ie.Node.AncestorsAndSelf().Contains(excluded) || ObjectReferences.BaseOf(ie) != null) continue;
+            if (ie.Node.AncestorsAndSelf().Contains(excluded) || ObjectReferences.BaseOf(ie) != null || InMirror(ie)) continue;
             UaNodeAddress? address;
             try { address = AnnexANodeId.Of(ie); }
             catch (AddressingException) { continue; }
@@ -276,6 +277,14 @@ public static class AddressSpaceMirror
             list.Add(ie);
         }
         return index;
+    }
+
+    /// <summary>Whether an element is part of a selection mirrored earlier: that records the server, it plans nothing.</summary>
+    private static bool InMirror(InternalElementType ie)
+    {
+        for (CAEXBasicObject? o = ie; o is InternalElementType e; o = e.CAEXParent as CAEXBasicObject)
+            if (e.Attribute[MirrorSelection.AttributeName] != null) return true;
+        return false;
     }
 
     private static async Task ReadValues(UaClient client, State state, CancellationToken ct)

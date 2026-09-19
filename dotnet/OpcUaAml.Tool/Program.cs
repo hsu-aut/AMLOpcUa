@@ -50,11 +50,22 @@ public static class Program
         uaaml browse <endpoint> [<nsu=...;s=...>] [--secure] [--accept]
             Children of a node of a running server (Objects when omitted).
 
-        uaaml mirror <endpoint> <node> <doc.aml> [--hierarchy <name>] [--plan <hierarchy>] [--no-link] [--depth <n>] [--secure] [--accept] [-o <out.aml>]
-            Take the node and the nodes below it into the document, with NodeIds,
-            UA types (where the document holds them) and current values. A node the
-            document already models (same NodeId, in --plan or anywhere) is linked
-            to that planned element with refBaseObj, unless --no-link.
+        uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
+                     [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
+                     [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--secure] [--accept] [-o <out.aml>]
+            Take the nodes into the document below an element for the server, each
+            with the way to it from the Objects (or Views) folder, with NodeIds, UA
+            types (where the document holds them) and current values. --scope says
+            how much below each node (default subtree, --depth levels, 0 for all);
+            --instances-of takes every instance of the type below each node; --view
+            browses a View. Filters leave out properties, variables, other
+            namespaces; the Server object is left out unless --show-server.
+            Without nodes, the selection kept in the hierarchy is mirrored again.
+            A part mirrored before is updated in place, or with --copy mirrored
+            into a new hierarchy; nodes the server no longer has are reported.
+            --preview only counts. A node the document already models (same NodeId,
+            in --plan or anywhere) is linked to that planned element with
+            refBaseObj, unless --no-link.
 
         uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--secure] [--accept]
             The server's namespaces, or the NodeSet of one of them: the file the
@@ -352,23 +363,71 @@ public static class Program
 
     private static async Task<int> MirrorCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--hierarchy", "--plan", "--depth", "-o" }, flags: new[] { "--secure", "--accept", "--no-link" });
-        if (o.Positional.Count != 3) throw new ArgumentException("mirror needs an endpoint, a node and a document.");
-        var doc = Documents.Load(o.Positional[2]);
+        var o = Options.Parse(args,
+            valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude" },
+            flags: new[] { "--secure", "--accept", "--no-link", "--skip-properties", "--objects-only", "--show-server", "--copy", "--preview" });
+        if (o.Positional.Count < 2) throw new ArgumentException("mirror needs an endpoint and a document, and the nodes to take.");
+        var docPath = o.Positional[^1];
+        var doc = Documents.Load(docPath);
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
-        var address = OpcUaAml.Addressing.UaNodeAddress.Parse(o.Positional[1], client.NamespaceTable);
-        var start = new OpcUaAml.Server.UaBrowseItem(address, address.Identifier, address.Identifier, "Object", null, "Organizes");
+        var table = client.NamespaceTable;
         var ihName = o.One("--hierarchy") ?? "OpcUaServer";
-        var ih = doc.CAEXFile.InstanceHierarchy[ihName] ?? doc.CAEXFile.InstanceHierarchy.Append(ihName);
-        var depth = int.TryParse(o.One("--depth"), out var d) ? d : 3;
+        var ih = doc.CAEXFile.InstanceHierarchy[ihName];
+
+        OpcUaAml.Server.MirrorSelection selection;
+        var nodes = o.Positional.Skip(1).Take(o.Positional.Count - 2).ToList();
+        if (nodes.Count == 0)
+        {
+            var server = ih == null ? null : OpcUaAml.Server.AddressSpaceMirror.MirroredServer(ih, client);
+            selection = (server == null ? null : OpcUaAml.Server.MirrorSelection.ReadFrom(server))
+                ?? throw new ArgumentException($"No nodes given, and '{ihName}' keeps no selection for this server.");
+        }
+        else
+        {
+            var view = o.One("--view") is { } v ? OpcUaAml.Addressing.UaNodeAddress.Parse(v, table) : null;
+            var type = o.One("--instances-of") is { } t ? OpcUaAml.Addressing.UaNodeAddress.Parse(t, table) : null;
+            var scope = type != null ? OpcUaAml.Server.MirrorScope.InstancesOf
+                : Enum.Parse<OpcUaAml.Server.MirrorScope>(o.One("--scope") ?? "subtree", ignoreCase: true);
+            selection = new OpcUaAml.Server.MirrorSelection
+            {
+                Items = nodes.Select(n => new OpcUaAml.Server.MirrorItem(OpcUaAml.Addressing.UaNodeAddress.Parse(n, table), scope, type, view)).ToList(),
+                Depth = int.TryParse(o.One("--depth"), out var d) ? d : 3,
+                Filter = new OpcUaAml.Server.MirrorFilter
+                {
+                    SkipProperties = o.Has("--skip-properties"),
+                    ObjectsOnly = o.Has("--objects-only"),
+                    HideServer = !o.Has("--show-server"),
+                    Namespaces = o.All("--namespace").ToList(),
+                },
+                Excluded = o.All("--exclude").Select(x => OpcUaAml.Addressing.UaNodeAddress.Parse(x, table)).ToHashSet(),
+            };
+        }
+
+        if (o.Has("--preview"))
+        {
+            var (count, truncated) = await OpcUaAml.Server.AddressSpaceMirror.PreviewAsync(client, selection);
+            Console.WriteLine($"{count} element(s){(truncated ? ", stopped at the node limit" : "")}.");
+            return 0;
+        }
+
+        if (ih != null && o.Has("--copy") && OpcUaAml.Server.AddressSpaceMirror.MirroredServer(ih, client) != null)
+        {
+            var n = 2;
+            while (doc.CAEXFile.InstanceHierarchy[$"{ihName}_{n}"] != null) n++;
+            ih = null;
+            ihName = $"{ihName}_{n}";
+        }
+        ih ??= doc.CAEXFile.InstanceHierarchy.Append(ihName);
         var plan = o.One("--plan") is { } planName
             ? doc.CAEXFile.InstanceHierarchy[planName] ?? throw new ArgumentException($"No InstanceHierarchy '{planName}'.")
             : null;
-        var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorAsync(client, start, ih,
-            new OpcUaAml.Server.MirrorOptions { Depth = depth, PlannedIn = plan, LinkToPlanned = !o.Has("--no-link") });
+        var result = await OpcUaAml.Server.AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
+            new OpcUaAml.Server.MirrorOptions { PlannedIn = plan, LinkToPlanned = !o.Has("--no-link") });
         foreach (var note in result.Notes) Console.Error.WriteLine("note: " + note);
-        Documents.Save(doc, o.One("-o") ?? o.Positional[2]);
-        Console.WriteLine($"{result.Nodes} node(s), {result.Typed} typed, {result.Linked} linked to the plan{(result.Truncated ? ", truncated" : "")}.");
+        foreach (var gone in result.Vanished) Console.Error.WriteLine("not on the server: " + gone);
+        Documents.Save(doc, o.One("-o") ?? docPath);
+        Console.WriteLine($"{ih.Name}: {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed, "
+                          + $"{result.Linked} linked to the plan{(result.Truncated ? ", stopped at the node limit" : "")}.");
         return 0;
     }
 

@@ -152,4 +152,16 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         Assert.Equal(new[] { "Views", "Views/Maintenance", "Views/Maintenance/Motor", "Views/Maintenance/Motor/Samples", "Views/Maintenance/Motor/Temperature" },
             Paths(result.Server));
     }
+
+    [Fact]
+    public async Task A_second_copy_does_not_take_the_first_for_a_plan()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1.Motor"), MirrorScope.Node) } };
+
+        await AddressSpaceMirror.MirrorSelectionAsync(client, selection, di.Hierarchy("First"));
+        var copy = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, di.Hierarchy("Copy"));
+
+        Assert.Equal(0, copy.Linked);
+    }
 }
