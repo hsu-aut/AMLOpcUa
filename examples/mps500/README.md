@@ -1,4 +1,4 @@
-# A plant to connect to: the MPS 500
+﻿# A plant to connect to: the MPS 500
 
 `MPS500.NodeSet2.xml` is the information model of the MPS 500 learning factory
 of the Helmut Schmidt University, as an OPC UA server of that plant would hold
@@ -31,17 +31,18 @@ uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml --simulate
 ```
 
 DI is loaded before it, because the model requires it. The server listens on
-`opc.tcp://127.0.0.1:48410/AMLOpcUa`, offers both models as the NamespaceFile
-of their namespace metadata, and with `--simulate` lets the values move.
+`opc.tcp://127.0.0.1:4840/AMLOpcUa`, the port OPC UA is registered for, offers
+both models as the NamespaceFile of their namespace metadata, and with
+`--simulate` lets the values move.
 
 Then, in the plugin or on the command line:
 
 ```bash
 # The model, from the server itself, into a document as AML libraries
-uaaml nodeset opc.tcp://127.0.0.1:48410/AMLOpcUa http://hsu-hh.de/UA/MPS500/ --into plant.aml --insecure --accept
+uaaml nodeset opc.tcp://127.0.0.1:4840/AMLOpcUa http://hsu-hh.de/UA/MPS500/ --into plant.aml --insecure --accept
 
 # The running plant into the same document, with types and current values
-uaaml mirror opc.tcp://127.0.0.1:48410/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;i=1041" plant.aml --insecure --accept
+uaaml mirror opc.tcp://127.0.0.1:4840/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;i=1041" plant.aml --insecure --accept
 ```
 
 `--insecure` and `--accept` are for a server on this computer whose

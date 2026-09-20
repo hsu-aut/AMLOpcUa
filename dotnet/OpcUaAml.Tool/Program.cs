@@ -104,7 +104,8 @@ public static class Program
             not trusted blindly).
 
         uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]...
-            Serve a NodeSet with its types as an OPC UA server until Enter: the
+            Serve a NodeSet with its types as an OPC UA server until Enter, on
+            the port OPC UA is registered for (4840): the
             plant that does not exist yet, or a companion specification to try a
             client against. The models it requires are loaded first, from the
             bundled NodeSets and the folders searched. Each model is offered as
@@ -691,7 +692,7 @@ public static class Program
             // structure of an AML document.
             var options = new OpcUaAml.Server.NodeSetServerOptions
             {
-                Port = int.TryParse(o.One("--port"), out var np) ? np : 48410,
+                Port = int.TryParse(o.One("--port"), out var np) ? np : 4840,
                 Network = network,
                 Simulate = o.Has("--simulate"),
                 PublishNodeSets = !o.Has("--no-publish"),

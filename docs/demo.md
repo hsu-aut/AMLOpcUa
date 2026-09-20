@@ -76,7 +76,7 @@ uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml --simulate
 It answers with the models it serves, the endpoint and the number of nodes.
 Say the sentence that matters: from here on nothing knows this is not a plant.
 
-1. **Connect** in the Server tab to `opc.tcp://127.0.0.1:48410/AMLOpcUa`. The
+1. **Connect** in the Server tab to `opc.tcp://127.0.0.1:4840/AMLOpcUa`. The
    certificate is unknown, so the plugin shows it and asks; trust it once, and
    say that a plant would be the same dialog.
 2. **Types of the server…**: the namespaces appear, `http://hsu-hh.de/UA/MPS500/`
@@ -98,8 +98,8 @@ Say the sentence that matters: from here on nothing knows this is not a plant.
 *Fallback:* the same four steps on the command line, which needs no editor:
 
 ```bash
-uaaml nodeset opc.tcp://127.0.0.1:48410/AMLOpcUa http://hsu-hh.de/UA/MPS500/ --into plant.aml --insecure --accept
-uaaml mirror opc.tcp://127.0.0.1:48410/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;i=1041" plant.aml --insecure --accept
+uaaml nodeset opc.tcp://127.0.0.1:4840/AMLOpcUa http://hsu-hh.de/UA/MPS500/ --into plant.aml --insecure --accept
+uaaml mirror opc.tcp://127.0.0.1:4840/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;i=1041" plant.aml --insecure --accept
 ```
 
 ## 5. Companion specifications without an account (1 min)

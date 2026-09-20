@@ -257,8 +257,11 @@ not exist yet, or a companion specification to try a client against.
   the metadata, with the version and publication date the model declares.
   `--no-publish` leaves the file out, and the client rebuilds the NodeSet by
   browsing, which is the other way of that dialog.
-- `--simulate` moves the values as the document server does, and `--network`,
-  `--port` and the security work the same way.
+- It listens on 4840, the port OPC UA is registered for, because it stands in
+  for a real server of that model; the document server keeps 48400, so both
+  can run at once. `--port` says otherwise.
+- `--simulate` moves the values as the document server does, and `--network`
+  and the security work the same way.
 
 `examples/mps500` holds such a plant: the MPS 500 learning factory on DI, with
 stations, modules, devices and a state machine per station. Its README walks

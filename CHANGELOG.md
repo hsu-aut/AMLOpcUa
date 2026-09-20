@@ -30,6 +30,10 @@ minor versions.
 
 ### Fixed
 
+- A state chart drew the way there and the way back as one line, so one arrow
+  and one name covered the other. Every transition of a pair now gets a bow
+  and a place of its own, in the plugin and in the modeler
+  (`docs/diagram.md`).
 - A state machine of a type whose name carries an underscore kept its states
   and transitions but none of their ends: the path of a declaration was joined
   with `_` and split on `_` again (Opc2Aml patch 0009). Measured on Machinery,

@@ -1,4 +1,4 @@
-// An OPC UA server whose address space is a NodeSet file: the model of a
+﻿// An OPC UA server whose address space is a NodeSet file: the model of a
 // plant that does not exist yet, or a companion specification to try a client
 // against. Where AmlServerHost serves the structure of an AML document, this
 // one serves a model with its types, so a client sees what a real server of
@@ -20,8 +20,13 @@ namespace OpcUaAml.Server;
 
 public sealed class NodeSetServerOptions
 {
-    /// <summary>Another port than the document server's, so both can run at once.</summary>
-    public int Port { get; init; } = 48410;
+    /// <summary>
+    /// The port OPC UA is registered for (IANA, opc.tcp). A server of a model
+    /// stands in for a real one, so it listens where a real one does; the
+    /// document server keeps 48400, and both can run at once. A port already
+    /// taken is named in the error the stack throws.
+    /// </summary>
+    public int Port { get; init; } = 4840;
 
     /// <summary>Where the server keeps its certificate.</summary>
     public string PkiRoot { get; init; } = Path.Combine(
