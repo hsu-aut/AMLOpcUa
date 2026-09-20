@@ -98,6 +98,15 @@ public static class Program
             (--accept then needs an endpoint: the servers a document names are
             not trusted blindly).
 
+        uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]...
+            Serve a NodeSet with its types as an OPC UA server until Enter: the
+            plant that does not exist yet, or a companion specification to try a
+            client against. The models it requires are loaded first, from the
+            bundled NodeSets and the folders searched. Each model is offered as
+            the NamespaceFile of its namespace metadata, so a client can fetch
+            the NodeSet from the server ('uaaml nodeset'); --no-publish leaves
+            that out, and the client rebuilds it by browsing.
+
         uaaml serve <doc.aml> [--port <n>] [--network] [--simulate]
             Serve the document's instance hierarchies as an OPC UA server until Enter,
             to this computer only. --network offers it to other computers: secured
@@ -638,14 +647,38 @@ public static class Program
 
     private static async Task<int> ServeCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--port" }, flags: new[] { "--network", "--simulate" });
+        var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search" },
+            flags: new[] { "--network", "--simulate", "--no-publish" });
+        var network = o.Has("--network");
+        var nodeSets = o.All("--nodeset");
+        var where = network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.";
+
+        if (nodeSets.Count > 0)
+        {
+            // A NodeSet is served with its types, so a client sees what a real
+            // server of that model would show; the document server serves the
+            // structure of an AML document.
+            var options = new OpcUaAml.Server.NodeSetServerOptions
+            {
+                Port = int.TryParse(o.One("--port"), out var np) ? np : 48410,
+                Network = network,
+                Simulate = o.Has("--simulate"),
+                PublishNodeSets = !o.Has("--no-publish"),
+                Folders = o.All("--search"),
+            };
+            await using var plant = await OpcUaAml.Server.NodeSetServerHost.StartAsync(nodeSets, options);
+            Console.WriteLine($"Serving {plant.Nodes} node(s) of {string.Join(", ", plant.Served)} at {plant.EndpointUrl}"
+                              + where
+                              + (options.PublishNodeSets ? " Each model is offered as its NamespaceFile." : "")
+                              + " Press Enter to stop.");
+            Console.ReadLine();
+            return 0;
+        }
+
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
-        var network = o.Has("--network");
         await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate") });
-        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}"
-                          + (network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.")
-                          + " Press Enter to stop.");
+        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + " Press Enter to stop.");
         Console.ReadLine();
         return 0;
     }

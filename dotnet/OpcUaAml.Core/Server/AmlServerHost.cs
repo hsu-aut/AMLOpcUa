@@ -1,4 +1,4 @@
-// An OPC UA server whose address space is the instance hierarchies of an AML
+﻿// An OPC UA server whose address space is the instance hierarchies of an AML
 // document, so that clients can be tested against the engineering model
 // before the plant exists.
 //
@@ -142,36 +142,9 @@ public sealed class AmlServerHost : IAsyncDisposable
     {
         options ??= new AmlServerOptions();
         var model = AmlAddressSpace.From(document, options.DocumentNamespace);
-        // The stack listens on every address for a host name, on that address alone for an IP address.
-        var host = options.Network ? System.Net.Dns.GetHostName() : "127.0.0.1";
-        var url = $"opc.tcp://{host}:{options.Port}/AMLOpcUa";
-
-        var app = new ApplicationInstance { ApplicationName = "AMLOpcUa document server", ApplicationType = ApplicationType.Server };
-        var builder = app.Build("urn:" + System.Net.Dns.GetHostName() + ":AMLOpcUa:DocumentServer", "uri:hsu-aut:AMLOpcUa")
-            .AsServer(new[] { url });
-        var withPolicies = options.Network
-            ? builder.AddSignAndEncryptPolicies()
-            : builder.AddUnsecurePolicyNone().AddSignAndEncryptPolicies();
-        await withPolicies
-            .AddSecurityConfiguration("CN=AMLOpcUa document server", options.PkiRoot)
-            .SetAutoAcceptUntrustedCertificates(!options.Network)
-            .CreateAsync(ct).ConfigureAwait(false);
-        var replaced = false;
-        try
-        {
-            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // The certificate names the addresses it was made for (the computer's name, or
-            // 127.0.0.1); served under another, the stack refuses it. It is the server's own,
-            // so a new one is made. Clients that trusted the old one are asked again.
-            foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(options.PkiRoot, "own", f)).Where(Directory.Exists))
-                foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
-            app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
-            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
-            replaced = true;
-        }
+        var (app, url, replaced) = await ServerStartup.PrepareAsync(
+            "AMLOpcUa document server", "DocumentServer", "CN=AMLOpcUa document server",
+            options.Port, options.Network, options.PkiRoot, ct).ConfigureAwait(false);
 
         var server = new DocumentServer(model, options.Simulate);
         try
@@ -289,7 +262,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     var phase = i++ * 0.7;
                     _middle.TryGetValue(state, out var middle);
-                    var next = Simulated(state.DataType, middle, seconds, phase);
+                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase);
                     if (next == null || Equals(next, state.Value)) continue;
                     state.Value = next;
                     state.StatusCode = StatusCodes.Good;
@@ -297,26 +270,6 @@ public sealed class AmlServerHost : IAsyncDisposable
                     state.ClearChangeMasks(SystemContext, false);
                 }
             }
-        }
-
-        internal static object? Simulated(NodeId dataType, object? middle, double seconds, double phase)
-        {
-            if (dataType == DataTypeIds.Boolean)
-                return ((int)((seconds + phase * 3) / 5)) % 2 == 0 ? middle as bool? ?? false : !(middle as bool? ?? false);
-            double center;
-            try { center = middle == null ? 0 : Convert.ToDouble(middle, CultureInfo.InvariantCulture); }
-            catch (Exception ex) when (ex is InvalidCastException or FormatException) { return null; }
-            var amplitude = center == 0 ? 10 : Math.Abs(center) * 0.2;
-            var x = center + amplitude * Math.Sin(2 * Math.PI * seconds / 30 + phase);
-            if (dataType == DataTypeIds.Double) return Math.Round(x, 3);
-            if (dataType == DataTypeIds.Float) return (float)Math.Round(x, 3);
-            if (dataType == DataTypeIds.Int16) return (short)Math.Clamp(Math.Round(x), short.MinValue, short.MaxValue);
-            if (dataType == DataTypeIds.Int32) return (int)Math.Clamp(Math.Round(x), int.MinValue, int.MaxValue);
-            if (dataType == DataTypeIds.Int64) return (long)Math.Round(x);
-            if (dataType == DataTypeIds.UInt16) return (ushort)Math.Clamp(Math.Round(x), 0, ushort.MaxValue);
-            if (dataType == DataTypeIds.UInt32) return (uint)Math.Clamp(Math.Round(x), 0, uint.MaxValue);
-            if (dataType == DataTypeIds.Byte) return (byte)Math.Clamp(Math.Round(x), 0, byte.MaxValue);
-            return null;
         }
 
         /// <summary>The values of the served variables from their elements again; the number that changed.</summary>

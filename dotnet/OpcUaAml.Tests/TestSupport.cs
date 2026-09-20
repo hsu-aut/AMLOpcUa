@@ -1,4 +1,4 @@
-using OpcUaAml.Import;
+﻿using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 
 // Opc2Aml and Aml.Engine are not built for concurrent use, and a conversion
@@ -7,6 +7,20 @@ using OpcUaAml.NodeSets;
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace OpcUaAml.Tests;
+
+/// <summary>The repository the tests run from, for files beside the code (examples).</summary>
+internal static class Repository
+{
+    public static string Root
+    {
+        get
+        {
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && !File.Exists(System.IO.Path.Combine(dir.FullName, "AMLOpcUa.sln"))) dir = dir.Parent;
+            return dir?.FullName ?? throw new DirectoryNotFoundException("The repository root was not found above the test assembly.");
+        }
+    }
+}
 
 internal static class Fixtures
 {
