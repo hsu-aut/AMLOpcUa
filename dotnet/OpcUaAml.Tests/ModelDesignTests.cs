@@ -174,6 +174,40 @@ public class ModelDesignTests
         }
     }
 
+    /// <summary>
+    /// A finite state machine, the way the modeler writes one (OPC 10000-5
+    /// Annex B): its states and transitions are children with a type
+    /// definition, their numbers are properties of the UA namespace, and the
+    /// ends of a transition are references between them. All of it has to
+    /// arrive in the design, or the machine is gone after a compile.
+    /// </summary>
+    [Fact]
+    public void A_state_machine_keeps_its_states_transitions_and_ends()
+    {
+        var result = ModelDesignWriter.FromFile(Fixtures.Path("modeldesign", "Machine.NodeSet2.xml"));
+        var machine = result.Design.Root!.Elements(Opc + "ObjectType")
+            .Single(t => (string?)t.Attribute("SymbolicName") == "PumpStateMachineType");
+        var children = machine.Element(Opc + "Children")!;
+
+        Assert.Equal("ua:FiniteStateMachineType", (string?)machine.Attribute("BaseType"));
+        var idle = children.Elements(Opc + "Object").Single(o => (string?)o.Attribute("SymbolicName") == "Idle");
+        Assert.Equal("ua:StateType", (string?)idle.Attribute("TypeDefinition"));
+        Assert.Equal("ua:StateNumber", (string?)idle.Element(Opc + "Children")!.Elements().Single().Attribute("SymbolicName"));
+
+        var transition = children.Elements(Opc + "Object").Single(o => (string?)o.Attribute("SymbolicName") == "IdleToRunning");
+        Assert.Equal("ua:TransitionType", (string?)transition.Attribute("TypeDefinition"));
+        var ends = transition.Element(Opc + "References")!.Elements(Opc + "Reference")
+            .ToDictionary(r => r.Element(Opc + "ReferenceType")!.Value, r => r.Element(Opc + "TargetId")!.Value);
+        // A reference names its target by the symbolic id, the path through its parents.
+        Assert.Equal("PumpStateMachineType_Idle", ends["ua:FromState"]);
+        Assert.Equal("PumpStateMachineType_Running", ends["ua:ToState"]);
+        Assert.Equal("PumpStateMachineType_Start", ends["ua:HasCause"]);
+
+        var identifiers = result.Identifiers.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).ToList();
+        Assert.Contains("PumpStateMachineType_Idle_StateNumber,1005,Variable", identifiers);
+        Assert.Contains("PumpStateMachineType_IdleToRunning_TransitionNumber,1011,Variable", identifiers);
+    }
+
     [Fact]
     public async Task Names_a_design_that_does_not_exist()
     {

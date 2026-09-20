@@ -93,7 +93,9 @@ numbers itself.
 | Companion specifications measured | 34 | `uaaml roundtrip --inverse`, docs/roundtrip.md |
 | Facts surviving UA → AML → UA | 94.9 % | same run |
 | Lost on the way back (our side) | 0.17 % | same run; the rest is Annex A |
-| DI through ModelDesign and back | 414 of 447 nodes identical | docs/modeldesign.md |
+| DI through ModelDesign and back | 417 of 447 nodes identical | docs/modeldesign.md |
+| A state machine through ModelDesign and back | 16 of 16 nodes identical | docs/modeldesign.md |
+| The same machine through AutomationML and back | every node, defaults aside | `uaaml compare` |
 | Opc2Aml defects found and patched | 4 of 8 patches | third_party/Opc2Aml/UPSTREAM.md |
 | Rules on a NodeSet in the modeler | M001 to M021 | src/nodeset/checks.ts |
 | Cold conversion of DI, then cached | 15 s, then 0.7 s | conversion cache |

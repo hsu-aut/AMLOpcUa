@@ -98,6 +98,14 @@ manages itself and numbers itself: the namespace metadata object with its
 properties, the two type dictionaries with their descriptions, and the JSON
 encodings, which this version of the compiler does not write.
 
+A model of the size a companion specification starts at comes back whole. A
+state machine written in the modeler (OPC 10000-5 Annex B: three states, three
+transitions, their numbers, FromState, ToState and HasCause) goes out as a
+design and comes back as **16 of 16 nodes identical**, references included.
+The same model through AutomationML and back (Annex A in, its inverse out)
+keeps every node too; what differs there are attributes at their default
+(ValueRank -1, DataType BaseDataType) and the aliases of the file.
+
 One loss is the compiler's own: the arguments of a method are in the design and
 in the code it generates, but the NodeSet it writes carries InputArguments and
 OutputArguments as a node without a value. A NodeSet that goes in as a NodeSet
