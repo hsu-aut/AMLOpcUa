@@ -1,4 +1,4 @@
-// The "Diagram" tab: a UA type or instance in the notation of OPC 10000-3,
+﻿// The "Diagram" tab: a UA type or instance in the notation of OPC 10000-3,
 // drawn with WPF shapes from the same layout the SVG export uses.
 
 using System.IO;
@@ -148,7 +148,7 @@ public partial class OpcUaPlugin
         foreach (var edge in d.Edges)
         {
             if (!byId.TryGetValue(edge.From, out var a) || !byId.TryGetValue(edge.To, out var b)) continue;
-            // The notation of OPC 10000-3 Annex C, as InfoModel.js and the SVG export draw it.
+            // The notation of OPC 10000-3 Annex C, as NodeSet.js and the SVG export draw it.
             (double X, double Y)[] points;
             double lx, ly;
             if (edge.Hierarchical)

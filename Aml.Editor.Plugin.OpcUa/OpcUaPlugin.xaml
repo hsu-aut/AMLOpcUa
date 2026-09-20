@@ -1,4 +1,4 @@
-<aml:PluginViewBase
+﻿<aml:PluginViewBase
     x:Class="Aml.Editor.Plugin.OpcUa.OpcUaPlugin"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -734,7 +734,7 @@
                 </DockPanel>
             </TabItem>
 
-            <!-- ── Modeler: InfoModel.js in WebView2 ───────────────────────── -->
+            <!-- ── Modeler: NodeSet.js in WebView2 ─────────────────────────── -->
             <TabItem Header="Modeler" x:Name="ModelerTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">

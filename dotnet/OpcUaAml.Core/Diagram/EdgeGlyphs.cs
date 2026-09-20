@@ -1,5 +1,5 @@
-// The reference notation of OPC 10000-3 Annex C (Table C.2), as small shapes
-// at the ends of a line, the same InfoModel.js draws: HasComponent one stroke
+﻿// The reference notation of OPC 10000-3 Annex C (Table C.2), as small shapes
+// at the ends of a line, the same NodeSet.js draws: HasComponent one stroke
 // across the line, HasProperty two, HasTypeDefinition two filled heads,
 // HasSubtype two hollow heads at the supertype's end, other hierarchical
 // references an open head, non-hierarchical ones a filled head, symmetric ones

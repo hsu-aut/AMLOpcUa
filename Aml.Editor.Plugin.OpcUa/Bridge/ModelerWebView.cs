@@ -1,6 +1,6 @@
-// Hosts the graphical modeler (InfoModel.js) in a WebView2 control.
+﻿// Hosts the graphical modeler (NodeSet.js) in a WebView2 control.
 //
-// The modeler's web build ships in the plugin folder (infomodel-assets) and is
+// The modeler's web build ships in the plugin folder (modeler-assets) and is
 // served under a virtual host. Messages are JSON: the plugin sends a NodeSet
 // to edit or asks for a new model, the page answers "ready" once it listens,
 // "apply" with the NodeSet when the user takes it into the document and "save"
@@ -22,7 +22,7 @@ namespace Aml.Editor.Plugin.OpcUa.Bridge;
 
 public sealed class ModelerWebView : IDisposable
 {
-    private const string VirtualHost = "infomodel.local";
+    private const string VirtualHost = "nodeset.local";
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
     private readonly WebView2 _view;
@@ -178,7 +178,7 @@ public sealed class ModelerWebView : IDisposable
     {
         var location = typeof(ModelerWebView).Assembly.Location;
         var dir = string.IsNullOrEmpty(location) ? AppContext.BaseDirectory : Path.GetDirectoryName(location)!;
-        return Path.Combine(dir, "infomodel-assets");
+        return Path.Combine(dir, "modeler-assets");
     }
 
     public void Dispose()

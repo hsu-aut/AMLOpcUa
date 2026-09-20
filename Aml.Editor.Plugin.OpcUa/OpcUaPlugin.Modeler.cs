@@ -1,4 +1,4 @@
-// The Modeler tab: the graphical modeler (InfoModel.js) in a WebView2 control.
+﻿// The Modeler tab: the graphical modeler (NodeSet.js) in a WebView2 control.
 //
 // It edits NodeSets, not the document: "Edit" opens the NodeSet a namespace
 // of the document was imported from, "New model" starts an empty one, and the

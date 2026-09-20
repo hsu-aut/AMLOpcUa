@@ -1,13 +1,13 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using OpcUaAml.Types;
 using Xunit.Abstractions;
 
 namespace OpcUaAml.Tests;
 
 /// <summary>
-/// Cases shared with InfoModel.js, which implements instantiation a second
+/// Cases shared with NodeSet.js, which implements instantiation a second
 /// time in TypeScript: for DI types and chosen Optional children, which
-/// children a new instance gets. The file lives in InfoModel.js
+/// children a new instance gets. The file lives in NodeSet.js
 /// (tests/shared/instantiation.json) and both test suites read it, so the two
 /// implementations cannot drift apart unnoticed.
 /// </summary>
@@ -22,7 +22,7 @@ public class SharedCasesTests(DiDocument di, ITestOutputHelper output) : IClassF
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
         {
             if (!File.Exists(Path.Combine(dir.FullName, "AMLOpcUa.sln"))) continue;
-            return new[] { "InfoModel.js", "UaModeler.js" }
+            return new[] { "NodeSet.js", "InfoModel.js", "UaModeler.js" }
                 .Select(name => Path.Combine(dir.Parent!.FullName, name, "tests", "shared", "instantiation.json"))
                 .FirstOrDefault(File.Exists);
         }
@@ -30,12 +30,12 @@ public class SharedCasesTests(DiDocument di, ITestOutputHelper output) : IClassF
     }
 
     [Fact]
-    public void Instances_get_the_same_children_as_in_InfoModel_js()
+    public void Instances_get_the_same_children_as_in_NodeSet_js()
     {
         var file = SharedFile();
         if (file == null)
         {
-            output.WriteLine("InfoModel.js is not next to this repository; the shared cases were not checked.");
+            output.WriteLine("NodeSet.js is not next to this repository; the shared cases were not checked.");
             return;
         }
         var cases = JsonSerializer.Deserialize<Cases>(File.ReadAllText(file), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
@@ -55,7 +55,7 @@ public class SharedCasesTests(DiDocument di, ITestOutputHelper output) : IClassF
             var onlyHere = here.Except(there).ToList();
             var onlyThere = there.Except(here).ToList();
             if (onlyHere.Count + onlyThere.Count > 0)
-                differences.Add($"{c.Type} [{string.Join(",", c.Optional)}]: only AMLOpcUa {string.Join(", ", onlyHere)}; only InfoModel.js {string.Join(", ", onlyThere)}");
+                differences.Add($"{c.Type} [{string.Join(",", c.Optional)}]: only AMLOpcUa {string.Join(", ", onlyHere)}; only NodeSet.js {string.Join(", ", onlyThere)}");
         }
         Assert.True(differences.Count == 0, string.Join("\n", differences));
     }

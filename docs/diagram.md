@@ -1,4 +1,4 @@
-# Diagram
+﻿# Diagram
 
 The "Diagram" tab draws a UA type or an instance of one; **Export SVG** writes
 the same picture as SVG. Picking an entry draws it (Enter in the search box
@@ -25,7 +25,7 @@ Ctrl + mouse wheel zoom.
 Shapes follow the node classes of OPC 10000-3: Object a rectangle, Variable a
 rounded rectangle, Method an ellipse, ObjectType and VariableType the same
 shapes shaded. References use the notation of OPC 10000-3 Annex C, as
-InfoModel.js draws it (`EdgeGlyphs`): HasComponent one stroke across the line,
+NodeSet.js draws it (`EdgeGlyphs`): HasComponent one stroke across the line,
 HasProperty two, HasTypeDefinition two filled heads, HasSubtype two hollow
 heads at the supertype, other hierarchical references an open head,
 non-hierarchical ones a filled head, symmetric ones a filled head at both

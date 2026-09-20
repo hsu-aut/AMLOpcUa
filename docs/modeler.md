@@ -1,7 +1,7 @@
-# Modeler
+﻿# Modeler
 
 The Modeler tab hosts the graphical modeler
-[InfoModel.js](../../InfoModel.js) in a WebView2 control. It
+[NodeSet.js](../../NodeSet.js) in a WebView2 control. It
 draws OPC UA types and instances in the notation of OPC 10000-3 Annex C and
 edits NodeSet2 files: types, instance declarations with ModellingRules,
 method arguments, structure and union fields, enumeration values and
@@ -32,9 +32,9 @@ through the document.
 
 ## How it is built
 
-- `Bridge/ModelerWebView.cs` hosts the page. The web build of InfoModel.js
+- `Bridge/ModelerWebView.cs` hosts the page. The web build of NodeSet.js
   (`npm run build`, `dist/web`) ships in the plugin folder as
-  `infomodel-assets` and is served under the virtual host `infomodel.local`.
+  `modeler-assets` and is served under the virtual host `nodeset.local`.
   WebView2 keeps its profile in `%LOCALAPPDATA%\AMLOpcUa\WebView2`.
 - Messages are JSON. The plugin sends `open` (a NodeSet and the NodeSets it
   requires) or `new`; the page answers `ready` when it listens, `dirty`,
@@ -43,14 +43,14 @@ through the document.
   (`ok` and a text). A message sent before `ready` waits; a reload or a
   crashed renderer puts the bridge back into waiting.
 - The control shows the modeler and nothing else: navigation to anything but
-  `https://infomodel.local/` and new windows are refused, messages count only
+  `https://nodeset.local/` and new windows are refused, messages count only
   from that origin (whatever sends `apply` writes into the document), and the
   developer tools are off in a release build. A failed start of WebView2 is
   tried again when the tab is shown again.
 - After `ready` the plugin sends `theme` with the editor's light or dark
   theme, again when the plugin becomes visible; the page's chrome follows,
   the canvas stays white. Standalone, the page follows the system setting.
-- The build fails with a message when `dist/web` of InfoModel.js is missing.
+- The build fails with a message when `dist/web` of NodeSet.js is missing.
   `WebView2Loader.dll` is staged under `obj/bundled` and packed next to the
   plugin's assemblies, because NuGet drops files from `runtimes/*/native`.
 

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0-windows7.0</TargetFramework>
@@ -37,7 +37,7 @@
     <PackageReference Include="Aml.Skins" Version="2.2.0">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <!-- Hosts the graphical modeler (InfoModel.js). Bundled with the plugin
+    <!-- Hosts the graphical modeler (NodeSet.js). Bundled with the plugin
          like the other runtime dependencies, not a NuGet dependency. -->
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" GeneratePathProperty="true">
       <PrivateAssets>all</PrivateAssets>
@@ -46,13 +46,13 @@
 
   <!-- The modeler's web build, served to WebView2 from the plugin folder. -->
   <PropertyGroup>
-    <InfoModelDist>$(MSBuildThisFileDirectory)..\..\InfoModel.js\dist\web</InfoModelDist>
+    <NodeSetDist>$(MSBuildThisFileDirectory)..\..\NodeSet.js\dist\web</NodeSetDist>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="$(InfoModelDist)\**\*"
-          Link="infomodel-assets\%(RecursiveDir)%(Filename)%(Extension)"
+    <None Include="$(NodeSetDist)\**\*"
+          Link="modeler-assets\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" Visible="false"
-          Pack="true" PackagePath="lib\$(TargetFramework)\infomodel-assets\%(RecursiveDir)%(Filename)%(Extension)" />
+          Pack="true" PackagePath="lib\$(TargetFramework)\modeler-assets\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- WebView2Loader.dll is a native file of the WebView2 package. NuGet.Pack
        drops items that point into runtimes/<rid>/native, so a copy is staged
@@ -69,9 +69,9 @@
           SkipUnchangedFiles="true" />
   </Target>
 
-  <Target Name="VerifyInfoModelDist" BeforeTargets="BeforeBuild">
-    <Error Condition="!Exists('$(InfoModelDist)\index.html')"
-           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(InfoModelDist)\..\.." />
+  <Target Name="VerifyNodeSetDist" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(NodeSetDist)\index.html')"
+           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(NodeSetDist)\..\.." />
   </Target>
 
   <ItemGroup>

@@ -1,4 +1,4 @@
-# AMLOpcUa
+﻿# AMLOpcUa
 
 OPC UA information models in AutomationML.
 
@@ -48,7 +48,7 @@ AMLPetriNet.
 
 Requires the .NET 8 SDK. The plugin needs Windows and the AutomationML
 Editor 6.4 or later, and bundles the graphical modeler: build
-[InfoModel.js](../InfoModel.js) first (`npm install`, `npm run build`), it is
+[NodeSet.js](../NodeSet.js) first (`npm install`, `npm run build`), it is
 expected next to this repository.
 
 ```bash
@@ -60,7 +60,7 @@ dotnet test Aml.Editor.Plugin.OpcUa.Tests                   # the plugin's own c
 
 Conversions are cached (see [import](docs/import.md)), so a second run of the
 whole suite takes a few minutes; the fast run under half a minute. Some tests
-read cases shared with InfoModel.js when it lies next to this repository.
+read cases shared with NodeSet.js when it lies next to this repository.
 
 The plugin package ends up in
 `build/Plugins/Aml.Editor.Plugin.OpcUa/<configuration>/`.
