@@ -237,9 +237,11 @@ public partial class OpcUaPlugin
                 return reader.NamespaceURI == ModelDesignWriter.DesignNamespace;
             }
         }
-        catch (Exception ex) when (ex is IOException or System.Xml.XmlException or UnauthorizedAccessException)
+        catch (Exception ex) when (ex is IOException or System.Xml.XmlException or UnauthorizedAccessException
+                                   or ArgumentException or NotSupportedException or System.Security.SecurityException)
         {
-            // Not readable or not XML: the import says so in its own words.
+            // Not readable, not XML, or a path the reader will not take: the
+            // import says so in its own words.
         }
         return false;
     }

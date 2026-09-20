@@ -180,7 +180,11 @@ public static class ModelCompilerTool
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             Kill(process);
-            throw new ModelCompilerException($"The ModelCompiler did not finish within {timeout.TotalMinutes:0} minutes.");
+            // What it said before it was stopped is the only clue to where it hung.
+            string said;
+            lock (output) said = Tail(output.ToString(), 6);
+            throw new ModelCompilerException($"The ModelCompiler did not finish within {timeout.TotalMinutes:0} minutes."
+                                             + (said.Length > 0 ? $"\n{said}" : ""));
         }
         catch (OperationCanceledException)
         {
