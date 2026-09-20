@@ -1,4 +1,4 @@
-// A small OPC UA client for what engineering needs from a running server:
+﻿// A small OPC UA client for what engineering needs from a running server:
 // connect, browse the address space, read values and the namespace table.
 //
 // Wraps the OPC Foundation .NET Standard stack. Addresses cross this boundary
@@ -395,6 +395,30 @@ public sealed class UaClient : IAsyncDisposable
                     ReferenceName(r.ReferenceTypeId)));
             }
         }
+    }
+
+    /// <summary>
+    /// The node a text names: a path of BrowseNames from the Objects folder
+    /// when it starts with a slash ("/Plant/Pump1/Motor/Temperature"),
+    /// otherwise a NodeId as the server writes it. A step of a path matches a
+    /// BrowseName or a DisplayName, so nobody has to know the NodeIds of a
+    /// server to read one of its values. A NodeId is never split, because both
+    /// its namespace and its identifier may hold slashes.
+    /// </summary>
+    public async Task<UaNodeAddress> ResolveAsync(string text, CancellationToken ct = default)
+    {
+        if (!text.StartsWith('/')) return UaNodeAddress.Parse(text, NamespaceTable);
+
+        UaNodeAddress? node = null;
+        foreach (var step in text.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var children = await BrowseAsync(node, ct).ConfigureAwait(false);
+            var hit = children.FirstOrDefault(c => c.BrowseName == step || c.DisplayName == step)
+                      ?? children.FirstOrDefault(c => c.BrowseName.EndsWith(":" + step, StringComparison.Ordinal));
+            node = hit?.Address ?? throw new ArgumentException(
+                $"'{step}' is not below {(node == null ? "the Objects folder" : node.ToString())}.", nameof(text));
+        }
+        return node ?? throw new ArgumentException("A node is needed.", nameof(text));
     }
 
     public async Task<UaReadResult> ReadAsync(UaNodeAddress address, CancellationToken ct = default) =>

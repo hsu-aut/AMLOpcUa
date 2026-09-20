@@ -16,6 +16,10 @@ minor versions.
   With `--simulate` the values move. `examples/mps500` is such a plant, the
   MPS 500 learning factory on DI, with stations, modules, devices and a state
   machine per station (`docs/server.md`).
+- `uaaml read <endpoint> <node>...` prints the current values of nodes. A node
+  is a NodeId, or a path of BrowseNames from the Objects folder
+  (`/MPS500/ST30_Processing/ParameterSet/Ready`), so a value can be read
+  without knowing a server's NodeIds.
 - Finite state machines are read back out of a document (OPC 10000-5 Annex B,
   as Annex A leaves them: states and transitions of StateType and
   TransitionType, the ends as ExternalInterfaces) and the documentation of a

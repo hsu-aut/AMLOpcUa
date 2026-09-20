@@ -67,7 +67,11 @@ server it was bound to ([export](export.md), D16).
   then shows "Connection lost" and says to connect again.
 - **Browse** along hierarchical references (Objects folder by default).
 - **Read** values, several in one request; a node that does not exist is a bad
-  result, not an exception.
+  result, not an exception. On the command line, `uaaml read <endpoint>
+  <node>...` prints them. A node is a NodeId, or a path of BrowseNames from
+  the Objects folder when it starts with a slash
+  (`/MPS500/ST30_Processing/ParameterSet/Ready`), because nobody knows a
+  server's NodeIds by heart. A NodeId is never split on its slashes.
 - **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
   keep the document itself current, see "Keep document values live" below.

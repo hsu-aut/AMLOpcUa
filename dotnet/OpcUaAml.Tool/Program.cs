@@ -64,6 +64,11 @@ public static class Program
             endpoint is refused unless --insecure. --accept trusts an unknown
             server certificate for this run.
 
+        uaaml read <endpoint> <node>... [--insecure] [--accept]
+            The current value of each node. A node is a NodeId, or a path of
+            BrowseNames from the Objects folder when it starts with a slash
+            ("/MPS500/ST30_Processing/ParameterSet/Ready").
+
         uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
                      [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
                      [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--max-nodes <n>]
@@ -206,6 +211,7 @@ public static class Program
                 "check" => CheckCommand(rest),
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
+                "read" => Run(ReadCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
                 "nodeset" => Run(NodeSetCommand(rest)),
@@ -238,6 +244,11 @@ public static class Program
         catch (ArgumentException ex)
         {
             return Fail(ex.Message + "\n\n" + Usage);
+        }
+        catch (FormatException ex)
+        {
+            // A NodeId or a node path that does not parse: a sentence, not a stack trace.
+            return Fail(ex.Message);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Xml.XmlException)
         {
@@ -473,6 +484,26 @@ public static class Program
         UseSecurity = !o.Has("--insecure"),
         AcceptUntrustedServerCertificates = o.Has("--accept"),
     };
+
+    private static async Task<int> ReadCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--insecure", "--accept" });
+        if (o.Positional.Count < 2) throw new ArgumentException("read needs an endpoint and at least one node.");
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var wanted = o.Positional.Skip(1).ToList();
+        var nodes = new List<OpcUaAml.Addressing.UaNodeAddress>();
+        foreach (var name in wanted) nodes.Add(await client.ResolveAsync(name));
+
+        var results = await client.ReadManyAsync(nodes);
+        var width = wanted.Max(w => w.Length);
+        for (var i = 0; i < results.Count; i++)
+        {
+            var r = results[i];
+            Console.WriteLine($"{wanted[i].PadRight(width)}  {(r.Good ? r.ValueText : r.Status)}"
+                              + (r.Good && r.DataType is { } type ? $"  ({type})" : ""));
+        }
+        return 0;
+    }
 
     private static async Task<int> BrowseCommand(List<string> args)
     {

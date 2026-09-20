@@ -1,4 +1,4 @@
-using OpcUaAml.Addressing;
+﻿using OpcUaAml.Addressing;
 using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
@@ -15,6 +15,32 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
         AcceptUntrustedServerCertificates = accept,
         PkiRoot = Path.Combine(server.PkiRoot, "client-" + Guid.NewGuid().ToString("N")[..6]),
     };
+
+    [Fact]
+    public async Task A_node_is_named_by_a_path_of_BrowseNames()
+    {
+        // Nobody knows the NodeIds of a server by heart; the path is how a
+        // value is named on the command line ("uaaml read").
+        await using var client = await UaClient.ConnectAsync(Options());
+
+        var byPath = await client.ResolveAsync("/Plant/Pump1/Speed");
+        // A NodeId is taken as it is, slashes of its namespace and all.
+        var plain = await client.ResolveAsync(Plant("Plant.Pump1.Speed").ToString());
+
+        Assert.Equal(Plant("Plant.Pump1.Speed"), byPath);
+        Assert.Equal(Plant("Plant.Pump1.Speed"), plain);
+        Assert.Equal("12.5", (await client.ReadAsync(byPath)).ValueText);
+    }
+
+    [Fact]
+    public async Task A_path_that_leads_nowhere_says_which_step_failed()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => client.ResolveAsync("/Plant/Pump1/Nozzle"));
+
+        Assert.Contains("Nozzle", ex.Message);
+    }
 
     [Fact]
     public async Task Connects_and_reads_the_namespace_table()
