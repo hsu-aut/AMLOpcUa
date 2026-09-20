@@ -1,4 +1,4 @@
-// Finite state machines (OPC 10000-5 Annex B) as Annex A leaves them in a
+﻿// Finite state machines (OPC 10000-5 Annex B) as Annex A leaves them in a
 // document: a type that derives from FiniteStateMachineType holds its states
 // and transitions as InternalElements of StateType and TransitionType, their
 // numbers as a StateNumber or TransitionNumber child, and the ends of a
@@ -9,6 +9,7 @@
 // it back out of the document, for the documentation and for a diagram.
 
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
 
 namespace OpcUaAml.Types;
@@ -31,13 +32,17 @@ public sealed record StateMachine(IReadOnlyList<MachineState> States, IReadOnlyL
 
 public static class StateMachines
 {
-    private const string MachineType = "FiniteStateMachineType";
-    private const string StateType = "StateType";
-    private const string TransitionType = "TransitionType";
+    // The base types by NodeId, not by name: a model of its own may well hold
+    // a type called StateType, and only the one of the UA namespace is meant
+    // (OPC 10000-5 Annex B).
+    private const string UaNamespace = "http://opcfoundation.org/UA/";
+    private const string MachineType = "nsu=" + UaNamespace + ";i=2771";
+    private const string StateType = "nsu=" + UaNamespace + ";i=2307";
+    private const string TransitionType = "nsu=" + UaNamespace + ";i=2310";
 
     /// <summary>Whether the type is a finite state machine, but not the base type itself.</summary>
     public static bool IsMachine(SystemUnitFamilyType type) =>
-        type.Name != MachineType && UaTypes.Chain(type).Any(t => t.Name == MachineType);
+        NodeIdOf(type) != MachineType && UaTypes.Chain(type).Any(t => NodeIdOf(t) == MachineType);
 
     /// <summary>
     /// The machine a type describes, including what it inherits. A state or
@@ -77,10 +82,10 @@ public static class StateMachines
     }
 
     /// <summary>Whether the element instantiates that UA type, or a type derived from it.</summary>
-    private static bool Is(InternalElementType element, string typeName)
+    private static bool Is(InternalElementType element, string typeNodeId)
     {
         var type = UaTypes.TypeOf(element);
-        return type != null && UaTypes.Chain(type).Any(t => t.Name == typeName);
+        return type != null && UaTypes.Chain(type).Any(t => NodeIdOf(t) == typeNodeId);
     }
 
     /// <summary>The NodeId of an element, as Annex A writes it into the ID ("nsu=…;i=…").</summary>
@@ -108,7 +113,11 @@ public static class StateMachines
         return UaNodeAddress.TryParse(text, null, out var address) ? address!.ToString() : text;
     }
 
-    /// <summary>The name of the method that causes a transition, looked up in the type that holds it.</summary>
+    /// <summary>
+    /// The name of the method that causes a transition. It usually sits in the
+    /// machine type, but may sit anywhere the model puts it, so the document
+    /// is asked for the node itself when the type does not hold it.
+    /// </summary>
     private static string? CauseName(SystemUnitFamilyType type, string? cause)
     {
         if (cause is null) return null;
@@ -119,6 +128,7 @@ public static class StateMachines
                 if (NodeIdOf(child) == cause) return child.Name;
             }
         }
-        return null;
+        var element = type.CAEXDocument?.FindByID(Uri.EscapeDataString(cause), true, null);
+        return (element as CAEXObject)?.Name;
     }
 }

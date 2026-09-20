@@ -141,6 +141,16 @@ public static class TypeInstantiator
                 Remove(owner, child, run);
                 continue;
             }
+            // ExposesItsArray: the instance gets one child per element of the
+            // array, and the specification leaves their BrowseNames open. How
+            // many there are is known when there are values, not here, so the
+            // instance gets none rather than exactly one under a name the
+            // specification does not give it (the modeler does the same).
+            if (rule == ModellingRule.ExposesItsArray)
+            {
+                Remove(owner, child, run);
+                continue;
+            }
             if (rule == ModellingRule.Optional && !run.Options.IncludeOptional(path))
             {
                 run.OmittedOptional.Add(path);

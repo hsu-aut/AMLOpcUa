@@ -36,6 +36,13 @@ minor versions.
   round distance above everything the model uses. An abstract structure gets
   no encodings, and no JSON encoding is invented for a model that declared
   none.
+- A state machine is recognised by the NodeIds of the base types, not by their
+  names, so a model with a type of its own called StateType is not mistaken
+  for one; and the method that causes a transition is found wherever the model
+  puts it.
+- A declaration with ExposesItsArray no longer produces exactly one child under
+  a name the specification does not give it; the modeler and the plugin now
+  agree (`docs/instances.md`).
 - Two declarations whose BrowseNames differ only in their namespace are two
   declarations again; keyed by the bare name, one of them was dropped and the
   generated library kept a link to an element nobody wrote.

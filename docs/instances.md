@@ -90,3 +90,12 @@ way for now:
 The rules are therefore C# for now, with fixed IDs so that an OCL version can
 replace them rule by rule and be tested against the same cases
 (`InstanceTests`).
+
+### ExposesItsArray
+
+A declaration with this rule says that an instance exposes one child per
+element of its array, and the specification leaves the BrowseNames of those
+children open (OPC 10000-3 6.4.4.4.3). How many there are is known where the
+values are, not where the instance is created, so a new instance gets none of
+them rather than exactly one under a name nobody chose. The modeler does the
+same.
