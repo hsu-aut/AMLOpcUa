@@ -123,6 +123,26 @@ an organized node and DI does not (the AML cannot tell them apart), and a few
 references and definition fields. Methods, DataTypes and ReferenceTypes, 0 %
 in chain A, come back completely.
 
+#### What the percentage does not count
+
+The figures above count the facts `NodeSetComparer` compares: node class,
+BrowseName, DisplayName, Description, ParentNodeId, DataType, ValueRank and
+ArrayDimensions, IsAbstract, Symmetric, InverseName, MethodDeclarationId,
+values, definition fields, references and Documentation. Attributes neither
+Annex A nor the comparison carries are not in the denominator:
+`Category`, `SymbolicName`, `ReleaseStatus`, `AccessLevel`,
+`UserAccessLevel`, `Historizing`, `WriteMask`, `UserWriteMask`,
+`AccessRestrictions`, `RolePermissions`, `Executable`, `DataTypeVersion`,
+the root `Extensions`, the locale of a node's texts, and the version a
+`RequiredModel` asks for. A reader who wants a number for "everything in the
+file" has to add those.
+
+Two losses the import now names rather than leaves to be discovered: a child
+that hangs off its type only through `Organizes` or a reference type the model
+defines itself (DI has two, AutoID two, 122 in the corpus, each taking its
+subtree with it), and the instances of the model, which stay in the converted
+document's instance hierarchy and are not merged into the target.
+
 #### Corpus of companion specifications
 
 The same chain over 34 companion specifications of

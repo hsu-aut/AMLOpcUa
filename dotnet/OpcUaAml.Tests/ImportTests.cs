@@ -49,6 +49,34 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
     }
 
     [Fact]
+    public void The_import_says_what_hangs_off_a_reference_Annex_A_does_not_map()
+    {
+        // A child held by Organizes or by a reference type of the model does
+        // not arrive, and what it holds goes with it. DI has two of them, both
+        // held by its own ConnectsTo; AutoID has a file placeholder in a
+        // folder. Nothing used to say so.
+        var document = CAEXDocument.New_CAEXDocument();
+        var result = OpcUaImport.ImportInto(document, di.Catalog.Find(Fixtures.DiUri)!.FilePath, di.Catalog);
+
+        var warning = Assert.Single(result.Warnings, w => w.Contains("hang off their type"));
+        Assert.Contains("<CPIdentifier>", warning);
+        Assert.Contains("<NetworkIdentifier>", warning);
+        // The encodings and the type dictionaries are left out on purpose and
+        // are not part of this warning.
+        Assert.DoesNotContain("Default Binary", warning);
+    }
+
+    [Fact]
+    public void An_import_says_how_many_instances_it_leaves_behind()
+    {
+        var document = CAEXDocument.New_CAEXDocument();
+        var result = OpcUaImport.ImportInto(document, di.Catalog.Find(Fixtures.DiUri)!.FilePath, di.Catalog);
+
+        Assert.True(result.InstancesNotTaken > 0);
+        Assert.Contains("instance(s) of the model not taken", result.Summary);
+    }
+
+    [Fact]
     public void Merge_adds_every_library_to_an_empty_document()
     {
         var target = CAEXDocument.New_CAEXDocument();

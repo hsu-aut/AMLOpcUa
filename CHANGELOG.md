@@ -26,7 +26,10 @@ minor versions.
   of each; 26 NodeSets of the OPC Foundation carry such names.
 - An import says what it leaves behind: the libraries are taken, the model's
   instances are not, and a model that is nothing but instances (a dictionary,
-  for one) used to report success and arrive empty.
+  for one) used to report success and arrive empty. It also names the children
+  that hang off their type only through `Organizes` or a reference type the
+  model defines itself, which Annex A does not map: they and their subtree are
+  missing, and nothing used to say so (`docs/roundtrip.md`).
 - The inverse export no longer hands out NodeIds that the original model uses
   for other nodes. Annex A drops the encodings and the type dictionaries, and
   the invented ids started exactly where those had been; they now start at a
