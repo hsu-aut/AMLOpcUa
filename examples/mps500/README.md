@@ -47,6 +47,20 @@ uaaml mirror opc.tcp://127.0.0.1:48410/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/
 `--insecure` and `--accept` are for a server on this computer whose
 certificate nobody trusted yet; a plant would be connected to securely.
 
+## Plan and running plant in one document
+
+`plan.py` writes the NodeId of the served node onto every element of
+`MPS500_PlantStructure.aml` that the model also holds (68 of them). Mirroring
+the server into that document then links each mirrored element to its planned
+element with `refBaseObj`, and the plugin says so: "68 linked to their planned
+element". Where the plan models a station with the plant's own class and the
+server calls it `StationType`, the difference is reported rather than hidden.
+
+```bash
+python plan.py                      # writes C:\Dev\Demo\opcua\MPS500_Plan.aml
+python plan.py <in.aml> <out.aml>   # or anywhere else
+```
+
 ## Building it again
 
 ```bash
