@@ -114,8 +114,10 @@ public static class Program
             their declarations and diagrams, its DataTypes and ReferenceTypes.
             --namespace names the model when the document holds several.
 
-        uaaml diagram <doc.aml> (--type <name|path> | --instance <name|id>) [--depth <n>] -o <out.svg>
-            Draw a UA type or an instance as SVG.
+        uaaml diagram <doc.aml> (--type <name|path> | --instance <name|id>) [--depth <n>] [--state-chart] -o <out.svg>
+            Draw a UA type or an instance as SVG. --state-chart draws a finite
+            state machine as its states and transitions instead of the tree of
+            what the type holds.
 
         uaaml upgrade <doc.aml> [-o <out.aml>]
             Add the Mandatory children that updated types now declare.
@@ -685,13 +687,25 @@ public static class Program
 
     private static int DiagramCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--type", "--instance", "--depth", "-o" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--type", "--instance", "--depth", "-o" }, flags: new[] { "--state-chart" });
         var doc = Documents.Load(o.SinglePositional("document"));
         SystemUnitClassType root = o.One("--instance") is { } inst
             ? FindElement(doc, inst)
             : ResolveType(doc, o.One("--type") ?? throw new ArgumentException("--type or --instance is required."));
         var depth = int.TryParse(o.One("--depth"), out var d) ? d : 3;
         var output = o.One("-o") ?? throw new ArgumentException("-o <out.svg> is required.");
+
+        // A state machine as its states and transitions, not as the tree of
+        // what the type holds.
+        if (o.Has("--state-chart"))
+        {
+            if (root is not SystemUnitFamilyType type || !StateMachines.IsMachine(type))
+                throw new ArgumentException($"'{root.Name}' is no finite state machine; --state-chart needs one.");
+            var read = StateMachines.Read(type);
+            File.WriteAllText(output, OpcUaAml.Diagram.StateChart.Svg(read));
+            Console.WriteLine($"{read.States.Count} state(s) and {read.Transitions.Count} transition(s) written to {Path.GetFullPath(output)}");
+            return 0;
+        }
         var diagram = OpcUaAml.Diagram.DiagramLayout.Apply(OpcUaAml.Diagram.DiagramBuilder.Build(root, depth));
         File.WriteAllText(output, OpcUaAml.Diagram.SvgWriter.Write(diagram));
         Console.WriteLine($"{diagram.Nodes.Count} node(s) written to {Path.GetFullPath(output)}");

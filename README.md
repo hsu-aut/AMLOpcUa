@@ -10,7 +10,8 @@ OPC UA information models in AutomationML.
 - Running servers: browse, import the server's types (its published NodeSet,
   or rebuilt by browsing), take nodes into the document, bind, read and watch
   values, and serve the document itself as an OPC UA server
-- Diagrams of UA types and instances (OPC 10000-3 notation, SVG export),
+- Diagrams of UA types and instances (OPC 10000-3 notation, SVG export), state
+  charts of finite state machines,
   UA Cloud Library import, instance updates after a type change, and links
   from a VDI 3682 process description to OPC UA objects and methods
 - Export of AML documents (CAEX 2.15 and 3.0) as OPC UA NodeSets by the rules
@@ -186,6 +187,7 @@ uaaml clients --trust 3F2A                       # admit a client the server ref
 uaaml opcf search Machinery                      # the OPC Foundation's NodeSets, no account
 uaaml opcf download http://opcfoundation.org/UA/Machinery/ -o ./nodesets
 uaaml cloud search Machinery --user me           # password from UACLOUD_PASSWORD or asked
+uaaml diagram plant.aml --type PumpStateMachineType --state-chart -o chart.svg
 uaaml design export Opc.Ua.Di.NodeSet2.xml -o DI.xml    # the model as a ModelDesign
 uaaml design export plant.aml -o Plant.xml              # the same, from a document
 uaaml design import DI.xml --into plant.aml             # a design, compiled and imported (needs the ModelCompiler)

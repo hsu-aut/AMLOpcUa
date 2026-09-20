@@ -71,7 +71,11 @@ click away for the models that live only there.
 
 **Documentation…** on a namespace writes one HTML file: every type with its
 declarations and a diagram, the DataTypes with their fields, the
-ReferenceTypes. Nothing external, so it can be mailed.
+ReferenceTypes. A state machine gets its states and transitions as a table and
+the same state chart the modeler drew, now read back out of the document.
+Nothing external, so it can be mailed. The chart alone comes from
+`uaaml diagram plant.aml --type PumpStateMachineType --state-chart -o chart.svg`,
+which is the file to drop on a slide.
 
 ## 6. Out to the OPC UA world again (2 min)
 
