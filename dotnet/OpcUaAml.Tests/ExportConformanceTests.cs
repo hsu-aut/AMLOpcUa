@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using Aml.Engine.CAEX;
@@ -114,17 +114,17 @@ public class ExportConformanceTests(ITestOutputHelper output)
 
     // D15: attributes with a unit get a Unit property; the XSLT drops it.
     private static bool IsD15(Difference d) =>
-        Is(d, DifferenceKind.OnlyLeft, @"_Unit(/.*)?$|/ref:i=46>.*_Unit$");
+        Is(d, DifferenceKind.OnlyLeft, @"_Unit#(/.*)?$|/ref:i=46>.*_Unit#$");
 
     [Fact]
     public void D15_writes_the_unit_of_an_attribute_as_Unit_property()
     {
         var nodeSet = Export("5_SUC", compat: false);
-        var unit = nodeSet.Descendants().Single(e => e.Name.LocalName == "UAVariable" && ((string)e.Attribute("NodeId")!).EndsWith("_SU_Attr_Unit"));
+        var unit = nodeSet.Descendants().Single(e => e.Name.LocalName == "UAVariable" && ((string)e.Attribute("NodeId")!).EndsWith("_SU_Attr_Unit#"));
 
         Assert.EndsWith(":Unit", (string)unit.Attribute("BrowseName")!);
         Assert.Equal("m", unit.Descendants().Single(e => e.Name.LocalName == "String").Value);
-        Assert.DoesNotContain(Export("5_SUC", compat: true).Descendants(), e => ((string?)e.Attribute("NodeId"))?.EndsWith("_Unit") == true);
+        Assert.DoesNotContain(Export("5_SUC", compat: true).Descendants(), e => ((string?)e.Attribute("NodeId"))?.Contains("_Unit#") == true);
     }
 
     [Fact]

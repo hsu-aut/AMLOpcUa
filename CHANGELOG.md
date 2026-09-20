@@ -19,6 +19,17 @@ minor versions.
 
 ### Fixed
 
+- The export writes a NodeSet the OPC Foundation's stack can read: no
+  reference into an empty namespace (a supertype from a library the document
+  does not hold), no alias name standing for two nodes, no library or model
+  declared twice, no reference carried twice, and a class is looked for in a
+  library of the matching kind (deviations D18 and D19 in `docs/export.md`).
+  Found by an audit that ran the working group's stylesheet against 30
+  documents and loaded every result with the stack.
+- A placeholder counts as filled whatever the child is called: a method keeps
+  the name its declaration gives it, so the check used to report the correct
+  model and stay silent on the wrong one, and the filling refused its own
+  name.
 - The ModelDesign writer gives every node a symbolic path of its own (two
   BrowseNames that turned into one symbol used to share it, which made the
   identifier file map one key to two ids), keeps nodes that no parent declares

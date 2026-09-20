@@ -1,4 +1,4 @@
-// The port of AML2Nodeset.xslt and its includes (LibraryParsing,
+﻿// The port of AML2Nodeset.xslt and its includes (LibraryParsing,
 // LibraryTranslation, DatatypeTranslation), AML-UA-XSLT commit a144dcc.
 //
 // The structure follows the stylesheets so that a change upstream can be
@@ -34,6 +34,30 @@ internal sealed partial class AmlUaXsltTranslator
 
     /// <summary>Every attribute of the document in document order (XPath //@*).</summary>
     private readonly List<XAttribute> _allAttributes;
+
+    /// <summary>
+    /// The suffix of the NodeId of a unit property. A sub-attribute may be
+    /// called "Unit" as well, and the two must not be the same node.
+    /// </summary>
+    internal const string UnitSuffix = "_Unit#";
+
+    /// <summary>What the export could not do, in the words of the document.</summary>
+    private readonly List<string> _notes = [];
+
+    /// <summary>One node per library, even where two libraries share a kind, a name and a namespace.</summary>
+    private readonly Dictionary<(string Namespace, string Kind), List<XElement>> _libraryIds = new();
+
+    /// <summary>The NodeId part of a library folder, unique within its namespace.</summary>
+    private string LibraryId(XElement lib, string nsId)
+    {
+        var kind = RemoveSpace(L(lib));
+        if (_compat) return kind;
+        var key = (nsId, kind);
+        if (!_libraryIds.TryGetValue(key, out var seen)) _libraryIds[key] = seen = [];
+        var index = seen.FindIndex(e => ReferenceEquals(e, lib));
+        if (index < 0) { seen.Add(lib); index = seen.Count - 1; }
+        return index == 0 ? kind : $"{kind}_{index + 1}";
+    }
 
     private readonly List<ImportedLibrary> _importedLibraries;
     private readonly List<string> _namespaceUris;
@@ -90,9 +114,17 @@ internal sealed partial class AmlUaXsltTranslator
             var refAlias = Attr(extRef, "Alias") + "@";
             var source = Attr(extRef, "Path");
             var used = _allAttributes.Where(a => a.Value.StartsWith(refAlias, StringComparison.Ordinal)).Select(a => a.Value).ToList();
-            var classes = used.Distinct().Select(c => (After(c, "@"), "s=" + LastSegment(c))).ToList();
             foreach (var libName in used.Select(v => After(Before(v, "/"), "@")).Distinct())
-                libs.Add(new ImportedLibrary(libName, source, classes));
+            {
+                // Each library gets the classes that belong to it. The XSLT
+                // gives every library the whole list, so one alias name is
+                // declared once per library, each time for another namespace,
+                // and half the references land in the wrong one.
+                var mine = _compat
+                    ? used.Distinct().ToList()
+                    : used.Distinct().Where(v => After(Before(v, "/"), "@") == libName).ToList();
+                libs.Add(new ImportedLibrary(libName, source, mine.Select(c => (After(c, "@"), "s=" + LastSegment(c))).ToList()));
+            }
         }
 
         if (!_allAttributes.Any(a => a.Value.Contains("AutomationMLBaseRole")))
@@ -211,8 +243,12 @@ internal sealed partial class AmlUaXsltTranslator
         }
         var parts = _root.Elements().Where(e => L(e) == "InstanceHierarchy" || LibraryKinds.Contains(L(e))).ToList();
         var models = new XElement(Ua + "Models");
+        // Two libraries of one name, or a library and an instance hierarchy of
+        // one name, are one model; declaring it twice makes the file unreadable.
+        var declared = new HashSet<string>(StringComparer.Ordinal);
         foreach (var part in parts)
         {
+            if (!_compat && !declared.Add(AmlUri + Attr(part, "Name"))) continue;
             models.Add(new XElement(Ua + "Model",
                 new XAttribute("ModelUri", AmlUri + Attr(part, "Name")),
                 new XAttribute("Version", Join(Kids(part, "Version"))),
@@ -225,8 +261,10 @@ internal sealed partial class AmlUaXsltTranslator
             new XAttribute("Version", "0.0.0"),
             new XAttribute("PublicationDate", _publicationDate),
             baseModels);
+        var required = new HashSet<string>(StringComparer.Ordinal);
         foreach (var part in parts)
         {
+            if (!_compat && !required.Add(AmlUri + Attr(part, "Name"))) continue;
             var versions = Kids(part, "Version").ToList();
             var version = versions.Any(v => v.Value == "0" || v.Value == "") ? "0.0.0" : Join(versions);
             file.Add(new XElement(Ua + "RequiredModel",
@@ -371,7 +409,11 @@ internal sealed partial class AmlUaXsltTranslator
             foreach (var child in children)
             {
                 var childNs = NamespaceId(child);
-                var target = name == "InstanceHierarchies" ? "InstanceHierarchy_" + Attr(child, "Name") : L(child);
+                // The library's own NodeId, which tells two libraries of one
+                // kind and name in one namespace apart.
+                var target = name == "InstanceHierarchies"
+                    ? "InstanceHierarchy_" + Attr(child, "Name")
+                    : LibraryId(child, childNs);
                 node.Ref("Organizes", FormatRef(target, childNs));
             }
             Emit(node);

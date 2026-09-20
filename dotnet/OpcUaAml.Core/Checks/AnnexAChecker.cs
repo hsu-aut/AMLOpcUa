@@ -1,4 +1,4 @@
-// Checks instances in a document against the UA types they claim to be, as
+﻿// Checks instances in a document against the UA types they claim to be, as
 // far as OPC 10000-83 Annex A expresses them. Only the instance hierarchies
 // are checked: the libraries are generated and trusted.
 
@@ -106,7 +106,12 @@ public static class AnnexAChecker
         var wanted = UaTypes.Resolve(doc, decl.TypePath);
         return children.Any(c =>
         {
-            if (c.Name == decl.Name) return false;
+            // The placeholder itself may still sit in the instance; a child
+            // that carries a placeholder rule of its own is not a filled one.
+            // The name says nothing: an object or variable is filled under a
+            // name of its own, while a method keeps the name its declaration
+            // gives it (OPC 10000-3 6.4.4.4).
+            if (UaTypes.RuleOf(c) is ModellingRule.MandatoryPlaceholder or ModellingRule.OptionalPlaceholder) return false;
             if (wanted == null) return c.RefBaseSystemUnitPath == decl.TypePath;
             var t = UaTypes.Resolve(doc, c.RefBaseSystemUnitPath);
             return t != null && UaTypes.DerivesFrom(t, wanted);

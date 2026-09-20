@@ -1,4 +1,4 @@
-// AML2Nodeset.xslt, instance side: the property variables (AML_ID, Version,
+﻿// AML2Nodeset.xslt, instance side: the property variables (AML_ID, Version,
 // AdditionalInformation, constraints), CAEX attributes, RefSemantic,
 // InternalElements, ExternalInterfaces with their InternalLinks, and the
 // References template that every node uses for its children and types.
@@ -322,7 +322,9 @@ internal sealed partial class AmlUaXsltTranslator
         // D15: DIN SPEC 16592 maps Attribute.Unit to a Property "Unit", which
         // the draft base types declare on AMLBaseVariableType; the XSLT drops it.
         var unit = _compat ? "" : Attr(attribute, "Unit");
-        if (unit != "") node.Ref("HasProperty", FormatRef(objectId + "_" + name + "_Unit", nsId));
+        // The NodeId carries the kind, because a sub-attribute may be called
+        // "Unit" too and would otherwise be the same node.
+        if (unit != "") node.Ref("HasProperty", FormatRef(objectId + "_" + name + UnitSuffix, nsId));
         foreach (var (component, _) in connection ?? new())
             node.Ref("HasComponent", FormatRef(objectId + "_" + name + "_" + component, nsId));
 
@@ -353,7 +355,7 @@ internal sealed partial class AmlUaXsltTranslator
     /// </summary>
     private void Unit(string unit, string attributeId, string nsId)
     {
-        var node = new UaNode("UAVariable", FormatRef(attributeId + "_Unit", nsId), NamespaceIdByName(AmlUri) + ":Unit")
+        var node = new UaNode("UAVariable", FormatRef(attributeId + UnitSuffix, nsId), NamespaceIdByName(AmlUri) + ":Unit")
         {
             ParentNodeId = FormatRef(attributeId, nsId),
             DataType = "String",
@@ -583,6 +585,7 @@ internal sealed partial class AmlUaXsltTranslator
             list.Ref("HasTypeDefinition", "CAEXObjectType");
         }
 
+        var roleTargets = new HashSet<string>(StringComparer.Ordinal);
         foreach (var role in e.Elements().Where(c => L(c) is "SupportedRoleClass" or "RoleRequirements"))
         {
             var refBase = role.Attribute("RefBaseRoleClassPath")?.Value;
@@ -594,10 +597,18 @@ internal sealed partial class AmlUaXsltTranslator
             if (rcLibName != "" && refRole != null && refRole != baseRole) rcContent.Add(GetClass(refRole));
             if (rcLibName != "" && refBase != null && refBase != baseRole) rcContent.Add(GetClass(refBase));
             var libNsId = NamespaceIdByName(rcLibName);
+            // A SupportedRoleClass and a RoleRequirements may name the same
+            // role; two references of one type to one target make the file
+            // unreadable for the OPC Foundation's stack.
             if (rcContent.Select(c => ClassRef(c, "RoleClass")).FirstOrDefault(n => n != null) is { } roleName)
-                list.Ref("HasAMLRoleReference", FormatRef(roleName, libNsId));
+            {
+                var target = FormatRef(roleName, libNsId);
+                if (_compat || roleTargets.Add(target)) list.Ref("HasAMLRoleReference", target);
+            }
             else if (rcLibName.Contains('@'))
-                list.Ref("HasAMLRoleReference", rcAliasName);
+            {
+                if (_compat || roleTargets.Add(rcAliasName)) list.Ref("HasAMLRoleReference", rcAliasName);
+            }
         }
 
         foreach (var ei in Kids(e, "ExternalInterface")) list.Ref("HasComponent", FormatRef(Attr(ei, "ID"), ns));

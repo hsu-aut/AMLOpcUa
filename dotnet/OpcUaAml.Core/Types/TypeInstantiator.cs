@@ -1,4 +1,4 @@
-// Creating an instance of a UA type the way an OPC UA server would: every
+﻿// Creating an instance of a UA type the way an OPC UA server would: every
 // Mandatory child, the Optional children the user picked, and for each
 // placeholder the concrete children the user named.
 //
@@ -169,7 +169,10 @@ public static class TypeInstantiator
     private static InternalElementType Fill(SystemUnitClassType owner, InternalElementType placeholder, PlaceholderFill fill, string prefix, Run run)
     {
         if (string.IsNullOrWhiteSpace(fill.Name)) throw new InstantiationException($"A child for '{placeholder.Name}' needs a name.");
-        if (owner.InternalElement.Any(e => e.Name == fill.Name))
+        // The placeholder is still in the collection while it is being filled,
+        // and a method keeps the name of its declaration, so the placeholder
+        // itself does not count as a child of that name.
+        if (owner.InternalElement.Any(e => e.Name == fill.Name && e.ID != placeholder.ID))
             throw new InstantiationException($"'{owner.Name}' already has a child named '{fill.Name}'.");
 
         // The links that attach the placeholder to its owner, and the placeholder's end of each.

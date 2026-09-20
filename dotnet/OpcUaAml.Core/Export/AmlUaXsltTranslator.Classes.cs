@@ -1,4 +1,4 @@
-// LibraryTranslation.xslt and the class lookup of LibraryParsing.xslt:
+﻿// LibraryTranslation.xslt and the class lookup of LibraryParsing.xslt:
 // libraries become Objects of FolderType, classes ObjectTypes (AttributeTypes
 // VariableTypes) organized below their library or parent class, with
 // HasSubtype to the class they derive from.
@@ -94,7 +94,10 @@ internal sealed partial class AmlUaXsltTranslator
                 var libs = _librariesByName[(libKind, libName)].ToList();
                 if (libs.Count == 0) continue;
                 current = GetSubClass(subPath, libs.SelectMany(l => Kids(l, classKind)).ToList()).FirstOrDefault();
-                break;
+                // D19: libraries of different kinds may share a name. The XSLT
+                // stops at the first kind that has one, so a class of the next
+                // kind is never found and its HasTypeDefinition disappears.
+                if (current != null || _compat) break;
             }
         }
 
@@ -135,7 +138,7 @@ internal sealed partial class AmlUaXsltTranslator
     private void Library(XElement lib)
     {
         var nsId = NamespaceId(lib);
-        var libId = RemoveSpace(L(lib));
+        var libId = LibraryId(lib, nsId);
         Section($"{L(lib)} {Attr(lib, "Name")}");
         var node = new UaNode("UAObject", $"ns={nsId};s={libId}", Attr(lib, "Name"))
         {
@@ -181,7 +184,9 @@ internal sealed partial class AmlUaXsltTranslator
     private IEnumerable<XElement> ClassReferences(XElement cls)
     {
         var nsId = NamespaceId(cls);
-        var libId = string.Concat(cls.Ancestors().Where(a => LibraryKinds.Contains(L(a))).Select(a => RemoveSpace(L(a))));
+        // The library the class sits in, by the same name its folder node has.
+        var libElement = cls.Ancestors().FirstOrDefault(a => LibraryKinds.Contains(L(a)));
+        var libId = libElement != null ? LibraryId(libElement, nsId) : "";
         var node = new UaNode("UAObjectType", "", "");
 
         var parentClass = new[] { "InterfaceClass", "RoleClass", "SystemUnitClass", "AttributeType" }
@@ -198,7 +203,21 @@ internal sealed partial class AmlUaXsltTranslator
         string superType;
         if (basePath != "" && !basePath.Contains('/')) superType = $"ns={nsId};s={NoSpaceUnlessCompat(basePath)}";
         else if (basePath.Contains('@')) superType = After(basePath, "@");
-        else if (basePath != "") superType = $"ns={NamespaceIdByName(PathLib(basePath))};s={RemoveSpace(baseClass.Class != null ? ClassKey(baseClass.Class) : baseClass.Name)}";
+        else if (basePath != "")
+        {
+            // D18: a base class of a library the document neither holds nor
+            // names through an ExternalReference has no namespace, and the
+            // XSLT writes "ns=;s=", which no OPC UA tool can read. Without a
+            // supertype the class is at least a class.
+            var libNs = NamespaceIdByName(PathLib(basePath));
+            var baseName = RemoveSpace(baseClass.Class != null ? ClassKey(baseClass.Class) : baseClass.Name);
+            if (!_compat && (libNs == "" || baseName == ""))
+            {
+                _notes.Add($"{L(cls)} '{name}': its base class '{basePath}' is in no library of this document, so it has no supertype.");
+                return node.References.Concat(References(cls, ObjectName(cls, cls), nsId));
+            }
+            superType = $"ns={libNs};s={baseName}";
+        }
         else if (L(cls) == "SystemUnitClass" && name != "AutomationMLBaseSystemUnit") superType = "CAEXObjectType";
         else if (L(cls) == "RoleClass" && name != "AutomationMLBaseRole") superType = "AutomationMLBaseRoleClassLib/AutomationMLBaseRole";
         else if (L(cls) == "InterfaceClass" && name != "AutomationMLBaseInterface") superType = "AutomationMLInterfaceClassLib/AutomationMLBaseInterface";

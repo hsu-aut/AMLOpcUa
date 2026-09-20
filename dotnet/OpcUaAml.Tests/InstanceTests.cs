@@ -1,4 +1,4 @@
-using Aml.Engine.CAEX;
+﻿using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Checks;
 using OpcUaAml.Import;
@@ -208,6 +208,24 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
         var finding = Assert.Single(di.FindingsIn(ih));
         Assert.Equal(Rules.MissingMandatoryPlaceholder, finding.Rule);
         Assert.Contains("<ProfileIdentifier>", finding.Message);
+    }
+
+    [Fact]
+    public void A_filled_placeholder_counts_whatever_the_child_is_called()
+    {
+        // A placeholder object is filled under a name of its own, a
+        // placeholder method keeps the name of its declaration. The check used
+        // to reject a child of the declaration's name, so a correct model was
+        // reported and a wrong one was not (OPC 10000-3 6.4.4.4).
+        var ih = di.Hierarchy("FilledByName");
+        var instance = TypeInstantiator.Instantiate(di.Type("NetworkType"), "Net",
+            new InstantiationOptions { FillPlaceholder = _ => [new PlaceholderFill("<ProfileIdentifier>", null)] }).Instance;
+        ih.InternalElement.Insert(instance, asFirst: false);
+
+        // The child carries the declaration's name and no placeholder rule of its own.
+        var filled = instance.InternalElement.Single(e => e.Name == "<ProfileIdentifier>");
+        Assert.All(filled.ExternalInterface, ei => Assert.Null(ei.Attribute[UaTypes.ModellingRuleAttribute]));
+        Assert.DoesNotContain(di.FindingsIn(ih), f => f.Rule == Rules.MissingMandatoryPlaceholder);
     }
 
     [Fact]

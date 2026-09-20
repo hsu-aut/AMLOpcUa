@@ -308,6 +308,33 @@ trip measures it node by node (chain C in [roundtrip](roundtrip.md)):
   children Opc2Aml repeats below every typed declaration.
 - The DataType of a VariableType without a `Value` attribute (DI 468).
 
+### D18 A supertype that is in no library of the document
+
+A class whose `RefBaseClassPath` names a library the document neither holds
+nor reaches through an `ExternalReference` has no namespace to point into. The
+XSLT writes `ns=;s=`, which no OPC UA tool reads: the file is lost, not just
+incomplete. The class is written without a supertype instead, and the export
+says so.
+
+### D19 Libraries of one name and different kinds
+
+A class is looked for in the library of the matching kind. The XSLT stops at
+the first library that carries the name, whatever kind it is, so a class of
+the next kind is never found and its `HasTypeDefinition` disappears without a
+word.
+
+### Beyond the deviations: what a NodeSet must be
+
+Three things the XSLT produces that are not a matter of taste, because the OPC
+Foundation's own stack refuses the file: one alias name standing for two
+different nodes (which happens as soon as one `ExternalReference` covers
+several libraries), two libraries of one kind and name sharing a NodeId and a
+`Model` entry, and one node carrying the same reference twice (a
+`SupportedRoleClass` and a `RoleRequirements` naming one role). The default
+mode writes each of them once. `ExportWellFormedTests` checks all of it on
+every fixture, including `Deviations.aml`, and loads each result with the
+stack.
+
 ## Known limits
 
 - Classes referenced but not contained in the document are only known through
