@@ -187,6 +187,7 @@ uaaml opcf search Machinery                      # the OPC Foundation's NodeSets
 uaaml opcf download http://opcfoundation.org/UA/Machinery/ -o ./nodesets
 uaaml cloud search Machinery --user me           # password from UACLOUD_PASSWORD or asked
 uaaml design export Opc.Ua.Di.NodeSet2.xml -o DI.xml    # the model as a ModelDesign
+uaaml design export plant.aml -o Plant.xml              # the same, from a document
 uaaml design import DI.xml --into plant.aml             # a design, compiled and imported (needs the ModelCompiler)
 ```
 

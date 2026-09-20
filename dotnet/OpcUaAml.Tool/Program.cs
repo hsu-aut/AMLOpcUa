@@ -141,12 +141,15 @@ public static class Program
             The password comes from UACLOUD_PASSWORD or is asked for; an API key
             from UACLOUD_API_KEY instead.
 
-        uaaml design export <NodeSet.xml> -o <design.xml> [--namespace <uri>] [--name <n>]
+        uaaml design export <NodeSet.xml|doc.aml> -o <design.xml> [--namespace <uri>] [--name <n>]
         uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105]
         uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]...
             ModelDesign, the form the OPC Foundation's ModelCompiler reads and
-            writes. export writes the model of a NodeSet as a design (its types,
-            declarations, fields and references, with the NodeIds kept); compile
+            writes. export writes a model as a design (its types, declarations,
+            fields and references, with the NodeIds kept): from a NodeSet, or
+            from a document, whose model is first written back as the nodes
+            Annex A made of it (--namespace names it when the document holds
+            several); compile
             runs the ModelCompiler over a design and reports the NodeSet it wrote;
             import compiles it and puts the model into a document (Annex A) in one
             go. The ModelCompiler is not part of uaaml; install it with
@@ -774,8 +777,19 @@ public static class Program
             case "export" when o.Positional.Count == 2:
             {
                 var output = o.One("-o") ?? throw new ArgumentException("design export needs -o <design.xml>.");
-                var result = ModelDesignWriter.FromFile(o.Positional[1],
-                    new ModelDesignOptions { NamespaceUri = o.One("--namespace"), ModelName = o.One("--name") });
+                var options = new ModelDesignOptions { NamespaceUri = o.One("--namespace"), ModelName = o.One("--name") };
+                // A document goes out as the nodes Annex A made of it (the
+                // inverse export), a NodeSet is read as it is.
+                var source = o.Positional[1];
+                var result = Path.GetExtension(source).ToLowerInvariant() is ".aml" or ".amlx"
+                    ? ModelDesignWriter.From(
+                        NodeSetExporter.Export(Documents.Load(source), new NodeSetExportOptions
+                        {
+                            Mode = ExportMode.AnnexAInverse,
+                            NamespaceUri = o.One("--namespace"),
+                        }),
+                        options)
+                    : ModelDesignWriter.FromFile(source, options);
                 var identifiers = result.Save(output);
                 var root = result.Design.Root!;
                 Console.WriteLine($"{(string?)root.Attribute("TargetNamespace")}: "

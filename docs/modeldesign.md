@@ -33,9 +33,15 @@ it.
 
 ```bash
 uaaml design export Opc.Ua.Di.NodeSet2.xml -o DI.xml     # writes DI.xml and DI.csv
+uaaml design export plant.aml -o Plant.xml               # a model of a document, by way of Annex A's inverse
 uaaml design compile DI.xml -o ./compiled                # ModelCompiler, reports the NodeSet
 uaaml design import DI.xml --into plant.aml              # compile and import in one go
 ```
+
+A document goes out the same way the plugin's **ModelDesign…** writes it: its
+model is first written back as the nodes Annex A made of it, and that NodeSet
+becomes the design. `--namespace` names the model when the document holds
+several.
 
 `export` writes two files: the design and, beside it with the same name, the
 identifier file. `compile` and `import` use that file when it is there, so the
