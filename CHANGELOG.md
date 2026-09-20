@@ -7,7 +7,25 @@ minor versions.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- `uaaml design export` also reads an AML document: its model is written back
+  as the nodes Annex A made of it, and that becomes the design.
+
+### Fixed
+
+- The ModelDesign writer gives every node a symbolic path of its own (two
+  BrowseNames that turned into one symbol used to share it, which made the
+  identifier file map one key to two ids), keeps nodes that no parent declares
+  forward instead of dropping them while references still pointed at them,
+  leaves a child that two parents hold in one of them and as a reference in
+  the other, names a reference target by its symbolic path, spells a matrix
+  rank the way a design can, carries a string NodeId on the node, and cannot
+  break the identifier file with a comma in a name.
+- Compiling twice into the same folder reports the NodeSet of this run, not an
+  older one beside it.
+- A ModelDesign dropped on the plugin is compiled, as the documentation said
+  and the file dialog promised.
 
 ## [0.1.0] - 2026-09-20
 
