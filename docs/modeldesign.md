@@ -66,11 +66,21 @@ child. Objects and variables of the model that no type declares are written as
 they stand.
 
 Names: a node's SymbolicName is its BrowseName, with the characters XML cannot
-carry in a QName replaced; the BrowseName itself is then kept as an element, as
+carry in a QName replaced, and with a number appended when a sibling had the
+name first, because two nodes may well share a BrowseName. Whenever the name
+could not be kept as it was, the BrowseName is written out as an element, as
 placeholders such as `<CPIdentifier>` need. A BrowseName of the UA namespace
 (`StateNumber`, `Id`) keeps that namespace as a prefix. Types are written in
 the order of their derivation, because the compiler resolves a BaseType while
 it reads the file.
+
+A node that no parent declares (its own inverse reference is the only thing
+that holds it, or two nodes hold each other) is written on its own rather than
+dropped: a reference must not point at a node the file does not hold. A node
+two parents hold belongs to one of them and is a reference in the other. A
+NodeId that is a string goes onto the node as `StringId`; one that is a GUID
+cannot be carried, and the model is then compiled with identifiers of the
+compiler's own.
 
 Left out, because the compiler makes them from the design itself: the
 encodings of a structure, the names of an enumeration (EnumStrings,
@@ -82,8 +92,8 @@ file under the names the compiler gives them
 ## What a round trip keeps, measured
 
 The bundled DI (1.05.0, 447 nodes of its own) written as a design and compiled
-again with ModelCompiler 2.8.15: **414 of 447 nodes come back with the same
-NodeId, node class and BrowseName**. The 33 others are the nodes the compiler
+again with ModelCompiler 2.8.15: **417 of 447 nodes come back with the same
+NodeId, node class and BrowseName**. The 30 others are the nodes the compiler
 manages itself and numbers itself: the namespace metadata object with its
 properties, the two type dictionaries with their descriptions, and the JSON
 encodings, which this version of the compiler does not write.

@@ -780,7 +780,9 @@ public static class Program
                 var root = result.Design.Root!;
                 Console.WriteLine($"{(string?)root.Attribute("TargetNamespace")}: "
                     + $"{root.Elements().Count(e => e.Name.LocalName != "Namespaces")} design(s) written to {Path.GetFullPath(output)}");
-                Console.WriteLine($"Identifiers: {Path.GetFullPath(identifiers)}");
+                Console.WriteLine(identifiers != null
+                    ? $"Identifiers: {Path.GetFullPath(identifiers)}"
+                    : "No identifier file: the model has no numeric NodeId to keep, so the compiler hands out its own.");
                 return 0;
             }
 

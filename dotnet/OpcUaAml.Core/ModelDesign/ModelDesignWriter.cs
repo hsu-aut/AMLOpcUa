@@ -29,11 +29,23 @@ public sealed class ModelDesignOptions
 /// <summary>A design and the identifier file that gives its nodes their NodeIds.</summary>
 public sealed record ModelDesignResult(XDocument Design, string Identifiers)
 {
-    /// <summary>Writes both: the design, and the identifier file beside it (same name, .csv).</summary>
-    public string Save(string designPath)
+    /// <summary>
+    /// Writes the design, and the identifier file beside it (same name, .csv).
+    /// Returns the identifier file, or null when the model has no numeric
+    /// NodeId to keep: an empty file would tell the compiler that the ids are
+    /// settled when they are not.
+    /// </summary>
+    public string? Save(string designPath)
     {
-        Design.Save(designPath);
         var identifiers = Path.ChangeExtension(designPath, ".csv");
+        // A design named "x.csv" would have the identifier file overwrite it.
+        if (string.Equals(identifiers, designPath, StringComparison.OrdinalIgnoreCase)) identifiers = designPath + ".csv";
+        Design.Save(designPath);
+        if (Identifiers.Length == 0)
+        {
+            if (File.Exists(identifiers)) File.Delete(identifiers);
+            return null;
+        }
         File.WriteAllText(identifiers, Identifiers);
         return identifiers;
     }
@@ -84,8 +96,14 @@ public static class ModelDesignWriter
         private readonly Dictionary<string, List<Reference>> _outgoing = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Reference>> _incoming = new(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _prefixes = new(StringComparer.Ordinal);  // namespace URI to prefix
-        private readonly HashSet<string> _written = new(StringComparer.Ordinal);
         private readonly List<(string Symbol, string Identifier, string NodeClass)> _identifiers = [];
+        // Where each node goes and what it is called there, decided before
+        // anything is written: its name among its siblings, its symbolic path
+        // (the key of the identifier file), and the node that holds it.
+        private readonly Dictionary<string, string> _symbolOf = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _pathOf = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _holderOf = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _paths = new(StringComparer.Ordinal);
         private string _target = "";
 
         public Model(XDocument nodeSet, ModelDesignOptions options)
@@ -115,7 +133,7 @@ public static class ModelDesignWriter
                 root.Add(new XAttribute(XNamespace.Xmlns + prefix, uri));
 
             root.Add(Namespaces(model));
-            foreach (var node in Ordered()) root.Add(Node(node));
+            foreach (var node in Plan()) root.Add(Node(node));
             return new XDocument(new XDeclaration("1.0", "utf-8", null), root);
         }
 
@@ -134,8 +152,8 @@ public static class ModelDesignWriter
             if (!_namespaces.Contains(_target))
                 throw new InvalidDataException($"The NodeSet holds no nodes of '{_target}'.");
 
-            _prefixes[UaNamespace] = "ua";
             _prefixes[_target] = "";
+            if (!_prefixes.ContainsKey(UaNamespace)) _prefixes[UaNamespace] = "ua";
             var others = 0;
             foreach (var uri in _namespaces.Where(u => !_prefixes.ContainsKey(u)))
                 _prefixes[uri] = $"ns{++others}";
@@ -178,12 +196,16 @@ public static class ModelDesignWriter
             if ((string?)model?.Attribute("Version") is { Length: > 0 } version) target.SetAttributeValue("Version", version);
             if ((string?)model?.Attribute("PublicationDate") is { Length: > 0 } date) target.SetAttributeValue("PublicationDate", date);
 
-            var namespaces = new XElement(Opc + "Namespaces", target,
-                new XElement(Opc + "Namespace",
+            var namespaces = new XElement(Opc + "Namespaces", target);
+            // The base model, unless the model being written is the base model.
+            if (_target != UaNamespace)
+            {
+                namespaces.Add(new XElement(Opc + "Namespace",
                     new XAttribute("Name", "OpcUa"), new XAttribute("Prefix", "Opc.Ua"),
                     new XAttribute("InternalPrefix", "Opc.Ua.Server"),
                     new XAttribute("XmlNamespace", "http://opcfoundation.org/UA/2008/02/Types.xsd"),
                     new XAttribute("XmlPrefix", "OpcUa"), UaNamespace));
+            }
             foreach (var uri in _namespaces.Where(u => u != _target && u != UaNamespace))
             {
                 var other = NameOf(uri);
@@ -204,6 +226,55 @@ public static class ModelDesignWriter
                 .OrderBy(n => Array.IndexOf(order, n.Name.LocalName))
                 .ThenBy(n => Chain(n).Count())
                 .ThenBy(BrowseName, StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// Decides where every node goes and under which name before anything
+        /// is written, so that two nodes never claim one symbolic path and
+        /// every node of the model ends up somewhere: a reference must not
+        /// point at a node the file does not hold.
+        /// </summary>
+        private List<XElement> Plan()
+        {
+            var roots = Ordered().ToList();
+            foreach (var root in roots) Assign(root, null, null);
+            // What no parent declares forward: a child held only by its own
+            // inverse reference, or two nodes that hold each other. They stand
+            // on their own rather than disappear.
+            foreach (var node in _nodes.Values)
+            {
+                var id = (string)node.Attribute("NodeId")!;
+                if (!Own(id) || _pathOf.ContainsKey(id) || Generated(node)) continue;
+                roots.Add(node);
+                Assign(node, null, null);
+            }
+            return roots;
+        }
+
+        private void Assign(XElement node, string? parentPath, string? parentId)
+        {
+            var id = (string)node.Attribute("NodeId")!;
+            if (_pathOf.ContainsKey(id)) return;
+            var name = Unique(Symbol(BrowseName(node)), parentPath);
+            var path = parentPath is null ? name : $"{parentPath}_{name}";
+            _symbolOf[id] = name;
+            _pathOf[id] = path;
+            _paths.Add(path);
+            if (parentId != null) _holderOf[id] = parentId;
+            foreach (var r in Outgoing(id).Where(r => r.IsForward && Hierarchical(r.Type)))
+            {
+                if (!_nodes.TryGetValue(r.Target, out var child) || !Own(r.Target) || Generated(child)) continue;
+                Assign(child, path, id);
+            }
+        }
+
+        /// <summary>A name no sibling has yet: two nodes may well share a BrowseName.</summary>
+        private string Unique(string name, string? parentPath)
+        {
+            var candidate = name;
+            for (var i = 2; _paths.Contains(parentPath is null ? candidate : $"{parentPath}_{candidate}"); i++)
+                candidate = $"{name}_{i}";
+            return candidate;
         }
 
         /// <summary>A node written on its own: a type, or an instance that no type declares.</summary>
@@ -233,18 +304,20 @@ public static class ModelDesignWriter
 
         private XElement Node(XElement node)
         {
-            var id = (string)node.Attribute("NodeId")!;
-            _written.Add(id);
-            Identify(node, path: null);
+            Note(Path(node), node);
             return node.Name.LocalName switch
             {
                 "UAObjectType" => ObjectType(node),
                 "UAVariableType" => VariableType(node),
                 "UADataType" => DataType(node),
                 "UAReferenceType" => ReferenceType(node),
-                _ => Instance(node, holder: null, path: null),
+                _ => Instance(node, holder: null),
             };
         }
+
+        /// <summary>The symbolic path the plan gave the node.</summary>
+        private string Path(XElement node) =>
+            _pathOf.GetValueOrDefault((string)node.Attribute("NodeId")!) ?? Symbol(BrowseName(node));
 
         /// <summary>
         /// The identifier file the compiler reads: the symbolic path of a node,
@@ -260,21 +333,31 @@ public static class ModelDesignWriter
             return text.ToString();
         }
 
-        /// <summary>Notes the node's identifier under the symbolic path it will have.</summary>
-        private string Identify(XElement node, string? path)
-        {
-            var name = Symbol(BrowseName(node));
-            var symbol = path is null ? name : $"{path}_{name}";
-            Note(symbol, node);
-            return symbol;
-        }
-
         private void Note(string symbol, XElement node)
         {
-            var id = (string)node.Attribute("NodeId")!;
-            var part = id[(id.IndexOf(';') + 1)..];
-            if (part.StartsWith("i=", StringComparison.Ordinal) && uint.TryParse(part[2..], out var numeric))
-                _identifiers.Add((symbol, numeric.ToString(CultureInfo.InvariantCulture), NodeClass(node)));
+            if (Numeric(node) is { } numeric) _identifiers.Add((symbol, numeric, NodeClass(node)));
+        }
+
+        /// <summary>The numeric identifier of a node, or null when its NodeId is a string or a GUID.</summary>
+        private static string? Numeric(XElement node)
+        {
+            var part = Identifier(node);
+            return part.StartsWith("i=", StringComparison.Ordinal) && uint.TryParse(part[2..], out var numeric)
+                ? numeric.ToString(CultureInfo.InvariantCulture)
+                : null;
+        }
+
+        /// <summary>A NodeId that is a string, which the design carries on the node itself.</summary>
+        private static string? StringId(XElement node)
+        {
+            var part = Identifier(node);
+            return part.StartsWith("s=", StringComparison.Ordinal) ? part[2..] : null;
+        }
+
+        private static string Identifier(XElement node)
+        {
+            var id = (string?)node.Attribute("NodeId") ?? "";
+            return id[(id.IndexOf(';') + 1)..];
         }
 
         private static string NodeClass(XElement node) => node.Name.LocalName[2..];
@@ -288,13 +371,13 @@ public static class ModelDesignWriter
         private void GeneratedIdentifiers(XElement dataType)
         {
             var id = (string)dataType.Attribute("NodeId")!;
-            var path = Symbol(BrowseName(dataType));
+            var path = Path(dataType);
             foreach (var r in Outgoing(id).Where(r => r.IsForward && r.Type == "i=46"))
             {
                 if (_nodes.TryGetValue(r.Target, out var target)
                     && BrowseName(target) is "EnumStrings" or "EnumValues" or "OptionSetValues")
                 {
-                    Identify(target, path);
+                    Note(path + "_" + Symbol(BrowseName(target)), target);
                 }
             }
             // An encoding names its DataType, not the other way round.
@@ -308,7 +391,7 @@ public static class ModelDesignWriter
                     "DefaultJSON" => "DefaultJson",
                     var other => other,
                 };
-                Note($"{path}_Encoding_{name}", encoding);
+                Note($"{path}_Encoding_{Symbol(name)}", encoding);
             }
         }
 
@@ -317,7 +400,7 @@ public static class ModelDesignWriter
         private XElement ObjectType(XElement node)
         {
             var design = new XElement(Opc + "ObjectType", Head(node), Supertype(node, "ua:BaseObjectType"));
-            Fill(design, node, Symbol(BrowseName(node)));
+            Fill(design, node);
             return design;
         }
 
@@ -325,7 +408,7 @@ public static class ModelDesignWriter
         {
             var design = new XElement(Opc + "VariableType", Head(node), Supertype(node, "ua:BaseDataVariableType"));
             ValueAttributes(design, node);
-            Fill(design, node, Symbol(BrowseName(node)));
+            Fill(design, node);
             return design;
         }
 
@@ -342,7 +425,7 @@ public static class ModelDesignWriter
         private XElement DataType(XElement node)
         {
             var design = new XElement(Opc + "DataType", Head(node), Supertype(node, "ua:Structure"));
-            Fill(design, node, Symbol(BrowseName(node)));
+            Fill(design, node);
             var definition = node.Element(Ua + "Definition");
             if (definition is null) return design;
 
@@ -375,11 +458,9 @@ public static class ModelDesignWriter
         // ── instances ────────────────────────────────────────────────────────
 
         /// <summary>An object, variable, property or method, as a child or on its own.</summary>
-        private XElement Instance(XElement node, string? holder, string? path)
+        private XElement Instance(XElement node, string? holder)
         {
             var id = (string)node.Attribute("NodeId")!;
-            _written.Add(id);
-            var symbol = path is null ? Symbol(BrowseName(node)) : Identify(node, path);
             var property = holder == "i=46";
             var name = node.Name.LocalName switch
             {
@@ -393,26 +474,28 @@ public static class ModelDesignWriter
             if (TypeDefinition(id) is { } type && !(property && type == "i=68")) design.SetAttributeValue("TypeDefinition", QName(type));
             if (ModellingRule(id) is { } rule) design.SetAttributeValue("ModellingRule", rule);
             if (node.Name.LocalName is "UAVariable") ValueAttributes(design, node);
-            Fill(design, node, symbol);
+            Fill(design, node);
             // The schema puts these after the children and references: a child
             // held by anything but the usual reference names it, and a method
             // carries its arguments.
             if (holder is { } h && h != "i=47" && h != "i=46")
                 design.Add(new XElement(Opc + "ReferenceType", QName(h)));
-            if (node.Name.LocalName == "UAMethod") Arguments(design, id, symbol);
+            if (node.Name.LocalName == "UAMethod") Arguments(design, id, Path(node));
             return design;
         }
 
         /// <summary>Children and references of a type or instance.</summary>
-        private void Fill(XElement design, XElement node, string path)
+        private void Fill(XElement design, XElement node)
         {
             var id = (string)node.Attribute("NodeId")!;
             var children = new XElement(Opc + "Children");
             foreach (var r in Outgoing(id).Where(r => r.IsForward && Hierarchical(r.Type)))
             {
-                if (!_nodes.TryGetValue(r.Target, out var child) || !Own(r.Target) || _written.Contains(r.Target)) continue;
-                if (Generated(child)) continue;            // arguments and enumeration names come from the design
-                children.Add(Instance(child, r.Type, path));
+                // Only the children this node holds by the plan: a node two
+                // parents hold belongs to one of them and is a reference in the other.
+                if (!_nodes.TryGetValue(r.Target, out var child) || _holderOf.GetValueOrDefault(r.Target) != id) continue;
+                Note(Path(child), child);
+                children.Add(Instance(child, r.Type));
             }
             if (children.HasElements) design.Add(children);
             References(design, node);
@@ -428,8 +511,10 @@ public static class ModelDesignWriter
                 if (r.Type is "i=45" or "i=40" or "i=37") continue;                        // HasSubtype, HasTypeDefinition, HasModellingRule
                 if (r.Type is "i=38" or "i=39") continue;                                  // HasEncoding, HasDescription: the compiler writes both
                 if (_nodes.TryGetValue(r.Target, out var other) && Generated(other)) continue;
-                if (r.IsForward && Hierarchical(r.Type) && _written.Contains(r.Target)) continue;
-                if (!r.IsForward && r.Type is "i=47" or "i=46" && _nodes.ContainsKey(r.Target)) continue;   // the parent holds us
+                // The child this node holds is written inside it, not beside it.
+                if (r.IsForward && Hierarchical(r.Type) && _holderOf.GetValueOrDefault(r.Target) == id) continue;
+                if (!r.IsForward && Hierarchical(r.Type) && _holderOf.GetValueOrDefault(id) == r.Target) continue;   // the parent holds us
+                if (Own(r.Target) && !_pathOf.ContainsKey(r.Target)) continue;   // a node the design does not hold
                 var target = Name(r.Target);
                 if (target is null) continue;
                 var reference = new XElement(Opc + "Reference",
@@ -450,8 +535,7 @@ public static class ModelDesignWriter
                     .Select(r => _nodes.GetValueOrDefault(r.Target))
                     .FirstOrDefault(n => n != null && BrowseName(n) == which);
                 if (property is null) continue;
-                _written.Add((string)property.Attribute("NodeId")!);
-                Identify(property, path);
+                Note(path + "_" + which, property);
 
                 var list = new XElement(Opc + which);
                 foreach (var argument in property.Element(Ua + "Value")?.Descendants()
@@ -479,9 +563,11 @@ public static class ModelDesignWriter
         {
             yield return new XAttribute("SymbolicName", Symbolic(node));
             if ((string?)node.Attribute("IsAbstract") == "true") yield return new XAttribute("IsAbstract", "true");
-            // A name XML cannot carry as a QName keeps its BrowseName, which the
-            // schema has as an element: <PlaceholderName> is such a name.
-            if (BrowseName(node) != Symbol(BrowseName(node))) yield return new XElement(Opc + "BrowseName", BrowseName(node));
+            // A NodeId that is a string has no place in the identifier file, which counts in numbers.
+            if (StringId(node) is { } stringId) yield return new XAttribute("StringId", stringId);
+            // A name the symbol could not keep is written out: one XML cannot
+            // carry as a QName (<PlaceholderName>), or one a sibling had first.
+            if (BrowseName(node) != Local(node)) yield return new XElement(Opc + "BrowseName", BrowseName(node));
             // A DisplayName that only repeats the name is left out; the compiler makes it.
             if (node.Element(Ua + "DisplayName")?.Value != BrowseName(node) && Text(node, "DisplayName") is { } display) yield return display;
             if (Text(node, "Description") is { } description) yield return description;
@@ -526,7 +612,9 @@ public static class ModelDesignWriter
             "0" => "OneOrMoreDimensions",
             "-2" => "ScalarOrArray",
             "-3" => "ScalarOrOneDimension",
-            _ => valueRank,
+            // A design knows no matrix: it says "one or more dimensions", and
+            // ArrayDimensions still carries how many there are.
+            _ => "OneOrMoreDimensions",
         };
 
         // ── names and ids ────────────────────────────────────────────────────
@@ -545,7 +633,7 @@ public static class ModelDesignWriter
         /// </summary>
         private string Symbolic(XElement node)
         {
-            var name = Symbol(BrowseName(node));
+            var name = Local(node);
             var full = (string?)node.Attribute("BrowseName") ?? "";
             var colon = full.IndexOf(':');
             // A BrowseName without an index belongs to the UA namespace, as
@@ -555,6 +643,10 @@ public static class ModelDesignWriter
             var prefix = _prefixes.GetValueOrDefault(space, "");
             return prefix.Length == 0 ? name : $"{prefix}:{name}";
         }
+
+        /// <summary>The name the plan gave the node among its siblings.</summary>
+        private string Local(XElement node) =>
+            _symbolOf.GetValueOrDefault((string)node.Attribute("NodeId")!) ?? Symbol(BrowseName(node));
 
         /// <summary>A BrowseName as a SymbolicName: the compiler needs a name XML can carry.</summary>
         private static string Symbol(string browseName)
@@ -582,6 +674,9 @@ public static class ModelDesignWriter
         private string? Name(string nodeId)
         {
             var space = NamespaceOf(nodeId);
+            // A reference names its target by the symbolic id, which for a child
+            // is the path through its parents ("PumpType_Start"), not its name.
+            if (_pathOf.TryGetValue(nodeId, out var path)) return path;
             if (_nodes.TryGetValue(nodeId, out var node)) return Symbolic(node);
             var name = space == UaNamespace ? UaNames.Of(nodeId) : null;
             if (name is null) return null;

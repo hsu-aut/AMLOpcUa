@@ -217,9 +217,10 @@ public partial class OpcUaPlugin
                 NamespaceUri = uri,
             });
             var identifiers = ModelDesignWriter.From(nodeSet).Save(dialog.FileName);
-            PluginLog.Info($"ModelDesign of {uri} written to {dialog.FileName}, identifiers to {identifiers}.");
-            SetStatus($"ModelDesign written to {Path.GetFileName(dialog.FileName)}, with {Path.GetFileName(identifiers)} beside it. "
-                      + "The ModelCompiler turns it into a NodeSet and code.");
+            PluginLog.Info($"ModelDesign of {uri} written to {dialog.FileName}, identifiers to {identifiers ?? "(none)"}.");
+            SetStatus($"ModelDesign written to {Path.GetFileName(dialog.FileName)}"
+                      + (identifiers != null ? $", with {Path.GetFileName(identifiers)} beside it" : "")
+                      + ". The ModelCompiler turns it into a NodeSet and code.");
         });
     }
 
@@ -248,6 +249,9 @@ public partial class OpcUaPlugin
     /// or null with a message when the compiler is missing or the design does
     /// not compile. The folder is the caller's to delete.
     /// </summary>
+    /// <summary>The folder of the last compiled design, so the caller can delete it.</summary>
+    private string? _designFolder;
+
     private async Task<string?> CompileDesignAsync(string design)
     {
         if (ModelCompilerTool.Locate(_settings.ModelCompilerPath) is null)
@@ -258,6 +262,7 @@ public partial class OpcUaPlugin
             return null;
         }
         var folder = Directory.CreateTempSubdirectory("amlopcua-design-").FullName;
+        _designFolder = folder;
         SetBusy(true, $"Compiling {Path.GetFileName(design)} with the ModelCompiler …");
         try
         {
@@ -426,7 +431,7 @@ public partial class OpcUaPlugin
         Tabs.SelectedIndex = 0;
         foreach (var file in files)
         {
-            if (NodeSetInfo.TryRead(file) == null)
+            if (!IsModelDesign(file) && NodeSetInfo.TryRead(file) == null)
             {
                 SetStatus($"{Path.GetFileName(file)} is not an OPC UA NodeSet.");
                 continue;

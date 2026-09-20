@@ -1,4 +1,4 @@
-// The OPC Foundation's ModelCompiler as an external tool: it turns a
+﻿// The OPC Foundation's ModelCompiler as an external tool: it turns a
 // ModelDesign file into a NodeSet, which is the form everything here works
 // with. The compiler is not shipped and not required; it is looked for where
 // its installer puts it, and when it is missing the message says how to get it.
@@ -98,10 +98,13 @@ public static class ModelCompilerTool
         // Foundation's models keep them; where there is none, the compiler
         // writes one and hands out identifiers itself.
         var beside = Path.ChangeExtension(Path.GetFullPath(designPath), ".csv");
-        var identifiers = options.IdentifierFile ?? (File.Exists(beside) ? beside : null);
+        // An empty identifier file names no id; the compiler hands out its own.
+        var identifiers = options.IdentifierFile
+                          ?? (File.Exists(beside) && new FileInfo(beside).Length > 0 ? beside : null);
+        var given = identifiers;
         var generate = identifiers is null;
         identifiers ??= Path.Combine(outputFolder, Path.GetFileNameWithoutExtension(designPath) + ".csv");
-        var before = Files(outputFolder);
+        var started = DateTime.UtcNow.AddSeconds(-1);
 
         var start = new ProcessStartInfo(compiler)
         {
@@ -128,7 +131,7 @@ public static class ModelCompilerTool
             start.ArgumentList.Add("-version");
             start.ArgumentList.Add(version);
         }
-        if ((options.StartId ?? NextFreeId(designPath)) is { } startId)
+        if ((options.StartId ?? NextFreeId(designPath, given)) is { } startId)
         {
             start.ArgumentList.Add("-id");
             start.ArgumentList.Add(startId.ToString(CultureInfo.InvariantCulture));
@@ -138,9 +141,12 @@ public static class ModelCompilerTool
         if (exitCode != 0)
             throw new ModelCompilerException($"The ModelCompiler failed (exit code {exitCode}).\n{Tail(output)}");
 
-        var written = Files(outputFolder).Except(before, StringComparer.OrdinalIgnoreCase).ToList();
-        var nodeSet = written.Concat(Files(outputFolder))
-            .FirstOrDefault(f => f.EndsWith(".NodeSet2.xml", StringComparison.OrdinalIgnoreCase));
+        // What this run wrote, by the time it was written: a folder used before
+        // holds older files of the same name, and the newest is ours.
+        var written = Files(outputFolder).Where(f => File.GetLastWriteTimeUtc(f) >= started).ToList();
+        var nodeSet = written.Where(f => f.EndsWith(".NodeSet2.xml", StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
         if (nodeSet is null)
             throw new ModelCompilerException($"The ModelCompiler wrote no NodeSet into '{outputFolder}'.\n{Tail(output)}");
         return new CompileResult(nodeSet, written, output);
@@ -197,28 +203,46 @@ public static class ModelCompilerTool
     }
 
     /// <summary>
-    /// One above the highest identifier a design names, so the compiler numbers
-    /// the nodes it adds itself without taking an identifier that is in use.
-    /// Null when the file names none, or is no design.
+    /// One above the highest identifier the model already uses, so the compiler
+    /// numbers the nodes it adds itself without taking one that is in use. The
+    /// identifiers are in the design (NumericId) or, as this repository writes
+    /// them, in the identifier file. Null when neither names one.
     /// </summary>
-    private static uint? NextFreeId(string designPath)
+    private static uint? NextFreeId(string designPath, string? identifierFile)
     {
+        var highest = 0u;
         try
         {
             var design = SafeXml.Load(designPath, LoadOptions.None);
-            if (design.Root?.Name.NamespaceName != ModelDesignWriter.DesignNamespace) return null;
-            var highest = design.Descendants()
-                .Select(e => (string?)e.Attribute("NumericId"))
-                .Where(id => id is { Length: > 0 })
-                .Select(id => uint.TryParse(id, CultureInfo.InvariantCulture, out var value) ? value : 0u)
-                .DefaultIfEmpty(0u)
-                .Max();
-            return highest == 0 ? null : highest + 1;
+            if (design.Root?.Name.NamespaceName == ModelDesignWriter.DesignNamespace)
+            {
+                foreach (var id in design.Descendants().Select(e => (string?)e.Attribute("NumericId")))
+                {
+                    if (uint.TryParse(id, CultureInfo.InvariantCulture, out var value)) highest = Math.Max(highest, value);
+                }
+            }
         }
         catch (Exception ex) when (ex is IOException or System.Xml.XmlException or UnauthorizedAccessException)
         {
-            return null;
+            // Not readable: the caller finds out when the compiler runs.
         }
+        try
+        {
+            if (identifierFile != null && File.Exists(identifierFile))
+            {
+                foreach (var line in File.ReadLines(identifierFile))
+                {
+                    var fields = line.Split(',');
+                    if (fields.Length >= 2 && uint.TryParse(fields[1], CultureInfo.InvariantCulture, out var value))
+                        highest = Math.Max(highest, value);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // As above.
+        }
+        return highest == 0 ? null : highest + 1;
     }
 
     private static List<string> Files(string folder) =>

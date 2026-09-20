@@ -328,7 +328,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         finally
         {
             _importing = false;
-            if (compiled != null) DeleteFolder(Path.GetDirectoryName(compiled)!);
+            // The whole folder the compiler wrote into, not just the one the NodeSet sits in.
+            if (compiled != null && _designFolder != null) { DeleteFolder(_designFolder); _designFolder = null; }
         }
     }
 
