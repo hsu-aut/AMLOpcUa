@@ -42,7 +42,7 @@ AMLPetriNet.
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
 | `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
-| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [VDI 3682](docs/vdi3682.md) |
+| `docs/` | [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [ModelDesign](docs/modeldesign.md), [VDI 3682](docs/vdi3682.md), [demo](docs/demo.md) |
 
 ## Build
 
