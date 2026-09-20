@@ -1,0 +1,2907 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UANodeSet xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+  <NamespaceUris>
+    <Uri>http://hsu-hh.de/UA/MPS500/</Uri>
+    <Uri>http://opcfoundation.org/UA/DI/</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://hsu-hh.de/UA/MPS500/" Version="1.0.0" PublicationDate="2026-09-20T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" />
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/DI/" Version="1.05.0" PublicationDate="2025-11-15T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="HasComponent">i=47</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasSubtype">i=45</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasModellingRule">i=37</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+  </Aliases>
+  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:StationStateMachineType">
+    <DisplayName>StationStateMachineType</DisplayName>
+    <Description>The states a station of the MPS 500 runs through.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=2771</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1005</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1007</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1009</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1011</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1013</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1015</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1017</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1019</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=1001" BrowseName="1:Idle" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Idle</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2307</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1002</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1009</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1011</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1013</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1015</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1019</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="StateNumber" ParentNodeId="ns=1;i=1001" DataType="i=7" ValueRank="-1">
+    <DisplayName>StateNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1003" BrowseName="1:Setup" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Setup</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2307</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1004</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1009</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1011</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1004" BrowseName="StateNumber" ParentNodeId="ns=1;i=1003" DataType="i=7" ValueRank="-1">
+    <DisplayName>StateNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">2</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1005" BrowseName="1:Running" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Running</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2307</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1006</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1013</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1015</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1017</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1006" BrowseName="StateNumber" ParentNodeId="ns=1;i=1005" DataType="i=7" ValueRank="-1">
+    <DisplayName>StateNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1005</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">3</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1007" BrowseName="1:Faulted" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Faulted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2307</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1008</Reference>
+      <Reference ReferenceType="i=52" IsForward="false">ns=1;i=1017</Reference>
+      <Reference ReferenceType="i=51" IsForward="false">ns=1;i=1019</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1008" BrowseName="StateNumber" ParentNodeId="ns=1;i=1007" DataType="i=7" ValueRank="-1">
+    <DisplayName>StateNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1007</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">4</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1009" BrowseName="1:IdleToSetup" ParentNodeId="ns=1;i=1000">
+    <DisplayName>IdleToSetup</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1010</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1001</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1003</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1010" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1009" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1009</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1011" BrowseName="1:SetupToIdle" ParentNodeId="ns=1;i=1000">
+    <DisplayName>SetupToIdle</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1012</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1003</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1001</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1012" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1011" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1011</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">2</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1013" BrowseName="1:IdleToRunning" ParentNodeId="ns=1;i=1000">
+    <DisplayName>IdleToRunning</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1014</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1001</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1005</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1014" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1013" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1013</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">3</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1015" BrowseName="1:RunningToIdle" ParentNodeId="ns=1;i=1000">
+    <DisplayName>RunningToIdle</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1016</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1005</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1001</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1016" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1015" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1015</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">4</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1017" BrowseName="1:RunningToFaulted" ParentNodeId="ns=1;i=1000">
+    <DisplayName>RunningToFaulted</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1018</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1005</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1007</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1018" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1017" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1017</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">5</UInt32></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1019" BrowseName="1:FaultedToIdle" ParentNodeId="ns=1;i=1000">
+    <DisplayName>FaultedToIdle</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2310</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1020</Reference>
+      <Reference ReferenceType="i=51">ns=1;i=1007</Reference>
+      <Reference ReferenceType="i=52">ns=1;i=1001</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1020" BrowseName="TransitionNumber" ParentNodeId="ns=1;i=1019" DataType="i=7" ValueRank="-1">
+    <DisplayName>TransitionNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1019</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">6</UInt32></Value>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1021" BrowseName="1:StationType">
+    <DisplayName>StationType</DisplayName>
+    <Description>One station of the MPS 500, a device of its own with modules below it.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=2;i=1002</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1022</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1027</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1028</Reference>
+    </References>
+  </UAObjectType>
+  <UAObject NodeId="ns=1;i=1022" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1021">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1021</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1023</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1024</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1025</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1026</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1023" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1022" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1022</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1024" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1022" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1022</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1025" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1022" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1022</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1026" BrowseName="1:Ready" ParentNodeId="ns=1;i=1022" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1022</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1027" BrowseName="1:StationState" ParentNodeId="ns=1;i=1021">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1021</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1028" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1021" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1021</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1029" BrowseName="1:ModuleType">
+    <DisplayName>ModuleType</DisplayName>
+    <Description>A module of a station, which holds the devices that move.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=2;i=15063</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1030</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1030" BrowseName="1:Ready" ParentNodeId="ns=1;i=1029" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1031" BrowseName="1:ActuatorType">
+    <DisplayName>ActuatorType</DisplayName>
+    <Description>A cylinder, a drive or a gripper.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=2;i=15063</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1032</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1033</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1032" BrowseName="1:Moving" ParentNodeId="ns=1;i=1031" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1033" BrowseName="1:Position" ParentNodeId="ns=1;i=1031" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1034" BrowseName="1:DriveType">
+    <DisplayName>DriveType</DisplayName>
+    <Description>An actuator with a speed of its own.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1035</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1035" BrowseName="1:Speed" ParentNodeId="ns=1;i=1034" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1036" BrowseName="1:SensorType">
+    <DisplayName>SensorType</DisplayName>
+    <Description>A sensor that says whether something is there.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=2;i=15063</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1037</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1037" BrowseName="1:Signal" ParentNodeId="ns=1;i=1036" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObjectType NodeId="ns=1;i=1038" BrowseName="1:ControllerType">
+    <DisplayName>ControllerType</DisplayName>
+    <Description>A PLC or a valve terminal.</Description>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=2;i=15063</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1039</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1040</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1039" BrowseName="1:Online" ParentNodeId="ns=1;i=1038" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1040" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1038" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1041" BrowseName="1:MPS500">
+    <DisplayName>MPS500</DisplayName>
+    <Description>The MPS 500 learning factory of the Helmut Schmidt University.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1042</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1086</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1131</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1194</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1236</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=1277</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=1042" BrowseName="1:ST10_Distributing" ParentNodeId="ns=1;i=1041">
+    <DisplayName>ST10_Distributing</DisplayName>
+    <Description>Separates the housings from the magazine and hands them over.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1043</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1044</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1045</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1046</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1047</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1048</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1049</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1050</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1051</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1056</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1059</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1060</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1069</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1078</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1043" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1042" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1044" BrowseName="2:Model" ParentNodeId="ns=1;i=1042" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Station Verteilen</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1045" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1042" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1046" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1042" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1047" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1042" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1048" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1042" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1049" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1042" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-ST10-1001</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1050" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1042" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1051" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1042">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1052</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1053</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1054</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1055</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1052" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1051" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1051</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">134</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1053" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1051" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1051</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">115</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1054" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1051" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1051</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">9.6</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1055" BrowseName="1:Ready" ParentNodeId="ns=1;i=1051" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1051</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1056" BrowseName="1:StationState" ParentNodeId="ns=1;i=1042">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1057</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1057" BrowseName="CurrentState" ParentNodeId="ns=1;i=1056" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1056</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1058</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1058" BrowseName="Id" ParentNodeId="ns=1;i=1057" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1057</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1059" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1042" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">10</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1060" BrowseName="1:MD_Magazine" ParentNodeId="ns=1;i=1042">
+    <DisplayName>MD_Magazine</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1061</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1062</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1065</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1067</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1061" BrowseName="1:Ready" ParentNodeId="ns=1;i=1060" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1060</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1062" BrowseName="1:DV_Ejection_cylinder" ParentNodeId="ns=1;i=1060">
+    <DisplayName>DV_Ejection_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1060</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1063</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1064</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1063" BrowseName="1:Moving" ParentNodeId="ns=1;i=1062" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1062</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1064" BrowseName="1:Position" ParentNodeId="ns=1;i=1062" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1062</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">5.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1065" BrowseName="1:DV_Magazine_empty_sensor" ParentNodeId="ns=1;i=1060">
+    <DisplayName>DV_Magazine_empty_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1060</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1066</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1066" BrowseName="1:Signal" ParentNodeId="ns=1;i=1065" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1065</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1067" BrowseName="1:DV_Ejection_endpos_sensor" ParentNodeId="ns=1;i=1060">
+    <DisplayName>DV_Ejection_endpos_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1060</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1068</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1068" BrowseName="1:Signal" ParentNodeId="ns=1;i=1067" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1067</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1069" BrowseName="1:MD_Transfer_arm" ParentNodeId="ns=1;i=1042">
+    <DisplayName>MD_Transfer_arm</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1070</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1071</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1075</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1070" BrowseName="1:Ready" ParentNodeId="ns=1;i=1069" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1069</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1071" BrowseName="1:DV_Swivel_drive" ParentNodeId="ns=1;i=1069">
+    <DisplayName>DV_Swivel_drive</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1069</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1072</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1073</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1074</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1072" BrowseName="1:Moving" ParentNodeId="ns=1;i=1071" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1071</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1073" BrowseName="1:Position" ParentNodeId="ns=1;i=1071" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1071</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">8.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1074" BrowseName="1:Speed" ParentNodeId="ns=1;i=1071" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1071</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1680</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1075" BrowseName="1:DV_Vacuum_gripper" ParentNodeId="ns=1;i=1069">
+    <DisplayName>DV_Vacuum_gripper</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1069</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1076</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1077</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1076" BrowseName="1:Moving" ParentNodeId="ns=1;i=1075" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1075</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1077" BrowseName="1:Position" ParentNodeId="ns=1;i=1075" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1075</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">10.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1078" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1042">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1042</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1079</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1080</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1083</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1079" BrowseName="1:Ready" ParentNodeId="ns=1;i=1078" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1078</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1080" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1078">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1078</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1081</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1082</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1081" BrowseName="1:Online" ParentNodeId="ns=1;i=1080" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1080</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1082" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1080" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1080</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">40.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1083" BrowseName="1:CTRL_ValveTerminal" ParentNodeId="ns=1;i=1078">
+    <DisplayName>CTRL_ValveTerminal</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1078</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1084</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1085</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1084" BrowseName="1:Online" ParentNodeId="ns=1;i=1083" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1083</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1085" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1083" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1083</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">45.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1086" BrowseName="1:ST20_PartsDistributing" ParentNodeId="ns=1;i=1041">
+    <DisplayName>ST20_PartsDistributing</DisplayName>
+    <Description>Feeds the inserts and places them into the housing.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1087</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1088</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1089</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1090</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1091</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1092</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1093</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1094</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1095</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1100</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1103</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1104</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1111</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1123</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1087" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1086" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1088" BrowseName="2:Model" ParentNodeId="ns=1;i=1086" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Station Teile verteilen</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1089" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1086" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1090" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1086" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1091" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1086" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1092" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1086" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1093" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1086" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-ST20-1013</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1094" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1086" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1095" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1086">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1096</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1097</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1098</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1099</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1096" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1095" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1095</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">218</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1097" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1095" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1095</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">175</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1098" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1095" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1095</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">14.4</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1099" BrowseName="1:Ready" ParentNodeId="ns=1;i=1095" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1095</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1100" BrowseName="1:StationState" ParentNodeId="ns=1;i=1086">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1101</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1101" BrowseName="CurrentState" ParentNodeId="ns=1;i=1100" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1100</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1102</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1102" BrowseName="Id" ParentNodeId="ns=1;i=1101" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1101</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1103" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1086" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1104" BrowseName="1:MD_Parts_magazine" ParentNodeId="ns=1;i=1086">
+    <DisplayName>MD_Parts_magazine</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1105</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1106</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1109</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1105" BrowseName="1:Ready" ParentNodeId="ns=1;i=1104" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1104</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1106" BrowseName="1:DV_Feeder_cylinder" ParentNodeId="ns=1;i=1104">
+    <DisplayName>DV_Feeder_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1104</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1107</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1108</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1107" BrowseName="1:Moving" ParentNodeId="ns=1;i=1106" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1106</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1108" BrowseName="1:Position" ParentNodeId="ns=1;i=1106" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1106</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">17.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1109" BrowseName="1:DV_Part_present_sensor" ParentNodeId="ns=1;i=1104">
+    <DisplayName>DV_Part_present_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1104</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1110</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1110" BrowseName="1:Signal" ParentNodeId="ns=1;i=1109" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1109</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1111" BrowseName="1:MD_Pick_and_place" ParentNodeId="ns=1;i=1086">
+    <DisplayName>MD_Pick_and_place</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1112</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1113</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1117</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1120</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1112" BrowseName="1:Ready" ParentNodeId="ns=1;i=1111" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1111</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1113" BrowseName="1:DV_Linear_axis_X" ParentNodeId="ns=1;i=1111">
+    <DisplayName>DV_Linear_axis_X</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1111</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1114</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1115</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1116</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1114" BrowseName="1:Moving" ParentNodeId="ns=1;i=1113" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1113</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1115" BrowseName="1:Position" ParentNodeId="ns=1;i=1113" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1113</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">19.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1116" BrowseName="1:Speed" ParentNodeId="ns=1;i=1113" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1113</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">600</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1117" BrowseName="1:DV_Lift_cylinder" ParentNodeId="ns=1;i=1111">
+    <DisplayName>DV_Lift_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1111</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1118</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1119</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1118" BrowseName="1:Moving" ParentNodeId="ns=1;i=1117" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1117</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1119" BrowseName="1:Position" ParentNodeId="ns=1;i=1117" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1117</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">21.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1120" BrowseName="1:DV_Parallel_gripper" ParentNodeId="ns=1;i=1111">
+    <DisplayName>DV_Parallel_gripper</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1111</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1121</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1122</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1121" BrowseName="1:Moving" ParentNodeId="ns=1;i=1120" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1120</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1122" BrowseName="1:Position" ParentNodeId="ns=1;i=1120" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1120</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">22.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1123" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1086">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1086</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1124</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1125</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1128</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1124" BrowseName="1:Ready" ParentNodeId="ns=1;i=1123" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1123</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1125" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1123">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1123</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1126</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1127</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1126" BrowseName="1:Online" ParentNodeId="ns=1;i=1125" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1125</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1127" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1125" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1125</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">30.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1128" BrowseName="1:CTRL_ValveTerminal" ParentNodeId="ns=1;i=1123">
+    <DisplayName>CTRL_ValveTerminal</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1123</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1129</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1130</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1129" BrowseName="1:Online" ParentNodeId="ns=1;i=1128" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1128</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1130" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1128" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1128</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">35.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1131" BrowseName="1:ST30_Processing" ParentNodeId="ns=1;i=1041">
+    <DisplayName>ST30_Processing</DisplayName>
+    <Description>Drills the housing on the rotary indexing table and checks the hole.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1132</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1133</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1134</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1135</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1136</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1137</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1138</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1139</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1140</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1145</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1148</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1149</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1157</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1162</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1174</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1181</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1186</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1132" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1131" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1133" BrowseName="2:Model" ParentNodeId="ns=1;i=1131" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Station Bearbeiten</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1134" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1131" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1135" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1131" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1136" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1131" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1137" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1131" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1138" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1131" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-ST30-1025</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1139" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1131" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1140" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1131">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1141</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1142</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1143</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1144</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1141" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1140" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1140</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">302</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1142" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1140" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1140</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">235</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1143" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1140" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1140</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">19.2</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1144" BrowseName="1:Ready" ParentNodeId="ns=1;i=1140" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1140</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1145" BrowseName="1:StationState" ParentNodeId="ns=1;i=1131">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1146</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1146" BrowseName="CurrentState" ParentNodeId="ns=1;i=1145" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1145</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1147</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1147" BrowseName="Id" ParentNodeId="ns=1;i=1146" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1146</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1148" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1131" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">30</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1149" BrowseName="1:MD_Rotary_indexing_table" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Rotary_indexing_table</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1150</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1151</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1155</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1150" BrowseName="1:Ready" ParentNodeId="ns=1;i=1149" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1149</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1151" BrowseName="1:DV_Index_drive" ParentNodeId="ns=1;i=1149">
+    <DisplayName>DV_Index_drive</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1149</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1152</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1153</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1154</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1152" BrowseName="1:Moving" ParentNodeId="ns=1;i=1151" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1151</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1153" BrowseName="1:Position" ParentNodeId="ns=1;i=1151" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1151</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">29.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1154" BrowseName="1:Speed" ParentNodeId="ns=1;i=1151" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1151</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">600</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1155" BrowseName="1:DV_Index_position_sensor" ParentNodeId="ns=1;i=1149">
+    <DisplayName>DV_Index_position_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1149</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1156</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1156" BrowseName="1:Signal" ParentNodeId="ns=1;i=1155" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1155</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1157" BrowseName="1:MD_Clamping_unit" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Clamping_unit</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1158</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1159</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1158" BrowseName="1:Ready" ParentNodeId="ns=1;i=1157" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1157</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1159" BrowseName="1:DV_Clamp_cylinder" ParentNodeId="ns=1;i=1157">
+    <DisplayName>DV_Clamp_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1157</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1160</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1161</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1160" BrowseName="1:Moving" ParentNodeId="ns=1;i=1159" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1159</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1161" BrowseName="1:Position" ParentNodeId="ns=1;i=1159" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1159</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">32.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1162" BrowseName="1:MD_Drilling_unit" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Drilling_unit</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1163</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1164</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1168</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1172</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1163" BrowseName="1:Ready" ParentNodeId="ns=1;i=1162" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1162</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1164" BrowseName="1:DV_Drill_spindle" ParentNodeId="ns=1;i=1162">
+    <DisplayName>DV_Drill_spindle</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1162</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1165</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1166</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1167</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1165" BrowseName="1:Moving" ParentNodeId="ns=1;i=1164" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1164</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1166" BrowseName="1:Position" ParentNodeId="ns=1;i=1164" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1164</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">33.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1167" BrowseName="1:Speed" ParentNodeId="ns=1;i=1164" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1164</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1080</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1168" BrowseName="1:DV_Linear_axis_Z" ParentNodeId="ns=1;i=1162">
+    <DisplayName>DV_Linear_axis_Z</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1162</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1169</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1170</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1171</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1169" BrowseName="1:Moving" ParentNodeId="ns=1;i=1168" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1168</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1170" BrowseName="1:Position" ParentNodeId="ns=1;i=1168" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1168</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">35.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1171" BrowseName="1:Speed" ParentNodeId="ns=1;i=1168" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1168</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1320</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1172" BrowseName="1:DV_Z_endpos_sensor" ParentNodeId="ns=1;i=1162">
+    <DisplayName>DV_Z_endpos_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1162</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1173</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1173" BrowseName="1:Signal" ParentNodeId="ns=1;i=1172" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1172</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1174" BrowseName="1:MD_Testing_unit" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Testing_unit</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1175</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1176</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1179</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1175" BrowseName="1:Ready" ParentNodeId="ns=1;i=1174" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1174</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1176" BrowseName="1:DV_Probe_cylinder" ParentNodeId="ns=1;i=1174">
+    <DisplayName>DV_Probe_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1174</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1177</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1178</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1177" BrowseName="1:Moving" ParentNodeId="ns=1;i=1176" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1176</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1178" BrowseName="1:Position" ParentNodeId="ns=1;i=1176" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1176</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">38.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1179" BrowseName="1:DV_Depth_probe" ParentNodeId="ns=1;i=1174">
+    <DisplayName>DV_Depth_probe</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1174</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1180</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1180" BrowseName="1:Signal" ParentNodeId="ns=1;i=1179" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1179</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1181" BrowseName="1:MD_Handling_unit" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Handling_unit</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1182</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1183</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1182" BrowseName="1:Ready" ParentNodeId="ns=1;i=1181" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1181</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1183" BrowseName="1:DV_Transfer_cylinder" ParentNodeId="ns=1;i=1181">
+    <DisplayName>DV_Transfer_cylinder</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1181</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1184</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1185</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1184" BrowseName="1:Moving" ParentNodeId="ns=1;i=1183" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1183</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1185" BrowseName="1:Position" ParentNodeId="ns=1;i=1183" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1183</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">40.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1186" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1131">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1131</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1187</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1188</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1191</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1187" BrowseName="1:Ready" ParentNodeId="ns=1;i=1186" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1186</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1188" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1186">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1186</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1189</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1190</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1189" BrowseName="1:Online" ParentNodeId="ns=1;i=1188" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1188</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1190" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1188" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1188</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">50.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1191" BrowseName="1:CTRL_ValveTerminal" ParentNodeId="ns=1;i=1186">
+    <DisplayName>CTRL_ValveTerminal</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1186</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1192</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1193</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1192" BrowseName="1:Online" ParentNodeId="ns=1;i=1191" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1191</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1193" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1191" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1191</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1194" BrowseName="1:ST40_Assembly" ParentNodeId="ns=1;i=1041">
+    <DisplayName>ST40_Assembly</DisplayName>
+    <Description>Puts the cover on and screws it down.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1195</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1196</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1197</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1198</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1199</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1200</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1201</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1202</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1203</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1208</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1211</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1212</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1224</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1228</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1195" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1194" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1196" BrowseName="2:Model" ParentNodeId="ns=1;i=1194" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Station Montieren</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1197" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1194" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1198" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1194" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1199" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1194" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1200" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1194" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1201" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1194" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-ST40-1043</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1202" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1194" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1203" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1194">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1204</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1205</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1206</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1207</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1204" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1203" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1203</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">428</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1205" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1203" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1203</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">325</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1206" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1203" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1203</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">26.4</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1207" BrowseName="1:Ready" ParentNodeId="ns=1;i=1203" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1203</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1208" BrowseName="1:StationState" ParentNodeId="ns=1;i=1194">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1209</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1209" BrowseName="CurrentState" ParentNodeId="ns=1;i=1208" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1208</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1210</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1210" BrowseName="Id" ParentNodeId="ns=1;i=1209" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1209</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1211" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1194" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">40</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1212" BrowseName="1:MD_Robot" ParentNodeId="ns=1;i=1194">
+    <DisplayName>MD_Robot</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1213</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1214</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1218</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1221</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1213" BrowseName="1:Ready" ParentNodeId="ns=1;i=1212" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1212</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1214" BrowseName="1:DV_Robot_arm" ParentNodeId="ns=1;i=1212">
+    <DisplayName>DV_Robot_arm</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1212</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1215</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1216</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1217</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1215" BrowseName="1:Moving" ParentNodeId="ns=1;i=1214" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1214</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1216" BrowseName="1:Position" ParentNodeId="ns=1;i=1214" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1214</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">47.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1217" BrowseName="1:Speed" ParentNodeId="ns=1;i=1214" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1214</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1560</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1218" BrowseName="1:DV_Robot_controller" ParentNodeId="ns=1;i=1212">
+    <DisplayName>DV_Robot_controller</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1212</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1219</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1220</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1219" BrowseName="1:Online" ParentNodeId="ns=1;i=1218" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1218</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1220" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1218" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1218</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1221" BrowseName="1:DV_Assembly_gripper" ParentNodeId="ns=1;i=1212">
+    <DisplayName>DV_Assembly_gripper</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1212</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1222</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1223</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1222" BrowseName="1:Moving" ParentNodeId="ns=1;i=1221" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1221</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1223" BrowseName="1:Position" ParentNodeId="ns=1;i=1221" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1221</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">50.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1224" BrowseName="1:MD_Parts_buffer" ParentNodeId="ns=1;i=1194">
+    <DisplayName>MD_Parts_buffer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1225</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1226</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1225" BrowseName="1:Ready" ParentNodeId="ns=1;i=1224" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1224</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1226" BrowseName="1:DV_Buffer_sensor" ParentNodeId="ns=1;i=1224">
+    <DisplayName>DV_Buffer_sensor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1224</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1227</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1227" BrowseName="1:Signal" ParentNodeId="ns=1;i=1226" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1226</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1228" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1194">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1194</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1229</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1230</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1233</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1229" BrowseName="1:Ready" ParentNodeId="ns=1;i=1228" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1228</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1230" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1228">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1228</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1231</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1232</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1231" BrowseName="1:Online" ParentNodeId="ns=1;i=1230" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1230</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1232" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1230" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1230</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">35.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1233" BrowseName="1:CTRL_ValveTerminal" ParentNodeId="ns=1;i=1228">
+    <DisplayName>CTRL_ValveTerminal</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1228</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1234</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1235</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1234" BrowseName="1:Online" ParentNodeId="ns=1;i=1233" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1233</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1235" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1233" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1233</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">40.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1236" BrowseName="1:ST50_Storage" ParentNodeId="ns=1;i=1041">
+    <DisplayName>ST50_Storage</DisplayName>
+    <Description>Stores the finished workpieces in the rack.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1237</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1238</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1239</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1240</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1241</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1242</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1243</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1244</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1245</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1250</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1253</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1254</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1256</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1269</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1237" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1236" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1238" BrowseName="2:Model" ParentNodeId="ns=1;i=1236" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Station Lagern</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1239" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1236" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1240" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1236" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1241" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1236" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1242" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1236" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1243" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1236" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-ST50-1054</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1244" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1236" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1245" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1236">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1246</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1247</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1248</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1249</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1246" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1245" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1245</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">505</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1247" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1245" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1245</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">380</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1248" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1245" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1245</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">30.8</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1249" BrowseName="1:Ready" ParentNodeId="ns=1;i=1245" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1245</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1250" BrowseName="1:StationState" ParentNodeId="ns=1;i=1236">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1251</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1251" BrowseName="CurrentState" ParentNodeId="ns=1;i=1250" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1250</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1252</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1252" BrowseName="Id" ParentNodeId="ns=1;i=1251" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1251</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1253" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1236" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">50</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1254" BrowseName="1:MD_Rack" ParentNodeId="ns=1;i=1236">
+    <DisplayName>MD_Rack</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1255</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1255" BrowseName="1:Ready" ParentNodeId="ns=1;i=1254" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1254</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1256" BrowseName="1:MD_Stacker_crane" ParentNodeId="ns=1;i=1236">
+    <DisplayName>MD_Stacker_crane</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1257</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1258</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1262</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1266</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1257" BrowseName="1:Ready" ParentNodeId="ns=1;i=1256" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1256</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1258" BrowseName="1:DV_Stacker_axis_X" ParentNodeId="ns=1;i=1256">
+    <DisplayName>DV_Stacker_axis_X</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1256</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1259</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1260</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1261</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1259" BrowseName="1:Moving" ParentNodeId="ns=1;i=1258" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1258</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1260" BrowseName="1:Position" ParentNodeId="ns=1;i=1258" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1258</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">58.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1261" BrowseName="1:Speed" ParentNodeId="ns=1;i=1258" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1258</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">1680</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1262" BrowseName="1:DV_Stacker_axis_Z" ParentNodeId="ns=1;i=1256">
+    <DisplayName>DV_Stacker_axis_Z</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1256</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1263</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1264</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1265</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1263" BrowseName="1:Moving" ParentNodeId="ns=1;i=1262" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1262</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1264" BrowseName="1:Position" ParentNodeId="ns=1;i=1262" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1262</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">60.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1265" BrowseName="1:Speed" ParentNodeId="ns=1;i=1262" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1262</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">720</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1266" BrowseName="1:DV_Storage_gripper" ParentNodeId="ns=1;i=1256">
+    <DisplayName>DV_Storage_gripper</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1256</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1267</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1268</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1267" BrowseName="1:Moving" ParentNodeId="ns=1;i=1266" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1266</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1268" BrowseName="1:Position" ParentNodeId="ns=1;i=1266" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1266</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">62.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1269" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1236">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1236</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1270</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1271</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1274</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1270" BrowseName="1:Ready" ParentNodeId="ns=1;i=1269" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1269</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1271" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1269">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1269</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1272</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1273</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1272" BrowseName="1:Online" ParentNodeId="ns=1;i=1271" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1271</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1273" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1271" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1271</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">20.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1274" BrowseName="1:CTRL_ValveTerminal" ParentNodeId="ns=1;i=1269">
+    <DisplayName>CTRL_ValveTerminal</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1269</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1275</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1276</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1275" BrowseName="1:Online" ParentNodeId="ns=1;i=1274" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1274</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1276" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1274" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1274</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">25.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1277" BrowseName="1:TS10_Transfer_system" ParentNodeId="ns=1;i=1041">
+    <DisplayName>TS10_Transfer_system</DisplayName>
+    <Description>Carries the pallets from station to station.</Description>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1021</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=1041</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1278</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1279</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1280</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1281</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1282</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1283</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1284</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1285</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1286</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1291</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1294</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1295</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1304</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1308</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1310</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1278" BrowseName="2:Manufacturer" ParentNodeId="ns=1;i=1277" DataType="i=21">
+    <DisplayName>Manufacturer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Festo Didactic</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1279" BrowseName="2:Model" ParentNodeId="ns=1;i=1277" DataType="i=21">
+    <DisplayName>Model</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Transfersystem</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1280" BrowseName="2:HardwareRevision" ParentNodeId="ns=1;i=1277" DataType="i=12">
+    <DisplayName>HardwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1281" BrowseName="2:SoftwareRevision" ParentNodeId="ns=1;i=1277" DataType="i=12">
+    <DisplayName>SoftwareRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1282" BrowseName="2:DeviceRevision" ParentNodeId="ns=1;i=1277" DataType="i=12">
+    <DisplayName>DeviceRevision</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1283" BrowseName="2:DeviceManual" ParentNodeId="ns=1;i=1277" DataType="i=12">
+    <DisplayName>DeviceManual</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1284" BrowseName="2:SerialNumber" ParentNodeId="ns=1;i=1277" DataType="i=12">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">MPS500-TS10-1065</String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1285" BrowseName="2:RevisionCounter" ParentNodeId="ns=1;i=1277" DataType="i=6">
+    <DisplayName>RevisionCounter</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1286" BrowseName="1:ParameterSet" ParentNodeId="ns=1;i=1277">
+    <DisplayName>ParameterSet</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1287</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1288</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1289</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1290</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1287" BrowseName="1:CycleCount" ParentNodeId="ns=1;i=1286" DataType="i=7" ValueRank="-1">
+    <DisplayName>CycleCount</DisplayName>
+    <Description>Workpieces the station has started since it was switched on.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1286</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">582</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1288" BrowseName="1:PartsProduced" ParentNodeId="ns=1;i=1286" DataType="i=7" ValueRank="-1">
+    <DisplayName>PartsProduced</DisplayName>
+    <Description>Workpieces the station has finished.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1286</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><UInt32 xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">435</UInt32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1289" BrowseName="1:CycleTime" ParentNodeId="ns=1;i=1286" DataType="i=11" ValueRank="-1">
+    <DisplayName>CycleTime</DisplayName>
+    <Description>Seconds one workpiece takes, averaged over the last ten.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1286</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">35.2</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1290" BrowseName="1:Ready" ParentNodeId="ns=1;i=1286" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The station is ready for the next workpiece.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1286</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1291" BrowseName="1:StationState" ParentNodeId="ns=1;i=1277">
+    <DisplayName>StationState</DisplayName>
+    <Description>What the station is doing.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1292</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1292" BrowseName="CurrentState" ParentNodeId="ns=1;i=1291" DataType="i=21">
+    <DisplayName>CurrentState</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1291</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=2760</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=1293</Reference>
+    </References>
+    <Value><LocalizedText xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd"><Text>Running</Text></LocalizedText></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1293" BrowseName="Id" ParentNodeId="ns=1;i=1292" DataType="i=17">
+    <DisplayName>Id</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=1292</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1294" BrowseName="1:StationNumber" ParentNodeId="ns=1;i=1277" DataType="i=12" ValueRank="-1">
+    <DisplayName>StationNumber</DisplayName>
+    <Description>The number in the line, as the plant structure names it.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><String xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">10</String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1295" BrowseName="1:MD_Conveyor_loop" ParentNodeId="ns=1;i=1277">
+    <DisplayName>MD_Conveyor_loop</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1296</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1297</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1301</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1296" BrowseName="1:Ready" ParentNodeId="ns=1;i=1295" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1295</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1297" BrowseName="1:DV_Conveyor_motor" ParentNodeId="ns=1;i=1295">
+    <DisplayName>DV_Conveyor_motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1034</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1295</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1298</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1299</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1300</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1298" BrowseName="1:Moving" ParentNodeId="ns=1;i=1297" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1297</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1299" BrowseName="1:Position" ParentNodeId="ns=1;i=1297" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1297</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">69.0</Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1300" BrowseName="1:Speed" ParentNodeId="ns=1;i=1297" DataType="i=11" ValueRank="-1">
+    <DisplayName>Speed</DisplayName>
+    <Description>Revolutions per minute.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1297</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">600</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1301" BrowseName="1:DV_Stopper" ParentNodeId="ns=1;i=1295">
+    <DisplayName>DV_Stopper</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1031</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1295</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1302</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1303</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1302" BrowseName="1:Moving" ParentNodeId="ns=1;i=1301" DataType="i=1" ValueRank="-1">
+    <DisplayName>Moving</DisplayName>
+    <Description>The actuator is moving.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1301</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">false</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1303" BrowseName="1:Position" ParentNodeId="ns=1;i=1301" DataType="i=11" ValueRank="-1">
+    <DisplayName>Position</DisplayName>
+    <Description>Where it stands, in millimetres or degrees.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1301</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">71.0</Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1304" BrowseName="1:MD_Identification" ParentNodeId="ns=1;i=1277">
+    <DisplayName>MD_Identification</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1305</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1306</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1305" BrowseName="1:Ready" ParentNodeId="ns=1;i=1304" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1304</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1306" BrowseName="1:DV_RFID_head" ParentNodeId="ns=1;i=1304">
+    <DisplayName>DV_RFID_head</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1036</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1304</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1307</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1307" BrowseName="1:Signal" ParentNodeId="ns=1;i=1306" DataType="i=1" ValueRank="-1">
+    <DisplayName>Signal</DisplayName>
+    <Description>What the sensor reports.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1306</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1308" BrowseName="1:MD_Pallet_pool" ParentNodeId="ns=1;i=1277">
+    <DisplayName>MD_Pallet_pool</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1309</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1309" BrowseName="1:Ready" ParentNodeId="ns=1;i=1308" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1308</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1310" BrowseName="1:MD_Control" ParentNodeId="ns=1;i=1277">
+    <DisplayName>MD_Control</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1029</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1277</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1311</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1312</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1311" BrowseName="1:Ready" ParentNodeId="ns=1;i=1310" DataType="i=1" ValueRank="-1">
+    <DisplayName>Ready</DisplayName>
+    <Description>The module is ready.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1310</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1312" BrowseName="1:CTRL_PLC" ParentNodeId="ns=1;i=1310">
+    <DisplayName>CTRL_PLC</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1038</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1310</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1313</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1314</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1313" BrowseName="1:Online" ParentNodeId="ns=1;i=1312" DataType="i=1" ValueRank="-1">
+    <DisplayName>Online</DisplayName>
+    <Description>The controller answers.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1312</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Boolean xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">true</Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1314" BrowseName="1:CpuLoad" ParentNodeId="ns=1;i=1312" DataType="i=11" ValueRank="-1">
+    <DisplayName>CpuLoad</DisplayName>
+    <Description>Per cent of the cycle time used.</Description>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1312</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+    </References>
+    <Value><Double xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">35.0</Double></Value>
+  </UAVariable>
+</UANodeSet>
