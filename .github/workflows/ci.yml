@@ -1,4 +1,4 @@
-name: build and test
+﻿name: build and test
 
 on:
   push:
@@ -21,13 +21,19 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
+      # The graphical modeler lives in its own repository (NodeSet.js) and is
+      # bundled into the plugin from its build. CI checks the C# alone; a
+      # package to ship is built where both repositories are side by side.
       - name: Build
         run: |
           dotnet restore AMLOpcUa.sln
-          dotnet build AMLOpcUa.sln -c Release --no-restore
+          dotnet build AMLOpcUa.sln -c Release --no-restore -p:SkipModeler=true
 
       - name: Test
         run: dotnet test dotnet/OpcUaAml.Tests -c Release --no-build
+
+      - name: Test the plugin
+        run: dotnet test Aml.Editor.Plugin.OpcUa.Tests -c Release --no-build
 
       - uses: actions/upload-artifact@v4
         with:

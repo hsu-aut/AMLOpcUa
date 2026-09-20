@@ -48,7 +48,7 @@
   <PropertyGroup>
     <NodeSetDist>$(MSBuildThisFileDirectory)..\..\NodeSet.js\dist\web</NodeSetDist>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(SkipModeler)' != 'true'">
     <None Include="$(NodeSetDist)\**\*"
           Link="modeler-assets\%(RecursiveDir)%(Filename)%(Extension)"
           CopyToOutputDirectory="PreserveNewest" Visible="false"
@@ -69,9 +69,14 @@
           SkipUnchangedFiles="true" />
   </Target>
 
-  <Target Name="VerifyNodeSetDist" BeforeTargets="BeforeBuild">
+  <!-- A build without the modeler is for checking the C# alone (CI); the
+       plugin it produces has no Modeler tab content, so it is not shipped. -->
+  <Target Name="VerifyNodeSetDist" BeforeTargets="BeforeBuild" Condition="'$(SkipModeler)' != 'true'">
     <Error Condition="!Exists('$(NodeSetDist)\index.html')"
-           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(NodeSetDist)\..\.." />
+           Text="The modeler is not built. Run 'npm install' and 'npm run build' in $(NodeSetDist)\..\.., or build with -p:SkipModeler=true to leave it out." />
+  </Target>
+  <Target Name="WarnWithoutModeler" BeforeTargets="BeforeBuild" Condition="'$(SkipModeler)' == 'true'">
+    <Warning Text="Built without the modeler (SkipModeler=true): the Modeler tab has nothing to show." />
   </Target>
 
   <ItemGroup>
