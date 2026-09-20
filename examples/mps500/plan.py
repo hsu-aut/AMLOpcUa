@@ -6,7 +6,7 @@
 # ("0 linked to the plan" turns into a number), which is the point of the demo:
 # the planned station and the running station are two aspects of one thing.
 #
-#   python plan.py <plant structure.aml> <out.aml>
+#   python plan.py <plant structure.aml> <out.aml> [<model.NodeSet2.xml>]
 #
 # Defaults: MPS500_PlantStructure.aml of the MPS500 folder, out beside it.
 
@@ -59,7 +59,7 @@ def ua_paths():
 
 def add_node_id(element, identifier):
     """The NodeId attribute as Annex A writes it, with namespace and numeric id."""
-    attribute = ET.SubElement(element, f'{{{CAEX}}}Attribute')
+    attribute = ET.Element(f'{{{CAEX}}}Attribute')
     attribute.set('Name', 'NodeId')
     attribute.set('RefAttributeType', '[ATL_http://opcfoundation.org/UA/]/[NodeId]')
     root_id = ET.SubElement(attribute, f'{{{CAEX}}}Attribute')
@@ -75,10 +75,25 @@ def add_node_id(element, identifier):
     numeric.set('AttributeDataType', 'xs:long')
     ET.SubElement(numeric, f'{{{CAEX}}}Value').text = identifier
 
+    # CAEX prescribes the order of the children; an Attribute belongs after
+    # Description, Version and the other Attributes, not at the end behind
+    # RoleRequirements.
+    after = ('Description', 'Version', 'Attribute')
+    index = 0
+    for i, child in enumerate(list(element)):
+        if child.tag.split('}')[-1] in after:
+            index = i + 1
+    element.insert(index, attribute)
+
 
 def main():
+    global NODESET
     source = Path(sys.argv[1]) if len(sys.argv) > 1 else PLAN_IN
     target = Path(sys.argv[2]) if len(sys.argv) > 2 else PLAN_OUT
+    # Which model is served: the learning factory beside this script, or
+    # another one named as the third argument (the coarser bridging plant).
+    if len(sys.argv) > 3:
+        NODESET = Path(sys.argv[3])
     paths = ua_paths()
     by_name = {}
     for path, node_id in paths.items():
@@ -86,25 +101,32 @@ def main():
 
     ET.register_namespace('', CAEX)
     tree = ET.parse(source)
-    written = 0
 
-    def walk(element, path):
-        nonlocal written
+    def matches(element, path, write):
+        """How many elements below this one the model knows; writes when asked."""
+        found = 0
         for child in element.findall(f'{{{CAEX}}}InternalElement'):
             name = child.get('Name', '')
             child_path = path + '/' + name if path else name
-            # The plant structure has two levels above the stations that the UA
+            # A plant structure may have levels above the stations that the UA
             # model does not have; a station and everything below it is matched
             # by the tail of the path.
             for ua_path, node_id in by_name.get(name, []):
                 if child_path.endswith(ua_path.split('MPS500/')[-1]):
-                    add_node_id(child, node_id.split('i=')[-1])
-                    written += 1
+                    if write:
+                        add_node_id(child, node_id.split('i=')[-1])
+                    found += 1
                     break
-            walk(child, child_path)
+            found += matches(child, child_path, write)
+        return found
 
-    for hierarchy in tree.getroot().findall(f'{{{CAEX}}}InstanceHierarchy'):
-        walk(hierarchy, '')
+    # Only one hierarchy is addressed: the plant. A process view may hold a
+    # resource of the same name, and two planned elements with one NodeId are
+    # not linked at all.
+    hierarchies = tree.getroot().findall(f'{{{CAEX}}}InstanceHierarchy')
+    plant = max(hierarchies, key=lambda h: matches(h, '', False), default=None)
+    written = matches(plant, '', True) if plant is not None else 0
+    print(f'hierarchy: {plant.get("Name") if plant is not None else "none"}')
 
     target.parent.mkdir(parents=True, exist_ok=True)
     tree.write(target, encoding='utf-8', xml_declaration=True)

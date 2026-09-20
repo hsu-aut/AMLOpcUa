@@ -48,6 +48,16 @@ uaaml mirror opc.tcp://127.0.0.1:4840/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;
 `--insecure` and `--accept` are for a server on this computer whose
 certificate nobody trusted yet; a plant would be connected to securely.
 
+## Two plants, one model
+
+`build.mjs` writes the learning factory with its stations ST10 to ST50.
+`build.mjs --bridging` writes the same types with the coarser plant of the
+bridging example (`BridgingExample_MPS500.aml`, whose plant view holds
+`ProcessingStation`, `QualityCheckStation` and six more), into
+`bridging/MPS500.NodeSet2.xml`. Both use the namespace
+`http://hsu-hh.de/UA/MPS500/` and are served one at a time; they sit in
+folders of their own so a catalog never sees two files for one model.
+
 ## Plan and running plant in one document
 
 `plan.py` writes the NodeId of the served node onto every element of
@@ -58,9 +68,13 @@ element". Where the plan models a station with the plant's own class and the
 server calls it `StationType`, the difference is reported rather than hidden.
 
 ```bash
-python plan.py                      # writes C:\Dev\Demo\opcua\MPS500_Plan.aml
-python plan.py <in.aml> <out.aml>   # or anywhere else
+python plan.py                                   # the learning factory into C:\Dev\Demo\opcua
+python plan.py <in.aml> <out.aml> [<model.xml>]  # another document, another model
 ```
+
+Only one hierarchy is written to, the one the model knows most of: a process
+view may hold a resource of the same name, and a node two planned elements
+claim is not linked at all.
 
 ## Building it again
 

@@ -10,7 +10,7 @@
 //   node build.mjs [<output>]
 // The default output is MPS500.NodeSet2.xml beside this script.
 
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -114,8 +114,75 @@ variable(ControllerType, 'CpuLoad', Double_, 'Per cent of the cycle time used.')
 
 // ------------------------------------------------------------ the instances
 
+/**
+ * The plant of the bridging example (`BridgingExample_MPS500.aml`), whose
+ * plant view is coarser: one element per station, no modules. The server
+ * knows more than the plan does, which is the normal case; the links are made
+ * where the names meet.
+ */
+const bridging = {
+  RawStorageThermometers: {
+    description: 'Holds the thermometer housings and hands them over.',
+    model: 'Station Verteilen',
+    modules: {
+      MD_Magazine: { DV_Feeder_cylinder: 'Actuator', DV_Magazine_empty_sensor: 'Sensor' },
+    },
+  },
+  RawStorageCylinders: {
+    description: 'Holds the cylinders and hands them over.',
+    model: 'Station Verteilen',
+    modules: {
+      MD_Magazine: { DV_Feeder_cylinder: 'Actuator', DV_Part_present_sensor: 'Sensor' },
+    },
+  },
+  ProcessingStation: {
+    description: 'Drills the housing on the rotary indexing table.',
+    model: 'Station Bearbeiten',
+    modules: {
+      MD_Rotary_indexing_table: { DV_Index_drive: 'Drive', DV_Index_position_sensor: 'Sensor' },
+      MD_Clamping_unit: { DV_Clamp_cylinder: 'Actuator' },
+      MD_Drilling_unit: { DV_Drill_spindle: 'Drive', DV_Linear_axis_Z: 'Drive', DV_Z_endpos_sensor: 'Sensor' },
+    },
+  },
+  QualityCheckStation: {
+    description: 'Checks the hole and reports the result.',
+    model: 'Station Pruefen',
+    modules: {
+      MD_Testing_unit: { DV_Probe_cylinder: 'Actuator', DV_Depth_probe: 'Sensor' },
+    },
+  },
+  RoboticAssemblyStation: {
+    description: 'Puts the cover on and screws it down.',
+    model: 'Station Montieren',
+    modules: {
+      MD_Robot: { DV_Robot_arm: 'Drive', DV_Robot_controller: 'Controller', DV_Assembly_gripper: 'Actuator' },
+    },
+  },
+  BufferStorage: {
+    description: 'Buffers the workpieces between the stations.',
+    model: 'Puffer',
+    modules: {
+      MD_Parts_buffer: { DV_Buffer_sensor: 'Sensor' },
+    },
+  },
+  ShippingArea: {
+    description: 'Carries the finished workpieces out.',
+    model: 'Transfersystem',
+    modules: {
+      MD_Conveyor_loop: { DV_Conveyor_motor: 'Drive', DV_Stopper: 'Actuator' },
+    },
+  },
+  Controller: {
+    description: 'The control of the line.',
+    model: 'Leitsteuerung',
+    modules: {
+      MD_Control: { CTRL_PLC: 'Controller', CTRL_ValveTerminal: 'Controller' },
+    },
+  },
+};
+
 /** The plant, as MPS500_PlantStructure.aml holds it. */
-const plant = {
+const learningFactory = {
   ST10_Distributing: {
     description: 'Separates the housings from the magazine and hands them over.',
     model: 'Station Verteilen',
@@ -178,6 +245,11 @@ const plant = {
 
 const deviceTypes = { Actuator: ActuatorType, Drive: DriveType, Sensor: SensorType, Controller: ControllerType };
 
+// Which plant is served: the learning factory by default, the coarser view of
+// the bridging example with --bridging.
+const coarse = process.argv.includes('--bridging');
+const plant = coarse ? bridging : learningFactory;
+
 /** The child of a node by BrowseName, whatever holds it. */
 function child(parent, name) {
   const found = ws.space.children(ws.space.get(parent)).find(c => c.node.browseName.name === name);
@@ -238,7 +310,9 @@ const findings = check(ws.space, ws.editable);
 const errors = findings.filter(f => f.severity === 'error');
 for (const f of findings) console.log(`${f.severity === 'error' ? 'ERROR' : 'warn '} ${f.rule} ${f.message}`);
 
-const out = process.argv[2] ? resolve(process.argv[2]) : join(here, 'MPS500.NodeSet2.xml');
+const named = process.argv.slice(2).find(a => !a.startsWith('--'));
+const out = named ? resolve(named) : join(here, coarse ? 'bridging' : '.', 'MPS500.NodeSet2.xml');
+mkdirSync(dirname(out), { recursive: true });
 writeFileSync(out, writeNodeSet(ws.editable), 'utf8');
 console.log(`${ws.editable.nodes.length} nodes, requires ${added.join(', ')}`);
 console.log(`${findings.length} findings, ${errors.length} of them errors`);
