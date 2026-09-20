@@ -30,6 +30,13 @@ minor versions.
 
 ### Fixed
 
+- No NodeSet could be imported inside the AutomationML Editor: the conversion
+  wrote its result as an `.amlx` container, and
+  `AutomationMLContainer.AddRoot` of the Aml.Engine the editor brings along
+  has another signature, so every import died with "Method not found". The
+  conversion writes a plain AML file now, which nothing about it needed a
+  container for (Opc2Aml patch 0010). Reading a document from an `.amlx` is
+  untouched.
 - A state chart drew the way there and the way back as one line, so one arrow
   and one name covered the other. Every transition of a pair now gets a bow
   and a place of its own, in the plugin and in the modeler

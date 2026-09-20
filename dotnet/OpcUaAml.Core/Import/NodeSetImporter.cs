@@ -1,6 +1,6 @@
-// UA to AML according to OPC 10000-83 Annex A, by way of Opc2Aml.
+﻿// UA to AML according to OPC 10000-83 Annex A, by way of Opc2Aml.
 //
-// Opc2Aml writes an .amlx container next to a path it is given. This class
+// Opc2Aml writes an AML file next to a path it is given. This class
 // runs it against a private temporary folder, reads the container back and
 // hands out the CAEX document, so callers never see the file round trip.
 
@@ -76,11 +76,11 @@ public static class NodeSetImporter
         {
             try
             {
-                return new ConversionResult(ReadContainer(hit.Container), info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
+                return new ConversionResult(ReadDocument(hit.File), info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // A damaged entry, whatever the zip or XML reader throws on it: convert again and replace it.
+                // A damaged entry, whatever the XML reader throws on it: convert again and replace it.
             }
         }
 
@@ -116,9 +116,9 @@ public static class NodeSetImporter
                 throw new ImportException($"Opc2Aml failed on '{Path.GetFileName(nodeSetPath)}': {ex.Message}", ex);
             }
 
-            var document = ReadContainer(baseName + ".amlx");
+            var document = ReadDocument(baseName + ".aml");
             var warnings = converter.Warnings.ToList();
-            cache?.Store(key!, baseName + ".amlx", loaded, warnings);
+            cache?.Store(key!, baseName + ".aml", loaded, warnings);
             return new ConversionResult(document, info, loaded, warnings, DateTime.UtcNow - started);
         }
         finally
@@ -127,6 +127,12 @@ public static class NodeSetImporter
             catch (IOException) { /* a scanner holding the file; the OS cleans temp */ }
             catch (UnauthorizedAccessException) { }
         }
+    }
+
+    /// <summary>Reads a converted AML file, under the lock Aml.Engine needs.</summary>
+    public static CAEXDocument ReadDocument(string amlPath)
+    {
+        lock (EngineGate) return CAEXDocument.LoadFromFile(amlPath);
     }
 
     /// <summary>Reads the root CAEX document of an .amlx container.</summary>

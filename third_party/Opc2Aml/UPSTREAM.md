@@ -1,4 +1,4 @@
-# Opc2Aml, vendored
+﻿# Opc2Aml, vendored
 
 | | |
 |---|---|
@@ -23,6 +23,7 @@ can be reported upstream and reapplied after an update.
 | 0007 references to nodes no model defines | A reference whose target no loaded model defines (an IRDI dictionary entry, which lives in the external dictionary, or a node of a model not required) stopped the conversion: `UpdateDerived` threw "Can't find node" (MetalForming), `AddNonHierarchicalReferences` a NullReferenceException (MachineVision). `UpdateDerived` only looks for Variables among the targets and now skips unknown ones; a non hierarchical reference with an unknown end is skipped and reported like in patch 0001. |
 | 0008 symmetric non hierarchical references | `AddNonHierarchicalReferences` names the target's interface class after the reference type and its InverseName. A symmetric reference type has none, and reading it threw a NullReferenceException (MachineVision). The other end of a symmetric reference now uses the reference type's own class. |
 | 0009 path segments instead of splitting on "_" | The path of a declaration below its type is built by joining the BrowseNames with `_`, and `FindNonHierarchicalReference` split that name on `_` again to find the element. A BrowseName that contains an underscore broke the split, no element was found, and patch 0001 then skipped the reference: the states and transitions of such a type arrived, but none of their `FromState`, `ToState` or `HasCause` references, so the machine had no edges and nothing said so. Measured on Machinery: `MachineryItemState_StateMachineType` had 16 transitions and 0 ends, `MachineryOperationModeStateMachineType` beside it had 16 and 16. 26 NodeSets of the OPC Foundation's repository carry such names. The path is now kept as its segments.
+| 0010 a plain AML file instead of an .amlx container | `CreateAML` wrote its result as an `.amlx` container through `AutomationMLContainer.AddRoot(Stream, Uri)`. That class lives in `Aml.Engine`, which the AutomationML Editor brings along in a version of its own, and there the signature differs: inside the editor every conversion failed with "Method not found: `System.IO.Packaging.PackagePart Aml.Engine.AmlObjects.AutomationMLContainer.AddRoot(...)`", so no NodeSet could be imported from the plugin at all. Nothing in this repository needs the packaging; the converter now writes `<name>.aml` with `CAEXDocument.SaveToFile`, and the importer and the conversion cache read that file. Reading a user's `.amlx` is untouched. |
 
 ## Updating
 

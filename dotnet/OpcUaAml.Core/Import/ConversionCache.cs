@@ -1,4 +1,4 @@
-// Conversions kept on disk, so a NodeSet converted before is not converted again.
+﻿// Conversions kept on disk, so a NodeSet converted before is not converted again.
 //
 // Opc2Aml turns the whole UA base model into libraries on every run, which
 // takes 10 to 20 seconds even for a small NodeSet. The result depends only on
@@ -51,19 +51,19 @@ public sealed class ConversionCache
         return Convert.ToHexString(SHA256.HashData(stream));
     }
 
-    /// <summary>The cached container and what the conversion reported, or null.</summary>
-    public (string Container, IReadOnlyList<string> LoadedModels, IReadOnlyList<string> Warnings)? Find(string key)
+    /// <summary>The cached AML file and what the conversion reported, or null.</summary>
+    public (string File, IReadOnlyList<string> LoadedModels, IReadOnlyList<string> Warnings)? Find(string key)
     {
-        var container = Path.Combine(Folder, key + ".amlx");
+        var file = Path.Combine(Folder, key + ".aml");
         var meta = Path.Combine(Folder, key + ".json");
-        if (!File.Exists(container) || !File.Exists(meta)) return null;
+        if (!File.Exists(file) || !File.Exists(meta)) return null;
         try
         {
             var entry = JsonSerializer.Deserialize<Entry>(File.ReadAllText(meta));
             if (entry == null) return null;
-            File.SetLastAccessTimeUtc(container, DateTime.UtcNow);
+            File.SetLastAccessTimeUtc(file, DateTime.UtcNow);
             File.SetLastWriteTimeUtc(meta, DateTime.UtcNow);
-            return (container, entry.LoadedModels, entry.Warnings);
+            return (file, entry.LoadedModels, entry.Warnings);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -72,15 +72,15 @@ public sealed class ConversionCache
     }
 
     /// <summary>Keeps a conversion. A cache that cannot be written is no error: the next run converts again.</summary>
-    public void Store(string key, string container, IReadOnlyList<string> loadedModels, IReadOnlyList<string> warnings)
+    public void Store(string key, string file, IReadOnlyList<string> loadedModels, IReadOnlyList<string> warnings)
     {
         try
         {
             Directory.CreateDirectory(Folder);
             // Written under a temporary name and moved, so a parallel reader never sees half a file.
             var temp = Path.Combine(Folder, $"{key}.{Guid.NewGuid():N}.tmp");
-            File.Copy(container, temp);
-            File.Move(temp, Path.Combine(Folder, key + ".amlx"), overwrite: true);
+            File.Copy(file, temp);
+            File.Move(temp, Path.Combine(Folder, key + ".aml"), overwrite: true);
             File.WriteAllText(temp, JsonSerializer.Serialize(new Entry(loadedModels.ToList(), warnings.ToList())));
             File.Move(temp, Path.Combine(Folder, key + ".json"), overwrite: true);
             Trim();
@@ -108,7 +108,7 @@ public sealed class ConversionCache
         // Left by a run that ended between writing and moving: temporary files
         // older than any conversion takes, and containers without their description.
         foreach (var orphan in folder.GetFiles("*.tmp").Where(f => f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))
-                     .Concat(folder.GetFiles("*.amlx").Where(f => !File.Exists(Path.ChangeExtension(f.FullName, ".json"))
+                     .Concat(folder.GetFiles("*.aml").Where(f => !File.Exists(Path.ChangeExtension(f.FullName, ".json"))
                                                                   && f.LastWriteTimeUtc < DateTime.UtcNow.AddHours(-1))))
         {
             try { orphan.Delete(); }
@@ -120,7 +120,7 @@ public sealed class ConversionCache
         {
             try
             {
-                File.Delete(Path.ChangeExtension(meta.FullName, ".amlx"));
+                File.Delete(Path.ChangeExtension(meta.FullName, ".aml"));
                 meta.Delete();
             }
             catch (IOException) { }

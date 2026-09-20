@@ -1,4 +1,4 @@
-# Import: OPC UA NodeSets to AML libraries
+﻿# Import: OPC UA NodeSets to AML libraries
 
 ## Mapping
 
@@ -150,6 +150,12 @@ while the FX NodeSets of the tag define it in FX Data.
   during one, failed with "Collection was modified". Conversions and document
   loads therefore share a lock in the process; cached results are read
   under it too, briefly.
+- **The result is a file, not a container.** Opc2Aml wrote an `.amlx`, whose
+  `AutomationMLContainer.AddRoot` lives in Aml.Engine; the AutomationML Editor
+  brings its own Aml.Engine along, where that signature differs, and inside
+  the editor every conversion failed with "Method not found". Patch 0010
+  writes `<name>.aml` instead, which is all the importer and the cache ever
+  read.
 - **Cache.** A conversion is kept in `%LOCALAPPDATA%\AMLOpcUa\conversions`
   (`ConversionCache`, the last 40), under a key made of the content of the
   NodeSet and every file it requires, the build of Opc2Aml and a format

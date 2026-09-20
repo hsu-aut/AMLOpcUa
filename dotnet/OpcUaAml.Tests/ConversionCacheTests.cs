@@ -1,4 +1,4 @@
-using OpcUaAml.Import;
+﻿using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 
 namespace OpcUaAml.Tests;
@@ -46,11 +46,11 @@ public class ConversionCacheTests
             NodeSetImporter.Cache = new ConversionCache(folder);
             var catalog = NodeSetCatalog.Create(Array.Empty<string>());
             NodeSetImporter.Convert(Safety, catalog);
-            // Half a zip, as a crash while copying would leave it.
-            foreach (var amlx in Directory.GetFiles(folder, "*.amlx"))
+            // Half a file, as a crash while copying would leave it.
+            foreach (var aml in Directory.GetFiles(folder, "*.aml"))
             {
-                var bytes = File.ReadAllBytes(amlx);
-                File.WriteAllBytes(amlx, bytes[..(bytes.Length / 2)]);
+                var bytes = File.ReadAllBytes(aml);
+                File.WriteAllBytes(aml, bytes[..(bytes.Length / 2)]);
             }
 
             var again = NodeSetImporter.Convert(Safety, catalog);

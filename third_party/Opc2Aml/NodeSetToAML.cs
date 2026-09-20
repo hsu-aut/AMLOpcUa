@@ -373,18 +373,17 @@ namespace MarkdownProcessor
 
             Utils.LogDebug( "Remove Type Only information Complete" );
 
-            // write out the AML file
-            // var OutFilename = modelName + ".aml";
-            // m_cAEXDocument.SaveToFile(OutFilename, true);
-            FileInfo internalFileInfo = new FileInfo( modelName );
-            FileInfo outputFileInfo = new FileInfo( modelName + ".amlx" );
-            var container = new AutomationMLContainer(outputFileInfo.FullName, System.IO.FileMode.Create);
-            container.AddRoot(m_cAEXDocument.SaveToStream(true), new Uri("/" + internalFileInfo.Name + ".aml", UriKind.Relative));
-            container.Close();
+            // Patch 0010: the result is a plain AML file, not an .amlx
+            // container. AutomationMLContainer.AddRoot lives in Aml.Engine,
+            // which the AutomationML Editor brings along in a version of its
+            // own; its signature differs, and inside the editor every
+            // conversion died with "Method not found". Nothing here needs the
+            // packaging: the caller reads the document back from the file.
+            m_cAEXDocument.SaveToFile( modelName + ".aml", true );
 
             DateTime endTime = DateTime.UtcNow;
             TimeSpan totalTime = endTime - startTime;
-            Utils.LogInfo( "Amlx Container Created for model " + modelName + 
+            Utils.LogInfo( "AML file written for model " + modelName +
                 " (Time in creation " + totalTime.ToString() + ")" );
         }
 
