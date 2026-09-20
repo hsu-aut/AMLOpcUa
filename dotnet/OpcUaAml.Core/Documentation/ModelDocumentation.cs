@@ -1,4 +1,4 @@
-// A readable description of one OPC UA model of the document, as a single HTML
+﻿// A readable description of one OPC UA model of the document, as a single HTML
 // file: its ObjectTypes and VariableTypes with their supertype, their
 // instance declarations (with ModellingRule, type and the reference that holds
 // them) and a diagram in the notation of OPC 10000-3; its DataTypes with
@@ -6,6 +6,7 @@
 // the model was imported into, with the diagrams the plugin and uaaml draw.
 // The file needs nothing else: styles and pictures are inside.
 
+using System.Globalization;
 using System.Net;
 using System.Text;
 using Aml.Engine.CAEX;
@@ -137,8 +138,42 @@ public static class ModelDocumentation
                 .Append(diagram.Truncated ? $" (the first {diagram.Nodes.Count} nodes)" : "")
                 .Append("</summary><div class=\"diagram\">")
                 .Append(InlineSvg(SvgWriter.Write(diagram)))
-                .Append("</div></details></section>\n");
+                .Append("</div></details>");
+            if (StateMachines.IsMachine(type)) Machine(html, StateMachines.Read(type));
+            html.Append("</section>\n");
         }
+    }
+
+    /// <summary>
+    /// A finite state machine of the type: its states and transitions as a
+    /// table, and the machine as a state chart. What the modeler shows while
+    /// the machine is built, in the documentation of the finished model.
+    /// </summary>
+    private static void Machine(StringBuilder html, StateMachine machine)
+    {
+        if (machine.IsEmpty) return;
+        html.Append("<p class=\"meta\">State machine (OPC 10000-5 Annex B)</p>");
+
+        if (machine.States.Count > 0)
+        {
+            html.Append("<table><thead><tr><th>State</th><th>Number</th></tr></thead><tbody>");
+            foreach (var state in machine.States)
+                html.Append($"<tr><td>{E(state.Name)}</td><td>{state.Number?.ToString(CultureInfo.InvariantCulture) ?? ""}</td></tr>");
+            html.Append("</tbody></table>");
+        }
+        if (machine.Transitions.Count > 0)
+        {
+            html.Append("<table><thead><tr><th>Transition</th><th>Number</th><th>From</th><th>To</th><th>Caused by</th></tr></thead><tbody>");
+            foreach (var transition in machine.Transitions)
+            {
+                html.Append($"<tr><td>{E(transition.Name)}</td><td>{transition.Number?.ToString(CultureInfo.InvariantCulture) ?? ""}</td>")
+                    .Append($"<td>{E(machine.NameOf(transition.From))}</td><td>{E(machine.NameOf(transition.To))}</td>")
+                    .Append($"<td>{E(transition.Cause is { Length: > 0 } cause ? cause + "()" : "")}</td></tr>");
+            }
+            html.Append("</tbody></table>");
+        }
+        if (StateChart.Svg(machine) is { Length: > 0 } chart)
+            html.Append("<details open><summary>State chart</summary><div class=\"diagram\">").Append(InlineSvg(chart)).Append("</div></details>");
     }
 
     private static void DataType(StringBuilder html, AttributeTypeType d)

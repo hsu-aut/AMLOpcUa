@@ -35,6 +35,19 @@ The layout is a left-to-right tree: one column per level, leaves stacked,
 parents centred on their children. Depth and node count are limited (default
 3 levels, 300 nodes); a cut picture says so.
 
+## State charts
+
+A type that derives from FiniteStateMachineType gets a second picture, drawn
+from what Annex A left in the document: the states on a circle, the
+transitions as arrows between them with their name and the method that causes
+them (`StateMachines`, `StateChart`). It is the same drawing the modeler shows
+while the machine is built, so both tell the same story, and it appears in the
+documentation of a model beside the state and transition tables.
+
+The ends of a transition are not hierarchical references; Annex A writes them
+as ExternalInterfaces (FromState, ToState, HasCause) whose `ReferenceIds`
+name the node they lead to, escaped as the element IDs are.
+
 ## Why WPF and not diagram-js
 
 The plan was a WebView2 with diagram-js, as in the FPB and Petri net plugins.

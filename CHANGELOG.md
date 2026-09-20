@@ -9,6 +9,11 @@ minor versions.
 
 ### Added
 
+- Finite state machines are read back out of a document (OPC 10000-5 Annex B,
+  as Annex A leaves them: states and transitions of StateType and
+  TransitionType, the ends as ExternalInterfaces) and the documentation of a
+  model shows them as a table and as a state chart, the same picture the
+  modeler draws.
 - `uaaml design export` also reads an AML document: its model is written back
   as the nodes Annex A made of it, and that becomes the design.
 
