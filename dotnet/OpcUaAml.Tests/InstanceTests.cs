@@ -85,6 +85,28 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void Every_link_of_an_instance_ends_inside_it()
+    {
+        // Copying a declaration in brings its own links along; a copy whose
+        // links still pointed at the type would leave the document broken.
+        foreach (var (_, type) in UaTypes.AllTypes(di.Document).Where(t => !UaTypes.IsAbstract(t.Type)))
+        {
+            var result = TypeInstantiator.Instantiate(type, "Probe",
+                new InstantiationOptions { IncludeOptional = _ => true });
+            var ids = result.Instance.Descendants<ExternalInterfaceType>().Select(ei => ei.ID)
+                .Concat(result.Instance.ExternalInterface.Select(ei => ei.ID)).ToHashSet(StringComparer.Ordinal);
+            foreach (var owner in new SystemUnitClassType[] { result.Instance }.Concat(result.Instance.Descendants<InternalElementType>()))
+            {
+                foreach (var link in owner.InternalLink)
+                {
+                    Assert.True(ids.Contains(link.RefPartnerSideA) && ids.Contains(link.RefPartnerSideB),
+                        $"{type.Name}: the link '{link.Name}' leaves the instance.");
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void An_inherited_child_is_linked_the_way_it_was_declared()
     {
         var result = TypeInstantiator.Instantiate(di.UaType("3DFrameType"), "Frame",
@@ -93,7 +115,7 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
         var coordinates = result.Instance.InternalElement.Single(c => c.Name == "CartesianCoordinates");
         var unit = coordinates.InternalElement.Single(c => c.Name == "LengthUnit");
         var end = unit.ExternalInterface.Single(ei => ei.Name == "PropertyOf");
-        var link = Assert.Single(coordinates.InternalLink.Where(l => l.Name == "LengthUnit"));
+        var link = Assert.Single(coordinates.InternalLink, l => l.Name == "LengthUnit");
         Assert.Equal(end.ID, link.RefPartnerSideB);
         // The other end belongs to the parent, not to the type it was copied from.
         Assert.Contains(coordinates.ExternalInterface, ei => ei.ID == link.RefPartnerSideA);
