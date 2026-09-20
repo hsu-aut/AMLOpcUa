@@ -20,6 +20,10 @@ public sealed class DiDocument
     public SystemUnitFamilyType Type(string name) =>
         (SystemUnitFamilyType)Document.FindByPath($"[SUC_http://opcfoundation.org/UA/DI/]/[{name}]")!;
 
+    /// <summary>A type of the base model, which DI brings along.</summary>
+    public SystemUnitFamilyType UaType(string name) =>
+        (SystemUnitFamilyType)Document.FindByPath($"[SUC_http://opcfoundation.org/UA/]/[{name}]")!;
+
     /// <summary>A fresh hierarchy per test; findings are filtered by its name.</summary>
     public InstanceHierarchyType Hierarchy(string name) => Document.CAEXFile.InstanceHierarchy.Append(name);
 
@@ -61,6 +65,38 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
         var result = TypeInstantiator.Instantiate(di.Type("SoftwareType"), "Sw");
 
         Assert.Subset(ChildNames(result.Instance).ToHashSet(), new HashSet<string> { "Manufacturer", "Model", "SoftwareRevision" });
+    }
+
+    [Fact]
+    public void An_overridden_declaration_keeps_what_it_inherits()
+    {
+        // 3DFrameType declares CartesianCoordinates of a narrower type, which
+        // replaces FrameType's declaration. In OPC UA the node is replaced, not
+        // the hierarchy below it, so LengthUnit stays (OPC 10000-3, the fully
+        // inherited instance declaration hierarchy); AML's own flattening drops it.
+        var result = TypeInstantiator.Instantiate(di.UaType("3DFrameType"), "Frame",
+            new InstantiationOptions { IncludeOptional = _ => true });
+
+        var coordinates = result.Instance.InternalElement.Single(c => c.Name == "CartesianCoordinates");
+        Assert.Contains("LengthUnit", ChildNames(coordinates));
+        Assert.Contains("X", ChildNames(coordinates));
+        Assert.Contains("CartesianCoordinates/LengthUnit", result.Included);
+        Assert.Contains("Orientation/AngleUnit", result.Included);
+    }
+
+    [Fact]
+    public void An_inherited_child_is_linked_the_way_it_was_declared()
+    {
+        var result = TypeInstantiator.Instantiate(di.UaType("3DFrameType"), "Frame",
+            new InstantiationOptions { IncludeOptional = _ => true });
+
+        var coordinates = result.Instance.InternalElement.Single(c => c.Name == "CartesianCoordinates");
+        var unit = coordinates.InternalElement.Single(c => c.Name == "LengthUnit");
+        var end = unit.ExternalInterface.Single(ei => ei.Name == "PropertyOf");
+        var link = Assert.Single(coordinates.InternalLink.Where(l => l.Name == "LengthUnit"));
+        Assert.Equal(end.ID, link.RefPartnerSideB);
+        // The other end belongs to the parent, not to the type it was copied from.
+        Assert.Contains(coordinates.ExternalInterface, ei => ei.ID == link.RefPartnerSideA);
     }
 
     [Fact]

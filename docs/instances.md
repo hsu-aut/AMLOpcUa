@@ -34,6 +34,20 @@ a subtype overrides the one of the same name in the supertype), assigns new IDs
 and rewires the InternalLinks. After pruning, links into removed children are
 deleted as well.
 
+AML and OPC UA mean different things by that override. AML replaces the
+declaration with everything below it; OPC UA replaces the node and keeps the
+hierarchy below it (OPC 10000-3, the fully inherited instance declaration
+hierarchy). `3DFrameType` declares `CartesianCoordinates` of a narrower type
+than `FrameType` does, and a server still gives it the `LengthUnit` that
+`FrameType` declares below it. The instantiation therefore walks the type chain
+itself: for every declaration that overrides another, the children the
+overridden one holds and the new one does not are copied in, with the reference
+that holds them, and the same is done further down. A copied child then follows
+the rules of the table above like any other, so an inherited Optional child
+stays optional. Measured against the released companion specifications, 191 of
+422 overriding declarations have children of their own, so this is not a corner
+case.
+
 What only makes sense on a type is removed from the instance:
 
 - `IsAbstract` (Annex A, Table A.6: "In instances, this attribute has no meaning")

@@ -40,6 +40,12 @@ minor versions.
   names, so a model with a type of its own called StateType is not mistaken
   for one; and the method that causes a transition is found wherever the model
   puts it.
+- An instance keeps what an overridden declaration holds. AML replaces a
+  declaration with everything below it, OPC UA replaces the node and keeps the
+  hierarchy below it, so an instance of `3DFrameType` used to lose the
+  `LengthUnit` that `FrameType` declares under `CartesianCoordinates`. Of 422
+  overriding declarations in the released companion specifications, 191 have
+  children of their own (`docs/instances.md`).
 - A declaration with ExposesItsArray no longer produces exactly one child under
   a name the specification does not give it; the modeler and the plugin now
   agree (`docs/instances.md`).
