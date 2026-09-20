@@ -81,7 +81,7 @@ survive. Run the compiler and the model comes back as a NodeSet. The other
 direction needs no button: a ModelDesign dropped on the plugin is compiled and
 imported.
 
-Say the honest number here: 414 of DI's 447 own nodes come back identical
+Say the honest number here: 417 of DI's 447 own nodes come back identical
 through that round trip. The rest are the nodes the compiler generates and
 numbers itself.
 
@@ -89,7 +89,7 @@ numbers itself.
 
 | What | Number | Where it comes from |
 |---|---|---|
-| Tests | 293 C# and 81 TypeScript | `dotnet test`, `npx vitest run` |
+| Tests | 302 C# and 81 TypeScript | `dotnet test`, `npx vitest run` |
 | Companion specifications measured | 34 | `uaaml roundtrip --inverse`, docs/roundtrip.md |
 | Facts surviving UA → AML → UA | 94.9 % | same run |
 | Lost on the way back (our side) | 0.17 % | same run; the rest is Annex A |
