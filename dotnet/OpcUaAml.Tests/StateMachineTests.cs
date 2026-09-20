@@ -1,4 +1,4 @@
-using Aml.Engine.CAEX;
+﻿using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Diagram;
 using OpcUaAml.Import;
@@ -61,6 +61,28 @@ public class StateMachineTests(MachineDocument machine, ITestOutputHelper output
         Assert.Contains("IdleToRunning / Start()", svg);
         // Three states, three transitions between different states: three lines.
         Assert.Equal(3, svg.Split("<line ").Length - 1);
+    }
+
+    [Fact]
+    public void Two_transitions_between_the_same_states_are_drawn_apart()
+    {
+        // A machine usually has a way there and a way back. On one line they
+        // cover each other, and one name hides the other.
+        var there = new MachineTransition("IdleToRunning", 1, "i=1", "i=2", null);
+        var back = new MachineTransition("RunningToIdle", 2, "i=2", "i=1", null);
+        var read = new StateMachine(
+            new[] { new MachineState("Idle", 1, "i=1"), new MachineState("Running", 2, "i=2") },
+            new[] { there, back });
+
+        var svg = StateChart.Svg(read);
+
+        Assert.Equal(0, svg.Split("<line ").Length - 1);          // no straight line
+        Assert.Equal(2, svg.Split(" Q ").Length - 1);             // two bows, the arrow marker aside
+        var places = System.Text.RegularExpressions.Regex.Matches(svg,
+            @"<text x=""([-\d.]+)"" y=""([-\d.]+)""[^>]*>(IdleToRunning|RunningToIdle)<")
+            .Select(m => (m.Groups[1].Value, m.Groups[2].Value)).ToList();
+        Assert.Equal(2, places.Count);
+        Assert.Equal(2, places.Distinct().Count());
     }
 
     [Fact]

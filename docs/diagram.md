@@ -40,7 +40,10 @@ parents centred on their children. Depth and node count are limited (default
 A type that derives from FiniteStateMachineType gets a second picture, drawn
 from what Annex A left in the document: the states on a circle, the
 transitions as arrows between them with their name and the method that causes
-them (`StateMachines`, `StateChart`). It is the same drawing the modeler shows
+them (`StateMachines`, `StateChart`). Two states usually have a transition
+each way; each of them is drawn as a bow of its own, with its name at a
+different point along it, because on one straight line the two arrows and
+their names cover each other. It is the same drawing the modeler shows
 while the machine is built, so both tell the same story, and it appears in the
 documentation of a model beside the state and transition tables.
 
