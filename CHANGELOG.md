@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and the versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,6 +9,13 @@ minor versions.
 
 ### Added
 
+- A NodeSet can be served as an OPC UA server: `uaaml serve --nodeset
+  <file>`. It serves the model with its types, loads the models it requires
+  first, and offers each of them as the NamespaceFile of its namespace
+  metadata, so a client takes the NodeSet from the server instead of a file.
+  With `--simulate` the values move. `examples/mps500` is such a plant, the
+  MPS 500 learning factory on DI, with stations, modules, devices and a state
+  machine per station (`docs/server.md`).
 - Finite state machines are read back out of a document (OPC 10000-5 Annex B,
   as Annex A leaves them: states and transitions of StateType and
   TransitionType, the ends as ExternalInterfaces) and the documentation of a

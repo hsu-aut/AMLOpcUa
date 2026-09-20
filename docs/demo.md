@@ -1,6 +1,6 @@
-# Demo
+﻿# Demo
 
-A run through the whole toolchain in about twelve minutes, in the order that
+A run through the whole toolchain in about fifteen minutes, in the order that
 tells the story: a model is built, it becomes AutomationML, it becomes a
 server, and it goes back out to the OPC UA world. Every step has a fallback,
 because a demo that needs the network is a demo that fails.
@@ -60,14 +60,56 @@ question "what did it just do" without leaving the screen.
 *Fallback:* `uaaml serve plant.aml --simulate` in a terminal shows the same
 thing without the editor.
 
-## 4. Companion specifications without an account (1 min)
+## 4. A plant to connect to (3 min, the MPS 500)
+
+The other direction, and the one that convinces: not our document served, but
+a plant that is already running, whose model the plugin has never seen.
+`examples/mps500` is the MPS 500 learning factory as an OPC UA server would
+hold it, on DI, with stations, modules, devices and a state machine each.
+
+Before recording, in a terminal that stays visible:
+
+```bash
+uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml --simulate
+```
+
+It answers with the models it serves, the endpoint and the number of nodes.
+Say the sentence that matters: from here on nothing knows this is not a plant.
+
+1. **Connect** in the Server tab to `opc.tcp://127.0.0.1:48410/AMLOpcUa`. The
+   certificate is unknown, so the plugin shows it and asks; trust it once, and
+   say that a plant would be the same dialog.
+2. **Types of the server…**: the namespaces appear, `http://hsu-hh.de/UA/MPS500/`
+   among them. Take it. The plugin reads the NodeSet **from the server**, the
+   file it publishes as its NamespaceFile, and imports it as AML libraries by
+   Annex A. Nobody handed over a file.
+   Say what the alternative is: a server that publishes nothing gets its
+   NodeSet rebuilt by browsing its types (`--no-publish` shows that, and the
+   dialog says which of the two it was).
+3. **Take into document**: tick `MPS500`, or one station with everything below
+   it. The elements arrive with their NodeId (the server's ApplicationUri
+   included), their UA type as class, and the current values.
+4. **Keep document values live**: the drill spindle's speed and the cycle
+   times move in the document while the tree is open.
+5. Open `ST30_Processing/StationState` and show the state machine, then the
+   same machine as a diagram. It came out of the server, through Annex A, into
+   a picture.
+
+*Fallback:* the same four steps on the command line, which needs no editor:
+
+```bash
+uaaml nodeset opc.tcp://127.0.0.1:48410/AMLOpcUa http://hsu-hh.de/UA/MPS500/ --into plant.aml --insecure --accept
+uaaml mirror opc.tcp://127.0.0.1:48410/AMLOpcUa "nsu=http://hsu-hh.de/UA/MPS500/;i=1041" plant.aml --insecure --accept
+```
+
+## 5. Companion specifications without an account (1 min)
 
 **Companion specs…**: the list comes from OPCFoundation/UA-Nodeset on GitHub,
 every released specification, no login, no API key. Pick Machinery, import it
 with the models it requires. The Cloud Library, which needs an account, is one
 click away for the models that live only there.
 
-## 5. Documentation (1 min)
+## 6. Documentation (1 min)
 
 **Documentation…** on a namespace writes one HTML file: every type with its
 declarations and a diagram, the DataTypes with their fields, the
@@ -77,7 +119,7 @@ Nothing external, so it can be mailed. The chart alone comes from
 `uaaml diagram plant.aml --type PumpStateMachineType --state-chart -o chart.svg`,
 which is the file to drop on a slide.
 
-## 6. Out to the OPC UA world again (2 min)
+## 7. Out to the OPC UA world again (2 min)
 
 **ModelDesign…** writes the model in the form the OPC Foundation's
 ModelCompiler reads, with the identifier file beside it, so the NodeIds

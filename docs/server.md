@@ -1,4 +1,4 @@
-# Running servers
+﻿# Running servers
 
 ## Addressing a node from AML
 
@@ -235,6 +235,32 @@ closed or another is opened. Nothing is writable and no method is offered;
 anonymous sessions stay allowed, so on the network the client certificate is
 the whole access control.
 
+## A NodeSet as a server
+
+Where the document server serves the structure of a document, **`uaaml serve
+--nodeset <file>`** (`NodeSetServerHost`) serves a NodeSet with its types, so
+a client sees what a real server of that model would show: typed objects,
+state machines, DataTypes, the namespace metadata. It is the plant that does
+not exist yet, or a companion specification to try a client against.
+
+- The models the NodeSet requires are loaded first, from the folders given
+  (`--search`) and from the NodeSets that ship with this build. The base model
+  is the server's own address space and is never loaded again.
+- Each model is offered as the **NamespaceFile** of its namespace metadata
+  (OPC 10000-5 6.3.13), so "Types of the server" takes the file itself instead
+  of rebuilding it by browsing. A NodeSet that brings the metadata of its own
+  namespace (DI does) gets the file there; for the others the server creates
+  the metadata, with the version and publication date the model declares.
+  `--no-publish` leaves the file out, and the client rebuilds the NodeSet by
+  browsing, which is the other way of that dialog.
+- `--simulate` moves the values as the document server does, and `--network`,
+  `--port` and the security work the same way.
+
+`examples/mps500` holds such a plant: the MPS 500 learning factory on DI, with
+stations, modules, devices and a state machine per station. Its README walks
+through serving it, taking its model into a document and mirroring the running
+instances.
+
 ## Robustness
 
 A server is not trusted to behave. Browsing stops after 100000 references of
@@ -251,6 +277,10 @@ a thread of its own).
 
 `ServerNodeSetTests` serve DI from its NodeSet, once without and once with a
 NamespaceFile, and compare what comes back with the file.
+`NodeSetServerTests` start the NodeSet server itself: DI comes back from the
+published file unchanged, without publishing the client rebuilds it, the
+example plant is served with the model it requires, and its stations are there
+to browse.
 `ServerTests` and `MirrorTests` start an OPC UA server inside the test process
 (`TestServer`, a small plant namespace on a free port, with a counter that
 changes every 100 ms) and cover secured and unsecured sessions, the refused
