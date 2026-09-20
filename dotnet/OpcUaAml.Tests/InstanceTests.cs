@@ -229,6 +229,27 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void Two_declarations_of_one_name_in_different_namespaces_are_two_declarations()
+    {
+        // A BrowseName is unique with its namespace. Keyed by the bare name, a
+        // Mandatory declaration of another model was silently dropped and the
+        // generated library kept a link to an element nobody wrote.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var lib = doc.CAEXFile.SystemUnitClassLib.Append("SUC_http://example.org/Two/");
+        var type = lib.SystemUnitClass.Append("TwoNamesType");
+        foreach (var uri in new[] { "http://example.org/Two/", "http://opcfoundation.org/UA/" })
+        {
+            var child = type.InternalElement.Append("NodeVersion");
+            child.Attribute.Append("BrowseName").Attribute.Append("NamespaceUri").Value = uri;
+        }
+
+        var names = UaTypes.Declarations(type).Where(d => d.Name == "NodeVersion").ToList();
+
+        Assert.Equal(2, names.Count);
+        Assert.Single(names, d => UaTypes.QualifiedName((SystemUnitClassType)d.Element).StartsWith("http://opcfoundation.org/UA/"));
+    }
+
+    [Fact]
     public void Abstract_unknown_and_placeholder_elements_are_reported()
     {
         var ih = di.Hierarchy("Odd");

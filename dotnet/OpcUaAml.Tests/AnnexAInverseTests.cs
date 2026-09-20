@@ -40,9 +40,13 @@ public class AnnexAInverseTests(BundledDiConversion di) : IClassFixture<BundledD
         // The DataType of a VariableType without a Value attribute (DI i=468) and an
         // empty string (Annex A writes no value) count as lost on the way in.
         OnlyAnnexALosses(report, "Nodes present, with their node class", "BrowseName kept", "DisplayName kept", "ParentNodeId kept", "DataType kept", "Values kept");
-        // 447 nodes; the 34 missing are the type dictionaries, their encodings and nodes no type holds.
+        // 447 nodes; the 38 missing are the type dictionaries, their encodings
+        // and nodes no type holds. The four JSON encodings DI does have are
+        // among them: the inverse writes the encodings a structure needs
+        // (Binary and XML) and does not invent a JSON one for a model that
+        // never declared it.
         Assert.Equal(447, C(report, "Nodes present, with their node class").Total);
-        Assert.Equal(413, C(report, "Nodes present, with their node class").Kept);
+        Assert.Equal(409, C(report, "Nodes present, with their node class").Kept);
         Assert.Equal(0, C(report, "Documentation kept").Kept);
     }
 

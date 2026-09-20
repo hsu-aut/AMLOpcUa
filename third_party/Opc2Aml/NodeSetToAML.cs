@@ -2446,6 +2446,42 @@ namespace MarkdownProcessor
             return createdPathName;
         }
 
+        /// <summary>
+        /// AMLOpcUa patch 0009: the segments of the path a node has below its
+        /// type, in the order the path name joins them. The joined name cannot
+        /// be split again: a BrowseName may contain an underscore, and every
+        /// reference of such a node was then looked for in the wrong place and
+        /// silently dropped (state machines of types whose name carries one
+        /// lost all their FromState and ToState references).
+        /// </summary>
+        private List<string> GetCreatedPathSegments(UANode node)
+        {
+            List<string> segments = new List<string>();
+
+            UAInstance uaInstance = node as UAInstance;
+            if (uaInstance != null)
+            {
+                var refList = m_modelManager.FindReferences(node.DecodedNodeId);
+                foreach (var reference in refList)
+                {
+                    if (reference.IsForward == false &&
+                        (reference.ReferenceTypeId.Equals(HasPropertyNodeId) ||
+                        reference.ReferenceTypeId.Equals(Opc.Ua.ReferenceTypeIds.HasComponent)))
+                    {
+                        UANode parentNode = m_modelManager.FindNode<UANode>(reference.TargetId);
+                        if (parentNode != null)
+                        {
+                            segments.AddRange(GetCreatedPathSegments(parentNode));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            segments.Add(node.DecodedBrowseName.Name);
+            return segments;
+        }
+
         private string GetCreatedPathName(UANode node)
         {
             string pathName = GetExistingCreatedPathName(node);
@@ -2843,8 +2879,10 @@ namespace MarkdownProcessor
             }
             else
             {
-                string createdPathName = GetCreatedPathName(node);
-                string[] paths = createdPathName.Split('_');
+                // AMLOpcUa patch 0009: the path as its segments, not the joined
+                // name split on "_", which breaks on a BrowseName that has one.
+                List<string> pathList = GetCreatedPathSegments(node);
+                string[] paths = pathList.ToArray();
 
                 if (paths.Length > 0)
                 {

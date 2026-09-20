@@ -1,4 +1,4 @@
-// Reading the OPC UA meaning out of Annex A libraries: which SystemUnitClass an
+﻿// Reading the OPC UA meaning out of Annex A libraries: which SystemUnitClass an
 // element instantiates, whether a type is abstract, and which ModellingRule a
 // child declaration carries.
 
@@ -77,11 +77,22 @@ public static class UaTypes
         {
             foreach (var child in t.InternalElement)
             {
-                if (byName.ContainsKey(child.Name)) continue;
-                byName[child.Name] = new ChildDeclaration(child.Name, RuleOf(child), child.RefBaseSystemUnitPath, child);
+                // A BrowseName is unique with its namespace: a type may hold
+                // its own NodeVersion beside the one of the UA namespace, and
+                // only a declaration of the same namespace overrides another.
+                var key = QualifiedName(child);
+                if (byName.ContainsKey(key)) continue;
+                byName[key] = new ChildDeclaration(child.Name, RuleOf(child), child.RefBaseSystemUnitPath, child);
             }
         }
         return byName.Values.ToList();
+    }
+
+    /// <summary>The BrowseName of a child with the namespace Annex A writes beside it.</summary>
+    public static string QualifiedName(SystemUnitClassType child)
+    {
+        var uri = child.Attribute["BrowseName"]?.Attribute["NamespaceUri"]?.Value;
+        return string.IsNullOrEmpty(uri) ? child.Name : uri + "|" + child.Name;
     }
 
     /// <summary>Whether <paramref name="type"/> is <paramref name="ancestor"/> or derives from it.</summary>

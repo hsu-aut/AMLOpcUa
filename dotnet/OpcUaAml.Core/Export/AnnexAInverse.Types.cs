@@ -1,4 +1,4 @@
-// The inverse of Annex A: ReferenceTypes, DataTypes, and ObjectTypes and
+﻿// The inverse of Annex A: ReferenceTypes, DataTypes, and ObjectTypes and
 // VariableTypes with the declarations they hold.
 
 using System.Globalization;
@@ -97,8 +97,10 @@ public static partial class AnnexAInverse
                     : new XElement(Types + "ListOfLocalizedText", items.Select(i => new XElement(Types + "LocalizedText", new XElement(Types + "Text", (string?)i.Element(_caex + "Value") ?? ""))))));
             }
 
-            // Structures need their encodings to be encodable; Annex A keeps none, so they get new NodeIds.
-            if (IsStructure(dt)) Encodings(node, id);
+            // Structures need their encodings to be encodable; Annex A keeps
+            // none, so they get new NodeIds. An abstract structure is never
+            // encoded and gets none (OPC 10000-3: it is no source of HasEncoding).
+            if (IsStructure(dt) && !IsAbstract(dt)) Encodings(node, id);
         }
 
         private bool IsStructure(XElement dt)
@@ -109,9 +111,16 @@ public static partial class AnnexAInverse
             return false;
         }
 
+        private bool IsAbstract(XElement dt) =>
+            string.Equals((string?)dt.Attribute("IsAbstract"), "true", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(Value(dt, "IsAbstract"), "true", StringComparison.OrdinalIgnoreCase);
+
         private void Encodings(XElement dataType, UaNodeAddress id)
         {
-            foreach (var name in new[] { "Default Binary", "Default XML", "Default JSON" })
+            // Binary and XML are the encodings OPC 10000-3 names for a
+            // structure; JSON is younger and a model that had none should not
+            // be given one here.
+            foreach (var name in new[] { "Default Binary", "Default XML" })
             {
                 if (_next == 0) _next = FirstFree();
                 var encodingId = new UaNodeAddress(_ns, UaIdType.Numeric, (_next++).ToString(CultureInfo.InvariantCulture));

@@ -19,6 +19,23 @@ minor versions.
 
 ### Fixed
 
+- A state machine of a type whose name carries an underscore kept its states
+  and transitions but none of their ends: the path of a declaration was joined
+  with `_` and split on `_` again (Opc2Aml patch 0009). Measured on Machinery,
+  where one machine had 16 transitions and no ends while its neighbour had 16
+  of each; 26 NodeSets of the OPC Foundation carry such names.
+- An import says what it leaves behind: the libraries are taken, the model's
+  instances are not, and a model that is nothing but instances (a dictionary,
+  for one) used to report success and arrive empty.
+- The inverse export no longer hands out NodeIds that the original model uses
+  for other nodes. Annex A drops the encodings and the type dictionaries, and
+  the invented ids started exactly where those had been; they now start at a
+  round distance above everything the model uses. An abstract structure gets
+  no encodings, and no JSON encoding is invented for a model that declared
+  none.
+- Two declarations whose BrowseNames differ only in their namespace are two
+  declarations again; keyed by the bare name, one of them was dropped and the
+  generated library kept a link to an element nobody wrote.
 - The export writes a NodeSet the OPC Foundation's stack can read: no
   reference into an empty namespace (a supertype from a library the document
   does not hold), no alias name standing for two nodes, no library or model

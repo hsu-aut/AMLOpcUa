@@ -1,4 +1,4 @@
-// AML to OPC UA for content that came from OPC UA: the inverse of OPC 10000-83
+﻿// AML to OPC UA for content that came from OPC UA: the inverse of OPC 10000-83
 // Annex A. No standard defines this direction; the AML-UA-XSLT rules map any
 // AML document into OPC UA and turn every InternalElement into an Object,
 // every AttributeType into a VariableType, every InterfaceClass into an
@@ -351,14 +351,26 @@ public static partial class AnnexAInverse
             return id;
         }
 
+        /// <summary>
+        /// Where invented NodeIds start. Annex A keeps no encodings and no type
+        /// dictionaries, so the ids those nodes had in the original model are
+        /// free again and lie right above the highest id that survived. Handing
+        /// them out would give official ids of a published model to other
+        /// nodes, so the invented ones start a round distance further up and
+        /// are recognisable as ours.
+        /// </summary>
         private uint FirstFree()
         {
             uint max = 0;
             foreach (var e in _root.Descendants())
                 if (NodeIdOf(e) is { NamespaceUri: var uri, IdType: UaIdType.Numeric, Identifier: var n } && uri == _ns && uint.TryParse(n, out var v))
                     max = Math.Max(max, v);
-            return Math.Max(max + 1, 1000);
+            var start = max + InventedIdGap;
+            return Math.Max(start - start % InventedIdGap, InventedIdGap);
         }
+
+        /// <summary>Invented ids start at a multiple of this, clear of the model's own.</summary>
+        private const uint InventedIdGap = 100000;
 
         private string Text(UaNodeAddress id)
         {
