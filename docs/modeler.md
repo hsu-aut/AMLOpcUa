@@ -1,7 +1,7 @@
 ﻿# Modeler
 
 The Modeler tab hosts the graphical modeler
-[NodeSet.js](../../NodeSet.js) in a WebView2 control. It
+[NodeSet.js](https://github.com/HamiedNabizada/NodeSet.js) in a WebView2 control. It
 draws OPC UA types and instances in the notation of OPC 10000-3 Annex C and
 edits NodeSet2 files: types, instance declarations with ModellingRules,
 method arguments, structure and union fields, enumeration values and
