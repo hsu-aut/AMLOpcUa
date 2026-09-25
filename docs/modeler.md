@@ -51,6 +51,10 @@ through the document.
   theme, again when the plugin becomes visible; the page's chrome follows,
   the canvas stays white. Standalone, the page follows the system setting.
 - The build fails with a message when `dist/web` of NodeSet.js is missing.
+  CI builds NodeSet.js at the release named in `.github/workflows/ci.yml`
+  (`NODESET_JS_REF`) beside this repository and refuses a package without
+  `modeler-assets`; a newer modeler comes into the plugin by changing that
+  line.
   `WebView2Loader.dll` is staged under `obj/bundled` and packed next to the
   plugin's assemblies, because NuGet drops files from `runtimes/*/native`.
 

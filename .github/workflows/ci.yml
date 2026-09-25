@@ -1,4 +1,4 @@
-﻿name: build and test
+name: build and test
 
 on:
   push:
@@ -10,35 +10,89 @@ on:
 permissions:
   contents: read
 
+env:
+  # The graphical modeler is bundled into the plugin from its own repository.
+  # Pinned to a release, so a package is built from a known modeler and a new
+  # one comes in by a change here, not by whatever is on its main branch.
+  NODESET_JS_REF: v0.1.0
+
 jobs:
   windows:
     # Windows, because the plugin targets net8.0-windows and WPF.
     runs-on: windows-latest
     steps:
+      # Both repositories side by side, as the plugin project expects
+      # (..\..\NodeSet.js\dist\web from the project folder).
       - uses: actions/checkout@v4
+        with:
+          path: AMLOpcUa
+
+      - uses: actions/checkout@v4
+        with:
+          repository: HamiedNabizada/NodeSet.js
+          ref: ${{ env.NODESET_JS_REF }}
+          path: NodeSet.js
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: NodeSet.js/package-lock.json
+
+      - name: Build the modeler
+        working-directory: NodeSet.js
+        run: |
+          npm ci
+          npm run build:web
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      # The graphical modeler lives in its own repository (NodeSet.js) and is
-      # bundled into the plugin from its build. CI checks the C# alone; a
-      # package to ship is built where both repositories are side by side.
       - name: Build
+        working-directory: AMLOpcUa
         run: |
           dotnet restore AMLOpcUa.sln
-          dotnet build AMLOpcUa.sln -c Release --no-restore -p:SkipModeler=true
+          dotnet build AMLOpcUa.sln -c Release --no-restore
 
       - name: Test
+        working-directory: AMLOpcUa
         run: dotnet test dotnet/OpcUaAml.Tests -c Release --no-build
 
       - name: Test the plugin
+        working-directory: AMLOpcUa
         run: dotnet test Aml.Editor.Plugin.OpcUa.Tests -c Release --no-build
+
+      # The package of 0.1.0 went out without the modeler, because the build
+      # skipped it and nothing looked. A package without it is refused here.
+      - name: Check the package
+        working-directory: AMLOpcUa
+        shell: pwsh
+        run: |
+          $packages = @(Get-ChildItem build/Plugins/Aml.Editor.Plugin.OpcUa/Release/*.nupkg)
+          if ($packages.Count -eq 0) { throw "No package was built." }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $root = 'lib/net8.0-windows7.0'
+          $required = @('Aml.Editor.Plugin.OpcUa.dll', 'OpcUaAml.Core.dll', 'Opc2Aml.dll', 'WebView2Loader.dll',
+                        'nodesets/Opc.Ua.NodeSet2.xml', 'nodesets/Opc.Ua.Di.NodeSet2.xml', 'modeler-assets/index.html')
+          foreach ($package in $packages) {
+            $zip = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
+            try {
+              $names = @($zip.Entries | ForEach-Object { $_.FullName })
+              foreach ($entry in $required) {
+                if ($names -notcontains "$root/$entry") { throw "$($package.Name) lacks $root/$entry." }
+              }
+              if (-not ($names -like "$root/modeler-assets/main.*.js")) { throw "$($package.Name) lacks the modeler's script." }
+              if ($names -like '*Aml.Editor.Plugin.Contract.dll') { throw "$($package.Name) carries the contract assembly; the editor would not load the plugin." }
+              Write-Host "$($package.Name): $($names.Count) entries, modeler included."
+            }
+            finally { $zip.Dispose() }
+          }
 
       - uses: actions/upload-artifact@v4
         with:
           name: Aml.Editor.Plugin.OpcUa-nupkg
-          path: build/Plugins/Aml.Editor.Plugin.OpcUa/Release/*.nupkg
+          path: AMLOpcUa/build/Plugins/Aml.Editor.Plugin.OpcUa/Release/*.nupkg
 
   release:
     # Only this job may write, and only for a version tag that matches the
