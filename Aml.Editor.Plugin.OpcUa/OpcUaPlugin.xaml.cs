@@ -399,7 +399,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 SetStatus($"The document changed while {Path.GetFileName(file)} was converted; import it again into the open one.");
                 return false;
             }
+            // Each phase is timed and logged: inside the editor an import has
+            // taken minutes that the command line needs seconds for (PF-AML-19).
+            var clock = System.Diagnostics.Stopwatch.StartNew();
             var merge = LibraryMerger.Merge(document, conversion.Document, options);
+            var merged = clock.Elapsed;
+            // The editor updates its trees and lookups after the change; waiting
+            // until it is idle measures how long that takes.
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            var shown = clock.Elapsed - merged;
             var result = new ImportResult(conversion, merge);
 
             foreach (var c in merge.Changes)
@@ -411,7 +419,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             foreach (var w in result.Warnings) PluginLog.Warn(w);
             PluginLog.Info(result.Summary);
 
+            var before = clock.Elapsed;
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
+            PluginLog.Info($"Import took: conversion {conversion.Duration.TotalSeconds:F1} s{(conversion.FromCache ? " (cache)" : "")}, "
+                + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
+                + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
             SetStatus(result.Summary + (saved ? " Saved." : " Press Ctrl+S to save."));
             return true;
         }
