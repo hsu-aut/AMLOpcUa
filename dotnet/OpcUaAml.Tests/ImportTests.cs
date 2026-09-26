@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Import;
@@ -151,6 +152,81 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
         LibraryMerger.Merge(target, di.Result.Document);
 
         Assert.Equal(before, target.CAEXFile.SystemUnitClassLib.Select(l => l.Name).ToList());
+    }
+
+    /// <summary>
+    /// A folder with a document's base library file, as the AutomationML Editor
+    /// references it: the converter's own base libraries under a newer version,
+    /// less the classes named.
+    /// </summary>
+    private string BaseLibraryFile(params string[] without)
+    {
+        var folder = Directory.CreateTempSubdirectory("uaaml-base-").FullName;
+        var file = CAEXDocument.New_CAEXDocument();
+        var source = di.Result.Document.CAEXFile;
+        void Take<T>(CAEXSequence<T> from, CAEXSequence<T> into) where T : CAEXObject
+        {
+            foreach (var lib in from.Where(l => !LibraryMerger.IsGeneratedLibrary(l.Name)).ToList())
+            {
+                var copy = (T)lib.Copy(deepCopy: true, assignNewIDs: false, includeSubClasses: true);
+                ((CAEXBasicObject)(object)copy).Version = "2.11.0";
+                into.Insert(copy, asFirst: false, asIs: true);
+            }
+        }
+        Take(source.AttributeTypeLib, file.CAEXFile.AttributeTypeLib);
+        Take(source.InterfaceClassLib, file.CAEXFile.InterfaceClassLib);
+        Take(source.RoleClassLib, file.CAEXFile.RoleClassLib);
+        foreach (var name in without)
+            file.CAEXFile.InterfaceClassLib["AutomationMLInterfaceClassLib"].Descendants<InterfaceClassType>().First(c => c.Name == name).Remove();
+        file.SaveToFile(Path.Combine(folder, "AutomationML_Base_Libraries_2.11.0.aml"), true);
+        return folder;
+    }
+
+    private static CAEXDocument ReferencingBaseLibraries()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        var reference = target.CAEXFile.ExternalReference.Append();
+        reference.Path = "AutomationML_Base_Libraries_2.11.0.aml";
+        reference.Alias = "AMLBase";
+        return target;
+    }
+
+    private static IEnumerable<string> PathsInto(CAEXDocument doc, string library) =>
+        doc.CAEXFile.Node.Descendants().Attributes()
+            .Where(a => a.Name.LocalName.StartsWith("Ref", StringComparison.Ordinal) && a.Value.Contains(library + "/"))
+            .Select(a => a.Value);
+
+    [Fact]
+    public void A_base_library_the_document_references_externally_is_not_added_again()
+    {
+        // The editor warns about a document that holds two versions of a base
+        // library: the one it references (2.11.0) and the converter's (2.10.0).
+        var folder = BaseLibraryFile();
+        var target = ReferencingBaseLibraries();
+
+        var report = LibraryMerger.Merge(target, di.Result.Document, new MergeOptions { DocumentFolder = folder });
+
+        Assert.DoesNotContain(LibraryNames(target), n => n.StartsWith("AutomationML", StringComparison.Ordinal));
+        var kept = Assert.Single(report.Changes, c => c.Name == "AutomationMLInterfaceClassLib");
+        Assert.Equal(LibraryAction.Kept, kept.Action);
+        Assert.Contains("AMLBase", kept.Note);
+        var paths = PathsInto(target, "AutomationMLInterfaceClassLib").ToList();
+        Assert.NotEmpty(paths);
+        Assert.All(paths, p => Assert.StartsWith("AMLBase@AutomationMLInterfaceClassLib/", p));
+    }
+
+    [Fact]
+    public void A_base_library_that_lacks_a_class_the_import_needs_is_added_after_all()
+    {
+        var folder = BaseLibraryFile(without: "AutomationMLBaseInterface");
+        var target = ReferencingBaseLibraries();
+
+        var report = LibraryMerger.Merge(target, di.Result.Document, new MergeOptions { DocumentFolder = folder });
+
+        var added = Assert.Single(report.Changes, c => c.Name == "AutomationMLInterfaceClassLib");
+        Assert.Equal(LibraryAction.Added, added.Action);
+        Assert.Contains("AutomationMLBaseInterface", added.Note);
+        Assert.All(PathsInto(target, "AutomationMLInterfaceClassLib"), p => Assert.StartsWith("AutomationMLInterfaceClassLib/", p));
     }
 
     [Fact]

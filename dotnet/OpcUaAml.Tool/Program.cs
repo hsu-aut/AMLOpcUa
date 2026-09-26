@@ -284,6 +284,10 @@ public static class Program
         return 1;
     }
 
+    /// <summary>The folder of a document, where the files of its ExternalReferences lie.</summary>
+    private static string? FolderOf(string? document) =>
+        document == null ? null : Path.GetDirectoryName(Path.GetFullPath(document));
+
     private static int Import(List<string> args)
     {
         var options = Options.Parse(args, valued: new[] { "--search", "--into", "-o" }, flags: new[] { "--keep" });
@@ -302,10 +306,10 @@ public static class Program
             target = CaexUpgrade.ToCaex3(target);
         }
         var result = OpcUaImport.ImportInto(target, file, catalog,
-            new MergeOptions { ReplaceGeneratedLibraries = !options.Has("--keep") });
+            new MergeOptions { ReplaceGeneratedLibraries = !options.Has("--keep"), DocumentFolder = FolderOf(into) });
 
         foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
-        foreach (var c in result.Merge.Changes) Console.WriteLine($"{c.Action,-8} {c.Kind,-18} {c.Name}");
+        foreach (var c in result.Merge.Changes) Console.WriteLine($"{c.Action,-8} {c.Kind,-18} {c.Name}" + (c.Note != null ? $"  ({c.Note})" : ""));
         Documents.Save(target, output);
         Console.WriteLine(result.Summary);
         Console.WriteLine($"Written to {Path.GetFullPath(output)}");
@@ -631,7 +635,7 @@ public static class Program
                 Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
             }
             var doc = Documents.Load(into);
-            var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog);
+            var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog, new MergeOptions { DocumentFolder = FolderOf(into) });
             foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
             Documents.Save(doc, output ?? into);
             Console.WriteLine(result.Summary);
@@ -903,7 +907,7 @@ public static class Program
                     var target = into != null ? Documents.Load(into) : CAEXDocument.New_CAEXDocument();
                     if (CaexUpgrade.IsNeeded(target)) target = CaexUpgrade.ToCaex3(target);
                     var imported = OpcUaImport.ImportInto(target, result.NodeSetPath, catalog,
-                        new MergeOptions { ReplaceGeneratedLibraries = !o.Has("--keep") });
+                        new MergeOptions { ReplaceGeneratedLibraries = !o.Has("--keep"), DocumentFolder = FolderOf(into) });
                     foreach (var w in imported.Warnings) Console.Error.WriteLine($"warning: {w}");
                     Documents.Save(target, output);
                     Console.WriteLine(imported.Summary);

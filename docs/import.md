@@ -79,6 +79,16 @@ The AutomationML base libraries are never replaced. IDs are kept as Opc2Aml
 wrote them, so a second import of a namespace produces the same IDs and
 references into the library stay valid.
 
+Opc2Aml brings its own copy of the base libraries (2.10.0). A document that
+gets them through an `ExternalReference` instead, as the AutomationML Editor
+sets it up (for instance `AutomationML_Base_Libraries_AMLEd2_2.11.0.aml`),
+keeps that reference: the copy is left out, and the imported classes point at
+the referenced library as `Alias@Library/Class`. Without this the document
+held two versions of the same library, and the editor reported libraries
+that cannot be verified. The referenced file is looked for next to the
+document; it is used only when it holds every class the import points at,
+otherwise the copy is added and the report names the classes it lacks.
+
 ## Missing models and removing a namespace
 
 Before converting, the plugin checks that every model a NodeSet requires is

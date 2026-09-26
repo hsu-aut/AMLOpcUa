@@ -171,6 +171,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     public event EventHandler<CAEXDocument>? IsDocumentLoaded;
 #pragma warning restore CS0067
 
+    /// <summary>The file of the open document, as the editor reports it.</summary>
+    private string? _documentPath;
+
+    public override void ChangeAMLFilePath(string amlFilePath)
+    {
+        base.ChangeAMLFilePath(amlFilePath);
+        _documentPath = string.IsNullOrEmpty(amlFilePath) ? null : amlFilePath;
+    }
+
     public void DocumentLoaded(CAEXDocument document)
     {
         if (!Dispatcher.CheckAccess())
@@ -363,7 +372,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 return false;
             }
         }
-        var options = new MergeOptions { ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries };
+        var options = new MergeOptions
+        {
+            ReplaceGeneratedLibraries = _settings.ReplaceExistingLibraries,
+            // Where the document's ExternalReferences lie, so a base library it references is not added twice.
+            DocumentFolder = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null,
+        };
 
         SetBusy(true, $"Converting {Path.GetFileName(file)} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.");
         try

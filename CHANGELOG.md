@@ -7,6 +7,15 @@ minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- An import no longer adds a second, older copy of the AutomationML base
+  libraries to a document that references them through an ExternalReference
+  (as the AutomationML Editor does, in 2.11.0): the imported classes point at
+  the referenced library instead, and the editor no longer reports libraries
+  that cannot be verified. The copy is still added when the referenced file
+  lacks a class the import needs, and the report says which (`docs/import.md`).
+
 ## [0.1.3] - 2026-09-27
 
 ### Fixed
