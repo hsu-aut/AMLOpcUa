@@ -7,6 +7,17 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-26
+
+### Fixed
+
+- The Modeler tab went blank when a DataType without fields (a subtype of
+  Int32, say) was selected after one with fields, and unapplied changes were
+  gone. The plugin now brings NodeSet.js 0.1.1, which fixes that and keeps the
+  model through any failure of its interface: the tab says what went wrong
+  and offers Save NodeSet and Try again, and the plugin still knows the model
+  is unapplied.
+
 ## [0.1.1] - 2026-09-25
 
 ### Fixed

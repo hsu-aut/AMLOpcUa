@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Title>AMLOpcUa</Title>
     <Description>AutomationML Editor plugin for OPC UA: imports NodeSets as AML libraries according to OPC 10000-83 Annex A.</Description>
     <PackageTags>AMLEditor; AMLEditorPlugin.Net; AutomationML; OPCUA; NodeSet; UAFX</PackageTags>

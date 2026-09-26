@@ -14,7 +14,7 @@ env:
   # The graphical modeler is bundled into the plugin from its own repository.
   # Pinned to a release, so a package is built from a known modeler and a new
   # one comes in by a change here, not by whatever is on its main branch.
-  NODESET_JS_REF: v0.1.0
+  NODESET_JS_REF: v0.1.1
 
 jobs:
   windows:
