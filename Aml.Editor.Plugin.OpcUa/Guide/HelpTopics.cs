@@ -43,7 +43,9 @@ internal static class HelpTopics
             "Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked "
             + "nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of "
             + "yours a node's address. Read values into document reads once, Keep document values live writes every change into the "
-            + "document, Watch only shows values in the list below.",
+            + "document, Watch only shows values in the list below. Remove server addresses saves a copy of the document without "
+            + "where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the "
+            + "log names every place a host name still appears.",
             new[] { "NodeId", "Address space" }, "server"),
         ["server.take"] = new(
             "What to take",

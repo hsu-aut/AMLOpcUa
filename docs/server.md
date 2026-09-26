@@ -268,6 +268,23 @@ stations, modules, devices and a state machine per station. Its README walks
 through serving it, taking its model into a document and mirroring the running
 instances.
 
+## Passing a document on
+
+A mirrored document says where its servers are: the server element carries
+`EndpointUrl` and `ServerUri`, every NodeId below it a `ServerInstanceUri`
+(which usually holds the host name), and a server element after BPR 007 or
+DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. **Remove server addresses…**
+(Server tab) and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
+them; the open document stays as it is. What a node is known by (NamespaceUri
+and identifier), links to planned elements and how a server is secured stay,
+and so do the libraries, whose NodeId type declares `ServerInstanceUri`
+without a value. No credentials are ever written into a document.
+
+A host name can also sit in a mirrored value or a description. The command
+lists the hosts it found and every place in the instance hierarchies where one
+still appears; the plugin writes them to its log. Measured on the MPS 500
+demo: a mirror of 178 nodes carried the host name 179 times, the copy none.
+
 ## Robustness
 
 A server is not trusted to behave. Browsing stops after 100000 references of

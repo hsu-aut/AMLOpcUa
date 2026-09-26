@@ -137,6 +137,13 @@ public static class Program
         uaaml upgrade <doc.aml> [-o <out.aml>]
             Add the Mandatory children that updated types now declare.
 
+        uaaml strip-addresses <doc.aml|amlx> [-o <out.aml>]
+            Write a copy without the addresses of servers (endpoint, server URI,
+            the ServerInstanceUri of every NodeId, EndpointURL, DiscoveryURL), to
+            pass the document on. The copy is <name>-without-addresses unless -o
+            names another file; the hosts found, and every place a host name
+            still appears, are listed.
+
         uaaml link <doc.aml> --from <element> --to <element> [-o <out.aml>]
             Link a VDI 3682 TechnicalResource to a UA object or a ProcessOperator
             to a UA method (elements by name or ID).
@@ -222,6 +229,7 @@ public static class Program
                 "doc" => DocCommand(rest),
                 "upgrade" => UpgradeCommand(rest),
                 "link" => LinkCommand(rest),
+                "strip-addresses" => StripAddressesCommand(rest),
                 "cloud" => Run(CloudCommand(rest)),
                 "opcf" => Run(OpcfCommand(rest)),
                 "design" => Run(DesignCommand(rest)),
@@ -790,6 +798,21 @@ public static class Program
         foreach (var c in changes) Console.WriteLine($"Added {c.Added} to {c.ElementPath}");
         Documents.Save(doc, o.One("-o") ?? file);
         Console.WriteLine($"{changes.Count} child(ren) added.");
+        return 0;
+    }
+
+    private static int StripAddressesCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o" }, flags: Array.Empty<string>());
+        var file = o.SinglePositional("document");
+        var output = o.One("-o") ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(file))!,
+            Path.GetFileNameWithoutExtension(file) + "-without-addresses" + Path.GetExtension(file));
+        var doc = Documents.Load(file);
+        var report = OpcUaAml.Server.ServerAddresses.Strip(doc.CAEXFile.Node.Document!);
+        Documents.Save(doc, output);
+        Console.WriteLine(report);
+        foreach (var place in report.Remaining) Console.WriteLine($"  still named: {place}");
+        Console.WriteLine($"Written to {Path.GetFullPath(output)}");
         return 0;
     }
 

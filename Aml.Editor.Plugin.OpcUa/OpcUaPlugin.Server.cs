@@ -719,4 +719,36 @@ public partial class OpcUaPlugin : ISupportsSelection
         ConnectionPill.Background = connected ? palette.PillOn : palette.PillIdle;
         ConnectionPill.ToolTip = connected ? _client!.EndpointUrl : null;
     }
+
+    /// <summary>
+    /// Saves a copy of the open document without the addresses of its servers,
+    /// to pass it on; the open document stays as it is.
+    /// </summary>
+    private void StripAddressesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_document is not { } document)
+        {
+            SetStatus("Open a document first.");
+            return;
+        }
+        var name = _documentPath != null ? Path.GetFileNameWithoutExtension(_documentPath) : "Document";
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save a copy without server addresses",
+            Filter = "AutomationML (*.aml)|*.aml",
+            FileName = name + "-without-addresses.aml",
+            InitialDirectory = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null,
+        };
+        if (dialog.ShowDialog() != true) return;
+        Guard("Saving the copy without server addresses", () =>
+        {
+            var copy = new System.Xml.Linq.XDocument(document.CAEXFile.Node.Document!);
+            var report = ServerAddresses.Strip(copy);
+            copy.Save(dialog.FileName);
+            PluginLog.Info($"Copy without server addresses: {dialog.FileName}: {report}");
+            foreach (var place in report.Remaining) PluginLog.Warn($"A host name still appears in the copy: {place}");
+            SetStatus($"Saved {Path.GetFileName(dialog.FileName)}: {report}."
+                + (report.Remaining.Count > 0 ? " The log names each place." : ""));
+        });
+    }
 }

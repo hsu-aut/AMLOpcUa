@@ -7,6 +7,14 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Remove server addresses…** (Server tab) and `uaaml strip-addresses` save a
+  copy of a document without where its servers are reached (endpoints, server
+  URIs, the ServerInstanceUri of every NodeId, EndpointURL, DiscoveryURL), to
+  pass it on, and name every place a host name still appears
+  (`docs/server.md`).
+
 ### Fixed
 
 - An import no longer adds a second, older copy of the AutomationML base

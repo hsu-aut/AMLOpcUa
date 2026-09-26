@@ -535,6 +535,14 @@
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="Stop watching" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
+                        <Separator/>
+                        <Button x:Name="StripAddressesButton" Click="StripAddressesButton_Click"
+                                ToolTip="Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE72E;" Foreground="{DynamicResource Plain}"/>
+                                <TextBlock Text="Remove server addresses…" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <guide:HelpButton Topic="server.commands"/>
                     </ToolBar>
 
