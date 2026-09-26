@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Engine.CAEX;
 using Microsoft.Win32;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
@@ -249,9 +250,41 @@ public partial class OpcUaPlugin
             _modeler?.Reply("applied", false, ModelerStatus.Text);
             return;
         }
-        var imported = await ImportFileAsync(document, file, new[] { ModelsFolder });
+        var imported = await ImportFileAsync(document, file, new[] { ModelsFolder },
+            conversion => TakeInstances(document, conversion, modelUri));
         ModelerStatus.Text = StatusText.Text;
         _modeler?.Reply("applied", imported, StatusText.Text);
+    }
+
+    /// <summary>
+    /// Asks where the instances of an applied model go, and takes them there;
+    /// null when the model holds none or they stay out.
+    /// </summary>
+    private string? TakeInstances(CAEXDocument document, ConversionResult conversion, string modelUri)
+    {
+        var tops = InstanceTransfer.TopInstances(conversion.Document, modelUri);
+        if (tops.Count == 0) return null;
+        var below = _editorSelection is IInternalElementContainer container and (InstanceHierarchyType or InternalElementType)
+            && ReferenceEquals(_editorSelection.CAEXDocument, document)
+            ? container : null;
+        var hierarchy = InstanceTransfer.HierarchyName(modelUri);
+        var window = new InstancesWindow(tops.Select(t => t.Name).ToList(), hierarchy, (below as CAEXObject)?.Name)
+        {
+            Owner = Window.GetWindow(this),
+        };
+        var choice = window.ShowDialog() == true ? window.Choice : InstancesChoice.None;
+        if (choice == InstancesChoice.None)
+        {
+            PluginLog.Info($"Modeler: the {tops.Count} instance(s) of {modelUri} were not taken.");
+            return null;
+        }
+        InstanceDestination destination = choice == InstancesChoice.BelowSelection && below != null
+            ? new InstanceDestination.Below(below)
+            : new InstanceDestination.OwnHierarchy(hierarchy);
+        var options = new MergeOptions { DocumentFolder = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null };
+        var result = InstanceTransfer.Take(document, conversion.Document, modelUri, destination, options);
+        PluginLog.Info("Modeler: " + result);
+        return result + ".";
     }
 
     private static string SafeFileName(string uri)

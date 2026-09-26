@@ -163,7 +163,7 @@ public static class LibraryMerger
     /// Which base libraries the target gets through an ExternalReference, and
     /// whether each holds every class the imported libraries point at.
     /// </summary>
-    private sealed class Elsewhere
+    internal sealed class Elsewhere
     {
         private readonly IReadOnlyDictionary<string, ExternalLibraries.Library> _external;
         private readonly Dictionary<string, List<string>> _missing = new(StringComparer.Ordinal);

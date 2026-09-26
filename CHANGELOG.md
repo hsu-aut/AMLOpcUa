@@ -14,6 +14,12 @@ minor versions.
   URIs, the ServerInstanceUri of every NodeId, EndpointURL, DiscoveryURL), to
   pass it on, and name every place a host name still appears
   (`docs/server.md`).
+- Instances drawn in the modeler reach the document: after Apply a dialog asks
+  where they go, into an InstanceHierarchy of their own (replaced on every
+  Apply), below the element selected in the editor (with IDs of their own), or
+  not at all. Before, only the types were taken (`docs/modeler.md`).
+- The plugin logs how long each part of an import takes: conversion, merge,
+  the editor updating its trees, saving.
 
 ### Fixed
 

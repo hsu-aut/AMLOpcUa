@@ -17,7 +17,7 @@ Annex A), so the libraries it adds are the ones any other NodeSet would give.
 | **Edit** (a namespace of the document) | The NodeSet the namespace was imported from is looked up in the models folder and the NodeSet folders, and opened with every NodeSet it requires that the modeler does not ship (it ships UA and DI). |
 | **New model** | An empty model with the namespace URI in the field. |
 | **Open NodeSet file…** | Any NodeSet2 file; the NodeSets it requires come from its own folder and the NodeSet folders. |
-| **Apply to document** (in the modeler) | The NodeSet is saved to `%LOCALAPPDATA%\AMLOpcUa\models\<namespace>.NodeSet2.xml` and imported into the document. The libraries of that namespace are replaced unless the document holds a newer publication. The modeler reports "Applying …" and counts the model as unchanged only once the plugin answers that the import worked. |
+| **Apply to document** (in the modeler) | The NodeSet is saved to `%LOCALAPPDATA%\AMLOpcUa\models\<namespace>.NodeSet2.xml` and imported into the document. The libraries of that namespace are replaced unless the document holds a newer publication. When the model holds instances, a dialog asks every time where they go: into an InstanceHierarchy of their own (`IH_<last part of the namespace>`, replaced on every Apply, IDs kept), below the element selected in the editor (added on every Apply, with IDs of their own), or not at all. The modeler reports "Applying …" and counts the model as unchanged only once the plugin answers that the import worked. |
 | **Save NodeSet** (in the modeler) | A save dialog of the plugin, not a browser download. |
 
 The tab shows `Modeler *` while the modeler has changes that were neither

@@ -174,6 +174,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>The file of the open document, as the editor reports it.</summary>
     private string? _documentPath;
 
+    /// <summary>What is selected in the editor's trees, for commands that put something below it.</summary>
+    private CAEXBasicObject? _editorSelection;
+
+    public override void ChangeSelectedObject(CAEXBasicObject selectedObject)
+    {
+        base.ChangeSelectedObject(selectedObject);
+        _editorSelection = selectedObject;
+    }
+
     public override void ChangeAMLFilePath(string amlFilePath)
     {
         base.ChangeAMLFilePath(amlFilePath);
@@ -313,7 +322,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// ship with the NodeSets they depend on.
     /// </summary>
     /// <summary>True when the NodeSet arrived in the document.</summary>
-    private async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    /// <param name="afterMerge">Runs on the UI thread after the libraries are in and before the document is saved; what it returns is added to the status.</param>
+    private async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
+        Func<ConversionResult, string?>? afterMerge = null)
     {
         // One import at a time: each merges into the document and clears the busy state when done.
         if (_importing)
@@ -332,7 +343,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 if (compiled == null) return false;
                 file = compiled;
             }
-            return await ImportOneAsync(document, file, extraFolders);
+            return await ImportOneAsync(document, file, extraFolders, afterMerge);
         }
         finally
         {
@@ -342,7 +353,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
-    private async Task<bool> ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders)
+    private async Task<bool> ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
+        Func<ConversionResult, string?>? afterMerge)
     {
         List<string> folders;
         // Missing models are asked about before the conversion, which takes seconds;
@@ -418,13 +430,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             }
             foreach (var w in result.Warnings) PluginLog.Warn(w);
             PluginLog.Info(result.Summary);
+            var more = afterMerge?.Invoke(conversion);
 
             var before = clock.Elapsed;
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             PluginLog.Info($"Import took: conversion {conversion.Duration.TotalSeconds:F1} s{(conversion.FromCache ? " (cache)" : "")}, "
                 + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
-            SetStatus(result.Summary + (saved ? " Saved." : " Press Ctrl+S to save."));
+            SetStatus(result.Summary + (more != null ? " " + more : "") + (saved ? " Saved." : " Press Ctrl+S to save."));
             return true;
         }
         catch (ImportException ex)
