@@ -7,6 +7,16 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-09-27
+
+### Fixed
+
+- The Modeler tab brings NodeSet.js 0.1.2: undo keeps a bounded number of
+  steps, fewer for large models, instead of a full copy of the model for
+  every step without end, which could exhaust the memory of the tab on a
+  large companion specification; and a check that throws no longer stops the
+  modeler.
+
 ## [0.1.2] - 2026-09-26
 
 ### Fixed
