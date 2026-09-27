@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
@@ -65,11 +66,11 @@ public partial class OpcUaPlugin
         _settings.Save();
     }
 
-    /// <summary>"Reading … 250 of at most 2000 node(s)" while a selection is read.</summary>
-    private IProgress<int> NodesFound(string doing)
+    /// <summary>"Reading … 250 of at most 2000 node(s)" while a selection is read; <paramref name="text"/> gets the count and the limit.</summary>
+    private IProgress<int> NodesFound(Func<int, int, string> text)
     {
         var max = CurrentMaxNodes();
-        return new Progress<int>(n => SetStatus($"{doing} … {n} of at most {max} node(s) found."));
+        return new Progress<int>(n => SetStatus(text(n, max)));
     }
 
     /// <summary>The checked parts, or with nothing checked the selected node with what is below it.</summary>
@@ -86,22 +87,26 @@ public partial class OpcUaPlugin
 
     private string Label(UaNodeAddress a) => _names.TryGetValue(Key(a), out var n) ? n : a.ToString();
 
-    private string Describe(MirrorItem i) => i.Scope switch
+    private string Describe(MirrorItem i)
     {
-        MirrorScope.Node => $"{Label(i.Node)}  (node)",
-        MirrorScope.Children => $"{Label(i.Node)}  (with children)",
-        MirrorScope.Subtree => $"{Label(i.Node)}  (with everything below)",
-        _ => $"every {Label(i.Type!)} below {Label(i.Node)}",
-    } + (i.View != null && Key(i.View) != Key(i.Node) ? $"  in view {Label(i.View)}" : "");
+        var what = i.Scope switch
+        {
+            MirrorScope.Node => L.T("{0}  (node)", Label(i.Node)),
+            MirrorScope.Children => L.T("{0}  (with children)", Label(i.Node)),
+            MirrorScope.Subtree => L.T("{0}  (with everything below)", Label(i.Node)),
+            _ => L.T("every {0} below {1}", Label(i.Type!), Label(i.Node)),
+        };
+        return i.View != null && Key(i.View) != Key(i.Node) ? L.T("{0}  in view {1}", what, Label(i.View)) : what;
+    }
 
     private void RefreshSelection()
     {
         _selectionRows.Clear();
         foreach (var i in _items) _selectionRows.Add(new SelectionRow(Describe(i), i, null));
-        foreach (var x in _excluded) _selectionRows.Add(new SelectionRow($"leave out {Label(x)}", null, x));
+        foreach (var x in _excluded) _selectionRows.Add(new SelectionRow(L.T("leave out {0}", Label(x)), null, x));
         SelectionSummary.Text = _items.Count == 0
-            ? "Nothing checked: 'Take into document' takes the selected node with what is below it."
-            : $"{_items.Count} part(s) checked.";
+            ? L.T("Nothing checked: 'Take into document' takes the selected node with what is below it.")
+            : L.T("{0} part(s) checked.", _items.Count);
         foreach (var show in _showChecks) show();
         UpdateServerState();
     }
@@ -213,7 +218,7 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             PluginLog.Error("Browsing the Objects folder failed", ex);
-            SetStatus($"The server did not answer: {ex.Message} Disconnect and connect again if it restarted.");
+            SetStatus(L.T("The server did not answer: {0} Disconnect and connect again if it restarted.", ex.Message));
             return false;
         }
         await LoadViewsAsync();
@@ -229,8 +234,8 @@ public partial class OpcUaPlugin
             if (views.Count == 0) return;
             var folderHeader = new StackPanel { Orientation = Orientation.Horizontal };
             folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = DialogKit.Relate });
-            folderHeader.Children.Add(new TextBlock { Text = $"Views ({views.Count})", VerticalAlignment = VerticalAlignment.Center });
-            var folder = new TreeViewItem { Header = folderHeader, ToolTip = "The Views the server defines: parts of its address space for a purpose." };
+            folderHeader.Children.Add(new TextBlock { Text = L.T("Views ({0})", views.Count), VerticalAlignment = VerticalAlignment.Center });
+            var folder = new TreeViewItem { Header = folderHeader, ToolTip = L.T("The Views the server defines: parts of its address space for a purpose.") };
             foreach (var v in views) folder.Items.Add(NodeItem(v, v.Address));
             AddressTree.Items.Add(folder);
         }
@@ -249,7 +254,7 @@ public partial class OpcUaPlugin
         {
             FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE73E", FontSize = 10, Margin = new Thickness(6, 1, 0, 0),
             Foreground = new SolidColorBrush(Color.FromRgb(0x2E, 0x9E, 0x4F)), VerticalAlignment = VerticalAlignment.Center,
-            ToolTip = "Already in the document",
+            ToolTip = L.T("Already in the document"),
         };
         var header = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 1, 0, 1) };
         header.Children.Add(check);
@@ -266,10 +271,10 @@ public partial class OpcUaPlugin
             check.IsChecked = selected != null;
             scope.Text = selected?.Scope switch
             {
-                MirrorScope.Node => "   node only",
-                MirrorScope.Children => "   with children",
-                MirrorScope.Subtree => "   with everything below",
-                _ => _excluded.Contains(Key(node.Address)) ? "   left out" : "",
+                MirrorScope.Node => L.T("   node only"),
+                MirrorScope.Children => L.T("   with children"),
+                MirrorScope.Subtree => L.T("   with everything below"),
+                _ => _excluded.Contains(Key(node.Address)) ? L.T("   left out") : "",
             };
         }
         _showChecks.Add(Show);
@@ -285,18 +290,18 @@ public partial class OpcUaPlugin
                 m.Click += (_, __) => action();
                 menu.Items.Add(m);
             }
-            Add("Take the node only", () => SetScope(node.Address, MirrorScope.Node, view));
-            Add("Take it with its children", () => SetScope(node.Address, MirrorScope.Children, view));
-            Add("Take it with everything below", () => SetScope(node.Address, MirrorScope.Subtree, view));
-            Add("Do not take it", () => SetScope(node.Address, null, view));
+            Add(L.T("Take the node only"), () => SetScope(node.Address, MirrorScope.Node, view));
+            Add(L.T("Take it with its children"), () => SetScope(node.Address, MirrorScope.Children, view));
+            Add(L.T("Take it with everything below"), () => SetScope(node.Address, MirrorScope.Subtree, view));
+            Add(L.T("Do not take it"), () => SetScope(node.Address, null, view));
             menu.Items.Add(new Separator());
-            Add("Leave it out of checked parts", () =>
+            Add(L.T("Leave it out of checked parts"), () =>
             {
                 _items.RemoveAll(i => i.Scope != MirrorScope.InstancesOf && Key(i.Node) == Key(node.Address));
                 _excluded.Add(Key(node.Address));
                 RefreshSelection();
             });
-            Add("Instances of a type below it…", () => _ = PickInstancesAsync(node.Address));
+            Add(L.T("Instances of a type below it…"), () => _ = PickInstancesAsync(node.Address));
             item.ContextMenu = menu;
             item.Items.Add(Pending);
         }
@@ -330,12 +335,12 @@ public partial class OpcUaPlugin
     {
         if (_client == null) return;
         var rows = _client.NamespaceTable.Select(uri => new ChecklistWindow.Row(uri, uri, _namespaces.Contains(uri))).ToList();
-        var window = new ChecklistWindow("Namespaces to take",
-            "Only nodes of the checked namespaces are taken, with what they hold. Nothing checked takes all.", rows, "\uE71C")
+        var window = new ChecklistWindow(L.T("Namespaces to take"),
+            L.T("Only nodes of the checked namespaces are taken, with what they hold. Nothing checked takes all."), rows, "\uE71C")
         { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         _namespaces = window.Checked.Cast<string>().ToList();
-        NamespacesButton.Content = _namespaces.Count == 0 ? "Namespaces: all" : $"Namespaces: {_namespaces.Count}";
+        NamespacesButton.Content = _namespaces.Count == 0 ? L.T("Namespaces: all") : L.T("Namespaces: {0}", _namespaces.Count);
         _ = LoadRootAsync();
     }
 
@@ -347,30 +352,30 @@ public partial class OpcUaPlugin
         var client = _client;
         if (client == null || _busy) return;
         IReadOnlyList<UaBrowseItem> types;
-        SetBusy(true, "Reading the server's types …");
+        SetBusy(true, L.T("Reading the server's types …"));
         try { types = await client.TypesAsync(); }
-        catch (Exception ex) { PluginLog.Error("Reading the types failed", ex); SetStatus("Reading the types failed: " + ex.Message); return; }
+        catch (Exception ex) { PluginLog.Error("Reading the types failed", ex); SetStatus(L.T("Reading the types failed: {0}", ex.Message)); return; }
         finally { SetBusy(false, null); }
 
-        var picker = new TypePickerWindow(types, $"Instances of which type below {Label(start)}?") { Owner = Window.GetWindow(this) };
+        var picker = new TypePickerWindow(types, L.T("Instances of which type below {0}?", Label(start))) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } type) return;
         _names[Key(type.Address)] = type.DisplayName;
 
         IReadOnlyList<UaBrowseItem> found;
-        SetBusy(true, $"Searching instances of {type.DisplayName} …");
+        SetBusy(true, L.T("Searching instances of {0} …", type.DisplayName));
         try { found = await client.InstancesOfAsync(start, await client.SubtypesAsync(type.Address)); }
-        catch (Exception ex) { PluginLog.Error("Searching instances failed", ex); SetStatus("The search failed: " + ex.Message); return; }
+        catch (Exception ex) { PluginLog.Error("Searching instances failed", ex); SetStatus(L.T("The search failed: {0}", ex.Message)); return; }
         finally { SetBusy(false, null); }
         if (found.Count == 0)
         {
-            SetStatus($"No instance of {type.DisplayName} below {Label(start)}.");
+            SetStatus(L.T("No instance of {0} below {1}.", type.DisplayName, Label(start)));
             return;
         }
 
         foreach (var f in found) _names[Key(f.Address)] = f.DisplayName;
         var rows = found.Select(f => new ChecklistWindow.Row(f.DisplayName, Key(f.Address), !_excluded.Contains(Key(f.Address)), f.Address.ToString())).ToList();
-        var check = new ChecklistWindow($"Instances of {type.DisplayName}",
-            $"{found.Count} found below {Label(start)}. Each checked instance is taken with everything below it; unchecked ones are left out.", rows, "\uE721")
+        var check = new ChecklistWindow(L.T("Instances of {0}", type.DisplayName),
+            L.T("{0} found below {1}. Each checked instance is taken with everything below it; unchecked ones are left out.", found.Count, Label(start)), rows, "\uE721")
         { Owner = Window.GetWindow(this) };
         if (check.ShowDialog() != true) return;
         var taken = check.Checked.Cast<UaNodeAddress>().ToHashSet();
@@ -382,7 +387,7 @@ public partial class OpcUaPlugin
         _items.RemoveAll(i => i.Scope == MirrorScope.InstancesOf && Key(i.Node) == Key(start) && i.Type != null && Key(i.Type) == Key(type.Address));
         _items.Add(new MirrorItem(start, MirrorScope.InstancesOf, type.Address));
         RefreshSelection();
-        SetStatus($"{taken.Count} of {found.Count} instance(s) of {type.DisplayName} below {Label(start)} checked.");
+        SetStatus(L.T("{0} of {1} instance(s) of {2} below {3} checked.", taken.Count, found.Count, type.DisplayName, Label(start)));
     }
 
     private void RemoveSelection_Click(object sender, RoutedEventArgs e)
@@ -400,7 +405,7 @@ public partial class OpcUaPlugin
         RefreshSelection();
     }
 
-    private void LoadSelectionButton_Click(object sender, RoutedEventArgs e) => Guard("Loading the kept selection", LoadSelection);
+    private void LoadSelectionButton_Click(object sender, RoutedEventArgs e) => Guard(L.T("Loading the kept selection"), LoadSelection);
 
     private void LoadSelection()
     {
@@ -410,7 +415,7 @@ public partial class OpcUaPlugin
         var server = ih == null ? null : AddressSpaceMirror.MirroredServer(ih, _client);
         if (server == null || MirrorSelection.ReadFrom(server) is not { } kept)
         {
-            SetStatus($"'{ihName}' keeps no selection for this server.");
+            SetStatus(L.T("'{0}' keeps no selection for this server.", ihName));
             return;
         }
         _items.Clear();
@@ -418,30 +423,31 @@ public partial class OpcUaPlugin
         _excluded.Clear();
         _excluded.UnionWith(kept.Excluded);
         _namespaces = kept.Filter.Namespaces.ToList();
-        NamespacesButton.Content = _namespaces.Count == 0 ? "Namespaces: all" : $"Namespaces: {_namespaces.Count}";
+        NamespacesButton.Content = _namespaces.Count == 0 ? L.T("Namespaces: all") : L.T("Namespaces: {0}", _namespaces.Count);
         SkipPropertiesBox.IsChecked = kept.Filter.SkipProperties;
         ObjectsOnlyBox.IsChecked = kept.Filter.ObjectsOnly;
         ShowServerBox.IsChecked = !kept.Filter.HideServer;
         MirrorDepthBox.Text = kept.Depth.ToString(System.Globalization.CultureInfo.InvariantCulture);
         RefreshSelection();
         _ = LoadRootAsync();
-        SetStatus($"Loaded the selection kept in '{ihName}': {kept.Items.Count} part(s). 'Take into document' mirrors it again.");
+        SetStatus(L.T("Loaded the selection kept in '{0}': {1} part(s). 'Take into document' mirrors it again.", ihName, kept.Items.Count));
     }
 
     private async void PreviewButton_Click(object sender, RoutedEventArgs e)
     {
         if (_client == null || !NumbersValid(MirrorDepthBox, MirrorMaxNodesBox) || CurrentSelection() is not { } selection) return;
-        SetBusy(true, "Counting …");
+        SetBusy(true, L.T("Counting …"));
         try
         {
-            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(), progress: NodesFound("Counting"));
+            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(),
+                progress: NodesFound((n, max) => L.T("Counting … {0} of at most {1} node(s) found.", n, max)));
             SetStatus("");
-            SelectionSummary.Text = $"{nodes} element(s){(truncated ? ", stopped at the node limit" : "")}.";
+            SelectionSummary.Text = truncated ? L.T("{0} element(s), stopped at the node limit.", nodes) : L.T("{0} element(s).", nodes);
         }
         catch (Exception ex)
         {
             PluginLog.Error("Counting failed", ex);
-            SetStatus("Counting failed: " + ex.Message);
+            SetStatus(L.T("Counting failed: {0}", ex.Message));
         }
         finally
         {
@@ -455,11 +461,10 @@ public partial class OpcUaPlugin
     /// </summary>
     private bool RemoveVanished(InternalElementType server, IReadOnlyList<string> vanished)
     {
-        var shown = string.Join(Environment.NewLine, vanished.Take(12)) + (vanished.Count > 12 ? $"{Environment.NewLine}… and {vanished.Count - 12} more (see log)" : "");
-        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, $"Remove {vanished.Count} element(s)?",
-                "The server no longer has their nodes. Removed, they leave the document with everything below them; Ctrl+Z in the editor does not bring them back. " +
-                "Not removed, they stay, marked with NotOnServer.",
-                "Remove", DialogKit.Facts(("Elements", shown, false)), risky: true))
+        var shown = string.Join(Environment.NewLine, vanished.Take(12)) + (vanished.Count > 12 ? Environment.NewLine + L.T("… and {0} more (see log)", vanished.Count - 12) : "");
+        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, L.T("Remove {0} element(s)?", vanished.Count),
+                L.T("The server no longer has their nodes. Removed, they leave the document with everything below them; Ctrl+Z in the editor does not bring them back. Not removed, they stay, marked with NotOnServer."),
+                L.T("Remove"), DialogKit.Facts((L.T("Elements"), shown, false)), risky: true))
             return false;
         var marked = server.Descendants<InternalElementType>().Where(e => e.Attribute[MirrorOptions.NotOnServerAttribute] != null).ToList();
         foreach (var e in marked)
@@ -498,7 +503,7 @@ public partial class OpcUaPlugin
         ih ??= document.CAEXFile.InstanceHierarchy.Append(ihName);
         MirrorHierarchyBox.Text = ih.Name;
 
-        SetBusy(true, "Reading the selection from the server …");
+        SetBusy(true, L.T("Reading the selection from the server …"));
         try
         {
             // Removing asks first, with the count: the elements are marked, and removed once the user agrees.
@@ -506,29 +511,38 @@ public partial class OpcUaPlugin
                 new MirrorOptions
                 {
                     MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished,
-                    Progress = NodesFound("Reading the selection from the server"),
+                    Progress = NodesFound((n, max) => L.T("Reading the selection from the server … {0} of at most {1} node(s) found.", n, max)),
                 });
-            var fate = vanished switch { VanishedNodes.Mark => "marked", _ => "kept" };
+            bool? removed = null;
             if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)
             {
                 SetBusy(false, null);
-                fate = RemoveVanished(result.Server, result.Vanished) ? "removed" : "marked with NotOnServer, not removed";
+                removed = RemoveVanished(result.Server, result.Vanished);
             }
-            var message = $"'{ih.Name}': {result.Nodes} node(s), {result.Created} added, {result.Updated} updated, {result.Typed} typed by an imported UA type"
-                          + (result.Linked > 0 ? $", {result.Linked} linked to their planned element" : "")
-                          + (result.Vanished.Count > 0 ? $", {result.Vanished.Count} no longer on the server ({fate}, see log)" : "")
-                          + (result.Truncated ? ". Stopped at the node limit." : ".");
+            var counts = L.T("{0} node(s), {1} added, {2} updated, {3} typed by an imported UA type", result.Nodes, result.Created, result.Updated, result.Typed);
+            if (result.Linked > 0) counts += ", " + L.T("{0} linked to their planned element", result.Linked);
+            if (result.Vanished.Count > 0)
+                counts += ", " + removed switch
+                {
+                    true => L.T("{0} no longer on the server (removed, see log)", result.Vanished.Count),
+                    false => L.T("{0} no longer on the server (marked with NotOnServer, not removed, see log)", result.Vanished.Count),
+                    null when vanished == VanishedNodes.Mark => L.T("{0} no longer on the server (marked, see log)", result.Vanished.Count),
+                    _ => L.T("{0} no longer on the server (kept, see log)", result.Vanished.Count),
+                };
+            var message = result.Truncated
+                ? L.T("'{0}': {1}. Stopped at the node limit.", ih.Name, counts)
+                : L.T("'{0}': {1}.", ih.Name, counts);
             PluginLog.Info(message);
             foreach (var gone in result.Vanished) PluginLog.Warn("Not on the server any more: " + gone);
             foreach (var note in result.Notes) PluginLog.Info("Mirror: " + note);
-            SetStatus(message + " Press Ctrl+S to save.");
+            SetStatus(message + L.T(" Press Ctrl+S to save."));
             RefreshInDocument();
             Selected?.Invoke(this, new SelectionEventArgs(result.Server));
         }
         catch (Exception ex)
         {
             PluginLog.Error("Taking into the document failed", ex);
-            SetStatus("Taking into the document failed: " + ex.Message);
+            SetStatus(L.T("Taking into the document failed: {0}", ex.Message));
         }
         finally
         {
@@ -562,15 +576,15 @@ public sealed class ChecklistWindow : Window
 
         var list = new StackPanel();
         foreach (var b in _boxes) list.Children.Add(b);
-        var all = DialogKit.Action("All");
+        var all = DialogKit.Action(L.T("All"));
         all.Click += (_, __) => _boxes.ForEach(b => b.IsChecked = true);
-        var none = DialogKit.Action("None");
+        var none = DialogKit.Action(L.T("None"));
         none.Margin = new Thickness(6, 0, 0, 0);
         none.Click += (_, __) => _boxes.ForEach(b => b.IsChecked = false);
         var left = new StackPanel { Orientation = Orientation.Horizontal };
         left.Children.Add(all);
         left.Children.Add(none);
-        var ok = DialogKit.Action("OK", primary: true);
+        var ok = DialogKit.Action(L.T("OK"), primary: true);
         ok.Click += (_, __) => DialogResult = true;
 
         var frame = new Border
@@ -578,7 +592,7 @@ public sealed class ChecklistWindow : Window
             BorderBrush = ThemePalette.Current().Line, BorderThickness = new Thickness(1), Padding = new Thickness(6, 4, 6, 4),
             Child = new ScrollViewer { Content = list, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
         };
-        DialogKit.Frame(this, glyph, DialogKit.Exchange, title, hint, frame, left, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, glyph, DialogKit.Exchange, title, hint, frame, left, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 }
 
@@ -600,9 +614,9 @@ public sealed class TypePickerWindow : Window
         _search.TextChanged += (_, __) => Filter();
         _list.MouseDoubleClick += (_, __) => Accept();
 
-        var ok = DialogKit.Action("Search", primary: true);
+        var ok = DialogKit.Action(L.T("Search"), primary: true);
         ok.Click += (_, __) => Accept();
-        var search = DialogKit.WithPlaceholder(_search, "Type name");
+        var search = DialogKit.WithPlaceholder(_search, L.T("Type name"));
         ((FrameworkElement)search).Margin = new Thickness(0, 0, 0, 6);
         var body = new DockPanel();
         DockPanel.SetDock(search, Dock.Top);
@@ -610,8 +624,8 @@ public sealed class TypePickerWindow : Window
         body.Children.Add(_list);
 
         DialogKit.Frame(this, "\uE721", DialogKit.Exchange, title,
-            "Instances of the type and of its subtypes are searched; below an instance found the search does not go on.",
-            body, null, ok, DialogKit.Action("Cancel", cancel: true));
+            L.T("Instances of the type and of its subtypes are searched; below an instance found the search does not go on."),
+            body, null, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
         Filter();
         Loaded += (_, __) => _search.Focus();
     }

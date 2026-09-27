@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using OpcUaAml.Export;
 using OpcUaAml.Import;
@@ -56,33 +57,33 @@ public partial class OpcUaPlugin
         // Title, URI, version
         panel.Children.Add(new TextBlock { Text = ShortName(details.NamespaceUri), FontSize = 18, FontWeight = FontWeights.SemiBold });
         var uriRow = new DockPanel { Margin = new Thickness(0, 2, 0, 8) };
-        var copy = IconButton("", "Copy the namespace URI", () => CopyText(details.NamespaceUri));
+        var copy = IconButton("", L.T("Copy the namespace URI"), () => CopyText(details.NamespaceUri));
         DockPanel.SetDock(copy, Dock.Right);
         uriRow.Children.Add(copy);
         uriRow.Children.Add(new TextBlock { Text = details.NamespaceUri, Foreground = palette.Muted, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
         panel.Children.Add(uriRow);
         var chips = new WrapPanel { Margin = new Thickness(0, 0, 0, 12) };
-        if (row.ModelVersion.Length > 0) chips.Children.Add(Chip($"Version {row.ModelVersion}", palette));
-        if (row.Published.Length > 0) chips.Children.Add(Chip($"published {row.Published}", palette));
-        chips.Children.Add(Chip($"{details.Libraries.Count} libraries", palette));
+        if (row.ModelVersion.Length > 0) chips.Children.Add(Chip(L.T("Version {0}", row.ModelVersion), palette));
+        if (row.Published.Length > 0) chips.Children.Add(Chip(L.T("published {0}", row.Published), palette));
+        chips.Children.Add(Chip(L.T("{0} libraries", details.Libraries.Count), palette));
         panel.Children.Add(chips);
 
         // What it brings
         var tiles = new UniformGrid2(2);
-        tiles.Add(Tile(details.ObjectTypes, "ObjectTypes", ClassShape("Object"), palette));
-        tiles.Add(Tile(details.VariableTypes, "VariableTypes", ClassShape("Variable"), palette));
-        tiles.Add(Tile(details.DataTypes, "DataTypes", Glyph("", DialogKit.Verify), palette));
-        tiles.Add(Tile(details.ReferenceTypes, "ReferenceTypes", Glyph("", DialogKit.Relate), palette));
+        tiles.Add(Tile(details.ObjectTypes, L.T("ObjectTypes"), ClassShape("Object"), palette));
+        tiles.Add(Tile(details.VariableTypes, L.T("VariableTypes"), ClassShape("Variable"), palette));
+        tiles.Add(Tile(details.DataTypes, L.T("DataTypes"), Glyph("", DialogKit.Verify), palette));
+        tiles.Add(Tile(details.ReferenceTypes, L.T("ReferenceTypes"), Glyph("", DialogKit.Relate), palette));
         panel.Children.Add(tiles.Panel);
 
         // Dependencies and use
-        panel.Children.Add(Section("Builds on"));
-        panel.Children.Add(details.BuildsOn.Count == 0 ? Note("No other namespace.", palette) : Links(details.BuildsOn));
-        panel.Children.Add(Section("Used by"));
-        panel.Children.Add(details.UsedBy.Count == 0 ? Note("No other namespace of the document builds on it.", palette) : Links(details.UsedBy));
-        panel.Children.Add(Section("In this document"));
-        panel.Children.Add(Note(details.Instances == 0 ? "No element of the instance hierarchies uses its types."
-            : $"{details.Instances} element(s) of the instance hierarchies use its types.", palette));
+        panel.Children.Add(Section(L.T("Builds on")));
+        panel.Children.Add(details.BuildsOn.Count == 0 ? Note(L.T("No other namespace."), palette) : Links(details.BuildsOn));
+        panel.Children.Add(Section(L.T("Used by")));
+        panel.Children.Add(details.UsedBy.Count == 0 ? Note(L.T("No other namespace of the document builds on it."), palette) : Links(details.UsedBy));
+        panel.Children.Add(Section(L.T("In this document")));
+        panel.Children.Add(Note(details.Instances == 0 ? L.T("No element of the instance hierarchies uses its types.")
+            : L.T("{0} element(s) of the instance hierarchies use its types.", details.Instances), palette));
 
         // Its types, to draw
         var types = UaTypes.AllTypes(document)
@@ -90,12 +91,12 @@ public partial class OpcUaPlugin
             .OrderBy(t => t.Type.Name, StringComparer.OrdinalIgnoreCase).ToList();
         if (types.Count > 0)
         {
-            panel.Children.Add(Section($"Types ({types.Count})"));
+            panel.Children.Add(Section(L.T("Types ({0})", types.Count)));
             var search = new TextBox();
             var list = new ListBox { Height = 170 };
             void Fill() => list.ItemsSource = types
                 .Where(t => search.Text.Length == 0 || t.Type.Name.Contains(search.Text, StringComparison.OrdinalIgnoreCase))
-                .Select(t => DialogKit.Entry(t.Type.Name, UaTypes.IsAbstract(t.Type) ? "abstract" : "", t.Type)).ToList();
+                .Select(t => DialogKit.Entry(t.Type.Name, UaTypes.IsAbstract(t.Type) ? L.T("abstract") : "", t.Type)).ToList();
             search.TextChanged += (_, __) => Fill();
             void Draw()
             {
@@ -106,7 +107,7 @@ public partial class OpcUaPlugin
             list.MouseDoubleClick += (_, __) => Draw();
             list.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) { e.Handled = true; Draw(); } };
             Fill();
-            var box = DialogKit.WithPlaceholder(search, "Search; double click or Enter draws a type");
+            var box = DialogKit.WithPlaceholder(search, L.T("Search; double click or Enter draws a type"));
             ((FrameworkElement)box).Margin = new Thickness(0, 0, 0, 4);
             panel.Children.Add(box);
             panel.Children.Add(list);
@@ -114,29 +115,29 @@ public partial class OpcUaPlugin
 
         // Actions
         var actions = new WrapPanel { Margin = new Thickness(0, 14, 0, 0) };
-        var edit = DialogKit.Action("Edit in the modeler");
+        var edit = DialogKit.Action(L.T("Edit in the modeler"));
         edit.Click += (s, e) => NamespaceEdit_Click(s, e);
         actions.Children.Add(edit);
-        var doc = DialogKit.Action("Documentation…");
+        var doc = DialogKit.Action(L.T("Documentation…"));
         doc.Margin = new Thickness(6, 0, 0, 0);
-        doc.ToolTip = "One HTML page of the model: its types with their declarations and diagrams, its DataTypes and ReferenceTypes.";
+        doc.ToolTip = L.T("One HTML page of the model: its types with their declarations and diagrams, its DataTypes and ReferenceTypes.");
         doc.Click += (_, __) => DocumentNamespace(details.NamespaceUri);
         actions.Children.Add(doc);
-        var design = DialogKit.Action("ModelDesign…");
+        var design = DialogKit.Action(L.T("ModelDesign…"));
         design.Margin = new Thickness(6, 0, 0, 0);
-        design.ToolTip = "Write the model as a ModelDesign file with its identifier file, the form the OPC Foundation's ModelCompiler reads.";
+        design.ToolTip = L.T("Write the model as a ModelDesign file with its identifier file, the form the OPC Foundation's ModelCompiler reads.");
         design.Click += (_, __) => WriteModelDesign(details.NamespaceUri);
         actions.Children.Add(design);
-        var publish = DialogKit.Action("Publish…");
+        var publish = DialogKit.Action(L.T("Publish…"));
         publish.Margin = new Thickness(6, 0, 0, 0);
-        publish.ToolTip = "Publish the model's NodeSet to the UA Cloud Library, for others to find and download.";
+        publish.ToolTip = L.T("Publish the model's NodeSet to the UA Cloud Library, for others to find and download.");
         publish.Click += async (_, __) => await PublishNamespaceAsync(details.NamespaceUri);
         actions.Children.Add(publish);
         var blockers = NamespaceInspector.RemovalBlockers(document, details.NamespaceUri);
-        var remove = DialogKit.Action("Remove…");
+        var remove = DialogKit.Action(L.T("Remove…"));
         remove.Margin = new Thickness(6, 0, 0, 0);
         remove.IsEnabled = blockers.Count == 0 && !_busy;
-        remove.ToolTip = blockers.Count == 0 ? "Remove the namespace's libraries from the document." : "Still needed: " + string.Join(" ", blockers);
+        remove.ToolTip = blockers.Count == 0 ? L.T("Remove the namespace's libraries from the document.") : L.T("Still needed: {0}", string.Join(" ", blockers));
         ToolTipService.SetShowOnDisabled(remove, true);
         remove.Click += (_, __) => RemoveNamespace(details.NamespaceUri);
         actions.Children.Add(remove);
@@ -152,7 +153,7 @@ public partial class OpcUaPlugin
         var info = ModelerCatalog().Find(uri);
         if (info == null)
         {
-            SetStatus($"No NodeSet file of {uri} in the modeler's models or the NodeSet folders; publishing sends that file.");
+            SetStatus(L.T("No NodeSet file of {0} in the modeler's models or the NodeSet folders; publishing sends that file.", uri));
             return;
         }
         var model = info.Models.FirstOrDefault(m => m.Model.ModelUri == uri)?.Model;
@@ -160,17 +161,17 @@ public partial class OpcUaPlugin
         if (window.ShowDialog() != true || window.Metadata is not { } metadata) return;
         _settings.CloudLibraryUser = window.UserName;
         _settings.Save();
-        SetBusy(true, $"Publishing {uri} to the UA Cloud Library …");
+        SetBusy(true, L.T("Publishing {0} to the UA Cloud Library …", uri));
         try
         {
             var answer = await window.CreateClient(CloudUploadHttp).UploadAsync(await File.ReadAllTextAsync(info.FilePath), metadata, window.Overwrite);
             PluginLog.Info($"Published {uri} ({info.FilePath}) to the UA Cloud Library: {answer}");
-            SetStatus($"Published {uri}; the OPC Foundation reviews it before it is listed.");
+            SetStatus(L.T("Published {0}; the OPC Foundation reviews it before it is listed.", uri));
         }
         catch (Exception ex)
         {
             PluginLog.Error($"Publishing {uri} failed", ex);
-            SetStatus($"Publishing {uri} failed: {ex.Message}");
+            SetStatus(L.T("Publishing {0} failed: {1}", uri, ex.Message));
         }
         finally
         {
@@ -184,14 +185,14 @@ public partial class OpcUaPlugin
         if (_document is not { } document) return;
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = $"Documentation of {uri}", Filter = "HTML (*.html)|*.html", FileName = ShortName(uri) + ".html",
+            Title = L.T("Documentation of {0}", uri), Filter = L.T("HTML (*.html)|*.html"), FileName = ShortName(uri) + ".html",
         };
         if (dialog.ShowDialog() != true) return;
-        Guard("Writing the documentation", () =>
+        Guard(L.T("Writing the documentation"), () =>
         {
             File.WriteAllText(dialog.FileName, OpcUaAml.Documentation.ModelDocumentation.Html(document, uri));
             PluginLog.Info($"Documentation of {uri} written to {dialog.FileName}.");
-            SetStatus($"Documentation written to {Path.GetFileName(dialog.FileName)}.");
+            SetStatus(L.T("Documentation written to {0}.", Path.GetFileName(dialog.FileName)));
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dialog.FileName) { UseShellExecute = true });
         });
     }
@@ -206,10 +207,10 @@ public partial class OpcUaPlugin
         if (_document is not { } document) return;
         var dialog = new Microsoft.Win32.SaveFileDialog
         {
-            Title = $"ModelDesign of {uri}", Filter = "ModelDesign (*.xml)|*.xml", FileName = ShortName(uri) + ".xml",
+            Title = L.T("ModelDesign of {0}", uri), Filter = L.T("ModelDesign (*.xml)|*.xml"), FileName = ShortName(uri) + ".xml",
         };
         if (dialog.ShowDialog() != true) return;
-        Guard("Writing the ModelDesign", () =>
+        Guard(L.T("Writing the ModelDesign"), () =>
         {
             var nodeSet = NodeSetExporter.Export(document, new NodeSetExportOptions
             {
@@ -218,9 +219,9 @@ public partial class OpcUaPlugin
             });
             var identifiers = ModelDesignWriter.From(nodeSet).Save(dialog.FileName);
             PluginLog.Info($"ModelDesign of {uri} written to {dialog.FileName}, identifiers to {identifiers ?? "(none)"}.");
-            SetStatus($"ModelDesign written to {Path.GetFileName(dialog.FileName)}"
-                      + (identifiers != null ? $", with {Path.GetFileName(identifiers)} beside it" : "")
-                      + ". The ModelCompiler turns it into a NodeSet and code.");
+            SetStatus(identifiers != null
+                ? L.T("ModelDesign written to {0}, with {1} beside it. The ModelCompiler turns it into a NodeSet and code.", Path.GetFileName(dialog.FileName), Path.GetFileName(identifiers))
+                : L.T("ModelDesign written to {0}. The ModelCompiler turns it into a NodeSet and code.", Path.GetFileName(dialog.FileName)));
         });
     }
 
@@ -258,14 +259,14 @@ public partial class OpcUaPlugin
     {
         if (ModelCompilerTool.Locate(_settings.ModelCompilerPath) is null)
         {
-            SetStatus($"{Path.GetFileName(design)} is a ModelDesign, not a NodeSet. "
-                      + ModelCompilerTool.InstallHint.Replace(Environment.NewLine, " ").Replace("\n", " "));
+            SetStatus(L.T("{0} is a ModelDesign, not a NodeSet. {1}", Path.GetFileName(design),
+                ModelCompilerTool.InstallHint.Replace(Environment.NewLine, " ").Replace("\n", " ")));
             PluginLog.Warn($"{design} is a ModelDesign and the ModelCompiler is not installed.");
             return null;
         }
         var folder = Directory.CreateTempSubdirectory("amlopcua-design-").FullName;
         _designFolder = folder;
-        SetBusy(true, $"Compiling {Path.GetFileName(design)} with the ModelCompiler …");
+        SetBusy(true, L.T("Compiling {0} with the ModelCompiler …", Path.GetFileName(design)));
         try
         {
             var result = await ModelCompilerTool.CompileAsync(design, folder,
@@ -276,7 +277,7 @@ public partial class OpcUaPlugin
         catch (ModelCompilerException ex)
         {
             PluginLog.Error($"Compiling {design} failed", ex);
-            SetStatus($"The ModelCompiler could not compile {Path.GetFileName(design)}: {FirstLine(ex.Message)}");
+            SetStatus(L.T("The ModelCompiler could not compile {0}: {1}", Path.GetFileName(design), FirstLine(ex.Message)));
             DeleteFolder(folder);
             return null;
         }
@@ -302,17 +303,16 @@ public partial class OpcUaPlugin
     private void RemoveNamespace(string uri)
     {
         if (_document == null) return;
-        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, "Remove the namespace?",
-                $"The libraries of {uri} leave the document. No other namespace builds on it and no element uses its types. " +
-                "Ctrl+Z in the editor does not bring them back; importing the NodeSet again does.",
-                "Remove", risky: true))
+        if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, L.T("Remove the namespace?"),
+                L.T("The libraries of {0} leave the document. No other namespace builds on it and no element uses its types. Ctrl+Z in the editor does not bring them back; importing the NodeSet again does.", uri),
+                L.T("Remove"), risky: true))
             return;
-        Guard($"Removing {uri}", () =>
+        Guard(L.T("Removing {0}", uri), () =>
         {
             var removed = NamespaceInspector.Remove(_document, uri);
             foreach (var lib in removed) PluginLog.Info("Removed library " + lib);
             UpdateState();
-            SetStatus($"Removed {uri} ({removed.Count} libraries). Press Ctrl+S to save.");
+            SetStatus(L.T("Removed {0} ({1} libraries). Press Ctrl+S to save.", uri, removed.Count));
         });
     }
 
@@ -321,7 +321,7 @@ public partial class OpcUaPlugin
         var panel = new StackPanel();
         foreach (var uri in uris)
         {
-            var link = new Hyperlink(new Run(uri)) { ToolTip = "Show this namespace" };
+            var link = new Hyperlink(new Run(uri)) { ToolTip = L.T("Show this namespace") };
             link.Click += (_, __) =>
             {
                 var target = (NamespaceList.ItemsSource as IEnumerable<NamespaceRow>)?.FirstOrDefault(r => r.NamespaceUri == uri);
@@ -435,7 +435,7 @@ public partial class OpcUaPlugin
         {
             if (!IsModelDesign(file) && NodeSetInfo.TryRead(file) == null)
             {
-                SetStatus($"{Path.GetFileName(file)} is not an OPC UA NodeSet.");
+                SetStatus(L.T("{0} is not an OPC UA NodeSet.", Path.GetFileName(file)));
                 continue;
             }
             await ImportFileAsync(document, file, Array.Empty<string>());
@@ -468,7 +468,7 @@ public partial class OpcUaPlugin
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
             return;
         }
         var files = await DownloadFromOpcFoundationAsync("");
@@ -487,7 +487,7 @@ public partial class OpcUaPlugin
         var chosen = window.ShowDialog() == true ? window.Selected : null;
         if (window.CloudLibraryWanted) return await DownloadFromCloudAsync(search);
         if (chosen == null) return null;
-        SetBusy(true, $"Downloading {chosen.ModelUri} …");
+        SetBusy(true, L.T("Downloading {0} …", chosen.ModelUri));
         try
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
@@ -500,7 +500,7 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             PluginLog.Error("Downloading from the OPC Foundation failed", ex);
-            SetStatus("Downloading from the OPC Foundation failed: " + ex.Message);
+            SetStatus(L.T("Downloading from the OPC Foundation failed: {0}", ex.Message));
             return null;
         }
         finally
@@ -512,7 +512,7 @@ public partial class OpcUaPlugin
     /// <summary>The missing models the OPC Foundation's repository has, downloaded; true when any arrived.</summary>
     private async Task<bool> FetchMissingFromOpcFoundationAsync(IReadOnlyList<ModelRef> missing)
     {
-        SetBusy(true, "Fetching the missing models from the OPC Foundation …");
+        SetBusy(true, L.T("Fetching the missing models from the OPC Foundation …"));
         try
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
@@ -526,7 +526,7 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             PluginLog.Error("Fetching from the OPC Foundation failed", ex);
-            SetStatus("Fetching from the OPC Foundation failed: " + ex.Message);
+            SetStatus(L.T("Fetching from the OPC Foundation failed: {0}", ex.Message));
             return false;
         }
         finally
@@ -548,7 +548,7 @@ public partial class OpcUaPlugin
             case MissingModelsWindow.Action.OpcFoundation:
                 return await FetchMissingFromOpcFoundationAsync(missing);
             case MissingModelsWindow.Action.AddFolder:
-                var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Folder with the NodeSets " + Path.GetFileName(file) + " requires" };
+                var dialog = new Microsoft.Win32.OpenFolderDialog { Title = L.T("Folder with the NodeSets {0} requires", Path.GetFileName(file)) };
                 if (dialog.ShowDialog() != true) return false;
                 if (!_settings.NodeSetFolders.Contains(dialog.FolderName)) _settings.NodeSetFolders.Add(dialog.FolderName);
                 _settings.Save();
@@ -581,7 +581,7 @@ public partial class OpcUaPlugin
         if (window.ShowDialog() != true || window.Selected == null) return null;
         _settings.CloudLibraryUser = window.UserName;
         _settings.Save();
-        SetBusy(true, $"Downloading {window.Selected.NamespaceUri} …");
+        SetBusy(true, L.T("Downloading {0} …", window.Selected.NamespaceUri));
         try
         {
             var catalog = NodeSetCatalog.Create(new[] { CloudCache }.Concat(_settings.NodeSetFolders));
@@ -598,7 +598,7 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             PluginLog.Error("Downloading from the Cloud Library failed", ex);
-            SetStatus("Downloading from the Cloud Library failed: " + ex.Message);
+            SetStatus(L.T("Downloading from the Cloud Library failed: {0}", ex.Message));
             return null;
         }
         finally
@@ -631,13 +631,12 @@ public sealed class MissingModelsWindow : Window
             b.Click += (_, __) => { Choice = action; DialogResult = true; };
             return b;
         }
-        DialogKit.Frame(this, "", DialogKit.Verify, "Models missing",
-            $"{file} requires models that neither its folder nor the NodeSet folders hold. Fetch them from the OPC Foundation's published NodeSets "
-            + "(no account needed), add a folder that holds them, or search the UA Cloud Library; the import then tries again.",
+        DialogKit.Frame(this, "", DialogKit.Verify, L.T("Models missing"),
+            L.T("{0} requires models that neither its folder nor the NodeSet folders hold. Fetch them from the OPC Foundation's published NodeSets (no account needed), add a folder that holds them, or search the UA Cloud Library; the import then tries again.", file),
             list, null,
-            Choose("From the OPC Foundation", Action.OpcFoundation, true),
-            Choose("Add NodeSet folder…", Action.AddFolder, false),
-            Choose("Search the Cloud Library…", Action.Cloud, false),
-            DialogKit.Action("Cancel", cancel: true));
+            Choose(L.T("From the OPC Foundation"), Action.OpcFoundation, true),
+            Choose(L.T("Add NodeSet folder…"), Action.AddFolder, false),
+            Choose(L.T("Search the Cloud Library…"), Action.Cloud, false),
+            DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 }

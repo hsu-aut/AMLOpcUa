@@ -4,6 +4,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using OpcUaAml.Types;
 
@@ -16,15 +17,15 @@ public sealed class InstanceWindow : Window
     private readonly ListBox _typeList = new();
     private readonly TextBox _name = new() { Padding = new Thickness(3) };
     private readonly ComboBox _hierarchy = new() { IsEditable = true };
-    private readonly CheckBox _showAbstract = new() { Content = "Show abstract types", Margin = new Thickness(0, 6, 0, 0) };
+    private readonly CheckBox _showAbstract = new() { Content = L.T("Show abstract types"), Margin = new Thickness(0, 6, 0, 0) };
     private readonly StackPanel _optional = new();
-    private readonly TextBlock _optionalHint = new() { Foreground = DialogKit.Muted, TextWrapping = TextWrapping.Wrap, Text = "Choose a type first." };
+    private readonly TextBlock _optionalHint = new() { Foreground = DialogKit.Muted, TextWrapping = TextWrapping.Wrap, Text = L.T("Choose a type first.") };
     private readonly StackPanel _placeholders = new();
-    private readonly TextBlock _placeholderLabel = DialogKit.Label("Children for placeholders");
+    private readonly TextBlock _placeholderLabel = DialogKit.Label(L.T("Children for placeholders"));
     private readonly TextBlock _placeholderHint = new()
     {
         Foreground = DialogKit.Muted, TextWrapping = TextWrapping.Wrap,
-        Text = "A placeholder (a name in angle brackets) stands for any number of children; name the ones to create.",
+        Text = L.T("A placeholder (a name in angle brackets) stands for any number of children; name the ones to create."),
     };
     private readonly TextBlock _info = DialogKit.Message();
     private readonly List<(PlaceholderInfo Placeholder, TextBox Names, ComboBox Type)> _placeholderRows = new();
@@ -70,11 +71,11 @@ public sealed class InstanceWindow : Window
             _name.SelectAll();
         };
 
-        var ok = DialogKit.Action("Create", primary: true);
+        var ok = DialogKit.Action(L.T("Create"), primary: true);
         ok.Click += (_, __) =>
         {
-            if (SelectedType == null) { DialogKit.ShowError(_info, "Choose a type."); return; }
-            if (InstanceName.Length == 0) { DialogKit.ShowError(_info, "Enter a name for the instance."); return; }
+            if (SelectedType == null) { DialogKit.ShowError(_info, L.T("Choose a type.")); return; }
+            if (InstanceName.Length == 0) { DialogKit.ShowError(_info, L.T("Enter a name for the instance.")); return; }
             ChosenOptional.Clear();
             foreach (var cb in _optional.Children.OfType<CheckBox>())
                 if (cb.IsChecked == true) ChosenOptional.Add((string)cb.Tag);
@@ -85,15 +86,15 @@ public sealed class InstanceWindow : Window
                 var type = (typeBox.SelectedItem as ComboBoxItem)?.Tag as SystemUnitFamilyType;
                 var list = names.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(n => new PlaceholderFill(n, type == placeholder.Type ? null : type)).ToList();
-                if (list.Select(f => f.Name).Distinct().Count() != list.Count) { DialogKit.ShowError(_info, $"Two children of {placeholder.Path} have the same name."); return; }
+                if (list.Select(f => f.Name).Distinct().Count() != list.Count) { DialogKit.ShowError(_info, L.T("Two children of {0} have the same name.", placeholder.Path)); return; }
                 if (list.Count > 0) Fills[placeholder.Path] = list;
                 else if (placeholder.Mandatory) empty.Add(placeholder.Path);
             }
             // What the user may mean after all is said once; Create again goes ahead.
             var warning = empty.Count > 0
-                ? $"{string.Join(", ", empty)} need at least one child (MandatoryPlaceholder). Create again to leave them empty for now."
+                ? L.T("{0} need at least one child (MandatoryPlaceholder). Create again to leave them empty for now.", string.Join(", ", empty))
                 : _document.CAEXFile.InstanceHierarchy[HierarchyName]?.InternalElement[InstanceName] != null
-                    ? $"'{HierarchyName}' already holds an element named '{InstanceName}'. Create again to add a second one."
+                    ? L.T("'{0}' already holds an element named '{1}'. Create again to add a second one.", HierarchyName, InstanceName)
                     : null;
             if (warning != null && warning != _warned)
             {
@@ -105,8 +106,8 @@ public sealed class InstanceWindow : Window
         };
 
         var left = new DockPanel();
-        var typeLabel = DialogKit.Label("Type", 0);
-        var search = DialogKit.WithPlaceholder(_search, "Search types by name");
+        var typeLabel = DialogKit.Label(L.T("Type"), 0);
+        var search = DialogKit.WithPlaceholder(_search, L.T("Search types by name"));
         DockPanel.SetDock(typeLabel, Dock.Top);
         DockPanel.SetDock(search, Dock.Top);
         DockPanel.SetDock(_showAbstract, Dock.Bottom);
@@ -118,9 +119,9 @@ public sealed class InstanceWindow : Window
 
         var right = new DockPanel();
         var form = new StackPanel();
-        form.Children.Add(DialogKit.Label("Name", 0));
+        form.Children.Add(DialogKit.Label(L.T("Name"), 0));
         form.Children.Add(_name);
-        form.Children.Add(DialogKit.Label("Instance hierarchy (created if new)"));
+        form.Children.Add(DialogKit.Label(L.T("Instance hierarchy (created if new)")));
         form.Children.Add(_hierarchy);
         DockPanel.SetDock(form, Dock.Top);
         right.Children.Add(form);
@@ -128,7 +129,7 @@ public sealed class InstanceWindow : Window
         optional.Children.Add(_placeholderLabel);
         optional.Children.Add(_placeholderHint);
         optional.Children.Add(_placeholders);
-        optional.Children.Add(DialogKit.Label("Optional children to create"));
+        optional.Children.Add(DialogKit.Label(L.T("Optional children to create")));
         optional.Children.Add(_optionalHint);
         optional.Children.Add(_optional);
         right.Children.Add(new ScrollViewer { Content = optional, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
@@ -141,9 +142,9 @@ public sealed class InstanceWindow : Window
         body.Children.Add(left);
         body.Children.Add(right);
 
-        DialogKit.Frame(this, "", DialogKit.Create, "New OPC UA instance",
-            "Every Mandatory child of the type is created, the Optional children you tick, and for a placeholder the children you name.",
-            body, _info, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Create, L.T("New OPC UA instance"),
+            L.T("Every Mandatory child of the type is created, the Optional children you tick, and for a placeholder the children you name."),
+            body, _info, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
 
         Filter();
         Loaded += (_, __) => _search.Focus();
@@ -163,7 +164,9 @@ public sealed class InstanceWindow : Window
                 .OrderBy(t => t == placeholder.Type ? 0 : 1).ThenBy(t => t.Name, StringComparer.OrdinalIgnoreCase).ToList();
         foreach (var type in candidates)
         {
-            var label = type == placeholder.Type ? $"{type.Name} (as declared{(UaTypes.IsAbstract(type) ? ", abstract" : "")})" : type.Name;
+            var label = type != placeholder.Type ? type.Name
+                : UaTypes.IsAbstract(type) ? L.T("{0} (as declared, abstract)", type.Name)
+                : L.T("{0} (as declared)", type.Name);
             typeBox.Items.Add(new ComboBoxItem { Content = label, Tag = type });
         }
         // An abstract declared type cannot be instantiated; offer its first concrete subtype instead.
@@ -171,9 +174,9 @@ public sealed class InstanceWindow : Window
             : placeholder.Type != null && UaTypes.IsAbstract(placeholder.Type) && candidates.Count > 1 ? 1 : 0;
         typeBox.IsEnabled = candidates.Count > 1;
 
-        var head = new TextBlock { Text = placeholder.Path + (placeholder.Mandatory ? "  (at least one)" : ""), Margin = new Thickness(0, 6, 0, 2) };
+        var head = new TextBlock { Text = placeholder.Mandatory ? L.T("{0}  (at least one)", placeholder.Path) : placeholder.Path, Margin = new Thickness(0, 6, 0, 2) };
         _placeholders.Children.Add(head);
-        _placeholders.Children.Add(DialogKit.WithPlaceholder(names, "Names, comma separated", search: false));
+        _placeholders.Children.Add(DialogKit.WithPlaceholder(names, L.T("Names, comma separated"), search: false));
         if (candidates.Count > 0) _placeholders.Children.Add(typeBox);
         _placeholderRows.Add((placeholder, names, typeBox));
     }
@@ -232,7 +235,7 @@ public sealed class InstanceWindow : Window
                 boxes[path] = box;
                 _optional.Children.Add(box);
             }
-            _optionalHint.Text = _optional.Children.Count == 0 ? "The type has no Optional children." : "";
+            _optionalHint.Text = _optional.Children.Count == 0 ? L.T("The type has no Optional children.") : "";
             _optionalHint.Visibility = _optional.Children.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
             foreach (var placeholder in all.Placeholders) AddPlaceholderRow(placeholder);
@@ -240,12 +243,12 @@ public sealed class InstanceWindow : Window
             _placeholderHint.Visibility = _placeholderLabel.Visibility;
 
             _warned = null;
-            DialogKit.ShowInfo(_info, $"{mandatory.Count} Mandatory child(ren) are always created."
-                + (UaTypes.IsAbstract(SelectedType) ? " The type is abstract; OPC UA does not instantiate it." : ""));
+            DialogKit.ShowInfo(_info, L.T("{0} Mandatory child(ren) are always created.", mandatory.Count)
+                + (UaTypes.IsAbstract(SelectedType) ? L.T(" The type is abstract; OPC UA does not instantiate it.") : ""));
         }
         catch (Exception ex)
         {
-            DialogKit.ShowError(_info, "Cannot analyse the type: " + ex.Message);
+            DialogKit.ShowError(_info, L.T("Cannot analyse the type: {0}", ex.Message));
         }
     }
 }

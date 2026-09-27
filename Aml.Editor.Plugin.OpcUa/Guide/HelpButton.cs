@@ -9,6 +9,8 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Media;
 
+using Aml.Editor.Plugin.OpcUa.Localization;
+
 namespace Aml.Editor.Plugin.OpcUa.Guide;
 
 public sealed class HelpButton : Button
@@ -55,8 +57,8 @@ public sealed class HelpButton : Button
         Loaded += (_, __) =>
         {
             if (!HelpTopics.All.TryGetValue(Topic, out var topic)) return;
-            ToolTip = $"What is this? {topic.Title}";
-            AutomationProperties.SetName(this, "Help: " + topic.Title);
+            ToolTip = L.T("What is this? {0}", topic.Title);
+            AutomationProperties.SetName(this, L.T("Help: {0}", topic.Title));
         };
         Click += (_, __) => Show();
     }
@@ -72,15 +74,15 @@ public sealed class HelpButton : Button
         // Terms: a click shows the explanation below, a second click hides it.
         var explanation = new TextBlock { TextWrapping = TextWrapping.Wrap, Foreground = palette.Muted, Margin = new Thickness(0, 6, 0, 0), Visibility = Visibility.Collapsed };
         var terms = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
-        terms.Inlines.Add(new Run("Terms: ") { Foreground = palette.Muted });
+        terms.Inlines.Add(new Run(L.T("Terms: ")) { Foreground = palette.Muted });
         string? shown = null;
         foreach (var term in topic.Terms)
         {
-            var link = new Hyperlink(new Run(term)) { Foreground = palette.Exchange };
+            var link = new Hyperlink(new Run(HelpTopics.Glossary[term].Name)) { Foreground = palette.Exchange };
             link.Click += (_, __) =>
             {
                 shown = shown == term ? null : term;
-                explanation.Text = shown == null ? "" : $"{term}: {HelpTopics.Glossary[term]}";
+                explanation.Text = shown == null ? "" : $"{HelpTopics.Glossary[term].Name}: {HelpTopics.Glossary[term].Text}";
                 explanation.Visibility = shown == null ? Visibility.Collapsed : Visibility.Visible;
             };
             if (terms.Inlines.Count > 1) terms.Inlines.Add(new Run(",  "));
@@ -92,7 +94,7 @@ public sealed class HelpButton : Button
         var popup = new Popup { PlacementTarget = this, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true };
         if (topic.Lesson != null && Lessons.Titles.TryGetValue(topic.Lesson, out var lesson))
         {
-            var start = new Hyperlink(new Run($"Show me in the tutorial: {lesson}")) { Foreground = palette.Exchange };
+            var start = new Hyperlink(new Run(L.T("Show me in the tutorial: {0}", lesson))) { Foreground = palette.Exchange };
             start.Click += (_, __) =>
             {
                 popup.IsOpen = false;

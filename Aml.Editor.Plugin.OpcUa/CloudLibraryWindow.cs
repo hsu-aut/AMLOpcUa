@@ -4,6 +4,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.NodeSets;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -42,14 +43,14 @@ public sealed class CloudLibraryWindow : Window
         _apiKey.Password = _sessionApiKey ?? "";
 
         var credentials = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-        credentials.Children.Add(Caption("User"));
+        credentials.Children.Add(Caption(L.T("User")));
         credentials.Children.Add(_user);
-        credentials.Children.Add(Caption("Password", 12));
+        credentials.Children.Add(Caption(L.T("Password"), 12));
         credentials.Children.Add(_password);
-        credentials.Children.Add(Caption("or API key", 12));
+        credentials.Children.Add(Caption(L.T("or API key"), 12));
         credentials.Children.Add(_apiKey);
 
-        var searchButton = DialogKit.Action("Search", primary: true);
+        var searchButton = DialogKit.Action(L.T("Search"), primary: true);
         searchButton.Margin = new Thickness(6, 0, 0, 0);
         searchButton.Click += async (_, __) =>
         {
@@ -61,13 +62,13 @@ public sealed class CloudLibraryWindow : Window
         var searchRow = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
         DockPanel.SetDock(searchButton, Dock.Right);
         searchRow.Children.Add(searchButton);
-        searchRow.Children.Add(DialogKit.WithPlaceholder(_search, "Keywords, e.g. Machinery, or * for all"));
+        searchRow.Children.Add(DialogKit.WithPlaceholder(_search, L.T("Keywords, e.g. Machinery, or * for all")));
 
-        import = DialogKit.Action("Download and import");
+        import = DialogKit.Action(L.T("Download and import"));
         import.Click += (_, __) =>
         {
             Selected = DialogKit.Selected<CloudModel>(_results);
-            if (Selected == null) { DialogKit.ShowError(_info, "Choose a model."); return; }
+            if (Selected == null) { DialogKit.ShowError(_info, L.T("Choose a model.")); return; }
             Remember();
             DialogResult = true;
         };
@@ -80,9 +81,9 @@ public sealed class CloudLibraryWindow : Window
         body.Children.Add(searchRow);
         body.Children.Add(_results);
 
-        DialogKit.Frame(this, "\uE753", DialogKit.Exchange, "UA Cloud Library",
-            "Models of the OPC Foundation's UA Cloud Library, imported with the models they require. Searching needs an account of uacloudlibrary.opcfoundation.org or an API key; the password is kept for this session only.",
-            body, _info, import, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "\uE753", DialogKit.Exchange, L.T("UA Cloud Library"),
+            L.T("Models of the OPC Foundation's UA Cloud Library, imported with the models they require. Searching needs an account of uacloudlibrary.opcfoundation.org or an API key; the password is kept for this session only."),
+            body, _info, import, DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 
     private static TextBlock Caption(string text, double left = 0) =>
@@ -105,7 +106,7 @@ public sealed class CloudLibraryWindow : Window
 
     private async Task SearchAsync()
     {
-        DialogKit.ShowInfo(_info, "Searching …");
+        DialogKit.ShowInfo(_info, L.T("Searching …"));
         try
         {
             var keywords = _search.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -113,7 +114,7 @@ public sealed class CloudLibraryWindow : Window
             Remember();
             _results.ItemsSource = models.OrderBy(m => m.NamespaceUri)
                 .Select(m => DialogKit.Entry(m.Title ?? m.NamespaceUri, $"{m.NamespaceUri}   {m.Version} ({m.PublicationDate:yyyy-MM-dd})", m)).ToList();
-            DialogKit.ShowInfo(_info, models.Count == 0 ? "No model matches." : $"{models.Count} model(s). Choose one and download it.");
+            DialogKit.ShowInfo(_info, models.Count == 0 ? L.T("No model matches.") : L.T("{0} model(s). Choose one and download it.", models.Count));
             if (models.Count > 0) import.IsDefault = true;
         }
         catch (CloudLibraryException ex)
@@ -122,7 +123,7 @@ public sealed class CloudLibraryWindow : Window
         }
         catch (Exception ex)
         {
-            DialogKit.ShowError(_info, "The search failed: " + ex.Message);
+            DialogKit.ShowError(_info, L.T("The search failed: {0}", ex.Message));
         }
     }
 }

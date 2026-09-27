@@ -15,6 +15,7 @@
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 
@@ -79,12 +80,14 @@ public sealed class ModelerWebView : IDisposable
         _view.CreationProperties = new CoreWebView2CreationProperties
         {
             UserDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "WebView2"),
+            // The modeler takes its language from the browser's, so it speaks the plugin's.
+            Language = L.Language,
         };
         try { await _view.EnsureCoreWebView2Async(); }
         catch (Exception ex)
         {
             _started = false;
-            Error?.Invoke("The WebView2 runtime is missing or failed to start: " + ex.Message);
+            Error?.Invoke(L.T("The WebView2 runtime is missing or failed to start: {0}", ex.Message));
             return;
         }
         if (_disposed) return;
@@ -92,7 +95,7 @@ public sealed class ModelerWebView : IDisposable
         var assets = AssetsPath();
         if (!File.Exists(Path.Combine(assets, "index.html")))
         {
-            Error?.Invoke($"The modeler is missing from the plugin folder ({assets}).");
+            Error?.Invoke(L.T("The modeler is missing from the plugin folder ({0}).", assets));
             return;
         }
         var core = _view.CoreWebView2;
@@ -115,7 +118,7 @@ public sealed class ModelerWebView : IDisposable
         core.ProcessFailed += (_, e) =>
         {
             _ready = false;
-            Error?.Invoke($"The modeler stopped ({e.ProcessFailedKind}); reload it with the button above.");
+            Error?.Invoke(L.T("The modeler stopped ({0}); reload it with the button above.", e.ProcessFailedKind));
         };
         core.Navigate($"https://{VirtualHost}/index.html");
     }
@@ -150,7 +153,7 @@ public sealed class ModelerWebView : IDisposable
         if (_disposed || !IsModeler(e.Source)) return;
         Message? m;
         try { m = JsonSerializer.Deserialize<Message>(e.WebMessageAsJson, Json); }
-        catch (JsonException ex) { Error?.Invoke("A message from the modeler could not be read: " + ex.Message); return; }
+        catch (JsonException ex) { Error?.Invoke(L.T("A message from the modeler could not be read: {0}", ex.Message)); return; }
         switch (m?.Type)
         {
             case "ready":

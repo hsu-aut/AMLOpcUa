@@ -71,6 +71,12 @@ The plugin package ends up in
 Add the package folder as a source in the PlugIn Manager of the AutomationML
 Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its first tab, "Namespaces", shows the OPC UA models of the document.
 
+The plugin and its modeler speak English or German, as the display language of
+Windows says. Texts are looked up by their English
+(`Aml.Editor.Plugin.OpcUa/Localization/De.cs`); messages that come verbatim
+from the OPC UA stack, the conversion or the core library stay English, as the
+command line does.
+
 - **Import NodeSet** converts a `NodeSet2.xml` and adds its libraries to the
   open document: one `ATL_`, `ICL_`, `RCL_` and `SUC_` library per UA
   namespace, for the NodeSet and every model it requires, together with the

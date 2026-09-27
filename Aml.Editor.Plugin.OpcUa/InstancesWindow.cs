@@ -5,6 +5,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 
 namespace Aml.Editor.Plugin.OpcUa;
 
@@ -30,14 +31,14 @@ public sealed class InstancesWindow : Window
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
 
-        _own.Content = Option($"Into '{hierarchy}'",
-            "An InstanceHierarchy of their own. Every Apply replaces it, the rest of the document stays as it is.");
-        _below.Content = Option(selection != null ? $"Below '{selection}'" : "Below the selected element",
+        _own.Content = Option(L.T("Into '{0}'", hierarchy),
+            L.T("An InstanceHierarchy of their own. Every Apply replaces it, the rest of the document stays as it is."));
+        _below.Content = Option(selection != null ? L.T("Below '{0}'", selection) : L.T("Below the selected element"),
             selection != null
-                ? "Added to what the selected element holds, with IDs of their own, on every Apply."
-                : "Select an InstanceHierarchy or an element in the editor first.");
+                ? L.T("Added to what the selected element holds, with IDs of their own, on every Apply.")
+                : L.T("Select an InstanceHierarchy or an element in the editor first."));
         _below.IsEnabled = selection != null;
-        _none.Content = Option("Not at all", "Only the types are taken; the instances stay in the NodeSet.");
+        _none.Content = Option(L.T("Not at all"), L.T("Only the types are taken; the instances stay in the NodeSet."));
 
         var body = new StackPanel();
         body.Children.Add(_own);
@@ -47,12 +48,15 @@ public sealed class InstancesWindow : Window
         body.Children.Add(_none);
 
         var shown = instances.Take(5).ToList();
-        var names = string.Join(", ", shown) + (instances.Count > shown.Count ? $" and {instances.Count - shown.Count} more" : "");
-        var ok = DialogKit.Action("Take", primary: true);
+        var names = string.Join(", ", shown);
+        var ok = DialogKit.Action(L.T("Take"), primary: true);
         ok.Click += (_, __) => DialogResult = true;
-        DialogKit.Frame(this, "", DialogKit.Create, "Instances of the model",
-            $"The model holds {instances.Count} instance(s): {names}. Where should they go?", body, null, ok,
-            DialogKit.Action("Types only", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Create, L.T("Instances of the model"),
+            instances.Count > shown.Count
+                ? L.T("The model holds {0} instance(s): {1} and {2} more. Where should they go?", instances.Count, names, instances.Count - shown.Count)
+                : L.T("The model holds {0} instance(s): {1}. Where should they go?", instances.Count, names),
+            body, null, ok,
+            DialogKit.Action(L.T("Types only"), cancel: true));
     }
 
     private static UIElement Option(string title, string text)

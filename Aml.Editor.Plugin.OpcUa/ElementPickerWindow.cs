@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
@@ -36,9 +37,9 @@ public sealed class ElementPickerWindow : Window
         _search.TextChanged += (_, __) => Filter();
         _list.MouseDoubleClick += (_, __) => Accept();
 
-        var ok = DialogKit.Action("Bind", primary: true);
+        var ok = DialogKit.Action(L.T("Bind"), primary: true);
         ok.Click += (_, __) => Accept();
-        var search = DialogKit.WithPlaceholder(_search, "Search elements by name or path");
+        var search = DialogKit.WithPlaceholder(_search, L.T("Search elements by name or path"));
         ((FrameworkElement)search).Margin = new Thickness(0, 0, 0, 6);
         var body = new DockPanel();
         DockPanel.SetDock(search, Dock.Top);
@@ -46,8 +47,8 @@ public sealed class ElementPickerWindow : Window
         body.Children.Add(_list);
 
         DialogKit.Frame(this, "\uE71B", DialogKit.Relate, title,
-            "The element you choose gets the node's address as its NodeId attribute (OPC 10000-83 Annex A).",
-            body, null, ok, DialogKit.Action("Cancel", cancel: true));
+            L.T("The element you choose gets the node's address as its NodeId attribute (OPC 10000-83 Annex A)."),
+            body, null, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
         Filter();
         Loaded += (_, __) => _search.Focus();
     }

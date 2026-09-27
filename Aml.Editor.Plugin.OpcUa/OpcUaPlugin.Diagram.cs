@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
@@ -33,11 +34,11 @@ public partial class OpcUaPlugin
         var text = DiagramSearchBox.Text.Trim();
         var types = UaTypes.AllTypes(doc)
             .Where(t => !t.Path.StartsWith("SUC_OpcAmlMetaModel", StringComparison.Ordinal))
-            .Select(t => new DiagramSource($"type  {t.Type.Name}", t.Type));
+            .Select(t => new DiagramSource(L.T("type  {0}", t.Type.Name), t.Type));
         var instances = doc.CAEXFile.InstanceHierarchy
             .SelectMany(ih => ih.Descendants<InternalElementType>())
             .Where(ie => UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath))
-            .Select(ie => new DiagramSource($"instance  {ie.Name}", ie));
+            .Select(ie => new DiagramSource(L.T("instance  {0}", ie.Name), ie));
         DiagramSourceBox.ItemsSource = instances.Concat(types)
             .Where(s => text.Length == 0 || s.Label.Contains(text, StringComparison.OrdinalIgnoreCase))
             .Take(500).ToList();
@@ -70,13 +71,14 @@ public partial class OpcUaPlugin
         {
             _diagram = DiagramLayout.Apply(DiagramBuilder.Build(element, depth));
             Draw(_diagram);
-            DiagramInfo.Text = $"{element.Name}: {_diagram.Nodes.Count} nodes" + (_diagram.Truncated ? ", truncated" : "")
-                               + ". Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.";
+            DiagramInfo.Text = _diagram.Truncated
+                ? L.T("{0}: {1} nodes, truncated. Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.", element.Name, _diagram.Nodes.Count)
+                : L.T("{0}: {1} nodes. Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.", element.Name, _diagram.Nodes.Count);
         }
         catch (Exception ex)
         {
             PluginLog.Error("Drawing the diagram failed", ex);
-            DiagramInfo.Text = "Drawing failed: " + ex.Message;
+            DiagramInfo.Text = L.T("Drawing failed: {0}", ex.Message);
         }
     }
 
@@ -107,26 +109,26 @@ public partial class OpcUaPlugin
         if (clicks < 2)
         {
             Selected?.Invoke(this, new SelectionEventArgs(element));
-            DiagramInfo.Text = $"Selected {element.Name} in the editor.";
+            DiagramInfo.Text = L.T("Selected {0} in the editor.", element.Name);
             return;
         }
         // Double click: the node's type (a declaration's or instance's class, a type's supertype).
         var path = element is SystemUnitFamilyType family ? family.RefBaseClassPath : (element as InternalElementType)?.RefBaseSystemUnitPath;
         if (!string.IsNullOrEmpty(path) && _document?.FindByPath(path) is SystemUnitFamilyType type) DrawDiagramOf(type);
-        else DiagramInfo.Text = $"{element.Name} has no UA type in this document.";
+        else DiagramInfo.Text = L.T("{0} has no UA type in this document.", element.Name);
     }
 
     private void DiagramExportButton_Click(object sender, RoutedEventArgs e)
     {
         if (_diagram == null) return;
-        var dialog = new SaveFileDialog { Filter = "SVG (*.svg)|*.svg", FileName = _diagram.Title + ".svg" };
+        var dialog = new SaveFileDialog { Filter = L.T("SVG (*.svg)|*.svg"), FileName = _diagram.Title + ".svg" };
         if (dialog.ShowDialog() != true) return;
         var diagram = _diagram;
-        Guard("Saving the SVG", () =>
+        Guard(L.T("Saving the SVG"), () =>
         {
             File.WriteAllText(dialog.FileName, SvgWriter.Write(diagram));
             PluginLog.Info($"Diagram written to {dialog.FileName}");
-            DiagramInfo.Text = $"Saved as {System.IO.Path.GetFileName(dialog.FileName)}.";
+            DiagramInfo.Text = L.T("Saved as {0}.", System.IO.Path.GetFileName(dialog.FileName));
         });
     }
 
@@ -186,7 +188,7 @@ public partial class OpcUaPlugin
             if (isType) Place(canvas, Shape(n, new SolidColorBrush(Color.FromRgb(0x9a, 0xa8, 0xb8)), null), n.X + 4, n.Y + 4);
             var fill = isType ? new SolidColorBrush(Color.FromRgb(0xdd, 0xe6, 0xf0)) : Brushes.White;
             var shape = Shape(n, fill, Brushes.Black);
-            shape.ToolTip = n.Name + (n.TypeName != null ? " : " + n.TypeName : "") + "\nClick: select in the editor. Double click: draw its type.";
+            shape.ToolTip = n.Name + (n.TypeName != null ? " : " + n.TypeName : "") + "\n" + L.T("Click: select in the editor. Double click: draw its type.");
             shape.Cursor = System.Windows.Input.Cursors.Hand;
             var hover = new SolidColorBrush(Color.FromRgb(0x20, 0x70, 0xC0));
             shape.MouseEnter += (_, __) => { shape.Stroke = hover; shape.StrokeThickness = 2; };
@@ -195,7 +197,7 @@ public partial class OpcUaPlugin
             shape.MouseLeftButtonDown += (_, e) => { e.Handled = true; DiagramNode_Click(node, e.ClickCount); };
             Place(canvas, shape, n.X, n.Y);
 
-            var second = n.TypeName != null ? ":" + n.TypeName : n.SupertypeName != null ? "subtype of " + n.SupertypeName : null;
+            var second = n.TypeName != null ? ":" + n.TypeName : n.SupertypeName != null ? L.T("subtype of {0}", n.SupertypeName) : null;
             var panel = new StackPanel { Width = n.Width, IsHitTestVisible = false };
             panel.Children.Add(new TextBlock
             {

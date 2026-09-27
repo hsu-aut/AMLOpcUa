@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Aml.Editor.Plugin.OpcUa.Localization;
 
 namespace Aml.Editor.Plugin.OpcUa;
 
@@ -123,7 +124,7 @@ internal static class DialogKit
         var window = new Window { Owner = owner, Width = 560, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize };
         var yes = Action(confirm, primary: !risky);
         yes.Click += (_, __) => window.DialogResult = true;
-        var no = Action("Cancel", cancel: true);
+        var no = Action(L.T("Cancel"), cancel: true);
         if (risky) no.IsDefault = true;
         Frame(window, glyph, accent, title, text, body ?? new Border(), null, yes, no);
         return window.ShowDialog() == true;

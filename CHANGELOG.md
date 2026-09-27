@@ -9,6 +9,10 @@ minor versions.
 
 ### Added
 
+- The plugin speaks German when the display language of Windows is German,
+  and hands the language to the embedded modeler (NodeSet.js), which speaks it
+  too. Messages that come verbatim from the OPC UA stack, the conversion or
+  the core library stay English.
 - **Remove server addresses…** (Server tab) and `uaaml strip-addresses` save a
   copy of a document without where its servers are reached (endpoints, server
   URIs, the ServerInstanceUri of every NodeId, EndpointURL, DiscoveryURL), to

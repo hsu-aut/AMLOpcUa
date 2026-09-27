@@ -6,6 +6,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.NodeSets;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -21,7 +22,7 @@ public sealed class CloudUploadWindow : Window
     private readonly TextBox _user = new() { Width = 140, Padding = new Thickness(3) };
     private readonly PasswordBox _password = new() { Width = 120, Padding = new Thickness(3) };
     private readonly PasswordBox _apiKey = new() { Width = 170, Padding = new Thickness(3) };
-    private readonly CheckBox _overwrite = new() { Content = "Replace my earlier upload of this model", Margin = new Thickness(0, 10, 0, 0) };
+    private readonly CheckBox _overwrite = new() { Content = L.T("Replace my earlier upload of this model"), Margin = new Thickness(0, 10, 0, 0) };
     private readonly TextBlock _info = DialogKit.Message();
 
     public CloudUpload? Metadata { get; private set; }
@@ -42,52 +43,52 @@ public sealed class CloudUploadWindow : Window
         _apiKey.Password = apiKey ?? "";
 
         var form = new StackPanel();
-        form.Children.Add(DialogKit.Facts(("Model", modelUri, true), ("Version", version ?? "(none)", false)));
+        form.Children.Add(DialogKit.Facts((L.T("Model"), modelUri, true), (L.T("Version"), version ?? L.T("(none)"), false)));
         if (modelUri.StartsWith("http://opcfoundation.org/UA/", StringComparison.OrdinalIgnoreCase))
             form.Children.Add(new TextBlock
             {
-                Text = "This namespace belongs to the OPC Foundation. Publish only models you own.",
+                Text = L.T("This namespace belongs to the OPC Foundation. Publish only models you own."),
                 Foreground = DialogKit.Danger, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0),
             });
         void Field(string label, UIElement input) { form.Children.Add(DialogKit.Label(label)); form.Children.Add(input); }
-        Field("Title", _title);
-        Field("Description", _description);
-        Field("Copyright", _copyright);
-        Field("License", _license);
-        Field("Keywords, comma separated (optional)", _keywords);
-        Field("Documentation URL (optional)", _docUrl);
+        Field(L.T("Title"), _title);
+        Field(L.T("Description"), _description);
+        Field(L.T("Copyright"), _copyright);
+        Field(L.T("License"), _license);
+        Field(L.T("Keywords, comma separated (optional)"), _keywords);
+        Field(L.T("Documentation URL (optional)"), _docUrl);
         var credentials = new StackPanel { Orientation = Orientation.Horizontal };
-        credentials.Children.Add(Caption("User"));
+        credentials.Children.Add(Caption(L.T("User")));
         credentials.Children.Add(_user);
-        credentials.Children.Add(Caption("Password", 12));
+        credentials.Children.Add(Caption(L.T("Password"), 12));
         credentials.Children.Add(_password);
-        credentials.Children.Add(Caption("or API key", 12));
+        credentials.Children.Add(Caption(L.T("or API key"), 12));
         credentials.Children.Add(_apiKey);
-        Field("Account of uacloudlibrary.opcfoundation.org", credentials);
+        Field(L.T("Account of uacloudlibrary.opcfoundation.org"), credentials);
         form.Children.Add(_overwrite);
 
-        var publish = DialogKit.Action("Publish…", primary: true);
+        var publish = DialogKit.Action(L.T("Publish…"), primary: true);
         publish.Click += (_, __) =>
         {
             Uri? doc = null;
             if (_docUrl.Text.Trim().Length > 0 && !Uri.TryCreate(_docUrl.Text.Trim(), UriKind.Absolute, out doc))
             {
-                DialogKit.ShowError(_info, "The documentation URL is not a URL.");
+                DialogKit.ShowError(_info, L.T("The documentation URL is not a URL."));
                 return;
             }
             if (_title.Text.Trim().Length == 0 || _description.Text.Trim().Length == 0 || _copyright.Text.Trim().Length <= 2)
             {
-                DialogKit.ShowError(_info, "The Cloud Library needs a title, a description and a copyright.");
+                DialogKit.ShowError(_info, L.T("The Cloud Library needs a title, a description and a copyright."));
                 return;
             }
             if (UserName == null && _apiKey.Password.Length == 0)
             {
-                DialogKit.ShowError(_info, "Publishing needs an account or an API key.");
+                DialogKit.ShowError(_info, L.T("Publishing needs an account or an API key."));
                 return;
             }
-            if (!DialogKit.Confirm(this, "", DialogKit.Exchange, "Publish to the UA Cloud Library?",
-                    $"{modelUri} goes to uacloudlibrary.opcfoundation.org. Once the OPC Foundation has reviewed it, everyone can find and download it.",
-                    "Publish", risky: true))
+            if (!DialogKit.Confirm(this, "", DialogKit.Exchange, L.T("Publish to the UA Cloud Library?"),
+                    L.T("{0} goes to uacloudlibrary.opcfoundation.org. Once the OPC Foundation has reviewed it, everyone can find and download it.", modelUri),
+                    L.T("Publish"), risky: true))
                 return;
             Metadata = new CloudUpload(_title.Text.Trim(), _description.Text.Trim(), _copyright.Text.Trim())
             {
@@ -99,9 +100,9 @@ public sealed class CloudUploadWindow : Window
             DialogResult = true;
         };
 
-        DialogKit.Frame(this, "", DialogKit.Exchange, "Publish to the UA Cloud Library",
-            "The model's NodeSet with a description, for others to find and download. The OPC Foundation reviews it before it is listed.",
-            form, _info, publish, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Exchange, L.T("Publish to the UA Cloud Library"),
+            L.T("The model's NodeSet with a description, for others to find and download. The OPC Foundation reviews it before it is listed."),
+            form, _info, publish, DialogKit.Action(L.T("Cancel"), cancel: true));
         Loaded += (_, __) => _description.Focus();
     }
 

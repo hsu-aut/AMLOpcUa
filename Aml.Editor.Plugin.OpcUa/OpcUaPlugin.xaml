@@ -7,6 +7,7 @@
     xmlns:aml="clr-namespace:Aml.Editor.Plugin.WPFBase;assembly=Aml.Editor.Plugin.Contract"
     xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
     xmlns:guide="clr-namespace:Aml.Editor.Plugin.OpcUa.Guide"
+    xmlns:l="clr-namespace:Aml.Editor.Plugin.OpcUa.Localization"
     mc:Ignorable="d"
     AllowDrop="True" PreviewDragEnter="Plugin_PreviewDragOver" PreviewDragOver="Plugin_PreviewDragOver"
     PreviewDragLeave="Plugin_PreviewDragLeave" PreviewDrop="Plugin_PreviewDrop"
@@ -85,6 +86,8 @@
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
+            <!-- German titles are longer than the card is wide. -->
+            <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
         <Style x:Key="CardText" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
@@ -105,20 +108,20 @@
             </StatusBarItem>
             <!-- The log sits on the first tab; this reaches it from every tab and counts what it has not shown yet. -->
             <StatusBarItem DockPanel.Dock="Right">
-                <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="Four short lessons on the plugin"
+                <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="{l:T 'Four short lessons on the plugin'}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE7BE;" FontSize="12" Foreground="{DynamicResource Exchange}"/>
-                        <TextBlock Text="Tutorial" TextDecorations="Underline" VerticalAlignment="Center"/>
+                        <TextBlock Text="{l:T 'Tutorial'}" TextDecorations="Underline" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StatusBarItem>
             <StatusBarItem DockPanel.Dock="Right">
-                <Button x:Name="LogLink" Click="LogLink_Click" Padding="6,0" ToolTip="Show the log"
+                <Button x:Name="LogLink" Click="LogLink_Click" Padding="6,0" ToolTip="{l:T 'Show the log'}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock x:Name="LogLinkGlyph" Style="{StaticResource IconText}" Text="&#xE7BA;" FontSize="12" Foreground="#D08020" Visibility="Collapsed"/>
-                        <TextBlock x:Name="LogLinkText" Text="Log" TextDecorations="Underline" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="LogLinkText" Text="{l:T 'Log'}" TextDecorations="Underline" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
             </StatusBarItem>
@@ -132,12 +135,12 @@
                 Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1,0,0,0">
             <DockPanel Margin="14,10,10,10">
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                    <Button DockPanel.Dock="Right" Click="TourClose_Click" Padding="4,0" ToolTip="Close the tutorial" AutomationProperties.Name="Close the tutorial"
+                    <Button DockPanel.Dock="Right" Click="TourClose_Click" Padding="4,0" ToolTip="{l:T 'Close the tutorial'}" AutomationProperties.Name="{l:T 'Close the tutorial'}"
                             Background="Transparent" BorderThickness="0">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE711;" Foreground="{DynamicResource Plain}" Margin="0"/>
                     </Button>
                     <TextBlock Style="{StaticResource IconText}" Text="&#xE7BE;" Foreground="{DynamicResource Exchange}" FontSize="16"/>
-                    <TextBlock x:Name="TourTitle" Text="Tutorial" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="TourTitle" Text="{l:T 'Tutorial'}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/>
                 </DockPanel>
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel x:Name="TourBody"/>
@@ -148,7 +151,7 @@
         <Grid>
         <TabControl x:Name="Tabs">
             <!-- ── OPC UA: the models in the document ─────────────────────── -->
-            <TabItem Header="Namespaces" x:Name="NamespacesTab">
+            <TabItem Header="{l:T 'Namespaces'}" x:Name="NamespacesTab">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -157,79 +160,79 @@
 
                     <ToolBar Grid.Row="0">
                         <Button x:Name="ImportButton" Click="ImportButton_Click"
-                                ToolTip="Import an OPC UA NodeSet (NodeSet2.xml) as AutomationML libraries according to OPC 10000-83 Annex A.">
+                                ToolTip="{l:T 'Import an OPC UA NodeSet (NodeSet2.xml) as AutomationML libraries according to OPC 10000-83 Annex A.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8B5;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Import NodeSet…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Import NodeSet…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="ExportButton" Click="ExportButton_Click"
-                                ToolTip="Export this document as an OPC UA NodeSet by the rules of the AutomationML/OPC Foundation working group (AML-UA-XSLT, successor of OPC 30040).">
+                                ToolTip="{l:T 'Export this document as an OPC UA NodeSet by the rules of the AutomationML/OPC Foundation working group (AML-UA-XSLT, successor of OPC 30040).'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xEDE1;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Export NodeSet…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Export NodeSet…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="CloudButton" Click="CloudButton_Click"
-                                ToolTip="Search the OPC Foundation's UA Cloud Library and import a model with the models it requires.">
+                                ToolTip="{l:T 'Search the OPC Foundation\'s UA Cloud Library and import a model with the models it requires.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Cloud Library…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Cloud Library…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="OpcfButton" Click="OpcfButton_Click"
-                                ToolTip="The companion specifications the OPC Foundation publishes, with the models they require; no account needed.">
+                                ToolTip="{l:T 'The companion specifications the OPC Foundation publishes, with the models they require; no account needed.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE774;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Companion specs…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Companion specs…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
                         <Button x:Name="InstanceButton" Click="InstanceButton_Click"
-                                ToolTip="Create an instance of a UA type with its Mandatory children and the Optional children you choose.">
+                                ToolTip="{l:T 'Create an instance of a UA type with its Mandatory children and the Optional children you choose.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="{DynamicResource Create}"/>
-                                <TextBlock Text="New instance…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'New instance…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="CheckButton" Click="CheckButton_Click"
-                                ToolTip="Check the instance hierarchies against their UA types (Mandatory children, placeholders, reference pairs).">
+                                ToolTip="{l:T 'Check the instance hierarchies against their UA types (Mandatory children, placeholders, reference pairs).'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Verify}"/>
-                                <TextBlock Text="Check" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Check'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="LinkButton" Click="LinkButton_Click"
-                                ToolTip="Link a VDI 3682 TechnicalResource to the OPC UA object representing it, or a ProcessOperator to the method executing it.">
+                                ToolTip="{l:T 'Link a VDI 3682 TechnicalResource to the OPC UA object representing it, or a ProcessOperator to the method executing it.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/>
-                                <TextBlock Text="Link VDI 3682…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Link VDI 3682…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
-                        <Button x:Name="SettingsMenuButton" Click="SettingsMenuButton_Click" ToolTip="Where NodeSets are searched and how an import treats the document.">
+                        <Button x:Name="SettingsMenuButton" Click="SettingsMenuButton_Click" ToolTip="{l:T 'Where NodeSets are searched and how an import treats the document.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE713;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="Settings &#x25BE;" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Settings ▾'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                             <Button.ContextMenu>
                                 <ContextMenu x:Name="SettingsMenu">
-                                    <MenuItem x:Name="FoldersButton" Header="NodeSet folders…" Click="FoldersButton_Click"
-                                              ToolTip="Folders searched for NodeSets that an import requires. The UA base model and DI are built in."/>
+                                    <MenuItem x:Name="FoldersButton" Header="{l:T 'NodeSet folders…'}" Click="FoldersButton_Click"
+                                              ToolTip="{l:T 'Folders searched for NodeSets that an import requires. The UA base model and DI are built in.'}"/>
                                     <Separator/>
-                                    <MenuItem x:Name="ReplaceToggle" Header="Replace existing libraries" IsCheckable="True"
+                                    <MenuItem x:Name="ReplaceToggle" Header="{l:T 'Replace existing libraries'}" IsCheckable="True"
                                               Checked="Setting_Changed" Unchecked="Setting_Changed"
-                                              ToolTip="Replace OPC UA libraries the document already has. A newer model is never replaced by an older one."/>
-                                    <MenuItem x:Name="SaveToggle" Header="Save after import" IsCheckable="True"
+                                              ToolTip="{l:T 'Replace OPC UA libraries the document already has. A newer model is never replaced by an older one.'}"/>
+                                    <MenuItem x:Name="SaveToggle" Header="{l:T 'Save after import'}" IsCheckable="True"
                                               Checked="Setting_Changed" Unchecked="Setting_Changed"
-                                              ToolTip="Trigger the editor's save command after a successful import."/>
-                                    <MenuItem x:Name="DebugToggle" Header="Debug log" IsCheckable="True"
+                                              ToolTip="{l:T 'Trigger the editor\'s save command after a successful import.'}"/>
+                                    <MenuItem x:Name="DebugToggle" Header="{l:T 'Debug log'}" IsCheckable="True"
                                               Checked="DebugToggle_Changed" Unchecked="DebugToggle_Changed"/>
                                     <Separator/>
-                                    <MenuItem Header="Forget earlier conversions" Click="ClearCache_Click"
-                                              ToolTip="A NodeSet converted before is taken from a cache instead of being converted again (seconds instead of a quarter minute). This empties the cache."/>
-                                    <MenuItem Header="Forget fetched NodeSets…" Click="ForgetFetched_Click"
-                                              ToolTip="Removes the NodeSets taken from servers and downloaded from the Cloud Library; they are fetched again when needed. Models applied from the modeler stay."/>
+                                    <MenuItem Header="{l:T 'Forget earlier conversions'}" Click="ClearCache_Click"
+                                              ToolTip="{l:T 'A NodeSet converted before is taken from a cache instead of being converted again (seconds instead of a quarter minute). This empties the cache.'}"/>
+                                    <MenuItem Header="{l:T 'Forget fetched NodeSets…'}" Click="ForgetFetched_Click"
+                                              ToolTip="{l:T 'Removes the NodeSets taken from servers and downloaded from the Cloud Library; they are fetched again when needed. Models applied from the modeler stay.'}"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
@@ -245,17 +248,17 @@
 
                         <DockPanel Grid.Row="0" Margin="6,6,6,4">
                             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="OPC UA namespaces in this document" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="{l:T 'OPC UA namespaces in this document'}" Style="{StaticResource Caption}"/>
                                 <guide:HelpButton Topic="namespaces"/>
                             </StackPanel>
                             <TextBlock x:Name="Placeholder" DockPanel.Dock="Top" Margin="0,8" Foreground="{DynamicResource Ua.Muted}" TextWrapping="Wrap"
-                                       Text="Open a CAEX 3.0 document to import OPC UA NodeSets."/>
+                                       Text="{l:T 'Open a CAEX 3.0 document to import OPC UA NodeSets.'}"/>
                             <Button x:Name="Caex3Button" DockPanel.Dock="Top" HorizontalAlignment="Left" Margin="0,0,0,8" Visibility="Collapsed"
                                     Click="Caex3Button_Click" Padding="10,3"
-                                    ToolTip="Write a CAEX 3.0 copy of this document (Aml.Engine's conversion) to a new file; open that file to import OPC UA libraries.">
+                                    ToolTip="{l:T 'Write a CAEX 3.0 copy of this document (Aml.Engine\'s conversion) to a new file; open that file to import OPC UA libraries.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE898;" Foreground="{DynamicResource Exchange}"/>
-                                    <TextBlock Text="Save a CAEX 3.0 copy…" Style="{StaticResource Label}"/>
+                                    <TextBlock Text="{l:T 'Save a CAEX 3.0 copy…'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
                             <Grid>
@@ -264,20 +267,20 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ListView x:Name="NamespaceList" SelectionChanged="NamespaceList_SelectionChanged" AutomationProperties.Name="Namespaces of the document"
-                                          ToolTip="Select a namespace for its details, its types and what builds on it.">
+                                <ListView x:Name="NamespaceList" SelectionChanged="NamespaceList_SelectionChanged" AutomationProperties.Name="{l:T 'Namespaces of the document'}"
+                                          ToolTip="{l:T 'Select a namespace for its details, its types and what builds on it.'}">
                                     <ListView.ContextMenu>
                                         <ContextMenu>
-                                            <MenuItem Header="Edit in the modeler" Click="NamespaceEdit_Click"/>
-                                            <MenuItem Header="Copy namespace URI" Click="NamespaceCopy_Click"/>
+                                            <MenuItem Header="{l:T 'Edit in the modeler'}" Click="NamespaceEdit_Click"/>
+                                            <MenuItem Header="{l:T 'Copy namespace URI'}" Click="NamespaceCopy_Click"/>
                                         </ContextMenu>
                                     </ListView.ContextMenu>
                                     <ListView.View>
                                         <GridView>
-                                            <GridViewColumn Header="Namespace URI" Width="360" DisplayMemberBinding="{Binding NamespaceUri}"/>
-                                            <GridViewColumn Header="Model version" Width="100" DisplayMemberBinding="{Binding ModelVersion}"/>
-                                            <GridViewColumn Header="Published" Width="100" DisplayMemberBinding="{Binding Published}"/>
-                                            <GridViewColumn Header="Libraries" Width="70" DisplayMemberBinding="{Binding LibraryCount}"/>
+                                            <GridViewColumn Header="{l:T 'Namespace URI'}" Width="360" DisplayMemberBinding="{Binding NamespaceUri}"/>
+                                            <GridViewColumn Header="{l:T 'Model version'}" Width="100" DisplayMemberBinding="{Binding ModelVersion}"/>
+                                            <GridViewColumn Header="{l:T 'Published'}" Width="100" DisplayMemberBinding="{Binding Published}"/>
+                                            <GridViewColumn Header="{l:T 'Libraries'}" Width="70" DisplayMemberBinding="{Binding LibraryCount}"/>
                                         </GridView>
                                     </ListView.View>
                                 </ListView>
@@ -291,43 +294,43 @@
                                 <!-- First steps, while the document has no OPC UA model yet. -->
                                 <ScrollViewer x:Name="StartPanel" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" Visibility="Collapsed" Background="{DynamicResource Ua.Band}">
                                     <StackPanel Margin="18,16">
-                                        <TextBlock Text="Bring OPC UA into this document" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{l:T 'Bring OPC UA into this document'}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <TextBlock Style="{StaticResource CardText}" Margin="0,0,0,14"
-                                                   Text="Types become AutomationML libraries by OPC 10000-83 Annex A; instances, values and links follow from there."/>
+                                                   Text="{l:T 'Types become AutomationML libraries by OPC 10000-83 Annex A; instances, values and links follow from there.'}"/>
                                         <WrapPanel>
                                             <Button Style="{StaticResource Card}" Click="ImportButton_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE8B5;" Foreground="{DynamicResource Exchange}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Import a NodeSet"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="A companion specification or your own model as NodeSet2.xml, or drop the files here; required models are found in the NodeSet folders."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Import a NodeSet'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'A companion specification or your own model as NodeSet2.xml, or drop the files here; required models are found in the NodeSet folders.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartCloud_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Get a companion specification"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="The NodeSets the OPC Foundation publishes, with the models they require, no account needed; or the UA Cloud Library."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Get a companion specification'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'The NodeSets the OPC Foundation publishes, with the models they require, no account needed; or the UA Cloud Library.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartServer_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE703;" Foreground="{DynamicResource Create}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Connect to a server"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="Take a running server's types and the parts of its address space you choose."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Connect to a server'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Take a running server\'s types and the parts of its address space you choose.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="TutorialButton_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE7BE;" Foreground="{DynamicResource Verify}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Take the tutorial"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="Four short lessons in this document: models, instances, a running server, a model of your own."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Take the tutorial'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Four short lessons in this document: models, instances, a running server, a model of your own.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartModeler_Click">
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE70F;" Foreground="{DynamicResource Relate}"/>
-                                                    <TextBlock Style="{StaticResource CardTitle}" Text="Model a new information model"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="Draw types and instances in the modeler and apply the result to the document."/>
+                                                    <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Model a new information model'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Draw types and instances in the modeler and apply the result to the document.'}"/>
                                                 </StackPanel>
                                             </Button>
                                         </WrapPanel>
@@ -340,22 +343,22 @@
 
                         <DockPanel Grid.Row="2" Margin="6,4,6,6">
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,3">
-                                <Button DockPanel.Dock="Right" Click="LogOpenFile_Click" Padding="4,0" ToolTip="Open the log file">
+                                <Button DockPanel.Dock="Right" Click="LogOpenFile_Click" Padding="4,0" ToolTip="{l:T 'Open the log file'}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE8E5;" FontSize="12" Foreground="{DynamicResource Plain}"/>
-                                        <TextBlock Text="Log file" Style="{StaticResource Label}"/>
+                                        <TextBlock Text="{l:T 'Log file'}" Style="{StaticResource Label}"/>
                                     </StackPanel>
                                 </Button>
-                                <TextBlock Text="Log" Style="{StaticResource Caption}"/>
+                                <TextBlock Text="{l:T 'Log'}" Style="{StaticResource Caption}"/>
                                 <TextBlock x:Name="LogFilePathLabel" Margin="8,0" Style="{StaticResource Hint}"/>
                             </DockPanel>
                             <ListBox x:Name="LogList" FontFamily="Consolas" FontSize="11" SelectionMode="Extended"
                                      VirtualizingPanel.IsVirtualizing="True" ScrollViewer.HorizontalScrollBarVisibility="Auto">
                                 <ListBox.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Copy selected lines" Click="LogCopy_Click"/>
-                                        <MenuItem Header="Copy all" Click="LogCopyAll_Click"/>
-                                        <MenuItem Header="Clear the view" Click="LogClear_Click"/>
+                                        <MenuItem Header="{l:T 'Copy selected lines'}" Click="LogCopy_Click"/>
+                                        <MenuItem Header="{l:T 'Copy all'}" Click="LogCopyAll_Click"/>
+                                        <MenuItem Header="{l:T 'Clear the view'}" Click="LogClear_Click"/>
                                     </ContextMenu>
                                 </ListBox.ContextMenu>
                                 <ListBox.ItemTemplate>
@@ -390,30 +393,30 @@
             </TabItem>
 
             <!-- ── Check: findings against the UA types ────────────────────── -->
-            <TabItem Header="Check" x:Name="CheckTab">
+            <TabItem Header="{l:T 'Check'}" x:Name="CheckTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
-                        <Button Click="CheckButton_Click" ToolTip="Check the instance hierarchies again.">
+                        <Button Click="CheckButton_Click" ToolTip="{l:T 'Check the instance hierarchies again.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Verify}"/>
-                                <TextBlock Text="Check again" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Check again'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="UpgradeButton" Click="UpgradeButton_Click"
-                                ToolTip="After importing a newer version of a companion specification: add the Mandatory children the types now declare. Nothing existing is changed.">
+                                ToolTip="{l:T 'After importing a newer version of a companion specification: add the Mandatory children the types now declare. Nothing existing is changed.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="{DynamicResource Create}"/>
-                                <TextBlock Text="Add missing Mandatory children" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Add missing Mandatory children'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <guide:HelpButton Topic="check"/>
                     </ToolBar>
                     <TextBlock x:Name="CheckSummary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="6,6,6,4"
-                               Text="Run Check to verify the instances against their UA types. Double click a finding to select its element."/>
-                    <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick" KeyDown="FindingList_KeyDown" AutomationProperties.Name="Findings; Enter selects the element">
+                               Text="{l:T 'Run Check to verify the instances against their UA types. Double click a finding to select its element.'}"/>
+                    <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick" KeyDown="FindingList_KeyDown" AutomationProperties.Name="{l:T 'Findings; Enter selects the element'}">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Severity" Width="90">
+                                <GridViewColumn Header="{l:T 'Severity'}" Width="90">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
@@ -429,9 +432,9 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Rule" Width="60" DisplayMemberBinding="{Binding Rule}"/>
-                                <GridViewColumn Header="Element" Width="280" DisplayMemberBinding="{Binding ElementPath}"/>
-                                <GridViewColumn Header="Finding" Width="520" DisplayMemberBinding="{Binding Message}"/>
+                                <GridViewColumn Header="{l:T 'Rule'}" Width="60" DisplayMemberBinding="{Binding Rule}"/>
+                                <GridViewColumn Header="{l:T 'Element'}" Width="280" DisplayMemberBinding="{Binding ElementPath}"/>
+                                <GridViewColumn Header="{l:T 'Finding'}" Width="520" DisplayMemberBinding="{Binding Message}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -439,7 +442,7 @@
             </TabItem>
 
             <!-- ── Server: a running OPC UA server ──────────────────────────── -->
-            <TabItem Header="Server" x:Name="ServerTab">
+            <TabItem Header="{l:T 'Server'}" x:Name="ServerTab">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -459,88 +462,88 @@
                             <Button x:Name="ConnectButton" DockPanel.Dock="Right" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
-                                    <TextBlock x:Name="ConnectText" Text="Connect" Style="{StaticResource Label}"/>
+                                    <TextBlock x:Name="ConnectText" Text="{l:T 'Connect'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
-                            <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="Secure" VerticalAlignment="Center" Margin="8,0,0,0"
-                                      ToolTip="Connect signed and encrypted only; a server without a secured endpoint is refused."/>
-                            <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="Password" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="Password (empty for anonymous)"/>
-                            <Label DockPanel.Dock="Right" Content="_Password" Target="{Binding ElementName=PasswordBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
-                            <TextBox x:Name="UserBox" AutomationProperties.Name="User name" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="User name (empty for anonymous)"/>
-                            <Label DockPanel.Dock="Right" Content="_User" Target="{Binding ElementName=UserBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
+                            <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="{l:T 'Secure'}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                      ToolTip="{l:T 'Connect signed and encrypted only; a server without a secured endpoint is refused.'}"/>
+                            <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="{l:T 'Password'}" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'Password (empty for anonymous)'}"/>
+                            <Label DockPanel.Dock="Right" Content="{l:T '_Password'}" Target="{Binding ElementName=PasswordBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
+                            <TextBox x:Name="UserBox" AutomationProperties.Name="{l:T 'User name'}" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'User name (empty for anonymous)'}"/>
+                            <Label DockPanel.Dock="Right" Content="{l:T '_User'}" Target="{Binding ElementName=UserBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
                             <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ServerStateText" Text="Not connected" VerticalAlignment="Center" FontSize="11"/>
+                                    <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11"/>
                                 </StackPanel>
                             </Border>
-                            <ComboBox x:Name="EndpointBox" AutomationProperties.Name="Endpoint URL" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
-                                      ToolTip="Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently."/>
+                            <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
+                                      ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
                         </DockPanel>
                     </Border>
 
                     <!-- Commands -->
                     <ToolBar Grid.Row="1">
                         <Button x:Name="ServerTypesButton" Click="ServerTypesButton_Click"
-                                ToolTip="Import the types of one of the server's namespaces, open them in the modeler, or save them as a NodeSet.">
+                                ToolTip="{l:T 'Import the types of one of the server\'s namespaces, open them in the modeler, or save them as a NodeSet.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8B5;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Types of the server…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Types of the server…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
                         <Button x:Name="MirrorButton" Click="MirrorButton_Click"
-                                ToolTip="Create elements for the checked parts, or for the selected node with what is below it; taking a part again updates it.">
+                                ToolTip="{l:T 'Create elements for the checked parts, or for the selected node with what is below it; taking a part again updates it.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE896;" Foreground="{DynamicResource Create}"/>
-                                <TextBlock Text="Take into document" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Take into document'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="PreviewButton" Click="PreviewButton_Click" ToolTip="Count the elements the selection gives, without changing the document.">
+                        <Button x:Name="PreviewButton" Click="PreviewButton_Click" ToolTip="{l:T 'Count the elements the selection gives, without changing the document.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8EF;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="Count nodes" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Count nodes'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
                         <Button x:Name="BindButton" Click="BindButton_Click"
-                                ToolTip="Give an element of your choice the selected node's address (its NodeId attribute, OPC 10000-83 Annex A).">
+                                ToolTip="{l:T 'Give an element of your choice the selected node\'s address (its NodeId attribute, OPC 10000-83 Annex A).'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/>
-                                <TextBlock Text="Bind to element…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Bind to element…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
                         <Button x:Name="SnapshotButton" Click="SnapshotButton_Click"
-                                ToolTip="Read the value of every element bound to this server into the document, once.">
+                                ToolTip="{l:T 'Read the value of every element bound to this server into the document, once.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE895;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Read values into document" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Read values into document'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="LiveButton" Click="LiveButton_Click"
-                                ToolTip="Write every change the server reports into the elements bound to it, until stopped.">
+                                ToolTip="{l:T 'Write every change the server reports into the elements bound to it, until stopped.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="LiveGlyph" Style="{StaticResource IconText}" Text="&#xE9D9;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock x:Name="LiveText" Text="Keep document values live" Style="{StaticResource Label}"/>
+                                <TextBlock x:Name="LiveText" Text="{l:T 'Keep document values live'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="WatchButton" Click="WatchButton_Click"
-                                ToolTip="Show the selected variable's value as it changes, in the list below; nothing is written into the document.">
+                                ToolTip="{l:T 'Show the selected variable\'s value as it changes, in the list below; nothing is written into the document.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE7B3;" Foreground="{DynamicResource Verify}"/>
-                                <TextBlock Text="Watch (view only)" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Watch (view only)'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="UnwatchButton" AutomationProperties.Name="Stop watching" Click="UnwatchButton_Click" ToolTip="Stop watching and clear the live list.">
+                        <Button x:Name="UnwatchButton" AutomationProperties.Name="{l:T 'Stop watching'}" Click="UnwatchButton_Click" ToolTip="{l:T 'Stop watching and clear the live list.'}">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
                         <Separator/>
                         <Button x:Name="StripAddressesButton" Click="StripAddressesButton_Click"
-                                ToolTip="Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.">
+                                ToolTip="{l:T 'Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE72E;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="Remove server addresses…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Remove server addresses…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <guide:HelpButton Topic="server.commands"/>
@@ -549,38 +552,38 @@
                     <!-- What to take -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,4">
                         <WrapPanel>
-                            <TextBlock Text="What to take" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{l:T 'What to take'}" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
                             <guide:HelpButton Topic="server.take" Margin="4,0,10,0"/>
-                            <Label Content="_depth" Target="{Binding ElementName=MirrorDepthBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
-                            <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="Depth" Text="3" Width="28" VerticalContentAlignment="Center" Margin="0,0,10,0"
-                                     ToolTip="Levels taken below a node checked with everything below it; 0 has no limit but the node limit."/>
-                            <Label Content="at _most" Target="{Binding ElementName=MirrorMaxNodesBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
-                            <TextBox x:Name="MirrorMaxNodesBox" AutomationProperties.Name="At most nodes" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus" Margin="0,0,4,0"
-                                     ToolTip="Nodes taken at most at once, against taking a whole server by accident."/>
-                            <Label Content="nodes _into" Target="{Binding ElementName=MirrorHierarchyBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
-                            <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="Into instance hierarchy" Text="OpcUaServer" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged" Margin="0,0,16,0"
-                                     ToolTip="The InstanceHierarchy that receives what is taken."/>
+                            <Label Content="{l:T '_depth'}" Target="{Binding ElementName=MirrorDepthBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorDepthBox" AutomationProperties.Name="{l:T 'Depth'}" Text="3" Width="28" VerticalContentAlignment="Center" Margin="0,0,10,0"
+                                     ToolTip="{l:T 'Levels taken below a node checked with everything below it; 0 has no limit but the node limit.'}"/>
+                            <Label Content="{l:T 'at _most'}" Target="{Binding ElementName=MirrorMaxNodesBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorMaxNodesBox" AutomationProperties.Name="{l:T 'At most nodes'}" Text="2000" Width="44" VerticalContentAlignment="Center" LostFocus="MirrorMaxNodesBox_LostFocus" Margin="0,0,4,0"
+                                     ToolTip="{l:T 'Nodes taken at most at once, against taking a whole server by accident.'}"/>
+                            <Label Content="{l:T 'nodes _into'}" Target="{Binding ElementName=MirrorHierarchyBox}" Style="{StaticResource FieldLabel}" Margin="0,0,4,0"/>
+                            <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="{l:T 'Into instance hierarchy'}" Text="{l:T 'OpcUaServer'}" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged" Margin="0,0,16,0"
+                                     ToolTip="{l:T 'The InstanceHierarchy that receives what is taken.'}"/>
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE71C;" Foreground="{DynamicResource Plain}"/>
-                            <CheckBox x:Name="SkipPropertiesBox" Content="Leave out properties" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
-                                      ToolTip="Leave out nodes held by HasProperty (EURange, EngineeringUnits, Identification properties …)."/>
-                            <CheckBox x:Name="ObjectsOnlyBox" Content="Objects only" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
-                                      ToolTip="Leave out variables."/>
-                            <CheckBox x:Name="ShowServerBox" Content="Show Server object" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
-                                      ToolTip="The Server object holds the server's own diagnostics and capabilities; it is hidden by default."/>
-                            <Button x:Name="NamespacesButton" Content="Namespaces: all" Click="NamespacesButton_Click" Margin="0,0,20,0" Padding="6,1"
-                                    ToolTip="Take only nodes of these namespaces, with what they hold."/>
+                            <CheckBox x:Name="SkipPropertiesBox" Content="{l:T 'Leave out properties'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                                      ToolTip="{l:T 'Leave out nodes held by HasProperty (EURange, EngineeringUnits, Identification properties …).'}"/>
+                            <CheckBox x:Name="ObjectsOnlyBox" Content="{l:T 'Objects only'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                                      ToolTip="{l:T 'Leave out variables.'}"/>
+                            <CheckBox x:Name="ShowServerBox" Content="{l:T 'Show Server object'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                                      ToolTip="{l:T 'The Server object holds the server\'s own diagnostics and capabilities; it is hidden by default.'}"/>
+                            <Button x:Name="NamespacesButton" Content="{l:T 'Namespaces: all'}" Click="NamespacesButton_Click" Margin="0,0,20,0" Padding="6,1"
+                                    ToolTip="{l:T 'Take only nodes of these namespaces, with what they hold.'}"/>
                             <Button x:Name="InstancesOfButton" Click="InstancesOfButton_Click" Margin="0,0,4,0" Padding="4,1"
-                                    ToolTip="Check every instance of a type below the selected node (below Objects when none is selected), each with everything below it.">
+                                    ToolTip="{l:T 'Check every instance of a type below the selected node (below Objects when none is selected), each with everything below it.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Exchange}" FontSize="12"/>
-                                    <TextBlock Text="Instances of a type…" Style="{StaticResource Label}"/>
+                                    <TextBlock Text="{l:T 'Instances of a type…'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
                             <Button x:Name="LoadSelectionButton" Click="LoadSelectionButton_Click" Margin="0,0,4,0" Padding="4,1"
-                                    ToolTip="Load the selection kept with what was taken from this server before, to take the same part again.">
+                                    ToolTip="{l:T 'Load the selection kept with what was taken from this server before, to take the same part again.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE81C;" Foreground="{DynamicResource Exchange}" FontSize="12"/>
-                                    <TextBlock Text="Load kept selection" Style="{StaticResource Label}"/>
+                                    <TextBlock Text="{l:T 'Load kept selection'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
                             <TextBlock x:Name="SelectionSummary" Style="{StaticResource Hint}" Margin="10,0,0,0"/>
@@ -590,23 +593,23 @@
                     <!-- This document as a server -->
                     <Border Grid.Row="3" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,3">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="This document as a server" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
+                            <TextBlock Text="{l:T 'This document as a server'}" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
                             <guide:HelpButton Topic="server.serve" Margin="4,0,10,0"/>
                             <Button x:Name="ServeButton" Click="ServeButton_Click" Padding="4,1"
-                                    ToolTip="Start an OPC UA server whose address space is this document's instance hierarchies; values follow the document, added elements need a restart.">
+                                    ToolTip="{l:T 'Start an OPC UA server whose address space is this document\'s instance hierarchies; values follow the document, added elements need a restart.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock x:Name="ServeGlyph" Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Create}"/>
-                                    <TextBlock x:Name="ServeText" Text="Serve" Style="{StaticResource Label}"/>
+                                    <TextBlock x:Name="ServeText" Text="{l:T 'Serve'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
-                            <Label Content="p_ort" Target="{Binding ElementName=ServePortBox}" Style="{StaticResource FieldLabel}" Margin="10,0,4,0"/>
-                            <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="Port of the document server"/>
-                            <CheckBox x:Name="ServeSimulateBox" Content="simulate values" VerticalAlignment="Center" Margin="10,0,0,0"
-                                      ToolTip="Numbers swing around the document's values and booleans toggle, as in a running plant; the document keeps its values."/>
-                            <CheckBox x:Name="ServeNetworkBox" Content="to the network" VerticalAlignment="Center" Margin="10,0,6,0"
-                                      ToolTip="Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session."/>
-                            <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="Clients…" Padding="4,1"
-                                    ToolTip="The clients the document server refused over the network, to trust, and those it trusts."/>
+                            <Label Content="{l:T 'p_ort'}" Target="{Binding ElementName=ServePortBox}" Style="{StaticResource FieldLabel}" Margin="10,0,4,0"/>
+                            <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="{l:T 'Port of the document server'}"/>
+                            <CheckBox x:Name="ServeSimulateBox" Content="{l:T 'simulate values'}" VerticalAlignment="Center" Margin="10,0,0,0"
+                                      ToolTip="{l:T 'Numbers swing around the document\'s values and booleans toggle, as in a running plant; the document keeps its values.'}"/>
+                            <CheckBox x:Name="ServeNetworkBox" Content="{l:T 'to the network'}" VerticalAlignment="Center" Margin="10,0,6,0"
+                                      ToolTip="{l:T 'Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session.'}"/>
+                            <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="{l:T 'Clients…'}" Padding="4,1"
+                                    ToolTip="{l:T 'The clients the document server refused over the network, to trust, and those it trusts.'}"/>
                         </StackPanel>
                     </Border>
 
@@ -619,11 +622,11 @@
                         </Grid.ColumnDefinitions>
                         <DockPanel Grid.Column="0">
                             <TextBlock DockPanel.Dock="Top" Margin="0,0,0,3" Style="{StaticResource Hint}"
-                                       Text="Address space: check the parts to take; right click for how much below them. &#x2713; marks nodes already in the document. F5 reloads."/>
+                                       Text="{l:T 'Address space: check the parts to take; right click for how much below them. ✓ marks nodes already in the document. F5 reloads.'}"/>
                             <Grid>
                                 <TreeView x:Name="AddressTree" SelectedItemChanged="AddressTree_SelectedItemChanged" KeyDown="AddressTree_KeyDown"/>
                                 <TextBlock x:Name="AddressTreeEmpty" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" VerticalAlignment="Top" IsHitTestVisible="False"
-                                           Text="Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a server, serve this document below and connect to opc.tcp://127.0.0.1:48400/AMLOpcUa."/>
+                                           Text="{l:T 'Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a server, serve this document below and connect to opc.tcp://127.0.0.1:48400/AMLOpcUa.'}"/>
                             </Grid>
                         </DockPanel>
                         <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>
@@ -634,7 +637,7 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <DockPanel Grid.Row="0">
-                                <TextBlock DockPanel.Dock="Top" Text="Node" Style="{StaticResource Caption}" Margin="0,0,0,3"/>
+                                <TextBlock DockPanel.Dock="Top" Text="{l:T 'Node'}" Style="{StaticResource Caption}" Margin="0,0,0,3"/>
                                 <Border BorderBrush="{DynamicResource Ua.Line}" BorderThickness="1" Padding="8,6">
                                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                                         <Grid x:Name="NodeDetails">
@@ -649,13 +652,13 @@
                             <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent"/>
                             <DockPanel Grid.Row="2">
                                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,3">
-                                    <Button x:Name="RemoveSelectionButton" AutomationProperties.Name="Remove the part" DockPanel.Dock="Right" Click="RemoveSelection_Click" ToolTip="Remove the part selected in the list." Padding="3,0">
+                                    <Button x:Name="RemoveSelectionButton" AutomationProperties.Name="{l:T 'Remove the part'}" DockPanel.Dock="Right" Click="RemoveSelection_Click" ToolTip="{l:T 'Remove the part selected in the list.'}" Padding="3,0">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE738;" FontSize="12" Margin="0"/>
                                     </Button>
-                                    <Button x:Name="ClearSelectionButton" AutomationProperties.Name="Clear the selection" DockPanel.Dock="Right" Click="ClearSelection_Click" ToolTip="Clear the selection." Padding="3,0" Margin="0,0,4,0">
+                                    <Button x:Name="ClearSelectionButton" AutomationProperties.Name="{l:T 'Clear the selection'}" DockPanel.Dock="Right" Click="ClearSelection_Click" ToolTip="{l:T 'Clear the selection.'}" Padding="3,0" Margin="0,0,4,0">
                                         <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" FontSize="12" Margin="0"/>
                                     </Button>
-                                    <TextBlock Text="Selection" Style="{StaticResource Caption}"/>
+                                    <TextBlock Text="{l:T 'Selection'}" Style="{StaticResource Caption}"/>
                                 </DockPanel>
                                 <ListBox x:Name="SelectionList"/>
                             </DockPanel>
@@ -665,21 +668,21 @@
                     <ListView x:Name="WatchList" Grid.Row="5" MaxHeight="160" Margin="6,0,6,6" Visibility="Collapsed">
                         <ListView.View>
                             <GridView>
-                                <GridViewColumn Header="Node" Width="240">
+                                <GridViewColumn Header="{l:T 'Node'}" Width="240">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Node}" ToolTip="{Binding Where}"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Value" Width="240">
+                                <GridViewColumn Header="{l:T 'Value'}" Width="240">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Value}" FontFamily="Consolas"/>
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Status" Width="200">
+                                <GridViewColumn Header="{l:T 'Status'}" Width="200">
                                     <GridViewColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
@@ -694,7 +697,7 @@
                                         </DataTemplate>
                                     </GridViewColumn.CellTemplate>
                                 </GridViewColumn>
-                                <GridViewColumn Header="Received" Width="80" DisplayMemberBinding="{Binding Received}"/>
+                                <GridViewColumn Header="{l:T 'Received'}" Width="80" DisplayMemberBinding="{Binding Received}"/>
                             </GridView>
                         </ListView.View>
                     </ListView>
@@ -702,39 +705,39 @@
             </TabItem>
 
             <!-- ── Diagram: OPC 10000-3 notation ────────────────────────────── -->
-            <TabItem Header="Diagram" x:Name="DiagramTab">
+            <TabItem Header="{l:T 'Diagram'}" x:Name="DiagramTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Plain}"/>
                         <TextBox x:Name="DiagramSearchBox" Width="160" TextChanged="DiagramSearchBox_TextChanged" KeyDown="DiagramSearchBox_KeyDown"
-                                 VerticalContentAlignment="Center" ToolTip="Filter types and instances by name; Enter draws the first"/>
-                        <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="Type or instance to draw" SelectionChanged="DiagramSourceBox_SelectionChanged"/>
-                        <TextBlock Text="depth" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
-                        <TextBox x:Name="DiagramDepthBox" AutomationProperties.Name="Diagram depth" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="Levels to draw"/>
+                                 VerticalContentAlignment="Center" ToolTip="{l:T 'Filter types and instances by name; Enter draws the first'}"/>
+                        <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="{l:T 'Type or instance to draw'}" SelectionChanged="DiagramSourceBox_SelectionChanged"/>
+                        <TextBlock Text="{l:T 'depth'}" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
+                        <TextBox x:Name="DiagramDepthBox" AutomationProperties.Name="{l:T 'Diagram depth'}" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="{l:T 'Levels to draw'}"/>
                         <Button x:Name="DiagramShowButton" Click="DiagramShowButton_Click" Margin="4,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Create}"/>
-                                <TextBlock Text="Show" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Show'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE71E;" Foreground="{DynamicResource Plain}"/>
                         <Slider x:Name="DiagramZoom" Width="110" Minimum="0.2" Maximum="2" Value="1" ValueChanged="DiagramZoom_Changed"
-                                ToolTip="Zoom (Ctrl + mouse wheel)" VerticalAlignment="Center"/>
-                        <Button Click="DiagramFit_Click" ToolTip="Fit the diagram into the view" Margin="4,0,0,0">
-                            <TextBlock Text="Fit" Style="{StaticResource Label}"/>
+                                ToolTip="{l:T 'Zoom (Ctrl + mouse wheel)'}" VerticalAlignment="Center"/>
+                        <Button Click="DiagramFit_Click" ToolTip="{l:T 'Fit the diagram into the view'}" Margin="4,0,0,0">
+                            <TextBlock Text="{l:T 'Fit'}" Style="{StaticResource Label}"/>
                         </Button>
                         <Separator/>
-                        <Button x:Name="DiagramExportButton" Click="DiagramExportButton_Click" ToolTip="Save the diagram as SVG.">
+                        <Button x:Name="DiagramExportButton" Click="DiagramExportButton_Click" ToolTip="{l:T 'Save the diagram as SVG.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xEDE1;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Export SVG…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Export SVG…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <guide:HelpButton x:Name="DiagramHelp" Topic="diagram"/>
                     </ToolBar>
                     <TextBlock x:Name="DiagramInfo" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
-                               Text="Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type."/>
+                               Text="{l:T 'Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type.'}"/>
                     <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White"
                                   PreviewMouseWheel="DiagramScroll_PreviewMouseWheel">
                         <Canvas x:Name="DiagramCanvas" Margin="4" TextElement.Foreground="Black"/>
@@ -743,39 +746,39 @@
             </TabItem>
 
             <!-- ── Modeler: NodeSet.js in WebView2 ─────────────────────────── -->
-            <TabItem Header="Modeler" x:Name="ModelerTab">
+            <TabItem Header="{l:T 'Modeler'}" x:Name="ModelerTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
-                        <ComboBox x:Name="ModelerNamespaceBox" Width="300" ToolTip="A namespace of the document whose NodeSet is in a NodeSet folder"/>
-                        <Button x:Name="ModelerEditButton" Click="ModelerEdit_Click" ToolTip="Edit the NodeSet of this namespace in the modeler.">
+                        <ComboBox x:Name="ModelerNamespaceBox" Width="300" ToolTip="{l:T 'A namespace of the document whose NodeSet is in a NodeSet folder'}"/>
+                        <Button x:Name="ModelerEditButton" Click="ModelerEdit_Click" ToolTip="{l:T 'Edit the NodeSet of this namespace in the modeler.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE70F;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Edit" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Edit'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
-                        <TextBox x:Name="ModelerNewUriBox" Width="220" Text="http://example.org/MyModel/" VerticalContentAlignment="Center"
-                                 ToolTip="Namespace URI of a new model"/>
-                        <Button x:Name="ModelerNewButton" Click="ModelerNew_Click" ToolTip="Start a new model with this namespace URI.">
+                        <TextBox x:Name="ModelerNewUriBox" Width="220" Text="{l:T 'http://example.org/MyModel/'}" VerticalContentAlignment="Center"
+                                 ToolTip="{l:T 'Namespace URI of a new model'}"/>
+                        <Button x:Name="ModelerNewButton" Click="ModelerNew_Click" ToolTip="{l:T 'Start a new model with this namespace URI.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="{DynamicResource Create}"/>
-                                <TextBlock Text="New model" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'New model'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
-                        <Button Click="ModelerOpenFile_Click" ToolTip="Open a NodeSet2 file in the modeler.">
+                        <Button Click="ModelerOpenFile_Click" ToolTip="{l:T 'Open a NodeSet2 file in the modeler.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8E5;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="Open NodeSet file…" Style="{StaticResource Label}"/>
+                                <TextBlock Text="{l:T 'Open NodeSet file…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button Click="ModelerReload_Click" ToolTip="Reload the modeler page" AutomationProperties.Name="Reload the modeler">
+                        <Button Click="ModelerReload_Click" ToolTip="{l:T 'Reload the modeler page'}" AutomationProperties.Name="{l:T 'Reload the modeler'}">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE72C;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
                         <guide:HelpButton Topic="modeler"/>
                     </ToolBar>
                     <TextBlock x:Name="ModelerStatus" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
-                               Text="Edit a namespace of the document, start a new model, or open a NodeSet file. 'Apply to document' in the modeler imports the result."/>
+                               Text="{l:T 'Edit a namespace of the document, start a new model, or open a NodeSet file. \'Apply to document\' in the modeler imports the result.'}"/>
                     <wv2:WebView2 x:Name="ModelerView"/>
                 </DockPanel>
             </TabItem>
@@ -787,8 +790,8 @@
                         HorizontalAlignment="Center" VerticalAlignment="Center">
                     <StackPanel>
                         <TextBlock Text="&#xE8B5;" FontFamily="Segoe MDL2 Assets" FontSize="30" Foreground="#2070C0" HorizontalAlignment="Center" Margin="0,0,0,8"/>
-                        <TextBlock Text="Drop NodeSet files to import" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Each file becomes AutomationML libraries by OPC 10000-83 Annex A, with the models it requires."
+                        <TextBlock Text="{l:T 'Drop NodeSet files to import'}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{l:T 'Each file becomes AutomationML libraries by OPC 10000-83 Annex A, with the models it requires.'}"
                                    Foreground="{DynamicResource Ua.Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>

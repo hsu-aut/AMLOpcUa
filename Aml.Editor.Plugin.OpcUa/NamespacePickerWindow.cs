@@ -8,6 +8,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
@@ -28,17 +29,17 @@ public sealed class NamespacePickerWindow : Window
         {
             Columns =
             {
-                new GridViewColumn { Header = "Namespace", Width = 340, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Uri)) },
-                new GridViewColumn { Header = "Version", Width = 70, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Version)) },
-                new GridViewColumn { Header = "Published", Width = 84, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Published)) },
-                new GridViewColumn { Header = "NodeSet", Width = 110, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Source)) },
+                new GridViewColumn { Header = L.T("Namespace"), Width = 340, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Uri)) },
+                new GridViewColumn { Header = L.T("Version"), Width = 70, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Version)) },
+                new GridViewColumn { Header = L.T("Published"), Width = 84, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Published)) },
+                new GridViewColumn { Header = L.T("NodeSet"), Width = 110, DisplayMemberBinding = new System.Windows.Data.Binding(nameof(Row.Source)) },
             },
         },
     };
     private readonly CheckBox _instances = new()
     {
-        Content = "Include the namespace's objects",
-        ToolTip = "For the modeler or a file; an import takes the types, the objects come in through 'Take into document'.",
+        Content = L.T("Include the namespace's objects"),
+        ToolTip = L.T("For the modeler or a file; an import takes the types, the objects come in through 'Take into document'."),
     };
 
     public ServerNamespace? Selected { get; private set; }
@@ -65,13 +66,13 @@ public sealed class NamespacePickerWindow : Window
         var defaultAction = canImport ? NamespaceAction.Import : NamespaceAction.Modeler;
         _list.MouseDoubleClick += (_, __) => Accept(defaultAction);
 
-        DialogKit.Frame(this, "\uE8B5", DialogKit.Exchange, "Types of the server",
-            "Where the server publishes a namespace's NodeSet, that file is taken; otherwise the NodeSet is rebuilt by browsing, without documentation links and without nodes no reference leads to.",
+        DialogKit.Frame(this, "\uE8B5", DialogKit.Exchange, L.T("Types of the server"),
+            L.T("Where the server publishes a namespace's NodeSet, that file is taken; otherwise the NodeSet is rebuilt by browsing, without documentation links and without nodes no reference leads to."),
             _list, _instances,
-            Make("Import types", NamespaceAction.Import, canImport, canImport),
-            Make("Open in modeler", NamespaceAction.Modeler, true, !canImport),
-            Make("Save as…", NamespaceAction.Save, true, false),
-            DialogKit.Action("Cancel", cancel: true));
+            Make(L.T("Import types"), NamespaceAction.Import, canImport, canImport),
+            Make(L.T("Open in modeler"), NamespaceAction.Modeler, true, !canImport),
+            Make(L.T("Save as…"), NamespaceAction.Save, true, false),
+            DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 
     private void Accept(NamespaceAction action)
@@ -86,7 +87,7 @@ public sealed class NamespacePickerWindow : Window
         public string Uri => Namespace.Uri;
         public string Version => Namespace.Version ?? "";
         public string Published => Namespace.PublicationDate is { } d ? d.ToString("yyyy-MM-dd") : "";
-        public string Source => Namespace.HasFile ? "published file" : "by browsing";
+        public string Source => Namespace.HasFile ? L.T("published file") : L.T("by browsing");
         public override string ToString() => Uri;
     }
 }

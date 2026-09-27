@@ -3,6 +3,7 @@
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Microsoft.Win32;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -23,14 +24,14 @@ public sealed class FolderListWindow : Window
         _folders = new ObservableCollection<string>(folders);
         _list = new ListBox { ItemsSource = _folders };
 
-        var add = DialogKit.Action("Add…");
+        var add = DialogKit.Action(L.T("Add…"));
         add.Click += (_, __) =>
         {
-            var dialog = new OpenFolderDialog { Title = "Folder with NodeSet files" };
+            var dialog = new OpenFolderDialog { Title = L.T("Folder with NodeSet files") };
             if (dialog.ShowDialog(this) == true && !_folders.Contains(dialog.FolderName))
                 _folders.Add(dialog.FolderName);
         };
-        var remove = DialogKit.Action("Remove");
+        var remove = DialogKit.Action(L.T("Remove"));
         remove.Margin = new Thickness(6, 0, 0, 0);
         remove.Click += (_, __) =>
         {
@@ -40,13 +41,13 @@ public sealed class FolderListWindow : Window
         left.Children.Add(add);
         left.Children.Add(remove);
 
-        var ok = DialogKit.Action("OK", primary: true);
+        var ok = DialogKit.Action(L.T("OK"), primary: true);
         ok.Click += (_, __) => DialogResult = true;
 
         var body = new Grid();
         var empty = new TextBlock
         {
-            Text = "No folders yet. The folder of an imported NodeSet is searched anyway.",
+            Text = L.T("No folders yet. The folder of an imported NodeSet is searched anyway."),
             Foreground = DialogKit.Muted, Margin = new Thickness(8), IsHitTestVisible = false,
         };
         _folders.CollectionChanged += (_, __) => empty.Visibility = _folders.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -54,8 +55,8 @@ public sealed class FolderListWindow : Window
         body.Children.Add(_list);
         body.Children.Add(empty);
 
-        DialogKit.Frame(this, "", DialogKit.Plain, "NodeSet folders",
-            "Searched for NodeSets an import requires, after the NodeSet's own folder. The UA base model and DI are built in; a newer copy in a folder here wins.",
-            body, left, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Plain, L.T("NodeSet folders"),
+            L.T("Searched for NodeSets an import requires, after the NodeSet's own folder. The UA base model and DI are built in; a newer copy in a folder here wins."),
+            body, left, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 }

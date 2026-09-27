@@ -4,24 +4,26 @@
 
 using System.Globalization;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 
 namespace Aml.Editor.Plugin.OpcUa;
 
 public partial class OpcUaPlugin
 {
-    private readonly Dictionary<TextBox, (int Min, int Max, string What, object? Tip)> _numbers = new();
+    private readonly Dictionary<TextBox, (int Min, int Max, Func<int, int, string> Problem, object? Tip)> _numbers = new();
 
     private void InitNumberFields()
     {
-        Number(MirrorDepthBox, 0, 50, "depth");
-        Number(MirrorMaxNodesBox, 1, 1_000_000, "node limit");
-        Number(DiagramDepthBox, 1, 10, "diagram depth");
-        Number(ServePortBox, 1, 65535, "port");
+        // One whole sentence per field, with the range put in, so each can be translated as a sentence.
+        Number(MirrorDepthBox, 0, 50, (min, max) => L.T("Enter a whole number from {0} to {1} as depth.", min, max));
+        Number(MirrorMaxNodesBox, 1, 1_000_000, (min, max) => L.T("Enter a whole number from {0} to {1} as node limit.", min, max));
+        Number(DiagramDepthBox, 1, 10, (min, max) => L.T("Enter a whole number from {0} to {1} as diagram depth.", min, max));
+        Number(ServePortBox, 1, 65535, (min, max) => L.T("Enter a whole number from {0} to {1} as port.", min, max));
     }
 
-    private void Number(TextBox box, int min, int max, string what)
+    private void Number(TextBox box, int min, int max, Func<int, int, string> problem)
     {
-        _numbers[box] = (min, max, what, box.ToolTip);
+        _numbers[box] = (min, max, problem, box.ToolTip);
         box.TextChanged += (_, __) => Mark(box);
         Mark(box);
     }
@@ -50,8 +52,8 @@ public partial class OpcUaPlugin
 
     private string Problem(TextBox box)
     {
-        var (min, max, what, _) = _numbers[box];
-        return $"Enter a whole number from {min} to {max} as {what}.";
+        var (min, max, problem, _) = _numbers[box];
+        return problem(min, max);
     }
 
     /// <summary>True when every field is fine; else the first problem goes to the status line.</summary>

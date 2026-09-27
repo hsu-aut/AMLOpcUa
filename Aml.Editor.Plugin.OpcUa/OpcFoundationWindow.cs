@@ -4,6 +4,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.NodeSets;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -31,30 +32,30 @@ public sealed class OpcFoundationWindow : Window
         _search.Text = search ?? "";
         _search.TextChanged += (_, __) => Filter();
 
-        _import = DialogKit.Action("Download and import", primary: true);
+        _import = DialogKit.Action(L.T("Download and import"), primary: true);
         _import.IsEnabled = false;
         _import.Click += (_, __) =>
         {
             Selected = DialogKit.Selected<PublishedModel>(_results);
-            if (Selected == null) { DialogKit.ShowError(_info, "Choose a model."); return; }
+            if (Selected == null) { DialogKit.ShowError(_info, L.T("Choose a model.")); return; }
             DialogResult = true;
         };
         _results.MouseDoubleClick += (_, __) => _import.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
         _results.SelectionChanged += (_, __) => _import.IsEnabled = _results.SelectedItem != null;
 
-        var cloud = DialogKit.Action("UA Cloud Library…");
-        cloud.ToolTip = "Models of other publishers too; needs an account of uacloudlibrary.opcfoundation.org or an API key.";
+        var cloud = DialogKit.Action(L.T("UA Cloud Library…"));
+        cloud.ToolTip = L.T("Models of other publishers too; needs an account of uacloudlibrary.opcfoundation.org or an API key.");
         cloud.Click += (_, __) => { CloudLibraryWanted = true; DialogResult = false; };
-        var refresh = DialogKit.Action("Refresh list");
+        var refresh = DialogKit.Action(L.T("Refresh list"));
         refresh.Margin = new Thickness(6, 0, 0, 0);
-        refresh.ToolTip = "Ask GitHub for the current list now instead of using today's.";
+        refresh.ToolTip = L.T("Ask GitHub for the current list now instead of using today's.");
         refresh.Click += async (_, __) => await LoadAsync(refresh: true);
         var left = new StackPanel { Orientation = Orientation.Horizontal };
         left.Children.Add(cloud);
         left.Children.Add(refresh);
 
         var body = new DockPanel();
-        var box = DialogKit.WithPlaceholder(_search, "Name or namespace, e.g. Machinery or Robotics");
+        var box = DialogKit.WithPlaceholder(_search, L.T("Name or namespace, e.g. Machinery or Robotics"));
         ((FrameworkElement)box).Margin = new Thickness(0, 0, 0, 6);
         DockPanel.SetDock(box, Dock.Top);
         DockPanel.SetDock(_info, Dock.Bottom);
@@ -63,9 +64,9 @@ public sealed class OpcFoundationWindow : Window
         body.Children.Add(_info);
         body.Children.Add(_results);
 
-        DialogKit.Frame(this, "", DialogKit.Exchange, "Companion specifications",
-            "The NodeSets the OPC Foundation publishes (github.com/OPCFoundation/UA-Nodeset), downloaded with the models they require and imported. No account needed.",
-            body, left, _import, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Exchange, L.T("Companion specifications"),
+            L.T("The NodeSets the OPC Foundation publishes (github.com/OPCFoundation/UA-Nodeset), downloaded with the models they require and imported. No account needed."),
+            body, left, _import, DialogKit.Action(L.T("Cancel"), cancel: true));
         Loaded += async (_, __) =>
         {
             _search.Focus();
@@ -75,7 +76,7 @@ public sealed class OpcFoundationWindow : Window
 
     private async Task LoadAsync(bool refresh)
     {
-        DialogKit.ShowInfo(_info, "Reading the OPC Foundation's list …");
+        DialogKit.ShowInfo(_info, L.T("Reading the OPC Foundation's list …"));
         try
         {
             _models = await _source.ModelsAsync(refresh);
@@ -83,11 +84,11 @@ public sealed class OpcFoundationWindow : Window
         }
         catch (OpcFoundationNodeSetsException ex)
         {
-            DialogKit.ShowError(_info, ex.Message + " The UA Cloud Library is an alternative.");
+            DialogKit.ShowError(_info, L.T("{0} The UA Cloud Library is an alternative.", ex.Message));
         }
         catch (Exception ex)
         {
-            DialogKit.ShowError(_info, "The list could not be read: " + ex.Message);
+            DialogKit.ShowError(_info, L.T("The list could not be read: {0}", ex.Message));
         }
     }
 
@@ -97,6 +98,6 @@ public sealed class OpcFoundationWindow : Window
         _results.ItemsSource = found.Select(m => DialogKit.Entry(m.Folder.Length > 0 ? m.Folder : System.IO.Path.GetFileName(m.Path),
             $"{m.ModelUri}   {m.Version}" + (m.PublicationDate is { } d ? $" ({d:yyyy-MM-dd})" : ""), m)).ToList();
         if (_models.Count > 0)
-            DialogKit.ShowInfo(_info, found.Count == 0 ? "No model matches." : $"{found.Count} of {_models.Count} model(s).");
+            DialogKit.ShowInfo(_info, found.Count == 0 ? L.T("No model matches.") : L.T("{0} of {1} model(s).", found.Count, _models.Count));
     }
 }

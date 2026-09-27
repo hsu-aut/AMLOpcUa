@@ -4,6 +4,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.Server;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -27,16 +28,16 @@ public sealed class MirrorAgainWindow : Window
 
         foreach (var (mode, text) in new[]
                  {
-                     (VanishedNodes.Report, "keep them, list them in the log"),
-                     (VanishedNodes.Mark, "keep them, mark them with NotOnServer"),
-                     (VanishedNodes.Remove, "remove them from the document, after asking"),
+                     (VanishedNodes.Report, L.T("keep them, list them in the log")),
+                     (VanishedNodes.Mark, L.T("keep them, mark them with NotOnServer")),
+                     (VanishedNodes.Remove, L.T("remove them from the document, after asking")),
                  })
             _vanished.Items.Add(new ComboBoxItem { Content = text, Tag = mode });
         _vanished.SelectedIndex = (int)vanished;
 
-        _update.Content = Option("Update it",
-            "Values and types are read again, new nodes are added. Elements whose node the server no longer has:");
-        _copy.Content = Option("Take into a new InstanceHierarchy", "The earlier state stays as it is.");
+        _update.Content = Option(L.T("Update it"),
+            L.T("Values and types are read again, new nodes are added. Elements whose node the server no longer has:"));
+        _copy.Content = Option(L.T("Take into a new InstanceHierarchy"), L.T("The earlier state stays as it is."));
         _update.Checked += (_, __) => _vanished.IsEnabled = true;
         _copy.Checked += (_, __) => _vanished.IsEnabled = false;
 
@@ -46,10 +47,10 @@ public sealed class MirrorAgainWindow : Window
         _copy.Margin = new Thickness(0, 14, 0, 0);
         body.Children.Add(_copy);
 
-        var ok = DialogKit.Action("Take again", primary: true);
+        var ok = DialogKit.Action(L.T("Take again"), primary: true);
         ok.Click += (_, __) => DialogResult = true;
-        DialogKit.Frame(this, "", DialogKit.Exchange, "Take again",
-            $"'{hierarchy}' already holds what was taken from this server before.", body, null, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this,"", DialogKit.Exchange, L.T("Take again"),
+            L.T("'{0}' already holds what was taken from this server before.", hierarchy), body, null, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 
     private static UIElement Option(string title, string text)

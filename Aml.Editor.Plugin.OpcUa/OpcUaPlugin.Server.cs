@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
@@ -47,7 +48,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         public required string Node { get; init; }
         public string Where => Address.ToString();
         public string Value { get; private set; } = "";
-        public string Status { get; private set; } = "waiting for the first value";
+        public string Status { get; private set; } = L.T("waiting for the first value");
         public bool Good { get; private set; }
         public string Received { get; private set; } = "";
 
@@ -89,7 +90,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         if (e.Key != System.Windows.Input.Key.F5 || _client == null) return;
         e.Handled = true;
-        if (await LoadRootAsync()) SetStatus("Address space reloaded.");
+        if (await LoadRootAsync()) SetStatus(L.T("Address space reloaded."));
     }
 
     private void EndpointBox_KeyDown(object sender, KeyEventArgs e)
@@ -124,7 +125,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         _settings.UseSecurity = SecurityToggle.IsChecked == true;
         _settings.Save();
 
-        SetBusy(true, $"Connecting to {url} …");
+        SetBusy(true, L.T("Connecting to {0} …", url));
         try
         {
             _client = await ConnectWithTrustPromptAsync(url);
@@ -134,11 +135,11 @@ public partial class OpcUaPlugin : ISupportsSelection
                 if (!ReferenceEquals(_client, client)) return;
                 if (reachable) PluginLog.Info($"{url} answers again.");
                 else PluginLog.Warn($"{url} does not answer any more.");
-                SetStatus(reachable ? $"{url} answers again." : $"{url} does not answer any more. Disconnect, and connect again once it is back.");
+                SetStatus(reachable ? L.T("{0} answers again.", url) : L.T("{0} does not answer any more. Disconnect, and connect again once it is back.", url));
                 UpdateServerState();
             });
             PluginLog.Info($"Connected to {url} ({_client.SecurityMode}); {_client.NamespaceTable.Count} namespaces.");
-            SetStatus($"Connected to {url}.");
+            SetStatus(L.T("Connected to {0}.", url));
             RememberEndpoint(url);
             await LoadRootAsync();
         }
@@ -150,7 +151,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex)
         {
             PluginLog.Error($"Connecting to {url} failed", ex);
-            SetStatus($"Connecting to {url} failed: {ex.Message}");
+            SetStatus(L.T("Connecting to {0} failed: {1}", url, ex.Message));
         }
         finally
         {
@@ -180,16 +181,16 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (UaConnectionException ex) when (ex.UntrustedCertificate is { } certificate)
         {
             var dates = System.Globalization.CultureInfo.CurrentCulture;
-            var trust = DialogKit.Confirm(Window.GetWindow(this), "\uE72E", DialogKit.Verify, "Trust this server?",
-                $"The server at {url} presents a certificate this computer does not know. Trust it only if it is the server you mean: " +
-                "compare the fingerprint with the one its administrator gives you. Trusted, it is kept; a server that later shows another certificate is asked about again.",
-                "Trust this certificate",
+            var validFrom = certificate.NotBefore.ToString("d", dates);
+            var validTo = certificate.NotAfter.ToString("d", dates);
+            var trust = DialogKit.Confirm(Window.GetWindow(this), "\uE72E", DialogKit.Verify, L.T("Trust this server?"),
+                L.T("The server at {0} presents a certificate this computer does not know. Trust it only if it is the server you mean: compare the fingerprint with the one its administrator gives you. Trusted, it is kept; a server that later shows another certificate is asked about again.", url),
+                L.T("Trust this certificate"),
                 DialogKit.Facts(
-                    ("Subject", certificate.Subject, false),
-                    ("Issued by", certificate.Issuer == certificate.Subject ? "itself (self-signed)" : certificate.Issuer, false),
-                    ("Valid", $"{certificate.NotBefore.ToString("d", dates)} to {certificate.NotAfter.ToString("d", dates)}"
-                              + (certificate.NotAfter < DateTime.Now ? "  (expired)" : ""), false),
-                    ("SHA-256", certificate.Sha256, true)),
+                    (L.T("Subject"), certificate.Subject, false),
+                    (L.T("Issued by"), certificate.Issuer == certificate.Subject ? L.T("itself (self-signed)") : certificate.Issuer, false),
+                    (L.T("Valid"), certificate.NotAfter < DateTime.Now ? L.T("{0} to {1}  (expired)", validFrom, validTo) : L.T("{0} to {1}", validFrom, validTo), false),
+                    (L.T("SHA-256"), certificate.Sha256, true)),
                 risky: true);
             if (!trust) throw;
             UaClient.TrustServer(certificate, options.PkiRoot);
@@ -233,7 +234,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex)
         {
             PluginLog.Error("Watching failed", ex);
-            SetStatus("Watching failed: " + ex.Message);
+            SetStatus(L.T("Watching failed: {0}", ex.Message));
         }
         finally
         {
@@ -254,7 +255,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         var port = ValueOf(ServePortBox)!.Value;
         var network = ServeNetworkBox.IsChecked == true;
         var simulate = ServeSimulateBox.IsChecked == true;
-        SetBusy(true, "Starting the document server …");
+        SetBusy(true, L.T("Starting the document server …"));
         try
         {
             _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network, Simulate = simulate });
@@ -269,11 +270,15 @@ public partial class OpcUaPlugin : ISupportsSelection
                 if (!host.StructureChanged || _structureNoted) return;
                 _structureNoted = true;
                 PluginLog.Info("Elements were added or removed; restart serving to show them.");
-                SetStatus("The document server shows the values as they change; restart it to show added or removed elements.");
+                SetStatus(L.T("The document server shows the values as they change; restart it to show added or removed elements."));
             });
-            var message = $"Serving {_host.Nodes} node(s) of this document at {_host.EndpointUrl}, "
-                          + (network ? "to other computers too, to trusted clients only (Clients…)" : "to this computer only")
-                          + (simulate ? ", with simulated values." : ".");
+            var message = (network, simulate) switch
+            {
+                (true, true) => L.T("Serving {0} node(s) of this document at {1}, to other computers too, to trusted clients only (Clients…), with simulated values.", _host.Nodes, _host.EndpointUrl),
+                (true, false) => L.T("Serving {0} node(s) of this document at {1}, to other computers too, to trusted clients only (Clients…).", _host.Nodes, _host.EndpointUrl),
+                (false, true) => L.T("Serving {0} node(s) of this document at {1}, to this computer only, with simulated values.", _host.Nodes, _host.EndpointUrl),
+                _ => L.T("Serving {0} node(s) of this document at {1}, to this computer only.", _host.Nodes, _host.EndpointUrl),
+            };
             PluginLog.Info(message);
             SetStatus(message);
             if (_client == null) EndpointBox.Text = _host.EndpointUrl;
@@ -281,7 +286,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex)
         {
             PluginLog.Error("Starting the document server failed", ex);
-            SetStatus("Starting the document server failed: " + ex.Message);
+            SetStatus(L.T("Starting the document server failed: {0}", ex.Message));
         }
         finally
         {
@@ -301,7 +306,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         UpdateServerState();
         try { await host.DisposeAsync(); }
         catch (Exception ex) { PluginLog.Debug($"Stopping the document server: {ex.Message}"); }
-        var message = why == null ? "Document server stopped." : $"Document server stopped: {why}.";
+        var message = why == null ? L.T("Document server stopped.") : L.T("Document server stopped: {0}.", why);
         PluginLog.Info(message);
         SetStatus(message);
     }
@@ -310,26 +315,25 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// The clients a server offered to the network refused, to trust, and those
     /// it trusts, to keep or drop: checked means admitted.
     /// </summary>
-    private void ServeClients_Click(object sender, RoutedEventArgs e) => Guard("Changing the trusted clients", () =>
+    private void ServeClients_Click(object sender, RoutedEventArgs e) => Guard(L.T("Changing the trusted clients"), () =>
     {
         var refused = AmlServerHost.RejectedClients();
         var trusted = AmlServerHost.TrustedClients();
         if (refused.Count + trusted.Count == 0)
         {
-            SetStatus("No client has tried to connect to the document server over the network yet.");
+            SetStatus(L.T("No client has tried to connect to the document server over the network yet."));
             return;
         }
-        var rows = refused.Select(c => new ChecklistWindow.Row($"{c.Subject}  (refused)", c, false, c.Thumbprint))
+        var rows = refused.Select(c => new ChecklistWindow.Row(L.T("{0}  (refused)", c.Subject), c, false, c.Thumbprint))
             .Concat(trusted.Select(c => new ChecklistWindow.Row(c.Subject, c, true, c.Thumbprint))).ToList();
-        var window = new ChecklistWindow("Clients of the document server",
-            "Offered to the network, the document server admits only clients whose certificate is checked here. " +
-            "Check a refused client only if you know it; compare its thumbprint with the one the client shows.", rows, "\uE72E")
+        var window = new ChecklistWindow(L.T("Clients of the document server"),
+            L.T("Offered to the network, the document server admits only clients whose certificate is checked here. Check a refused client only if you know it; compare its thumbprint with the one the client shows."), rows, "\uE72E")
         { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         var admitted = window.Checked.Cast<ClientCertificate>().ToHashSet();
         foreach (var c in refused.Where(admitted.Contains)) { AmlServerHost.TrustClient(c); PluginLog.Info($"Trusted client {c.Subject} ({c.Thumbprint})."); }
         foreach (var c in trusted.Where(c => !admitted.Contains(c))) { AmlServerHost.DistrustClient(c); PluginLog.Info($"No longer trusted: {c.Subject} ({c.Thumbprint})."); }
-        SetStatus("Trusted clients changed; they apply from a client's next connection.");
+        SetStatus(L.T("Trusted clients changed; they apply from a client's next connection."));
     });
 
     private async Task DisconnectAsync()
@@ -344,7 +348,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         UpdateServerState();
         if (client != null) await client.DisposeAsync();
         PluginLog.Info("Disconnected.");
-        SetStatus("Disconnected.");
+        SetStatus(L.T("Disconnected."));
     }
 
     // ── address space tree ──────────────────────────────────────────────────
@@ -361,15 +365,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         var client = _client;
         if (node == null || client == null) return;
 
-        DetailRow("Name", node.DisplayName, bold: true);
-        DetailRow("Class", node.NodeClass);
-        DetailRow("NodeId", node.Address.ToString(), mono: true, copy: true);
-        if (node.BrowseName != node.DisplayName) DetailRow("BrowseName", node.BrowseName);
-        if (node.ReferenceType.Length > 0) DetailRow("Held by", node.ReferenceType);
-        var typeRow = node.TypeDefinition != null ? DetailRow("Type", node.TypeDefinition.ToString(), mono: true) : null;
-        var valueRow = node.NodeClass == "Variable" ? DetailRow("Value", "…", mono: true) : null;
+        DetailRow(L.T("Name"), node.DisplayName, bold: true);
+        DetailRow(L.T("Class"), node.NodeClass);
+        DetailRow(L.T("NodeId"), node.Address.ToString(), mono: true, copy: true);
+        if (node.BrowseName != node.DisplayName) DetailRow(L.T("BrowseName"), node.BrowseName);
+        if (node.ReferenceType.Length > 0) DetailRow(L.T("Held by"), node.ReferenceType);
+        var typeRow = node.TypeDefinition != null ? DetailRow(L.T("Type"), node.TypeDefinition.ToString(), mono: true) : null;
+        var valueRow = node.NodeClass == "Variable" ? DetailRow(L.T("Value"), "…", mono: true) : null;
         var element = MirroredElement(node.Address);
-        if (element != null) DetailRow("In document", ElementPath(element), select: element);
+        if (element != null) DetailRow(L.T("In document"), ElementPath(element), select: element);
 
         if (typeRow != null && node.TypeDefinition != null)
         {
@@ -378,7 +382,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 var type = await client.DescribeAsync(node.TypeDefinition);
                 if (version != _detailsVersion) return;
                 var inDocument = TypeIndex().ContainsKey(node.TypeDefinition with { ServerUri = null });
-                typeRow.Text = type.DisplayName + (inDocument ? "" : "   (not imported)");
+                typeRow.Text = inDocument ? type.DisplayName : L.T("{0}   (not imported)", type.DisplayName);
                 typeRow.FontFamily = FontFamily;
                 typeRow.ToolTip = node.TypeDefinition.ToString();
             }
@@ -393,7 +397,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 valueRow.Text = r.Good ? $"{r.ValueText}" : r.Status;
                 if (r.Good) valueRow.ClearValue(TextBlock.ForegroundProperty);
                 else valueRow.Foreground = new SolidColorBrush(Color.FromRgb(0xD0, 0x40, 0x40));
-                if (r.Good && r.DataType != null) DetailRow("DataType", r.DataType);
+                if (r.Good && r.DataType != null) DetailRow(L.T("DataType"), r.DataType);
             }
             catch (Exception ex) { valueRow.Text = ex.Message; }
         }
@@ -419,9 +423,9 @@ public partial class OpcUaPlugin : ISupportsSelection
             var button = new Button
             {
                 Content = new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE8C8", FontSize = 11 },
-                ToolTip = $"Copy the {label}", Padding = new Thickness(3, 1, 3, 1), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
+                ToolTip = L.T("Copy the {0}", label), Padding = new Thickness(3, 1, 3, 1), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
             };
-            System.Windows.Automation.AutomationProperties.SetName(button, $"Copy the {label}");
+            System.Windows.Automation.AutomationProperties.SetName(button, L.T("Copy the {0}", label));
             button.Click += (_, __) => CopyText(value);
             DockPanel.SetDock(button, Dock.Right);
             cell.Children.Add(button);
@@ -430,8 +434,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         {
             var link = new Button
             {
-                Content = "Select", Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
-                ToolTip = "Select the element in the editor",
+                Content = L.T("Select"), Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Top,
+                ToolTip = L.T("Select the element in the editor"),
             };
             link.Click += (_, __) => Selected?.Invoke(this, new SelectionEventArgs(select));
             DockPanel.SetDock(link, Dock.Right);
@@ -470,7 +474,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         var client = _client;
         if (client == null || _busy) return;
         IReadOnlyList<ServerNamespace> namespaces;
-        SetBusy(true, "Reading the server's namespaces …");
+        SetBusy(true, L.T("Reading the server's namespaces …"));
         try
         {
             namespaces = await ServerNodeSets.ListAsync(client);
@@ -478,7 +482,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex)
         {
             PluginLog.Error("Reading the namespaces failed", ex);
-            SetStatus("Reading the namespaces failed: " + ex.Message);
+            SetStatus(L.T("Reading the namespaces failed: {0}", ex.Message));
             return;
         }
         finally
@@ -491,7 +495,7 @@ public partial class OpcUaPlugin : ISupportsSelection
 
         var folder = Path.Combine(ServerNodeSetsFolder, SafeFileName(client.ServerUri ?? client.EndpointUrl));
         ServerNodeSetFiles files;
-        SetBusy(true, $"Reading the NodeSet of {ns.Uri} …");
+        SetBusy(true, L.T("Reading the NodeSet of {0} …", ns.Uri));
         try
         {
             Directory.CreateDirectory(ModelsFolder);
@@ -508,7 +512,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex)
         {
             PluginLog.Error($"Reading the NodeSet of {ns.Uri} failed", ex);
-            SetStatus($"Reading the NodeSet of {ns.Uri} failed: " + ex.Message);
+            SetStatus(L.T("Reading the NodeSet of {0} failed: {1}", ns.Uri, ex.Message));
             return;
         }
         finally
@@ -528,36 +532,36 @@ public partial class OpcUaPlugin : ISupportsSelection
                     Tabs.SelectedItem = ModelerTab;
                     await EnsureModelerAsync();
                     if (NodeSetInfo.TryRead(files.Paths[0]) is { } info) OpenInModeler(info, ModelerCatalog(folder));
-                    else SetStatus($"The NodeSet of {ns.Uri} could not be read back from {files.Paths[0]}.");
+                    else SetStatus(L.T("The NodeSet of {0} could not be read back from {1}.", ns.Uri, files.Paths[0]));
                     break;
                 case NamespaceAction.Save:
                     var dialog = new SaveFileDialog
                     {
-                        Title = $"Save the NodeSet of {ns.Uri}",
-                        Filter = "OPC UA NodeSet (*.xml)|*.xml",
+                        Title = L.T("Save the NodeSet of {0}", ns.Uri),
+                        Filter = L.T("OPC UA NodeSet (*.xml)|*.xml"),
                         FileName = Path.GetFileName(files.Paths[0]),
                     };
                     if (dialog.ShowDialog() != true) return;
                     File.Copy(files.Paths[0], dialog.FileName, true);
-                    SetStatus($"Saved the NodeSet of {ns.Uri} to {dialog.FileName}.");
+                    SetStatus(L.T("Saved the NodeSet of {0} to {1}.", ns.Uri, dialog.FileName));
                     break;
             }
         }
         catch (Exception ex)
         {
             PluginLog.Error($"Taking the NodeSet of {ns.Uri} failed", ex);
-            SetStatus($"Taking the NodeSet of {ns.Uri} failed: {ex.Message}");
+            SetStatus(L.T("Taking the NodeSet of {0} failed: {1}", ns.Uri, ex.Message));
         }
     }
 
-    private void BindButton_Click(object sender, RoutedEventArgs e) => Guard("Binding", () =>
+    private void BindButton_Click(object sender, RoutedEventArgs e) => Guard(L.T("Binding"), () =>
     {
         var node = SelectedNode;
         var document = _document;
         var client = _client;
         if (node == null || document == null || client == null) return;
 
-        var picker = new ElementPickerWindow(document, $"Bind {node.DisplayName} to") { Owner = Window.GetWindow(this) };
+        var picker = new ElementPickerWindow(document, L.T("Bind {0} to", node.DisplayName)) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } element) return;
 
         var bound = node.Address with { ServerUri = client.ServerUri };
@@ -566,17 +570,17 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (AddressingException) { /* an alias or browse path; replaced below after asking */ }
         var hasNodeId = element.Attribute["NodeId"] != null;
         if (hasNodeId && before != bound
-            && !DialogKit.Confirm(Window.GetWindow(this), "\uE71B", DialogKit.Relate, "Replace the binding?",
-                $"'{element.Name}' is bound to another node already. Binding it to {node.DisplayName} replaces that NodeId.",
-                "Replace",
-                DialogKit.Facts(("Now", before?.ToString() ?? "(a browse path or alias)", true), ("New", bound.ToString(), true)),
+            && !DialogKit.Confirm(Window.GetWindow(this), "\uE71B", DialogKit.Relate, L.T("Replace the binding?"),
+                L.T("'{0}' is bound to another node already. Binding it to {1} replaces that NodeId.", element.Name, node.DisplayName),
+                L.T("Replace"),
+                DialogKit.Facts((L.T("Now"), before?.ToString() ?? L.T("(a browse path or alias)"), true), (L.T("New"), bound.ToString(), true)),
                 risky: true))
             return;
 
         AnnexANodeId.Write(element, bound);
         var message = $"Bound {node.Address} to '{element.Name}'.";
         PluginLog.Info(message + (before != null && before != bound ? $" It was bound to {before}." : ""));
-        SetStatus(message + " Press Ctrl+S to save.");
+        SetStatus(L.T("Bound {0} to '{1}'.", node.Address, element.Name) + L.T(" Press Ctrl+S to save."));
         Selected?.Invoke(this, new SelectionEventArgs(element));
     });
 
@@ -584,18 +588,18 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var document = _document;
         if (document == null || _client == null) return;
-        SetBusy(true, "Reading current values …");
+        SetBusy(true, L.T("Reading current values …"));
         try
         {
             var result = await ValueSnapshot.ApplyAsync(document, _client);
             foreach (var p in result.Problems) PluginLog.Warn(p);
             PluginLog.Info($"Snapshot from {_client.EndpointUrl}: {result}.");
-            SetStatus($"Snapshot: {result}." + (result.Read > 0 ? " Press Ctrl+S to save." : ""));
+            SetStatus(L.T("Snapshot: {0}.", result) + (result.Read > 0 ? L.T(" Press Ctrl+S to save.") : ""));
         }
         catch (Exception ex)
         {
             PluginLog.Error("Snapshot failed", ex);
-            SetStatus("Snapshot failed: " + ex.Message);
+            SetStatus(L.T("Snapshot failed: {0}", ex.Message));
         }
         finally
         {
@@ -608,7 +612,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (_live != null)
         {
             await StopLiveAsync();
-            SetStatus("Live values stopped. Press Ctrl+S to save the last values.");
+            SetStatus(L.T("Live values stopped. Press Ctrl+S to save the last values."));
             return;
         }
         var document = _document;
@@ -627,19 +631,20 @@ public partial class OpcUaPlugin : ISupportsSelection
                 {
                     if ((DateTime.Now - _liveStatusShown).TotalSeconds < 1) return;
                     _liveStatusShown = DateTime.Now;
-                    SetStatus($"Live: {update.What} = {update.Value}  ·  {update.Updates} value(s) written.");
+                    SetStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
                 });
             foreach (var p in _live.Problems) PluginLog.Warn(p);
-            var message = $"Following {_live.Count} bound value(s) of {_client.EndpointUrl}"
-                          + (_live.Skipped > 0 ? $"; {_live.Skipped} bound to another server left out" : "") + ".";
+            var message = _live.Skipped > 0
+                ? L.T("Following {0} bound value(s) of {1}; {2} bound to another server left out.", _live.Count, _client.EndpointUrl, _live.Skipped)
+                : L.T("Following {0} bound value(s) of {1}.", _live.Count, _client.EndpointUrl);
             PluginLog.Info(message);
-            SetStatus(_live.Count == 0 ? "No element of this document is bound to this server." : message);
+            SetStatus(_live.Count == 0 ? L.T("No element of this document is bound to this server.") : message);
             if (_live.Count == 0) await StopLiveAsync();
         }
         catch (Exception ex)
         {
             PluginLog.Error("Live values failed", ex);
-            SetStatus("Live values failed: " + ex.Message);
+            SetStatus(L.T("Live values failed: {0}", ex.Message));
             await StopLiveAsync();
         }
         finally
@@ -668,9 +673,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         var parts = mode.Split(' ', 2);
         return parts[0] switch
         {
-            "None" => "not secured",
-            "Sign" => "signed" + (parts.Length > 1 ? ", " + parts[1] : ""),
-            "SignAndEncrypt" => "signed and encrypted" + (parts.Length > 1 ? ", " + parts[1] : ""),
+            "None" => L.T("not secured"),
+            "Sign" => parts.Length > 1 ? L.T("signed, {0}", parts[1]) : L.T("signed"),
+            "SignAndEncrypt" => parts.Length > 1 ? L.T("signed and encrypted, {0}", parts[1]) : L.T("signed and encrypted"),
             _ => mode,
         };
     }
@@ -681,7 +686,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         AddressTreeEmpty.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         // Not while connecting or while an operation uses the connection.
         ConnectButton.IsEnabled = !_busy;
-        ConnectText.Text = connected ? "Disconnect" : "Connect";
+        ConnectText.Text = connected ? L.T("Disconnect") : L.T("Connect");
         ConnectGlyph.Text = connected ? "\uE711" : "\uE703";
         EndpointBox.IsEnabled = !connected;
         SecurityToggle.IsEnabled = !connected;
@@ -700,11 +705,11 @@ public partial class OpcUaPlugin : ISupportsSelection
         BindButton.IsEnabled = hasNode;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         LiveButton.IsEnabled = !_liveStarting && (_live != null || (connected && _document != null && !_busy));
-        LiveText.Text = _live != null ? "Stop keeping values live" : "Keep document values live";
+        LiveText.Text = _live != null ? L.T("Stop keeping values live") : L.T("Keep document values live");
         LiveGlyph.Text = _live != null ? "\uE71A" : "\uE9D9";
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
-        ServeText.Text = _host != null ? "Stop serving" : "Serve";
+        ServeText.Text = _host != null ? L.T("Stop serving") : L.T("Serve");
         ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";
         ServeGlyph.Foreground = _host != null ? new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30)) : (Brush)FindResource("Create");
         ServeButton.IsEnabled = (_host != null || _document != null) && !_busy;
@@ -712,8 +717,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServeNetworkBox.IsEnabled = _host == null;
         ServeSimulateBox.IsEnabled = _host == null;
         var lost = connected && !_client!.Reachable;
-        ServerStateText.Text = (lost ? "Connection lost" : connected ? $"Connected  ·  {SecurityText(_client!.SecurityMode)}" : "Not connected")
-                               + (_host != null ? $"  ·  serving at {_host.EndpointUrl}" : "");
+        ServerStateText.Text = (lost ? L.T("Connection lost") : connected ? L.T("Connected  ·  {0}", SecurityText(_client!.SecurityMode)) : L.T("Not connected"))
+                               + (_host != null ? L.T("  ·  serving at {0}", _host.EndpointUrl) : "");
         ConnectionDot.Fill = new SolidColorBrush(lost ? Color.FromRgb(0xD1, 0x34, 0x38) : connected ? Color.FromRgb(0x2E, 0x9E, 0x4F) : Color.FromRgb(0x9A, 0xA0, 0xA6));
         var palette = ThemePalette.Current(this);
         ConnectionPill.Background = connected ? palette.PillOn : palette.PillIdle;
@@ -728,27 +733,27 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         if (_document is not { } document)
         {
-            SetStatus("Open a document first.");
+            SetStatus(L.T("Open a document first."));
             return;
         }
         var name = _documentPath != null ? Path.GetFileNameWithoutExtension(_documentPath) : "Document";
         var dialog = new SaveFileDialog
         {
-            Title = "Save a copy without server addresses",
-            Filter = "AutomationML (*.aml)|*.aml",
+            Title = L.T("Save a copy without server addresses"),
+            Filter = L.T("AutomationML (*.aml)|*.aml"),
             FileName = name + "-without-addresses.aml",
             InitialDirectory = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null,
         };
         if (dialog.ShowDialog() != true) return;
-        Guard("Saving the copy without server addresses", () =>
+        Guard(L.T("Saving the copy without server addresses"), () =>
         {
             var copy = new System.Xml.Linq.XDocument(document.CAEXFile.Node.Document!);
             var report = ServerAddresses.Strip(copy);
             copy.Save(dialog.FileName);
             PluginLog.Info($"Copy without server addresses: {dialog.FileName}: {report}");
             foreach (var place in report.Remaining) PluginLog.Warn($"A host name still appears in the copy: {place}");
-            SetStatus($"Saved {Path.GetFileName(dialog.FileName)}: {report}."
-                + (report.Remaining.Count > 0 ? " The log names each place." : ""));
+            SetStatus(L.T("Saved {0}: {1}.", Path.GetFileName(dialog.FileName), report)
+                + (report.Remaining.Count > 0 ? L.T(" The log names each place.") : ""));
         });
     }
 }

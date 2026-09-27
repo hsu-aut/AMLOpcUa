@@ -11,6 +11,7 @@ using Aml.Editor.Plugin.Contracts;
 using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.OpcUa.Guide;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Editor.Plugin.WPFBase;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
@@ -59,7 +60,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         PluginErrors.Install(Dispatcher, ex =>
         {
             PluginLog.Error("Unexpected error", ex);
-            SetStatus($"Something went wrong: {ex.Message} The log has the details.");
+            SetStatus(L.T("Something went wrong: {0} The log has the details.", ex.Message));
         });
 
         ReplaceToggle.IsChecked = _settings.ReplaceExistingLibraries;
@@ -150,7 +151,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         PluginLog.Warn("This editor version has no save command the plugin knows; \"Save after import\" is off. Save with Ctrl+S.");
         // The setting itself stays as the user chose it, for an editor where saving works.
         SaveToggle.IsEnabled = false;
-        SaveToggle.ToolTip = "Not available with this editor version: its save command was not found. Save with Ctrl+S.";
+        SaveToggle.ToolTip = L.T("Not available with this editor version: its save command was not found. Save with Ctrl+S.");
     }
 
     // ── plugin identity ─────────────────────────────────────────────────────
@@ -215,7 +216,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _document = null;
         _ = StopLiveAsync();
         // A closed document is not served on.
-        _ = StopServingAsync("the document was closed");
+        _ = StopServingAsync(L.T("the document was closed"));
         UpdateState();
         UpdateServerState();
         PluginLog.Info("Document closed.");
@@ -282,7 +283,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (!ReferenceEquals(_document, document))
         {
             _ = StopLiveAsync();
-            _ = StopServingAsync("another document was opened");
+            _ = StopServingAsync(L.T("another document was opened"));
             Watch(document);
         }
         _document = document;
@@ -303,15 +304,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
             PluginLog.Warn(StatusText.Text);
             return;
         }
 
         var dialog = new OpenFileDialog
         {
-            Title = "Import OPC UA NodeSet or ModelDesign",
-            Filter = "OPC UA NodeSet or ModelDesign (*.xml)|*.xml|All files (*.*)|*.*",
+            Title = L.T("Import OPC UA NodeSet or ModelDesign"),
+            Filter = L.T("OPC UA NodeSet or ModelDesign (*.xml)|*.xml|All files (*.*)|*.*"),
             InitialDirectory = folder ?? "",
         };
         if (dialog.ShowDialog() != true) return;
@@ -335,7 +336,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         // One import at a time: each merges into the document and clears the busy state when done.
         if (_importing)
         {
-            SetStatus($"An import is running; import {Path.GetFileName(file)} when it is done.");
+            SetStatus(L.T("An import is running; import {0} when it is done.", Path.GetFileName(file)));
             return false;
         }
         _importing = true;
@@ -380,13 +381,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 if (missing.Count == 0) break;
                 PluginLog.Warn($"{Path.GetFileName(file)} requires models that are not available: {string.Join(", ", missing.Select(m => m.ModelUri))}.");
                 if (await ResolveMissingAsync(file, missing)) continue;
-                SetStatus($"Import of {Path.GetFileName(file)} cancelled: required models are missing.");
+                SetStatus(L.T("Import of {0} cancelled: required models are missing.", Path.GetFileName(file)));
                 return false;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 PluginLog.Error($"Reading {file} failed", ex);
-                SetStatus($"{Path.GetFileName(file)} cannot be read: {ex.Message}");
+                SetStatus(L.T("{0} cannot be read: {1}", Path.GetFileName(file), ex.Message));
                 return false;
             }
         }
@@ -414,7 +415,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             if (!ReferenceEquals(_document, document))
             {
                 PluginLog.Warn($"{Path.GetFileName(file)} was converted after its document was closed; nothing was imported.");
-                SetStatus($"The document changed while {Path.GetFileName(file)} was converted; import it again into the open one.");
+                SetStatus(L.T("The document changed while {0} was converted; import it again into the open one.", Path.GetFileName(file)));
                 return false;
             }
             // Each phase is timed and logged: inside the editor an import has
@@ -443,19 +444,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             PluginLog.Info($"Import took: conversion {conversion.Duration.TotalSeconds:F1} s{(conversion.FromCache ? " (cache)" : "")}, "
                 + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
-            SetStatus(result.Summary + (more != null ? " " + more : "") + (saved ? " Saved." : " Press Ctrl+S to save."));
+            SetStatus(Summaries.Import(result) + (more != null ? " " + more : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
             return true;
         }
         catch (ImportException ex)
         {
             PluginLog.Error(ex.Message);
-            SetStatus("Import failed: " + ex.Message);
+            SetStatus(L.T("Import failed: {0}", ex.Message));
             return false;
         }
         catch (Exception ex)
         {
             PluginLog.Error("Import failed", ex);
-            SetStatus("Import failed: " + ex.Message);
+            SetStatus(L.T("Import failed: {0}", ex.Message));
             return false;
         }
         finally
@@ -471,7 +472,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus($"This document uses CAEX {document.CAEXFile.SchemaVersion}; OPC UA libraries need CAEX 3.0.");
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
             return;
         }
         var files = await DownloadFromCloudAsync("");
@@ -501,7 +502,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             ih.InternalElement.Insert(result.Instance, asFirst: false);
             var created = ih.InternalElement.Last();
 
-            var message = $"Created '{result.Instance.Name}' ({window.SelectedType.Name}) in '{ih.Name}' with {result.Included.Count} children.";
+            var message = L.T("Created '{0}' ({1}) in '{2}' with {3} children.", result.Instance.Name, window.SelectedType.Name, ih.Name, result.Included.Count);
             PluginLog.Info(message);
             if (result.Filled.Count > 0)
                 PluginLog.Info("Created for placeholders: " + string.Join(", ", result.Filled));
@@ -511,7 +512,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 PluginLog.Warn($"'{window.SelectedType.Name}' is abstract; OPC UA only instantiates concrete subtypes.");
 
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
-            SetStatus(message + (saved ? " Saved." : " Press Ctrl+S to save."));
+            SetStatus(message + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
             Selected?.Invoke(this, new SelectionEventArgs(created));
         }
         catch (InstantiationException ex)
@@ -522,7 +523,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         catch (Exception ex)
         {
             PluginLog.Error("Creating the instance failed", ex);
-            SetStatus("Creating the instance failed: " + ex.Message);
+            SetStatus(L.T("Creating the instance failed: {0}", ex.Message));
         }
     }
 
@@ -536,19 +537,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var findings = AnnexAChecker.Check(document);
             FindingList.ItemsSource = findings;
             var errors = findings.Count(f => f.Severity == Severity.Error);
-            CheckTab.Header = findings.Count == 0 ? "Check" : $"Check ({findings.Count})";
+            CheckTab.Header = findings.Count == 0 ? L.T("Check") : L.T("Check ({0})", findings.Count);
             CheckSummary.Text = findings.Count == 0
-                ? $"No findings in {document.CAEXFile.InstanceHierarchy.Count} instance hierarch{(document.CAEXFile.InstanceHierarchy.Count == 1 ? "y" : "ies")}."
-                : $"{errors} error(s), {findings.Count - errors} warning(s). Rules: "
-                  + string.Join("; ", findings.Select(f => f.Rule).Distinct().OrderBy(r => r).Select(r => $"{r} {Rules.Descriptions[r]}"));
+                ? L.T("No findings in {0} instance hierarchy(ies).", document.CAEXFile.InstanceHierarchy.Count)
+                : L.T("{0} error(s), {1} warning(s). Rules: ", errors, findings.Count - errors)
+                  + string.Join("; ", findings.Select(f => f.Rule).Distinct().OrderBy(r => r).Select(r => $"{r} {L.T(Rules.Descriptions[r])}"));
             Tabs.SelectedItem = CheckTab;
             PluginLog.Info($"Check: {errors} error(s), {findings.Count - errors} warning(s).");
-            SetStatus($"Check: {errors} error(s), {findings.Count - errors} warning(s).");
+            SetStatus(L.T("Check: {0} error(s), {1} warning(s).", errors, findings.Count - errors));
         }
         catch (Exception ex)
         {
             PluginLog.Error("Check failed", ex);
-            SetStatus("Check failed: " + ex.Message);
+            SetStatus(L.T("Check failed: {0}", ex.Message));
         }
     }
 
@@ -564,24 +565,23 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             var instances = planned.Select(c => c.ElementPath).Distinct().ToList();
             var list = string.Join(Environment.NewLine, planned.Take(15).Select(c => $"{c.ElementPath}  +{c.Added}"))
-                       + (planned.Count > 15 ? $"{Environment.NewLine}… and {planned.Count - 15} more" : "");
-            if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Create, $"Add {planned.Count} Mandatory child(ren)?",
-                    $"{instances.Count} instance(s) lack children their types now declare as Mandatory. They are added as a new instance would get them; " +
-                    "nothing that exists changes. Ctrl+Z in the editor does not take them back.",
-                    "Add", DialogKit.Facts(("Adds", list, false))))
+                       + (planned.Count > 15 ? Environment.NewLine + L.T("… and {0} more", planned.Count - 15) : "");
+            if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Create, L.T("Add {0} Mandatory child(ren)?", planned.Count),
+                    L.T("{0} instance(s) lack children their types now declare as Mandatory. They are added as a new instance would get them; nothing that exists changes. Ctrl+Z in the editor does not take them back.", instances.Count),
+                    L.T("Add"), DialogKit.Facts((L.T("Adds"), list, false))))
                 return;
         }
         var changes = InstanceUpgrader.UpgradeDocument(document);
         foreach (var c in changes) PluginLog.Info($"Added '{c.Added}' to {c.ElementPath}.");
         var message = changes.Count == 0
-            ? "All instances already have the Mandatory children of their types."
-            : $"Added {changes.Count} Mandatory child(ren) to {changes.Select(c => c.ElementPath).Distinct().Count()} instance(s). Press Ctrl+S to save.";
+            ? L.T("All instances already have the Mandatory children of their types.")
+            : L.T("Added {0} Mandatory child(ren) to {1} instance(s). Press Ctrl+S to save.", changes.Count, changes.Select(c => c.ElementPath).Distinct().Count());
         SetStatus(message);
         CheckButton_Click(sender, e);
         CheckSummary.Text = message + " " + CheckSummary.Text;
     }
 
-    private void LinkButton_Click(object sender, RoutedEventArgs e) => Guard("Linking", () =>
+    private void LinkButton_Click(object sender, RoutedEventArgs e) => Guard(L.T("Linking"), () =>
     {
         var document = _document;
         if (document == null) return;
@@ -590,7 +590,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (window.Linked != null)
         {
             PluginLog.Info($"Linked '{window.Linked.Name}' (VDI 3682) to OPC UA.");
-            SetStatus("VDI 3682 link set. Press Ctrl+S to save.");
+            SetStatus(L.T("VDI 3682 link set. Press Ctrl+S to save."));
             Selected?.Invoke(this, new SelectionEventArgs(window.Linked));
         }
     });
@@ -606,14 +606,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             : Path.GetFileNameWithoutExtension(document.CAEXFile.FileName ?? "document");
         var dialog = new SaveFileDialog
         {
-            Title = "Export as OPC UA NodeSet",
-            Filter = "OPC UA NodeSet (*.xml)|*.xml",
+            Title = L.T("Export as OPC UA NodeSet"),
+            Filter = L.T("OPC UA NodeSet (*.xml)|*.xml"),
             FileName = (string.IsNullOrEmpty(name) ? "document" : name) + ".NodeSet2.xml",
         };
         if (dialog.ShowDialog() != true) return;
         var options = new OpcUaAml.Export.NodeSetExportOptions { Mode = choice.Mode, NamespaceUri = choice.NamespaceUri };
 
-        SetBusy(true, "Exporting …");
+        SetBusy(true, L.T("Exporting …"));
         try
         {
             // The exporter reads the document; a copy of its XML keeps the
@@ -623,12 +623,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             nodeSet.Save(dialog.FileName);
             var nodes = nodeSet.Root?.Elements().Count(x => x.Name.LocalName.StartsWith("UA")) ?? 0;
             PluginLog.Info($"Exported {nodes} node(s) to {dialog.FileName}.");
-            SetStatus($"Exported {nodes} node(s) to {Path.GetFileName(dialog.FileName)}.");
+            SetStatus(L.T("Exported {0} node(s) to {1}.", nodes, Path.GetFileName(dialog.FileName)));
         }
         catch (Exception ex)
         {
             PluginLog.Error("Export failed", ex);
-            SetStatus("Export failed: " + ex.Message);
+            SetStatus(L.T("Export failed: {0}", ex.Message));
         }
         finally
         {
@@ -697,7 +697,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         var name = string.IsNullOrEmpty(current) ? "document" : Path.GetFileNameWithoutExtension(current);
         var dialog = new SaveFileDialog
         {
-            Title = "Save a CAEX 3.0 copy",
+            Title = L.T("Save a CAEX 3.0 copy"),
             Filter = "AutomationML (*.aml)|*.aml",
             FileName = name + "_CAEX3.0.aml",
         };
@@ -707,12 +707,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var upgraded = CaexUpgrade.ToCaex3(document);
             upgraded.SaveToFile(dialog.FileName, true);
             PluginLog.Info($"Wrote a CAEX 3.0 copy of {name} to {dialog.FileName}.");
-            SetStatus($"CAEX 3.0 copy written to {Path.GetFileName(dialog.FileName)}. Open it in the editor to import OPC UA libraries.");
+            SetStatus(L.T("CAEX 3.0 copy written to {0}. Open it in the editor to import OPC UA libraries.", Path.GetFileName(dialog.FileName)));
         }
         catch (Exception ex)
         {
             PluginLog.Error("Converting to CAEX 3.0 failed", ex);
-            SetStatus("Converting to CAEX 3.0 failed: " + ex.Message);
+            SetStatus(L.T("Converting to CAEX 3.0 failed: {0}", ex.Message));
         }
     }
 
@@ -720,27 +720,27 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         OpcUaAml.Import.ConversionCache.Default.Clear();
         PluginLog.Info($"Emptied the conversion cache ({OpcUaAml.Import.ConversionCache.Default.Folder}).");
-        SetStatus("Earlier conversions forgotten; the next import converts again.");
+        SetStatus(L.T("Earlier conversions forgotten; the next import converts again."));
     }
 
     /// <summary>The folders of NodeSets fetched from servers and the Cloud Library grow with every fetch; this empties them.</summary>
-    private void ForgetFetched_Click(object sender, RoutedEventArgs e) => Guard("Forgetting the fetched NodeSets", () =>
+    private void ForgetFetched_Click(object sender, RoutedEventArgs e) => Guard(L.T("Forgetting the fetched NodeSets"), () =>
     {
         var folders = new[] { ServerNodeSetsFolder, CloudCache, OpcfFolder }.Where(Directory.Exists).ToList();
         var files = folders.SelectMany(f => Directory.EnumerateFiles(f, "*", SearchOption.AllDirectories)).Select(f => new FileInfo(f)).ToList();
         if (files.Count == 0)
         {
-            SetStatus("No fetched NodeSets are kept.");
+            SetStatus(L.T("No fetched NodeSets are kept."));
             return;
         }
         var megabytes = files.Sum(f => f.Length) / 1048576.0;
-        if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Plain, "Forget fetched NodeSets?",
-                $"{files.Count} file(s), {megabytes:0.0} MB, taken from servers, the OPC Foundation and the Cloud Library. They are fetched again when an import needs them. " +
-                "Models applied from the modeler stay; the document is not changed.", "Forget"))
+        if (!DialogKit.Confirm(Window.GetWindow(this), "", DialogKit.Plain, L.T("Forget fetched NodeSets?"),
+                L.T("{0} file(s), {1:0.0} MB, taken from servers, the OPC Foundation and the Cloud Library. They are fetched again when an import needs them. Models applied from the modeler stay; the document is not changed.", files.Count, megabytes),
+                L.T("Forget")))
             return;
         foreach (var folder in folders) Directory.Delete(folder, recursive: true);
         PluginLog.Info($"Removed {files.Count} fetched NodeSet file(s) from {string.Join(" and ", folders)}.");
-        SetStatus($"Forgot {files.Count} fetched NodeSet file(s).");
+        SetStatus(L.T("Forgot {0} fetched NodeSet file(s).", files.Count));
     });
 
     private void FoldersButton_Click(object sender, RoutedEventArgs e)
@@ -796,8 +796,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Caex3Button.Visibility = doc != null && !usable ? Visibility.Visible : Visibility.Collapsed;
         Placeholder.Text = doc == null
-            ? "Open a CAEX 3.0 document to import OPC UA NodeSets."
-            : $"This document uses CAEX {doc.CAEXFile.SchemaVersion}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).";
+            ? L.T("Open a CAEX 3.0 document to import OPC UA NodeSets.")
+            : L.T("This document uses CAEX {0}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).", doc.CAEXFile.SchemaVersion);
 
         RefreshDiagramSources();
         var rows = usable
@@ -839,7 +839,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void ShowLogLink()
     {
-        LogLinkText.Text = _unseenProblems == 0 ? "Log" : $"Log ({_unseenProblems} new warning{(_unseenProblems == 1 ? "" : "s")})";
+        LogLinkText.Text = _unseenProblems == 0 ? L.T("Log") : L.T("Log ({0} new warning(s))", _unseenProblems);
         LogLinkGlyph.Visibility = _unseenProblems == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -850,7 +850,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         catch (Exception ex)
         {
             PluginLog.Error($"{what} failed", ex);
-            SetStatus($"{what} failed: {ex.Message}");
+            SetStatus(L.T("{0} failed: {1}", what, ex.Message));
         }
     }
 
@@ -858,7 +858,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     private void CopyText(string text)
     {
         try { Clipboard.SetText(text); }
-        catch (System.Runtime.InteropServices.ExternalException ex) { SetStatus("The clipboard is held by another program: " + ex.Message); }
+        catch (System.Runtime.InteropServices.ExternalException ex) { SetStatus(L.T("The clipboard is held by another program: {0}", ex.Message)); }
     }
 
     /// <summary>A log line as the list shows it: time, level, message.</summary>
@@ -933,7 +933,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         catch (Exception ex)
         {
-            SetStatus("The log file could not be opened: " + ex.Message);
+            SetStatus(L.T("The log file could not be opened: {0}", ex.Message));
         }
     }
 }

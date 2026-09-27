@@ -5,6 +5,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
+using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.Export;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -30,13 +31,10 @@ public sealed class ExportWindow : Window
         foreach (var uri in models) _namespaces.Items.Add(DialogKit.Entry(uri, "", uri, "", DialogKit.Exchange));
         if (models.Count > 0) _namespaces.SelectedIndex = 0;
 
-        _document.Content = Option("The document",
-            "Instances, classes and libraries by the rules of the AutomationML/OPC Foundation working group (AML-UA-XSLT). "
-            + "OPC UA models imported by Annex A become AML classes in UA, not the UA nodes they were.");
-        _model.Content = Option("An imported OPC UA model, as it was",
-            "The types, DataTypes, ReferenceTypes, methods and objects that OPC 10000-83 Annex A put into the document, "
-            + "written back as UA nodes with their NodeIds. Not a standard: the inverse of Annex A. "
-            + "What Annex A leaves out (Documentation, type dictionaries, empty strings) does not come back.");
+        _document.Content = Option(L.T("The document"),
+            L.T("Instances, classes and libraries by the rules of the AutomationML/OPC Foundation working group (AML-UA-XSLT). OPC UA models imported by Annex A become AML classes in UA, not the UA nodes they were."));
+        _model.Content = Option(L.T("An imported OPC UA model, as it was"),
+            L.T("The types, DataTypes, ReferenceTypes, methods and objects that OPC 10000-83 Annex A put into the document, written back as UA nodes with their NodeIds. Not a standard: the inverse of Annex A. What Annex A leaves out (Documentation, type dictionaries, empty strings) does not come back."));
         _model.IsEnabled = models.Count > 0;
         _namespaces.IsEnabled = false;
         _model.Checked += (_, __) => _namespaces.IsEnabled = true;
@@ -48,12 +46,12 @@ public sealed class ExportWindow : Window
         _model.Margin = new Thickness(0, 12, 0, 0);
         body.Children.Add(_model);
         if (models.Count > 0) body.Children.Add(_namespaces);
-        else body.Children.Add(new TextBlock { Text = "The document holds no OPC UA model imported by Annex A.", Foreground = DialogKit.Muted, Margin = new Thickness(22, 4, 0, 0) });
+        else body.Children.Add(new TextBlock { Text = L.T("The document holds no OPC UA model imported by Annex A."), Foreground = DialogKit.Muted, Margin = new Thickness(22, 4, 0, 0) });
 
-        var ok = DialogKit.Action("Export…", primary: true);
+        var ok = DialogKit.Action(L.T("Export…"), primary: true);
         ok.Click += (_, __) => Accept();
-        DialogKit.Frame(this, "", DialogKit.Exchange, "Export as OPC UA NodeSet",
-            "Choose what the NodeSet holds.", body, null, ok, DialogKit.Action("Cancel", cancel: true));
+        DialogKit.Frame(this, "", DialogKit.Exchange, L.T("Export as OPC UA NodeSet"),
+            L.T("Choose what the NodeSet holds."), body, null, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
     }
 
     private static UIElement Option(string title, string text)
