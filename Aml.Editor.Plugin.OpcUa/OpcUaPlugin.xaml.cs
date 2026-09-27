@@ -211,7 +211,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             Dispatcher.Invoke(DocumentUnLoaded);
             return;
         }
-        Watch(_document, false);
+        Watch(null);
         _document = null;
         _ = StopLiveAsync();
         // A closed document is not served on.
@@ -228,12 +228,19 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         catch { /* shutting down */ }
     }
 
-    /// <summary>Follows the document's changes, for the indexes the Server tab keeps of it.</summary>
-    private void Watch(CAEXDocument? document, bool on)
+    /// <summary>
+    /// The XML whose changes the plugin follows. Kept here, since the editor
+    /// unloads a document before it reports it closed, and an unloaded
+    /// document no longer names its XML.
+    /// </summary>
+    private System.Xml.Linq.XDocument? _watched;
+
+    /// <summary>Follows the document's changes, for the indexes the Server tab keeps of it; null stops.</summary>
+    private void Watch(CAEXDocument? document)
     {
-        if (document?.CAEXFile.Node.Document is not { } xml) return;
-        xml.Changed -= DocumentChanged;
-        if (on) xml.Changed += DocumentChanged;
+        if (_watched != null) _watched.Changed -= DocumentChanged;
+        _watched = document?.CAEXFile?.Node?.Document;
+        if (_watched != null) _watched.Changed += DocumentChanged;
         DocumentChanged(null, System.Xml.Linq.XObjectChangeEventArgs.Value);
     }
 
@@ -276,8 +283,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             _ = StopLiveAsync();
             _ = StopServingAsync("another document was opened");
-            Watch(_document, false);
-            Watch(document, true);
+            Watch(document);
         }
         _document = document;
         PluginLog.Debug($"Document attached: {document.CAEXFile?.FileName} (CAEX {document.CAEXFile?.SchemaVersion}).");
