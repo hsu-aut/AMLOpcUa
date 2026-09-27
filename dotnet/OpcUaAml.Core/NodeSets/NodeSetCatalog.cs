@@ -15,9 +15,15 @@ public sealed class NodeSetCatalog
     /// <summary>All known models, one entry per model URI.</summary>
     public IReadOnlyCollection<NodeSetInfo> NodeSets => _byUri.Values.Distinct().ToList();
 
-    /// <summary>The folder with the NodeSets bundled next to this assembly.</summary>
+    /// <summary>
+    /// The folder with the NodeSets bundled next to this assembly. Not the
+    /// program's folder: in the AML Editor the program is the editor, and the
+    /// plugin with its nodesets lies in a folder of its own.
+    /// </summary>
     public static string BundledFolder =>
-        Path.Combine(AppContext.BaseDirectory, "nodesets");
+        Path.Combine(typeof(NodeSetCatalog).Assembly.Location is { Length: > 0 } location
+            ? Path.GetDirectoryName(location)!
+            : AppContext.BaseDirectory, "nodesets");
 
     /// <summary>
     /// A catalog over the given folders. Folders listed first win when two

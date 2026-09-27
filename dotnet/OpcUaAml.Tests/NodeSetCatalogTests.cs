@@ -75,4 +75,31 @@ public class NodeSetCatalogTests
         var catalog = NodeSetCatalog.Create(new[] { @"Z:\does\not\exist" });
         Assert.Contains(catalog.Warnings, w => w.Contains("does not exist"));
     }
+
+    [Fact]
+    public void The_bundled_folder_is_next_to_the_library_not_the_program()
+    {
+        // As in the AML Editor: the program runs from its own folder, the
+        // plugin's libraries and their nodesets folder lie elsewhere.
+        var folder = Directory.CreateTempSubdirectory("bundled-").FullName;
+        try
+        {
+            var copy = Path.Combine(folder, "OpcUaAml.Core.dll");
+            File.Copy(typeof(NodeSetCatalog).Assembly.Location, copy);
+            var context = new System.Runtime.Loader.AssemblyLoadContext("elsewhere", isCollectible: true);
+            try
+            {
+                var catalog = context.LoadFromAssemblyPath(copy).GetType(typeof(NodeSetCatalog).FullName!)!;
+                var bundled = (string)catalog.GetProperty(nameof(NodeSetCatalog.BundledFolder))!.GetValue(null)!;
+
+                Assert.Equal(Path.Combine(folder, "nodesets"), bundled);
+            }
+            finally { context.Unload(); }
+        }
+        finally
+        {
+            try { Directory.Delete(folder, true); }
+            catch (UnauthorizedAccessException) { /* still loaded until collected */ }
+        }
+    }
 }

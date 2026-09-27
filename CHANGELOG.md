@@ -29,6 +29,15 @@ minor versions.
   the referenced library instead, and the editor no longer reports libraries
   that cannot be verified. The copy is still added when the referenced file
   lacks a class the import needs, and the report says which (`docs/import.md`).
+- Opening or closing a document in the AML Editor no longer raises "The PlugIn
+  AMLOpcUa raised an exception!". The editor unloads a document before it
+  tells the plugin, and the plugin failed on the unloaded one; it then kept
+  working on the closed document instead of the new one.
+- In the AML Editor the plugin finds the NodeSets it brings (the base model,
+  DI, the AutomationML libraries) next to itself. It looked in the editor's
+  folder, so it fetched the base model from the OPC Foundation although it
+  has it, and the export could not write values of base model and DI
+  structures.
 
 ## [0.1.3] - 2026-09-27
 
