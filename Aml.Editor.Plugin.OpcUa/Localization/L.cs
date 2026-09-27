@@ -4,6 +4,7 @@
 // the OPC UA stack or the conversion stay English, as the command line does.
 
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows.Markup;
 
 namespace Aml.Editor.Plugin.OpcUa.Localization;
@@ -11,7 +12,20 @@ namespace Aml.Editor.Plugin.OpcUa.Localization;
 public static class L
 {
     /// <summary>Whether texts are German; from Windows' display language, settable for tests.</summary>
-    public static bool German { get; set; } = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "de";
+    public static bool German { get; set; } = WindowsLanguage().TwoLetterISOLanguageName == "de";
+
+    /// <summary>
+    /// The display language of Windows. Not the UI culture of the process: the
+    /// AML Editor sets that to English for everything it runs, plugins included.
+    /// </summary>
+    internal static CultureInfo WindowsLanguage()
+    {
+        try { return new CultureInfo(GetUserDefaultUILanguage()); }
+        catch (CultureNotFoundException) { return CultureInfo.InstalledUICulture; }
+    }
+
+    [DllImport("kernel32.dll")]
+    private static extern ushort GetUserDefaultUILanguage();
 
     /// <summary>The language WebView2 gets, so the embedded modeler speaks the same.</summary>
     public static string Language => German ? "de-DE" : "en-US";

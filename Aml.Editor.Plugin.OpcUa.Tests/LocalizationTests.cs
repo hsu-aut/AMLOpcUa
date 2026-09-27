@@ -54,6 +54,26 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void The_language_is_Windows_and_not_what_the_host_process_sets()
+    {
+        // The AML Editor sets the UI culture of its whole process to English.
+        var before = System.Globalization.CultureInfo.CurrentUICulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("en");
+            var underEnglish = L.WindowsLanguage().Name;
+            System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("fr");
+            var underFrench = L.WindowsLanguage().Name;
+
+            Assert.Equal(underEnglish, underFrench);
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = before;
+        }
+    }
+
+    [Fact]
     public void A_text_is_German_when_Windows_is_and_keeps_its_values()
     {
         var german = L.German;
