@@ -14,8 +14,11 @@ using OpcUaAml.Addressing;
 
 namespace OpcUaAml.Types;
 
-/// <summary>One state of a machine, with the number the model gives it.</summary>
-public sealed record MachineState(string Name, int? Number, string? NodeId);
+/// <summary>The machine a state holds of its own (HasSubStateMachine), and the type of that machine.</summary>
+public sealed record SubMachine(string Name, string? TypeName);
+
+/// <summary>One state of a machine, with the number the model gives it and a machine of its own, if any.</summary>
+public sealed record MachineState(string Name, int? Number, string? NodeId, SubMachine? SubMachine = null);
 
 /// <summary>One transition, with where it leads and what causes it.</summary>
 public sealed record MachineTransition(string Name, int? Number, string? From, string? To, string? Cause);
@@ -62,7 +65,8 @@ public static class StateMachines
                 if (!seen.Add(child.Name)) continue;
                 if (Is(child, StateType))
                 {
-                    states.Add(new MachineState(child.Name, Number(child, "StateNumber"), NodeIdOf(child)));
+                    states.Add(new MachineState(child.Name, Number(child, "StateNumber"), NodeIdOf(child),
+                        SubMachineOf(t, End(child, "HasSubStateMachine"))));
                 }
                 else if (Is(child, TransitionType))
                 {
@@ -118,17 +122,28 @@ public static class StateMachines
     /// machine type, but may sit anywhere the model puts it, so the document
     /// is asked for the node itself when the type does not hold it.
     /// </summary>
-    private static string? CauseName(SystemUnitFamilyType type, string? cause)
+    private static string? CauseName(SystemUnitFamilyType type, string? cause) => (Node(type, cause) as CAEXObject)?.Name;
+
+    /// <summary>
+    /// The machine a state holds of its own: a component of the machine type,
+    /// which the state names through HasSubStateMachine (OPC 10000-5 Annex B).
+    /// </summary>
+    private static SubMachine? SubMachineOf(SystemUnitFamilyType type, string? machine) =>
+        Node(type, machine) is InternalElementType element
+            ? new SubMachine(element.Name, UaTypes.TypeOf(element)?.Name)
+            : null;
+
+    /// <summary>The node a reference leads to, in the type first, else anywhere in the document.</summary>
+    private static CAEXBasicObject? Node(SystemUnitFamilyType type, string? nodeId)
     {
-        if (cause is null) return null;
+        if (nodeId is null) return null;
         foreach (var t in UaTypes.Chain(type))
         {
             foreach (var child in t.InternalElement)
             {
-                if (NodeIdOf(child) == cause) return child.Name;
+                if (NodeIdOf(child) == nodeId) return child;
             }
         }
-        var element = type.CAEXDocument?.FindByID(Uri.EscapeDataString(cause), true, null);
-        return (element as CAEXObject)?.Name;
+        return type.CAEXDocument?.FindByID(Uri.EscapeDataString(nodeId), true, null) as CAEXBasicObject;
     }
 }

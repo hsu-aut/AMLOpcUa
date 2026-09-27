@@ -51,6 +51,12 @@ The ends of a transition are not hierarchical references; Annex A writes them
 as ExternalInterfaces (FromState, ToState, HasCause) whose `ReferenceIds`
 name the node they lead to, escaped as the element IDs are.
 
+A state may hold a machine of its own (HasSubStateMachine, written the same
+way): the machine is a component of the machine type, and the state names it.
+The chart draws such a state with a second outline and the type of its
+machine below it, as the modeler does, and the state table of the
+documentation gets a column for it.
+
 ## Why WPF and not diagram-js
 
 The plan was a WebView2 with diagram-js, as in the FPB and Petri net plugins.

@@ -156,9 +156,18 @@ public static class ModelDocumentation
 
         if (machine.States.Count > 0)
         {
-            html.Append("<table><thead><tr><th>State</th><th>Number</th></tr></thead><tbody>");
+            var subs = machine.States.Any(s => s.SubMachine != null);
+            html.Append("<table><thead><tr><th>State</th><th>Number</th>").Append(subs ? "<th>Sub-state machine</th>" : "").Append("</tr></thead><tbody>");
             foreach (var state in machine.States)
-                html.Append($"<tr><td>{E(state.Name)}</td><td>{state.Number?.ToString(CultureInfo.InvariantCulture) ?? ""}</td></tr>");
+            {
+                html.Append($"<tr><td>{E(state.Name)}</td><td>{state.Number?.ToString(CultureInfo.InvariantCulture) ?? ""}</td>");
+                if (subs)
+                {
+                    var sub = state.SubMachine;
+                    html.Append($"<td>{E(sub == null ? "" : sub.TypeName == null ? sub.Name : $"{sub.Name} ({sub.TypeName})")}</td>");
+                }
+                html.Append("</tr>");
+            }
             html.Append("</tbody></table>");
         }
         if (machine.Transitions.Count > 0)

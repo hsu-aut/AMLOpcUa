@@ -50,6 +50,27 @@ public class StateMachineTests(MachineDocument machine, ITestOutputHelper output
     }
 
     [Fact]
+    public void A_state_with_a_machine_of_its_own_names_it_and_its_type()
+    {
+        var read = StateMachines.Read(machine.Type("PumpStateMachineType"));
+
+        // The sub-machine is a component of the machine type, not a state of it.
+        Assert.Equal(["Idle", "Running", "Fault"], read.States.Select(s => s.Name));
+        var fault = read.States.Single(s => s.Name == "Fault");
+        Assert.Equal(new SubMachine("FaultHandling", "FaultHandlingStateMachineType"), fault.SubMachine);
+        Assert.Null(read.States.Single(s => s.Name == "Idle").SubMachine);
+    }
+
+    [Fact]
+    public void A_state_with_a_machine_of_its_own_is_drawn_with_a_second_outline_and_the_type()
+    {
+        var svg = StateChart.Svg(StateMachines.Read(machine.Type("PumpStateMachineType")));
+
+        Assert.Equal(1, svg.Split("rx=\"12\"").Length - 1);
+        Assert.Contains(">FaultHandlingStateMachineType<", svg);
+    }
+
+    [Fact]
     public void The_machine_is_drawn_as_a_state_chart()
     {
         var read = StateMachines.Read(machine.Type("PumpStateMachineType"));
@@ -102,5 +123,7 @@ public class StateMachineTests(MachineDocument machine, ITestOutputHelper output
         Assert.Contains("<th>Transition</th>", html);
         Assert.Contains("<td>IdleToRunning</td>", html);
         Assert.Contains("<summary>State chart</summary>", html);
+        Assert.Contains("<th>Sub-state machine</th>", html);
+        Assert.Contains("<td>FaultHandling (FaultHandlingStateMachineType)</td>", html);
     }
 }

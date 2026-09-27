@@ -20,6 +20,10 @@ minor versions.
   not at all. Before, only the types were taken (`docs/modeler.md`).
 - The plugin logs how long each part of an import takes: conversion, merge,
   the editor updating its trees, saving.
+- State charts and the documentation show a state that holds a machine of its
+  own (HasSubStateMachine): a second outline and the machine's type below it,
+  and a column in the state table, as the modeler draws it
+  (`docs/diagram.md`).
 
 ### Fixed
 
