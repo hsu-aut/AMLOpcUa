@@ -184,6 +184,14 @@ namespace MarkdownProcessor
             m_cAEXDocument = CAEXDocument.New_CAEXDocument();
             var cAEXDocumentTemp = CAEXDocument.New_CAEXDocument();
 
+            // Patch 0011: these documents are the converter's own. A host that
+            // records changes for undo (the AutomationML Editor registers an
+            // UndoRedoService for the whole process) recorded every one of
+            // their changes, and the editor answers each on its UI thread: an
+            // import that takes seconds on the command line took minutes there.
+            Aml.Engine.Services.ServiceLocator.UndoRedoService?.Pause(m_cAEXDocument);
+            Aml.Engine.Services.ServiceLocator.UndoRedoService?.Pause(cAEXDocumentTemp);
+
             // adds the base libraries to the document
             AutomationMLInterfaceClassLibType.InterfaceClassLib(m_cAEXDocument);
             AutomationMLBaseRoleClassLibType.RoleClassLib(m_cAEXDocument);

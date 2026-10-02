@@ -41,6 +41,12 @@ minor versions.
   AMLOpcUa raised an exception!". The editor unloads a document before it
   tells the plugin, and the plugin failed on the unloaded one; it then kept
   working on the closed document instead of the new one.
+- An import in the AML Editor takes about as long as on the command line
+  instead of freezing the editor for many minutes. Aml.Engine recorded every
+  change of the converter's own documents in the editor's undo history (1.5
+  million for a small model), and the editor answered each on its UI thread.
+  The converter now keeps its documents out of it (Opc2Aml patch 0011). The
+  import also logs when it starts, and its progress text is translated.
 - In the AML Editor the plugin finds the NodeSets it brings (the base model,
   DI, the AutomationML libraries) next to itself. It looked in the editor's
   folder, so it fetched the base model from the OPC Foundation although it

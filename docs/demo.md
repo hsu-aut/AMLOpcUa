@@ -41,7 +41,7 @@ question "what did it just do" without leaving the screen.
 1. Import the NodeSet into the document. The libraries appear: SUC per
    ObjectType, AttributeType per DataType, InterfaceClass per ReferenceType.
    That is OPC 10000-83 Annex A, and the conversion is the OPC Foundation's own
-   Opc2Aml, vendored with eight patches we wrote.
+   Opc2Aml, vendored with eleven patches we wrote.
 2. Namespaces tab, select the model: what it brings, what it builds on, what
    uses it, its types.
 3. **New instance** of PumpType: every Mandatory child appears, the Optional

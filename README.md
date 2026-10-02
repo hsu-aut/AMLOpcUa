@@ -25,7 +25,7 @@ OPC UA information models in AutomationML.
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
 the OPC Foundation's reference implementation of Annex A, included as source
-with eight documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
+with eleven documented patches (see [third_party/Opc2Aml/UPSTREAM.md](third_party/Opc2Aml/UPSTREAM.md)).
 
 The counterparts for the Formalised Process Description (VDI/VDE 3682) and for
 Petri nets are [AMLFPB.js](https://github.com/hsu-aut/AMLFPB.js) and
