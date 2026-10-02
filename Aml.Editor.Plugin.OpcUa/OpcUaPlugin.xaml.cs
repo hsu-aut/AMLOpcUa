@@ -398,7 +398,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             DocumentFolder = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null,
         };
 
-        SetBusy(true, $"Converting {Path.GetFileName(file)} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.");
+        // Logged before the work starts, so an import that never ends still leaves a trace.
+        PluginLog.Info($"Importing {file}.");
+        SetBusy(true, L.T("Converting {0} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.", Path.GetFileName(file)));
         try
         {
             // The conversion reads whole NodeSets and takes seconds, so it runs

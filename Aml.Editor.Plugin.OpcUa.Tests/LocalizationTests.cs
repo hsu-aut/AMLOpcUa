@@ -48,6 +48,18 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void No_status_text_goes_past_the_translation()
+    {
+        var bypassing = Directory.EnumerateFiles(PluginFolder(), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .SelectMany(f => File.ReadAllLines(f).Select(line => (File: Path.GetFileName(f), Line: line.Trim())))
+            .Where(l => Regex.IsMatch(l.Line, @"\b(SetStatus|SetBusy)\((\w+,\s*)?\$?""[^""]"))
+            .Select(l => $"{l.File}: {l.Line}");
+
+        Assert.Empty(bypassing);
+    }
+
+    [Fact]
     public void The_German_writes_no_dash_where_it_would_pause()
     {
         Assert.DoesNotContain(De.Texts.Values, v => Regex.IsMatch(v, " [-–—] ") || v.Contains('—'));

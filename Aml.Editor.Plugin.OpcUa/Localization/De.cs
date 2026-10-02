@@ -149,6 +149,7 @@ internal static class De
         ["Connecting to {0} failed: {1}"] = "Verbindung mit {0} fehlgeschlagen: {1}",
         ["Connecting to {0} …"] = "Verbindung mit {0} wird aufgebaut …",
         ["Connection lost"] = "Verbindung verloren",
+        ["Converting {0} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache."] = "{0} wird umgewandelt … Die erste Umwandlung eines NodeSets dauert bis zu einer Minute; spätere kommen aus dem Cache.",
         ["Converting to CAEX 3.0 failed: {0}"] = "Umwandlung in CAEX 3.0 fehlgeschlagen: {0}",
         ["Copy all"] = "Alles kopieren",
         ["Copy namespace URI"] = "Namespace-URI kopieren",
