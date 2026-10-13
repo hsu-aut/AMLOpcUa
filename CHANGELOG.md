@@ -9,6 +9,8 @@ minor versions.
 
 ### Added
 
+- A user manual, `docs/manual.md`, with pictures taken in the AutomationML
+  Editor.
 - The plugin speaks German when the display language of Windows is German,
   and hands the language to the embedded modeler (NodeSet.js), which speaks it
   too. `AMLOPCUA_LANGUAGE=en` or `de` overrides it. Messages that come verbatim from the OPC UA stack, the conversion or
