@@ -247,6 +247,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private bool _released;
 
+    /// <summary>Cancelled when the plugin ends, which stops a conversion still running.</summary>
+    private readonly CancellationTokenSource _closing = new();
+
     /// <summary>
     /// Ends what outlives the view otherwise: the session with its
     /// subscriptions, the document server and its port, the modeler, the log
@@ -256,6 +259,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         if (_released) return;
         _released = true;
+        try { _closing.Cancel(); }
+        catch (ObjectDisposedException) { /* shutting down */ }
         PluginLog.OnLine -= AppendLog;
         HelpButton.Opened -= OnHelpOpened;
         HelpButton.LessonRequested -= OnLessonRequested;
@@ -403,15 +408,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SetBusy(true, L.T("Converting {0} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.", Path.GetFileName(file)));
         try
         {
-            // The conversion reads whole NodeSets and takes seconds, so it runs
-            // off the UI thread. It does not touch the open document; only the
-            // merge below does, back on the UI thread.
-            var (conversion, catalog) = await Task.Run(() =>
-            {
-                var cat = NodeSetCatalog.Create(folders);
-                return (NodeSetImporter.Convert(file, cat), cat);
-            });
-            foreach (var note in catalog.Warnings) PluginLog.Debug(note);
+            // The conversion runs in a process of its own (ConverterProcess):
+            // inside the editor, Aml.Engine's process wide services made it
+            // take minutes. Only the merge below touches the open document.
+            var (conversion, notes) = await ConverterProcess.ConvertAsync(file, folders, token: _closing.Token);
+            foreach (var note in notes) PluginLog.Debug(note);
 
             // The user may have closed the document, or opened another, meanwhile.
             if (!ReferenceEquals(_document, document))
@@ -448,6 +449,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
             SetStatus(Summaries.Import(result) + (more != null ? " " + more : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
             return true;
+        }
+        catch (OperationCanceledException)
+        {
+            // The plugin is ending; the converter was stopped with it.
+            return false;
         }
         catch (ImportException ex)
         {

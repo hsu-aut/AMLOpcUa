@@ -37,7 +37,7 @@ AMLPetriNet.
 |---|---|
 | `Aml.Editor.Plugin.OpcUa/` | AutomationML Editor plugin |
 | `dotnet/OpcUaAml.Core/` | Library: NodeSet catalog, import, merge, export, comparison |
-| `dotnet/OpcUaAml.Tool/` | Command line tool `uaaml` |
+| `dotnet/OpcUaAml.Tool/` | Command line tool `uaaml`; the plugin also brings it as its converter (`converter/`), which runs in a process of its own |
 | `Aml.Editor.Plugin.OpcUa.Tests/` | Tests of the plugin's code that needs no editor (the safety net for exceptions) |
 | `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes and with the unit tests of AML-UA-XSLT |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |

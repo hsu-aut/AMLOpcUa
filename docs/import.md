@@ -149,12 +149,30 @@ while the FX NodeSets of the tag define it in FX Data.
   Value (`ConversionIds`), and patch 0005 compares IDs ordinally. Most of the
   rest is spent inside Aml.Engine (service lookups, path queries, class
   instances).
-- **IDs while converting.** For the conversion the plugin puts its own ID
+- **IDs while converting.** For the conversion the importer puts its own ID
   service in Aml.Engine's process-wide service locator (`ConversionIds`, a
-  sixth faster). The editor and other plugins get their IDs from it in those
-  seconds too: unique GUIDs as before, and none only for elements without an
-  ID. The earlier service comes back at the end, unless another one was
-  registered meanwhile.
+  sixth faster). Anything else in the same process gets its IDs from it in
+  those seconds too: unique GUIDs as before, and none only for elements
+  without an ID. The earlier service comes back at the end, unless another
+  one was registered meanwhile. In the plugin that process is the converter's,
+  not the editor's (next point).
+- **The plugin converts in a process of its own.** It runs the converter it
+  brings (`converter\uaaml.exe convert`, `ConverterProcess`) and reads the
+  result back (`ConversionTransfer`: the document as AML, the rest as JSON
+  beside it). Inside the AutomationML Editor, Aml.Engine is the editor's, in
+  its version and with the services it registers for the whole process. Its
+  undo service recorded every change of the converter's documents (1.5
+  million for a small model with the UA base model) and the editor answered
+  each one on its UI thread; its unique name service rewrote the references
+  of the whole document on every inserted element, and can rename an element
+  that has the name of an inherited one, which Annex A uses to override it.
+  An import of Machinery that takes 21 s on the command line had not finished
+  after half an hour and froze the editor. In a process of its own the
+  conversion is the one the command line and the tests run, with the
+  Aml.Engine it was built against; a converter that crashes (a stack
+  overflow, say) no longer ends the editor, and its memory is given back.
+  Opc2Aml patch 0011 keeps the converter's documents out of a registered undo
+  service anyway, for any other host.
 - **One at a time.** Aml.Engine keeps static state while Opc2Aml copies
   classes and resolves paths; two conversions at once, or a document loaded
   during one, failed with "Collection was modified". Conversions and document

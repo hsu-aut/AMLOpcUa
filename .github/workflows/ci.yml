@@ -74,7 +74,9 @@ jobs:
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $root = 'lib/net8.0-windows7.0'
           $required = @('Aml.Editor.Plugin.OpcUa.dll', 'OpcUaAml.Core.dll', 'Opc2Aml.dll', 'WebView2Loader.dll',
-                        'nodesets/Opc.Ua.NodeSet2.xml', 'nodesets/Opc.Ua.Di.NodeSet2.xml', 'modeler-assets/index.html')
+                        'nodesets/Opc.Ua.NodeSet2.xml', 'nodesets/Opc.Ua.Di.NodeSet2.xml', 'modeler-assets/index.html',
+                        'converter/uaaml.exe', 'converter/uaaml.dll', 'converter/uaaml.runtimeconfig.json',
+                        'converter/Aml.Engine.dll', 'converter/Opc2Aml.dll', 'converter/nodesets/Opc.Ua.NodeSet2.xml')
           foreach ($package in $packages) {
             $zip = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
             try {
@@ -84,7 +86,9 @@ jobs:
               }
               if (-not ($names -like "$root/modeler-assets/main.*.js")) { throw "$($package.Name) lacks the modeler's script." }
               if ($names -like '*Aml.Editor.Plugin.Contract.dll') { throw "$($package.Name) carries the contract assembly; the editor would not load the plugin." }
-              Write-Host "$($package.Name): $($names.Count) entries, modeler included."
+              # The converter keeps its own Aml.Engine; one beside the plugin would be loaded into the plugin's context.
+              if ($names -contains "$root/Aml.Engine.dll") { throw "$($package.Name) carries Aml.Engine.dll beside the plugin." }
+              Write-Host "$($package.Name): $($names.Count) entries, modeler and converter included."
             }
             finally { $zip.Dispose() }
           }

@@ -30,6 +30,12 @@ public static class Program
             required and receives a new document.
             --keep   keep libraries the document already has instead of replacing them
 
+        uaaml convert <NodeSet.xml> [--search <dir>]... -o <out.aml>
+            Convert the NodeSet according to OPC 10000-83 Annex A into a document
+            of its own, and describe the result in <out.aml>.json (models loaded,
+            warnings). The AutomationML Editor plugin converts this way, in a
+            process of its own.
+
         uaaml types <doc.aml> [--filter <text>] [--abstract]
             The UA types (SystemUnitClasses of SUC_ libraries) in a document.
 
@@ -212,6 +218,7 @@ public static class Program
             {
                 "info" => Info(rest),
                 "import" => Import(rest),
+                "convert" => Convert(rest),
                 "export" => ExportCommand(rest),
                 "compare" => CompareCommand(rest),
                 "types" => TypesCommand(rest),
@@ -320,6 +327,19 @@ public static class Program
         foreach (var c in result.Merge.Changes) Console.WriteLine($"{c.Action,-8} {c.Kind,-18} {c.Name}" + (c.Note != null ? $"  ({c.Note})" : ""));
         Documents.Save(target, output);
         Console.WriteLine(result.Summary);
+        Console.WriteLine($"Written to {Path.GetFullPath(output)}");
+        return 0;
+    }
+
+    private static int Convert(List<string> args)
+    {
+        var options = Options.Parse(args, valued: new[] { "--search", "-o" }, flags: Array.Empty<string>());
+        var file = options.SinglePositional("NodeSet file");
+        var output = options.One("-o") ?? throw new ArgumentException("Give -o <out.aml>.");
+        var catalog = NodeSetCatalog.Create(options.All("--search"));
+        var result = NodeSetImporter.Convert(file, catalog);
+        ConversionTransfer.Write(result, catalog.Warnings, output);
+        Console.WriteLine($"Converted {Path.GetFileName(file)} in {result.Duration.TotalSeconds:F1} s{(result.FromCache ? " (cache)" : "")}.");
         Console.WriteLine($"Written to {Path.GetFullPath(output)}");
         return 0;
     }

@@ -85,6 +85,28 @@
     </ProjectReference>
   </ItemGroup>
 
+  <!-- The converter: the command line tool, run in a process of its own
+       (ConverterProcess.cs). It lives in a folder of its own with its own
+       Aml.Engine, which the plugin's load context never sees. -->
+  <ItemGroup>
+    <ProjectReference Include="..\dotnet\OpcUaAml.Tool\OpcUaAml.Tool.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+  <PropertyGroup>
+    <ConverterBuild>$(MSBuildThisFileDirectory)..\dotnet\OpcUaAml.Tool\bin\$(Configuration)\net8.0\</ConverterBuild>
+  </PropertyGroup>
+  <Target Name="CollectConverter">
+    <Error Condition="!Exists('$(ConverterBuild)uaaml.exe')" Text="The converter was not built: $(ConverterBuild)uaaml.exe is missing." />
+    <ItemGroup>
+      <_Converter Include="$(ConverterBuild)**\*" Exclude="$(ConverterBuild)**\*.pdb;$(ConverterBuild)README.md">
+        <Sub>%(RecursiveDir)</Sub>
+      </_Converter>
+    </ItemGroup>
+  </Target>
+  <Target Name="CopyConverter" AfterTargets="Build" DependsOnTargets="CollectConverter">
+    <RemoveDir Directories="$(OutDir)converter" />
+    <Copy SourceFiles="@(_Converter)" DestinationFiles="@(_Converter->'$(OutDir)converter\%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
   <ItemGroup>
     <None Include="Metadata.xml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\LICENSE" Pack="true" PackagePath="" />
@@ -103,7 +125,7 @@
     That includes Aml.Engine.Services (the CAEX 2.15 to 3.0 conversion), which
     the editor uses for its own conversion; without it only that button fails.
   -->
-  <Target Name="PackRuntimeDependencies" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build">
+  <Target Name="PackRuntimeDependencies" BeforeTargets="_GetPackageFiles" DependsOnTargets="Build;CollectConverter">
     <ItemGroup>
       <_Bundled Include="@(ReferenceCopyLocalPaths)"
                 Condition="'%(Extension)' == '.dll'
@@ -117,6 +139,8 @@
       <_BundledNodeSets Include="..\nodesets\*.xml" />
       <None Include="@(_Bundled)" Pack="true" PackagePath="lib\$(TargetFramework)\" />
       <None Include="@(_BundledNodeSets)" Pack="true" PackagePath="lib\$(TargetFramework)\nodesets\" />
+      <_ConverterPacked Include="@(_Converter)" PackagePath="lib\$(TargetFramework)\converter\%(_Converter.Sub)" />
+      <None Include="@(_ConverterPacked)" Pack="true" />
     </ItemGroup>
   </Target>
 

@@ -42,11 +42,17 @@ minor versions.
   tells the plugin, and the plugin failed on the unloaded one; it then kept
   working on the closed document instead of the new one.
 - An import in the AML Editor takes about as long as on the command line
-  instead of freezing the editor for many minutes. Aml.Engine recorded every
-  change of the converter's own documents in the editor's undo history (1.5
-  million for a small model), and the editor answered each on its UI thread.
-  The converter now keeps its documents out of it (Opc2Aml patch 0011). The
-  import also logs when it starts, and its progress text is translated.
+  instead of freezing the editor for half an hour and more. The plugin now
+  converts in a process of its own, with the converter it brings
+  (`converter\uaaml.exe convert`, a new command). Inside the editor,
+  Aml.Engine recorded every change of the converter's documents in the
+  editor's undo history (1.5 million for a small model), which the editor
+  answered on its UI thread, and the editor's unique name service rewrote
+  references on every inserted element and could rename what Annex A names
+  on purpose. A crash of the converter no longer ends the editor. Opc2Aml
+  patch 0011 keeps the converter's documents out of a registered undo service
+  in any host. The import also logs when it starts, and its progress text is
+  translated (`docs/import.md`).
 - In the AML Editor the plugin finds the NodeSets it brings (the base model,
   DI, the AutomationML libraries) next to itself. It looked in the editor's
   folder, so it fetched the base model from the OPC Foundation although it
