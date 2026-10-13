@@ -11,7 +11,7 @@ minor versions.
 
 - The plugin speaks German when the display language of Windows is German,
   and hands the language to the embedded modeler (NodeSet.js), which speaks it
-  too. Messages that come verbatim from the OPC UA stack, the conversion or
+  too. `AMLOPCUA_LANGUAGE=en` or `de` overrides it. Messages that come verbatim from the OPC UA stack, the conversion or
   the core library stay English.
 - **Remove server addresses…** (Server tab) and `uaaml strip-addresses` save a
   copy of a document without where its servers are reached (endpoints, server

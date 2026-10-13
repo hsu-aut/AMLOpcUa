@@ -1,4 +1,5 @@
-// The plugin in English or in German, as Windows' display language says. The
+// The plugin in English or in German, as Windows' display language says
+// (AMLOPCUA_LANGUAGE=en or de overrides it, for screenshots and support). The
 // English text is the key; a text without a German entry stays English, and
 // a test sees to it that none is without one. Messages that come verbatim from
 // the OPC UA stack or the conversion stay English, as the command line does.
@@ -11,8 +12,19 @@ namespace Aml.Editor.Plugin.OpcUa.Localization;
 
 public static class L
 {
-    /// <summary>Whether texts are German; from Windows' display language, settable for tests.</summary>
-    public static bool German { get; set; } = WindowsLanguage().TwoLetterISOLanguageName == "de";
+    /// <summary>
+    /// Whether texts are German: from Windows' display language, unless the
+    /// environment variable AMLOPCUA_LANGUAGE says "en" or "de". Settable for tests.
+    /// </summary>
+    public static bool German { get; set; } = IsGerman(Environment.GetEnvironmentVariable("AMLOPCUA_LANGUAGE"), WindowsLanguage());
+
+    /// <summary>German or English, by <paramref name="setting"/> when it is "de" or "en", else by Windows.</summary>
+    internal static bool IsGerman(string? setting, CultureInfo windows) => setting?.Trim().ToLowerInvariant() switch
+    {
+        "de" => true,
+        "en" => false,
+        _ => windows.TwoLetterISOLanguageName == "de",
+    };
 
     /// <summary>
     /// The display language of Windows. Not the UI culture of the process: the

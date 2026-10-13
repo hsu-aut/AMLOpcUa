@@ -85,6 +85,20 @@ public class LocalizationTests
         }
     }
 
+    [Theory]
+    [InlineData(null, "de", true)]
+    [InlineData(null, "en", false)]
+    [InlineData(null, "fr", false)]
+    [InlineData("en", "de", false)]
+    [InlineData("EN", "de", false)]
+    [InlineData("de", "en", true)]
+    [InlineData("", "de", true)]
+    [InlineData("xx", "de", true)]
+    public void AMLOPCUA_LANGUAGE_overrides_the_language_of_Windows(string? setting, string windows, bool german)
+    {
+        Assert.Equal(german, L.IsGerman(setting, new System.Globalization.CultureInfo(windows)));
+    }
+
     [Fact]
     public void A_text_is_German_when_Windows_is_and_keeps_its_values()
     {
