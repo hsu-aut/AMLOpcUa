@@ -77,13 +77,14 @@ Windows says. Texts are looked up by their English
 from the OPC UA stack, the conversion or the core library stay English, as the
 command line does.
 
-- **Import NodeSet** converts a `NodeSet2.xml` and adds its libraries to the
+- **Import NodeSet…** converts a `NodeSet2.xml` and adds its libraries to the
   open document: one `ATL_`, `ICL_`, `RCL_` and `SUC_` library per UA
   namespace, for the NodeSet and every model it requires, together with the
   `OpcAmlMetaModel` libraries.
-- **Settings ▾ › NodeSet folders** lists folders searched for required
-  NodeSets; **Forget fetched NodeSets** empties the folders of NodeSets taken
-  from servers and the Cloud Library, which grow with every fetch. The folder of the imported NodeSet is always searched first. The
+- **Settings ▾ › NodeSet folders…** lists folders searched for required
+  NodeSets; **Forget fetched NodeSets…** empties the folders of NodeSets taken
+  from servers, the OPC Foundation and the Cloud Library, which grow with
+  every fetch. The folder of the imported NodeSet is always searched first. The
   UA base model and DI are built in. The same menu holds "Replace existing
   libraries", "Save after import" and the debug log. Saving goes through the
   editor's own save command, reached by reflection; when an editor version
@@ -99,7 +100,7 @@ command line does.
   asks once more before it sends; `uaaml cloud upload`), **ModelDesign…** (the
   model as a ModelDesign file with its identifier file, the form the OPC
   Foundation's ModelCompiler reads; [docs/modeldesign.md](docs/modeldesign.md)),
-  and **Remove** when nothing needs it any more.
+  and **Remove…** when nothing needs it any more.
 - **Companion specs…** lists the NodeSets the OPC Foundation publishes on
   GitHub (OPCFoundation/UA-Nodeset), every released companion specification,
   and imports one with the models it requires, without an account. The list
@@ -118,10 +119,10 @@ command line does.
   Cloud Library, connect to a server, model a new information model.
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
-- **New instance** creates an instance of a UA type: every Mandatory child,
+- **New instance…** creates an instance of a UA type: every Mandatory child,
   the Optional children ticked in the dialog, and for each placeholder the
   children named there, of its type or a concrete subtype.
-- **Export** writes a NodeSet: the whole document by the AML-UA-XSLT rules,
+- **Export NodeSet…** writes a NodeSet: the whole document by the AML-UA-XSLT rules,
   or one imported UA namespace back as the nodes it was (the inverse of
   Annex A, see [docs/export.md](docs/export.md)).
 - **Check** lists findings on the "Check" tab: missing Mandatory children,

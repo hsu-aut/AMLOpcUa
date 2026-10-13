@@ -232,7 +232,7 @@
                                     <MenuItem Header="{l:T 'Forget earlier conversions'}" Click="ClearCache_Click"
                                               ToolTip="{l:T 'A NodeSet converted before is taken from a cache instead of being converted again (seconds instead of a quarter minute). This empties the cache.'}"/>
                                     <MenuItem Header="{l:T 'Forget fetched NodeSets…'}" Click="ForgetFetched_Click"
-                                              ToolTip="{l:T 'Removes the NodeSets taken from servers and downloaded from the Cloud Library; they are fetched again when needed. Models applied from the modeler stay.'}"/>
+                                              ToolTip="{l:T 'Removes the NodeSets taken from servers, the OPC Foundation and the Cloud Library; they are fetched again when needed. Models applied from the modeler stay.'}"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>

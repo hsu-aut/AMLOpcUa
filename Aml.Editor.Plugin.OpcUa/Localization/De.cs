@@ -462,7 +462,7 @@ internal static class De
         ["remove them from the document, after asking"] = "nach Rückfrage aus dem Dokument entfernen",
         ["Remove {0} element(s)?"] = "{0} Element(e) entfernen?",
         ["Removed {0} ({1} libraries). Press Ctrl+S to save."] = "{0} entfernt ({1} Bibliotheken). Drücke Strg+S zum Speichern.",
-        ["Removes the NodeSets taken from servers and downloaded from the Cloud Library; they are fetched again when needed. Models applied from the modeler stay."] = "Entfernt die NodeSets, die von Servern übernommen oder aus der Cloud Library heruntergeladen wurden; sie werden bei Bedarf erneut abgerufen. Aus dem Modeler übernommene Modelle bleiben.",
+        ["Removes the NodeSets taken from servers, the OPC Foundation and the Cloud Library; they are fetched again when needed. Models applied from the modeler stay."] = "Entfernt die NodeSets, die von Servern, der OPC Foundation und der Cloud Library abgerufen wurden; sie werden bei Bedarf erneut abgerufen. Aus dem Modeler übernommene Modelle bleiben.",
         ["Remove…"] = "Entfernen…",
         ["Removing {0}"] = "Entfernen von {0}",
         ["Replace"] = "Ersetzen",

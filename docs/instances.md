@@ -7,7 +7,8 @@ creates an instance of a UA type the way an OPC UA server creates one:
 
 | ModellingRule of a child declaration | In the instance |
 |---|---|
-| Mandatory, ExposesItsArray | always |
+| Mandatory | always |
+| ExposesItsArray | none (see [ExposesItsArray](#exposesitsarray) below) |
 | Optional | only if chosen (by path relative to the instance, e.g. `Identification/Manufacturer`) |
 | MandatoryPlaceholder, OptionalPlaceholder (`<Name>`) | the concrete children named for it (`--fill`, or in the dialog), else none |
 | none (not an instance declaration, such as DefaultInstanceBrowseName) | never |
@@ -85,6 +86,7 @@ instance hierarchies; the generated libraries are trusted.
 | UA005 | Error | An InternalLink side does not resolve. |
 | UA006 | Error | An InternalLink connects reference interfaces against `RefClassConnectsToPath` (Annex A, Table A.8), inherited along the interface class chain. |
 | UA007 | Warning | An element named like a placeholder (`<Name>`) sits in an instance hierarchy. |
+| UA008 | Warning | A VDI 3682 element links to an OPC UA element that does not exist ([VDI 3682](vdi3682.md)). |
 
 ## Why not OCL.NET (yet)
 

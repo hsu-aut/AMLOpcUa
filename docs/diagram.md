@@ -38,7 +38,10 @@ parents centred on their children. Depth and node count are limited (default
 ## State charts
 
 A type that derives from FiniteStateMachineType gets a second picture, drawn
-from what Annex A left in the document: the states on a circle, the
+from what Annex A left in the document. It appears in the documentation of a
+model (**Documentation…** on a namespace), from `uaaml diagram --state-chart`
+and in the modeler while the machine is built; the Diagram tab draws the
+type diagram only. The picture: the states on a circle, the
 transitions as arrows between them with their name and the method that causes
 them (`StateMachines`, `StateChart`). Two states usually have a transition
 each way; each of them is drawn as a bow of its own, with its name at a
