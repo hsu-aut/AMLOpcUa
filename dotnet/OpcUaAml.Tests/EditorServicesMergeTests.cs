@@ -52,4 +52,42 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
             LookupService.UnRegister();
         }
     }
+
+    [Fact]
+    public void Replacing_libraries_records_a_few_changes_with_the_editors_services()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+
+        // The services the editor registers for the whole process.
+        var lookup = LookupService.Register();
+        var undo = UndoRedoService.Register();
+        UniqueNameService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(target, true);
+            lookup.AddDocument(target);
+            var recorded = 0;
+            undo.PropertyChanged += (_, _) => recorded++;
+
+            var report = LibraryMerger.Merge(target, di.Result.Document);
+
+            // The editor answers each recorded change on its UI thread. Removing
+            // and inserting a library are a few; rewriting every reference into
+            // it again, under the same path, were thousands.
+            Assert.InRange(recorded, 1, 10 * report.Replaced);
+            Assert.Equal(GeneratedDiLibraries, target.CAEXFile.SystemUnitClassLib.Select(l => l.Name).Where(LibraryMerger.IsGeneratedLibrary).ToArray());
+        }
+        finally
+        {
+            UniqueNameService.UnRegister();
+            UndoRedoService.UnRegister();
+            LookupService.UnRegister();
+        }
+    }
+
+    private static readonly string[] GeneratedDiLibraries =
+        ["SUC_OpcAmlMetaModel", "SUC_http://opcfoundation.org/UA/", "SUC_http://opcfoundation.org/UA/DI/"];
 }

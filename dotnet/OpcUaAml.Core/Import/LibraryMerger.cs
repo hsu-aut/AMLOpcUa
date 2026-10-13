@@ -118,6 +118,20 @@ public static class LibraryMerger
     /// </summary>
     private sealed record Step(int Kind, int Index, Action? Remove, Action Insert);
 
+    /// <summary>
+    /// Inserts a library at <paramref name="index"/>, or at the end when the
+    /// sequence is shorter, without making its name unique. InsertAt adds a
+    /// sibling as it is, but past the end it falls back to an insert that
+    /// does: with the editor's unique name service that rewrote every
+    /// reference into the library under the same path again, 58 000 recorded
+    /// changes for the UA base model and DI.
+    /// </summary>
+    private static void InsertAsIs<T>(CAEXSequence<T> into, int index, T library) where T : CAEXObject
+    {
+        if (index < into.Count) into.InsertAt(index, library);
+        else into.Insert(library, asFirst: false, asIs: true);
+    }
+
     private static int KindOrder(string kind) => kind switch
     {
         "AttributeTypeLib" => 0,
@@ -171,7 +185,7 @@ public static class LibraryMerger
                 // jump to the end of the tree the user is looking at.
                 var index = present.IndexOf(existing);
                 var replacement = elsewhere.Rewrite(Detached(lib));
-                steps.Add(new Step(order, index, () => existing.Remove(), () => into.InsertAt(index, replacement)));
+                steps.Add(new Step(order, index, () => existing.Remove(), () => InsertAsIs(into, index, replacement)));
                 changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Replaced, incoming?.ModelVersion,
                     info != null && incoming != null && !Equals(info, incoming)
                         ? $"{Describe(info)} replaced by {Describe(incoming)}" : null));
