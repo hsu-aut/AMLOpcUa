@@ -100,6 +100,24 @@ public class LocalizationTests
     }
 
     [Fact]
+    public void Taking_instances_is_reported_in_the_plugins_language()
+    {
+        var german = L.German;
+        try
+        {
+            var result = new OpcUaAml.Import.InstanceTransferResult(1, 274, 2, "IH_MPS500");
+            L.German = false;
+            Assert.Equal("1 instance(s) with 274 element(s) taken into IH_MPS500, 2 link(s) to nodes outside left out.", Summaries.Transfer(result));
+            L.German = true;
+            Assert.Equal("1 Instanz(en) mit 274 Element(en) in IH_MPS500 übernommen, 2 Verbindung(en) zu Knoten außerhalb ausgelassen.", Summaries.Transfer(result));
+        }
+        finally
+        {
+            L.German = german;
+        }
+    }
+
+    [Fact]
     public void A_text_is_German_when_Windows_is_and_keeps_its_values()
     {
         var german = L.German;

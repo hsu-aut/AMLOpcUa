@@ -71,7 +71,9 @@ minor versions.
 - An import in the plugin reports what the command line reports: how many
   instances of the model were not taken, and the children that hang off
   their type through a reference Annex A does not follow. The plugin built
-  its report without them.
+  its report without them. After **Apply to document** with the instances
+  taken it no longer counts them as not taken, and says in the plugin's
+  language where they went.
 - "Save after import" (Settings) stays on after the editor is started again.
   Setting the toggles from the saved settings saved them in between, with
   this one still off.

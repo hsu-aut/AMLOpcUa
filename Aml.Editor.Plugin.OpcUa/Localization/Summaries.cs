@@ -16,4 +16,10 @@ internal static class Summaries
         + (result.Conversion.FromCache
             ? L.T(" ({0:0.0} s, converted before).", result.Conversion.Duration.TotalSeconds)
             : L.T(" ({0:0.0} s).", result.Conversion.Duration.TotalSeconds));
+
+    /// <summary>"1 instance(s) with 274 element(s) taken into IH_MPS500."</summary>
+    public static string Transfer(InstanceTransferResult result) =>
+        L.T("{0} instance(s) with {1} element(s) taken into {2}", result.Taken, result.Elements, result.Where)
+        + (result.LinksLeftOut > 0 ? L.T(", {0} link(s) to nodes outside left out", result.LinksLeftOut) : "")
+        + ".";
 }

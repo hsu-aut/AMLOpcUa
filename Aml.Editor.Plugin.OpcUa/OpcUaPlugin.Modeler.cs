@@ -269,7 +269,7 @@ public partial class OpcUaPlugin
     /// Asks where the instances of an applied model go, and takes them there;
     /// null when the model holds none or they stay out.
     /// </summary>
-    private string? TakeInstances(CAEXDocument document, ConversionResult conversion, string modelUri)
+    private AfterMerge? TakeInstances(CAEXDocument document, ConversionResult conversion, string modelUri)
     {
         var tops = InstanceTransfer.TopInstances(conversion.Document, modelUri);
         if (tops.Count == 0) return null;
@@ -293,7 +293,7 @@ public partial class OpcUaPlugin
         var options = new MergeOptions { DocumentFolder = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null };
         var result = InstanceTransfer.Take(document, conversion.Document, modelUri, destination, options);
         PluginLog.Info("Modeler: " + result);
-        return result + ".";
+        return new AfterMerge(Summaries.Transfer(result), InstancesTaken: true);
     }
 
     private static string SafeFileName(string uri)

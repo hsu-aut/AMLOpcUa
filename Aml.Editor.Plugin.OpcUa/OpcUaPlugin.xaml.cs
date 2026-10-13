@@ -252,6 +252,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private bool _released;
 
+    /// <summary>What a step after the merge did: a sentence for the status, and whether it took the model's instances.</summary>
+    internal sealed record AfterMerge(string Text, bool InstancesTaken = false);
+
     /// <summary>Cancelled when the plugin ends, which stops a conversion still running.</summary>
     private readonly CancellationTokenSource _closing = new();
 
@@ -341,7 +344,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>True when the NodeSet arrived in the document.</summary>
     /// <param name="afterMerge">Runs on the UI thread after the libraries are in and before the document is saved; what it returns is added to the status.</param>
     private async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
-        Func<ConversionResult, string?>? afterMerge = null)
+        Func<ConversionResult, AfterMerge?>? afterMerge = null)
     {
         // One import at a time: each merges into the document and clears the busy state when done.
         if (_importing)
@@ -371,7 +374,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     }
 
     private async Task<bool> ImportOneAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
-        Func<ConversionResult, string?>? afterMerge)
+        Func<ConversionResult, AfterMerge?>? afterMerge)
     {
         List<string> folders;
         // Missing models are asked about before the conversion, which takes seconds;
@@ -444,15 +447,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 else PluginLog.Debug(line);
             }
             foreach (var w in result.Warnings) PluginLog.Warn(w);
-            PluginLog.Info(result.Summary);
             var more = afterMerge?.Invoke(conversion);
+            // Instances taken after the merge (the modeler's Apply) are no longer "not taken".
+            if (more?.InstancesTaken == true) result = result with { InstancesNotTaken = 0 };
+            PluginLog.Info(result.Summary);
 
             var before = clock.Elapsed;
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
             PluginLog.Info($"Import took: conversion {conversion.Duration.TotalSeconds:F1} s{(conversion.FromCache ? " (cache)" : "")}, "
                 + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
-            SetStatus(Summaries.Import(result) + (more != null ? " " + more : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
+            SetStatus(Summaries.Import(result) + (more != null ? " " + more.Text : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
             return true;
         }
         catch (OperationCanceledException)
