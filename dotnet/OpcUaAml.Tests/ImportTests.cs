@@ -68,6 +68,19 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
     }
 
     [Fact]
+    public void A_conversion_made_elsewhere_is_reported_as_an_import_is()
+    {
+        // The plugin converts in a process of its own and merges the result;
+        // its report has to say what the command line's says.
+        var document = CAEXDocument.New_CAEXDocument();
+        var result = OpcUaImport.MergeConverted(document, di.Result, di.Catalog.Find(Fixtures.DiUri)!.FilePath);
+
+        Assert.True(result.InstancesNotTaken > 0);
+        Assert.Contains(result.Warnings, w => w.Contains("hang off their type"));
+        Assert.Subset(LibraryNames(document).ToHashSet(), GeneratedDiLibraries.ToHashSet());
+    }
+
+    [Fact]
     public void An_import_says_how_many_instances_it_leaves_behind()
     {
         var document = CAEXDocument.New_CAEXDocument();

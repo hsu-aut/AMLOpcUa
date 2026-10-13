@@ -429,13 +429,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             // Each phase is timed and logged: inside the editor an import has
             // taken minutes that the command line needs seconds for (PF-AML-19).
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            var merge = LibraryMerger.Merge(document, conversion.Document, options);
+            // The same report as the command line's: what Annex A leaves behind included.
+            var result = OpcUaImport.MergeConverted(document, conversion, file, options);
+            var merge = result.Merge;
             var merged = clock.Elapsed;
             // The editor updates its trees and lookups after the change; waiting
             // until it is idle measures how long that takes.
             await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             var shown = clock.Elapsed - merged;
-            var result = new ImportResult(conversion, merge);
 
             foreach (var c in merge.Changes)
             {

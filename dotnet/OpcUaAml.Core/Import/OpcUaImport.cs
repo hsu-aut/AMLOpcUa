@@ -39,7 +39,18 @@ public static class OpcUaImport
         if (target.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
             LibraryMerger.Merge(target, CAEXDocument.New_CAEXDocument(), options);
 
-        var conversion = NodeSetImporter.Convert(nodeSetPath, catalog);
+        return MergeConverted(target, NodeSetImporter.Convert(nodeSetPath, catalog), nodeSetPath, options);
+    }
+
+    /// <summary>
+    /// Merges a conversion of <paramref name="nodeSetPath"/> made elsewhere (the
+    /// plugin converts in a process of its own) into <paramref name="target"/>,
+    /// and reports it as <see cref="ImportInto"/> does: what Annex A leaves
+    /// behind included.
+    /// </summary>
+    public static ImportResult MergeConverted(CAEXDocument target, ConversionResult conversion, string nodeSetPath,
+        MergeOptions? options = null)
+    {
         var merge = LibraryMerger.Merge(target, conversion.Document, options);
         var modelUri = conversion.NodeSet.PrimaryModel.Model.ModelUri;
         var warnings = conversion.Warnings.Concat(UnmappedChildren(nodeSetPath, modelUri)).ToList();

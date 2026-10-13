@@ -11,6 +11,7 @@ internal static class Summaries
     public static string Import(ImportResult result) =>
         L.T("Imported {0}: {1} library(ies) added, {2} replaced, {3} kept",
             result.Conversion.NodeSet.PrimaryModel.Model.ModelUri, result.Merge.Added, result.Merge.Replaced, result.Merge.Kept)
+        + (result.InstancesNotTaken > 0 ? L.T(", {0} instance(s) of the model not taken (only its types are imported)", result.InstancesNotTaken) : "")
         + (result.Warnings.Count > 0 ? L.T(", {0} warning(s)", result.Warnings.Count) : "")
         + (result.Conversion.FromCache
             ? L.T(" ({0:0.0} s, converted before).", result.Conversion.Duration.TotalSeconds)

@@ -29,6 +29,7 @@ internal static class De
         ["(a browse path or alias)"] = "(ein Browse-Pfad oder Alias)",
         ["(missing {0})"] = "({0} fehlt)",
         ["(none)"] = "(keine)",
+        [", {0} instance(s) of the model not taken (only its types are imported)"] = ", {0} Instanz(en) des Modells nicht übernommen (nur seine Typen werden importiert)",
         [", {0} warning(s)"] = ", {0} Warnung(en)",
         ["1  Models into the document"] = "1  Modelle ins Dokument",
         ["2  Instances and checks"] = "2  Instanzen und Prüfung",

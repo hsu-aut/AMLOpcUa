@@ -62,6 +62,10 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- An import in the plugin reports what the command line reports: how many
+  instances of the model were not taken, and the children that hang off
+  their type through a reference Annex A does not follow. The plugin built
+  its report without them.
 - "Save after import" (Settings) stays on after the editor is started again.
   Setting the toggles from the saved settings saved them in between, with
   this one still off.
