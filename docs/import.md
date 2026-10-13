@@ -79,6 +79,21 @@ The AutomationML base libraries are never replaced. IDs are kept as Opc2Aml
 wrote them, so a second import of a namespace produces the same IDs and
 references into the library stay valid.
 
+Inside the AutomationML Editor a replacement needs care. The editor keeps
+automatic reference updates on for every open document (Aml.Engine's lookup
+service): when an element goes, every reference to it is rewritten, and one
+whose target is gone is cleared. Removing the old library before the new one
+arrives cleared the type of every instance of it, and each cleared reference
+passed the editor's undo history and bindings; removing the UA base library
+took 43 s. The merge therefore removes all old libraries first and inserts
+the new ones afterwards, at the old places, with the updates held and the
+document out of the lookup service's registry (`EditorServices.Hold`), so the
+service builds its tables again in one pass the next time it is asked. The
+paths stay the same, so nothing needs rewriting. Removing a namespace and
+replacing the instance hierarchy the modeler fills work the same way. The
+test `EditorServicesMergeTests` registers the service as the editor does,
+with the editor's version of it (Aml.Engine.Services 4.3.1).
+
 Opc2Aml brings its own copy of the base libraries (2.10.0). A document that
 gets them through an `ExternalReference` instead, as the AutomationML Editor
 sets it up (for instance `AutomationML_Base_Libraries_AMLEd2_2.11.0.aml`),

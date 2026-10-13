@@ -64,6 +64,14 @@ public static class InstanceTransfer
             leftOut += RemoveLinksLeadingOut(copy.Node);
         }
 
+        // The hierarchy of their own is replaced as a whole, with the
+        // editor's services held (EditorServices).
+        return EditorServices.Hold(target, () => Place(target, destination, copies, leftOut));
+    }
+
+    private static InstanceTransferResult Place(CAEXDocument target, InstanceDestination destination,
+        List<InternalElementType> copies, int leftOut)
+    {
         string where;
         IInternalElementContainer into;
         switch (destination)

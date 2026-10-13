@@ -91,18 +91,49 @@ public static class LibraryMerger
         var t = target.CAEXFile;
         var elsewhere = new Elsewhere(ExternalLibraries.Read(target, options.DocumentFolder), source);
 
-        MergeKind("AttributeTypeLib", s.AttributeTypeLib, t.AttributeTypeLib, options, elsewhere, changes);
-        MergeKind("InterfaceClassLib", s.InterfaceClassLib, t.InterfaceClassLib, options, elsewhere, changes);
-        MergeKind("RoleClassLib", s.RoleClassLib, t.RoleClassLib, options, elsewhere, changes);
-        MergeKind("SystemUnitClassLib", s.SystemUnitClassLib, t.SystemUnitClassLib, options, elsewhere, changes);
+        var steps = new List<Step>();
+        steps.AddRange(PlanKind("AttributeTypeLib", s.AttributeTypeLib, t.AttributeTypeLib, options, elsewhere, changes));
+        steps.AddRange(PlanKind("InterfaceClassLib", s.InterfaceClassLib, t.InterfaceClassLib, options, elsewhere, changes));
+        steps.AddRange(PlanKind("RoleClassLib", s.RoleClassLib, t.RoleClassLib, options, elsewhere, changes));
+        steps.AddRange(PlanKind("SystemUnitClassLib", s.SystemUnitClassLib, t.SystemUnitClassLib, options, elsewhere, changes));
+
+        // All old libraries go first, then the new ones come, with the
+        // editor's services held (EditorServices): with automatic reference
+        // updates on, removing a library cleared every reference into it.
+        EditorServices.Hold(target, () =>
+        {
+            foreach (var step in steps.Where(x => x.Remove != null)) step.Remove!();
+            // Back at the places the old ones had: in the order of those
+            // places, so each lands where its predecessor was.
+            foreach (var step in steps.OrderBy(x => x.Kind).ThenBy(x => x.Index)) step.Insert();
+        });
 
         return new MergeReport(changes);
     }
 
-    private static void MergeKind<T>(string kind, CAEXSequence<T> from, CAEXSequence<T> into,
+    /// <summary>
+    /// One library of a merge: the old one to remove, if any, and the new one
+    /// to insert, at <see cref="Index"/> among its kind or, for an added one
+    /// (<see cref="int.MaxValue"/>), at the end.
+    /// </summary>
+    private sealed record Step(int Kind, int Index, Action? Remove, Action Insert);
+
+    private static int KindOrder(string kind) => kind switch
+    {
+        "AttributeTypeLib" => 0,
+        "InterfaceClassLib" => 1,
+        "RoleClassLib" => 2,
+        _ => 3,
+    };
+
+    /// <summary>Decides for each library of one kind what happens to it, and reports it; <see cref="Merge"/> carries it out.</summary>
+    private static List<Step> PlanKind<T>(string kind, CAEXSequence<T> from, CAEXSequence<T> into,
         MergeOptions options, Elsewhere elsewhere, List<LibraryChange> changes)
         where T : CAEXObject
     {
+        var steps = new List<Step>();
+        var order = KindOrder(kind);
+        var present = into.ToList();
         foreach (var lib in from.ToList())
         {
             var existing = into.FirstOrDefault(x => x.Name == lib.Name);
@@ -123,33 +154,35 @@ public static class LibraryMerger
 
             if (existing != null)
             {
-                var present = OpcUaLibraryInfo.Read((CAEXBasicObject)(object)existing);
+                var info = OpcUaLibraryInfo.Read((CAEXBasicObject)(object)existing);
                 if (!IsGeneratedLibrary(lib.Name) || !options.ReplaceGeneratedLibraries)
                 {
-                    changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Kept, present?.ModelVersion));
+                    changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Kept, info?.ModelVersion));
                     continue;
                 }
-                if (!options.AllowDowngrade && IsNewer(present, incoming))
+                if (!options.AllowDowngrade && IsNewer(info, incoming))
                 {
-                    changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Kept, present?.ModelVersion,
-                        $"the document has {Describe(present!)}, the import only {Describe(incoming!)}"));
+                    changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Kept, info?.ModelVersion,
+                        $"the document has {Describe(info!)}, the import only {Describe(incoming!)}"));
                     continue;
                 }
 
                 // Same place in the document, so a replaced library does not
                 // jump to the end of the tree the user is looking at.
-                var index = into.ToList().IndexOf(existing);
-                existing.Remove();
-                into.InsertAt(index, elsewhere.Rewrite(Detached(lib)));
+                var index = present.IndexOf(existing);
+                var replacement = elsewhere.Rewrite(Detached(lib));
+                steps.Add(new Step(order, index, () => existing.Remove(), () => into.InsertAt(index, replacement)));
                 changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Replaced, incoming?.ModelVersion,
-                    present != null && incoming != null && !Equals(present, incoming)
-                        ? $"{Describe(present)} replaced by {Describe(incoming)}" : null));
+                    info != null && incoming != null && !Equals(info, incoming)
+                        ? $"{Describe(info)} replaced by {Describe(incoming)}" : null));
                 continue;
             }
 
-            into.Insert(elsewhere.Rewrite(Detached(lib)), asFirst: false, asIs: true);
+            var added = elsewhere.Rewrite(Detached(lib));
+            steps.Add(new Step(order, int.MaxValue, null, () => into.Insert(added, asFirst: false, asIs: true)));
             changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Added, incoming?.ModelVersion, note));
         }
+        return steps;
     }
 
     private static bool IsNewer(OpcUaLibraryInfo? present, OpcUaLibraryInfo? incoming) =>

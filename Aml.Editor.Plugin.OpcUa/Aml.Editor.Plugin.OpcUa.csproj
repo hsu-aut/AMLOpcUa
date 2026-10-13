@@ -132,6 +132,7 @@
                            And !$([System.String]::Copy('%(Filename)').StartsWith('Aml.Engine'))
                            And !$([System.String]::Copy('%(Filename)').StartsWith('Aml.Editor.'))
                            And '%(Filename)' != 'Aml.Skins'
+                           And '%(Filename)' != 'Octokit'
                            And '%(Filename)' != 'Aml.Toolkit'
                            And '%(Filename)' != 'ControlzEx'
                            And !$([System.String]::Copy('%(Filename)').StartsWith('MahApps.'))

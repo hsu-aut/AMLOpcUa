@@ -81,13 +81,18 @@ public static class NamespaceInspector
             throw new InvalidOperationException($"'{namespaceUri}' is still needed: {string.Join(" ", blockers)}");
         var libraries = NamespaceOverview.Of(doc).Single(e => e.NamespaceUri == namespaceUri).Libraries.ToHashSet(StringComparer.Ordinal);
         var removed = new List<string>();
-        foreach (var lib in doc.CAEXFile.AttributeTypeLib.Cast<CAEXObject>().Concat(doc.CAEXFile.InterfaceClassLib)
-                     .Concat(doc.CAEXFile.RoleClassLib).Concat(doc.CAEXFile.SystemUnitClassLib)
-                     .Where(l => libraries.Contains(l.Name)).ToList())
+        // Nothing refers to them any more (the blockers above), so the
+        // editor's services can be held while they go (EditorServices).
+        EditorServices.Hold(doc, () =>
         {
-            removed.Add(lib.Name);
-            lib.Remove();
-        }
+            foreach (var lib in doc.CAEXFile.AttributeTypeLib.Cast<CAEXObject>().Concat(doc.CAEXFile.InterfaceClassLib)
+                         .Concat(doc.CAEXFile.RoleClassLib).Concat(doc.CAEXFile.SystemUnitClassLib)
+                         .Where(l => libraries.Contains(l.Name)).ToList())
+            {
+                removed.Add(lib.Name);
+                lib.Remove();
+            }
+        });
         return removed;
     }
 

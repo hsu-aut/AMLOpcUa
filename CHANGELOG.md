@@ -53,6 +53,15 @@ minor versions.
   patch 0011 keeps the converter's documents out of a registered undo service
   in any host. The import also logs when it starts, and its progress text is
   translated (`docs/import.md`).
+- Importing a NodeSet again into a document in the AML Editor no longer
+  takes the types from the instances of it. The editor keeps automatic
+  reference updates on, and removing the old library before the new one
+  arrived cleared every reference into it. The libraries now change hands
+  with those updates held, and the merge takes seconds instead of minutes
+  (UA and DI: 3 s instead of 59 s). Removing a namespace and replacing the
+  modeler's instance hierarchy work the same way. The core now builds
+  against Aml.Engine.Services 4.3.1, the version the editor brings
+  (`docs/import.md`).
 - In the AML Editor the plugin finds the NodeSets it brings (the base model,
   DI, the AutomationML libraries) next to itself. It looked in the editor's
   folder, so it fetched the base model from the OPC Foundation although it
