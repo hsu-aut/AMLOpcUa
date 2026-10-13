@@ -62,6 +62,9 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- Every button of the plugin has a name for screen readers and UI
+  Automation: the text it shows, else its tooltip. A button of glyph and
+  text had none.
 - **New instance…** no longer asks for children of a MandatoryPlaceholder
   below an Optional child that is not ticked; that placeholder is not
   created, and names given for it were dropped without a word.

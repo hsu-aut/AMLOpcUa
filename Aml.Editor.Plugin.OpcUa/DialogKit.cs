@@ -78,6 +78,9 @@ internal static class DialogKit
         root.Children.Add(footer);
         root.Children.Add(new Border { Padding = new Thickness(16, 12, 16, 12), Child = body });
         window.Content = root;
+        // Bodies built in code may hold glyph buttons too; the content is
+        // complete here, so they get their names now.
+        window.Loaded += (_, _) => AccessibleNames.Give(window);
     }
 
     public static Button Action(string text, bool primary = false, bool cancel = false) => new()

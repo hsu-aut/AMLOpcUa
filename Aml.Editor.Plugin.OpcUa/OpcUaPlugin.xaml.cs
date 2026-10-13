@@ -76,6 +76,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         InitModelerTab();
         InitNumberFields();
         InitTutorial();
+        AccessibleNames.Give(this);
         // Closed by the user, the view is gone; what it holds must not stay behind (the port above all).
         PluginTerminated += (_, _) => ReleaseResources();
         Tabs.SelectionChanged += (_, e) =>
