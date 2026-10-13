@@ -3,6 +3,11 @@ using System.Runtime.CompilerServices;
 using Aml.Editor.Plugin.OpcUa;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 
+// Tests switch process wide state (the language, the settings folder) and
+// create plugin views on threads of their own; one after another they cannot
+// see each other's switches.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace PluginTests;
 
 /// <summary>Every plugin a test creates keeps its settings in a folder of the tests, not in the user's.</summary>

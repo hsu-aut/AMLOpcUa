@@ -11,14 +11,19 @@ namespace Aml.Editor.Plugin.OpcUa.Diagnostics;
 internal static class PluginErrors
 {
     private static Action<Exception>? _report;
-    private static bool _installed;
+    /// <summary>
+    /// The dispatchers already watched: one each, not one per process. A view
+    /// created on another thread (a floating window, a test) has a dispatcher
+    /// of its own that would otherwise go unwatched.
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Dispatcher, object> Watched = new();
 
     /// <summary>Catches the plugin's unhandled exceptions on <paramref name="dispatcher"/>; the last view installed reports them.</summary>
     public static void Install(Dispatcher dispatcher, Action<Exception> report)
     {
         _report = report;
-        if (_installed) return;
-        _installed = true;
+        if (Watched.TryGetValue(dispatcher, out _)) return;
+        Watched.Add(dispatcher, new object());
         dispatcher.UnhandledException += (_, e) =>
         {
             if (!IsOurs(e.Exception)) return;
