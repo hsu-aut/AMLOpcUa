@@ -381,10 +381,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             try
             {
                 // Besides the given folders, the models the plugin keeps itself: from the
-                // modeler, the Cloud Library and servers.
-                var own = new[] { ModelsFolder, CloudCache }.Where(Directory.Exists).Concat(OpcfFolders())
-                    .Concat(Directory.Exists(ServerNodeSetsFolder) ? Directory.GetDirectories(ServerNodeSetsFolder) : Array.Empty<string>());
-                folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders).Concat(own).Distinct().ToList();
+                // modeler, the Cloud Library, the OPC Foundation and servers.
+                folders = new[] { Path.GetDirectoryName(file)! }.Concat(extraFolders).Concat(_settings.NodeSetFolders)
+                    .Concat(OwnNodeSetFolders()).Distinct().ToList();
                 var info = NodeSetInfo.TryRead(file);
                 if (info == null) break;
                 var missing = await Task.Run(() => NodeSetCatalog.Create(folders).MissingDependencies(info));

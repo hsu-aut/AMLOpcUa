@@ -62,6 +62,9 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- **Edit** in the Modeler tab and **Publish…** find a model fetched from the
+  OPC Foundation, the Cloud Library or a server, as an import does. They
+  looked only in the modeler's models and the NodeSet folders.
 - An import in the plugin reports what the command line reports: how many
   instances of the model were not taken, and the children that hang off
   their type through a reference Annex A does not follow. The plugin built

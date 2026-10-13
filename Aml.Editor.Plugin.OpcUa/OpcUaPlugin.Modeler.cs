@@ -122,10 +122,16 @@ public partial class OpcUaPlugin
         ModelerEditButton.IsEnabled = uris.Count > 0;
     }
 
+    /// <summary>
+    /// Where the modeler finds a namespace's NodeSet and the ones it requires:
+    /// the same folders an import searches, so a model fetched from the
+    /// OPC Foundation, the Cloud Library or a server opens as well.
+    /// </summary>
     private NodeSetCatalog ModelerCatalog(params string[] extraFolders)
     {
         Directory.CreateDirectory(ModelsFolder);
-        return NodeSetCatalog.Create(extraFolders.Concat(new[] { ModelsFolder }).Concat(_settings.NodeSetFolders).Distinct());
+        return NodeSetCatalog.Create(extraFolders.Concat(new[] { ModelsFolder }).Concat(_settings.NodeSetFolders)
+            .Concat(OwnNodeSetFolders()).Distinct());
     }
 
     private async void ModelerEdit_Click(object sender, RoutedEventArgs e)

@@ -452,11 +452,27 @@ public partial class OpcUaPlugin
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "opcfoundation");
 
     /// <summary>The folders holding downloaded files: they keep the repository's folders, and the catalog reads one level.</summary>
-    private static IEnumerable<string> OpcfFolders()
+    private static IEnumerable<string> OpcfFolders() => OpcfFolders(OpcfFolder);
+
+    private static IEnumerable<string> OpcfFolders(string opcf)
     {
-        var files = Path.Combine(OpcfFolder, "files");
+        var files = Path.Combine(opcf, "files");
         return Directory.Exists(files) ? Directory.GetDirectories(files, "*", SearchOption.AllDirectories).Prepend(files) : Array.Empty<string>();
     }
+
+    /// <summary>
+    /// The NodeSets the plugin keeps itself: models applied from the modeler
+    /// first, then what it fetched from the Cloud Library, the OPC Foundation
+    /// and servers (one folder per server). Folders not made yet are left out.
+    /// </summary>
+    internal static IEnumerable<string> OwnNodeSetFolders(string models, string cloud, string opcf, string servers) =>
+        new[] { models, cloud }.Where(Directory.Exists)
+            .Concat(OpcfFolders(opcf))
+            .Concat(Directory.Exists(servers) ? Directory.GetDirectories(servers) : Array.Empty<string>());
+
+    /// <summary>The <see cref="OwnNodeSetFolders(string, string, string, string)"/> of this user.</summary>
+    private static IEnumerable<string> OwnNodeSetFolders() =>
+        OwnNodeSetFolders(ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder);
 
     private static readonly System.Net.Http.HttpClient OpcfHttp = new() { Timeout = TimeSpan.FromSeconds(60) };
 
