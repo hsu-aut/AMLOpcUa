@@ -62,6 +62,9 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- "Save after import" (Settings) stays on after the editor is started again.
+  Setting the toggles from the saved settings saved them in between, with
+  this one still off.
 - In the AML Editor the plugin finds the NodeSets it brings (the base model,
   DI, the AutomationML libraries) next to itself. It looked in the editor's
   folder, so it fetched the base model from the OPC Foundation although it

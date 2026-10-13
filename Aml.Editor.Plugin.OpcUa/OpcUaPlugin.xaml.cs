@@ -63,8 +63,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             SetStatus(L.T("Something went wrong: {0} The log has the details.", ex.Message));
         });
 
+        // Setting a toggle raises Setting_Changed, which saves every toggle:
+        // with the first one set and the second not yet, "Save after import"
+        // was saved as off on every start.
+        _applyingSettings = true;
         ReplaceToggle.IsChecked = _settings.ReplaceExistingLibraries;
         SaveToggle.IsChecked = _settings.SaveAfterImport;
+        _applyingSettings = false;
         DebugToggle.IsChecked = PluginLog.DebugEnabled;
         LogFilePathLabel.Text = PluginLog.FilePath;
         InitServerTab();
@@ -763,9 +768,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             : "NodeSet folders: " + string.Join("; ", _settings.NodeSetFolders));
     }
 
+    /// <summary>True while the toggles are set from the saved settings.</summary>
+    private bool _applyingSettings;
+
     private void Setting_Changed(object sender, RoutedEventArgs e)
     {
-        if (!IsInitialized) return;
+        if (!IsInitialized || _applyingSettings) return;
         _settings.ReplaceExistingLibraries = ReplaceToggle.IsChecked == true;
         _settings.SaveAfterImport = SaveToggle.IsChecked == true;
         _settings.Save();

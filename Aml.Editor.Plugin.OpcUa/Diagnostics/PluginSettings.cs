@@ -47,8 +47,14 @@ public sealed class PluginSettings
     /// <summary>The tutorial's lessons done, by id.</summary>
     public List<string> CompletedLessons { get; set; } = new();
 
-    private static string FilePath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa", "settings.json");
+    /// <summary>
+    /// Where the file lies: %APPDATA%\AMLOpcUa. Tests point it elsewhere, or
+    /// every plugin they create overwrites the user's settings.
+    /// </summary>
+    internal static string Folder { get; set; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AMLOpcUa");
+
+    private static string FilePath => Path.Combine(Folder, "settings.json");
 
     /// <summary>
     /// The saved settings, or the defaults with <paramref name="problem"/> saying
