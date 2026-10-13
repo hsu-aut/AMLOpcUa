@@ -62,6 +62,9 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- **New instance…** no longer asks for children of a MandatoryPlaceholder
+  below an Optional child that is not ticked; that placeholder is not
+  created, and names given for it were dropped without a word.
 - **Edit** in the Modeler tab and **Publish…** find a model fetched from the
   OPC Foundation, the Cloud Library or a server, as an import does. They
   looked only in the modeler's models and the NodeSet folders.

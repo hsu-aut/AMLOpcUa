@@ -83,6 +83,8 @@ public sealed class InstanceWindow : Window
             var empty = new List<string>();
             foreach (var (placeholder, names, typeBox) in _placeholderRows)
             {
+                // Below an Optional child that is not ticked nothing is created, so nothing is asked.
+                if (!IsCreated(placeholder.Path, _optionalPaths, ChosenOptional)) continue;
                 var type = (typeBox.SelectedItem as ComboBoxItem)?.Tag as SystemUnitFamilyType;
                 var list = names.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .Select(n => new PlaceholderFill(n, type == placeholder.Type ? null : type)).ToList();
@@ -198,6 +200,16 @@ public sealed class InstanceWindow : Window
         return path.StartsWith("[SUC_") && end > 5 ? path[5..end] : path;
     }
 
+    /// <summary>The Optional children of the selected type, by path, as the dry run asked about them.</summary>
+    private List<string> _optionalPaths = new();
+
+    /// <summary>
+    /// Whether a placeholder is in the instance: every Optional child above it
+    /// is ticked. The dry run lists the placeholders with every Optional child in.
+    /// </summary>
+    internal static bool IsCreated(string placeholderPath, IEnumerable<string> optionalPaths, ICollection<string> ticked) =>
+        optionalPaths.Where(o => placeholderPath.StartsWith(o + "/", StringComparison.Ordinal)).All(ticked.Contains);
+
     private void TypeChanged()
     {
         _optional.Children.Clear();
@@ -216,6 +228,7 @@ public sealed class InstanceWindow : Window
         try
         {
             var asked = new List<string>();
+            _optionalPaths = asked;
             var all = TypeInstantiator.Instantiate(SelectedType, "probe", new InstantiationOptions { AllowAbstract = true, IncludeOptional = p => { asked.Add(p); return true; } });
             var mandatory = TypeInstantiator.Instantiate(SelectedType, "probe", new InstantiationOptions { AllowAbstract = true }).Included.ToHashSet();
             var boxes = new Dictionary<string, CheckBox>(StringComparer.Ordinal);
