@@ -7,8 +7,13 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
 ### Added
 
+- The Modeler tab brings NodeSet.js 0.2.0: German interface, bounded undo,
+  two-dimensional matrices, sub-state machines, structure fields that allow
+  subtypes, and a user manual.
 - A user manual, `docs/manual.md`, with pictures taken in the AutomationML
   Editor.
 - The plugin speaks German when the display language of Windows is German,
