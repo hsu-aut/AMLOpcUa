@@ -295,6 +295,8 @@ versions and offers:
 
 After the first three, the import checks again and goes on.
 
+![The dialog "Models missing" for Conveyor.NodeSet2.xml, which requires http://example.org/Plant/ 1.0.0 of 2026-01-01; below it the buttons From the OPC Foundation, Add NodeSet folder…, Search the Cloud Library… and Cancel](manual/missing-models.png)
+
 ### Companion specifications
 
 The OPC Foundation publishes the NodeSets of every released companion
@@ -308,6 +310,8 @@ without an account:
 4. Select a model and click **Download and import** (or double click it). The
    plugin downloads it with every model it requires that is not yet
    available, and imports it.
+
+![The dialog "Companion specifications" with Machinery typed in the search box: six of 144 models, Machinery 1.04.2 of 2026-11-02 selected; below them the buttons UA Cloud Library…, Refresh list, Download and import and Cancel](manual/companion-specs.png)
 
 When GitHub cannot be reached, or its hourly limit for requests without a
 login is spent, the list kept on disk still serves. **UA Cloud Library…**
@@ -539,7 +543,8 @@ selected so far. Background: [servers](server.md).
 1. Enter the endpoint URL in the box at the top, for example
    `opc.tcp://plc:4840`. The list of the box holds the servers used recently.
 2. For a user login, fill in **User** and **Password**; leave both empty to
-   connect anonymously.
+   connect anonymously. In a narrow pane they stand on a second line, below
+   the endpoint URL.
 3. Leave **Secure** ticked (the default) to connect only to a signed, or
    signed and encrypted, endpoint. A server that offers none is refused
    rather than used unsecured. Untick **Secure** to allow an unsecured
@@ -551,6 +556,8 @@ selected so far. Background: [servers](server.md).
    Compare the fingerprint with the one the server's administrator gives you,
    then click **Trust this certificate**. Exactly this certificate is kept; a
    server that later shows another certificate is asked about again.
+
+![The dialog "Trust this server?" for opc.tcp://127.0.0.1:4840/AMLOpcUa: subject CN=AMLOpcUa NodeSet server, O=AMLOpcUa, issued by itself, valid 2026-11-08 to 2027-11-08, its SHA-256 fingerprint, and the buttons Trust this certificate and Cancel](manual/trust-certificate.png)
 
 The field at the left of the connection band shows the state, for instance
 "Connected · signed and encrypted, Basic256Sha256". The plugin asks the
@@ -570,6 +577,8 @@ children. Each node shows its node class by the shape of its icon (rectangle
 Object, rounded Variable, ellipse Method). A ✓ marks nodes already taken
 from this server into the hierarchy named under **nodes into**. F5 reloads
 the tree.
+
+![The Server tab connected to the MPS 500 example server: MPS500 expanded in the address space, ST10_Distributing and ST30_Processing checked with everything below, ST10_Distributing selected with its details under Node, and both stations under Selection](manual/server-browse.png)
 
 Selecting a node shows its details under **Node**: name, node class, NodeId
 (with a button to copy it), BrowseName, the reference that holds it, its type
@@ -739,6 +748,8 @@ endpoint is filled into the connection box, so **Connect** reaches the
 document server at once (trust its certificate the first time). **Stop
 serving** ends it; closing the document, opening another or closing the
 plugin ends it too.
+
+![The Server tab while the document is served with simulated values: the button reads Stop serving, port and options are locked, the two stations taken into the document carry a check mark in the address space, and the status line says "Serving 112 node(s) of this document at opc.tcp://127.0.0.1:48400/AMLOpcUa, to this computer only"](manual/serve.png)
 
 What is served:
 

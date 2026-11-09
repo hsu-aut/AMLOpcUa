@@ -71,10 +71,33 @@ minor versions.
   (`docs/import.md`).
 - **Remove server addresses…** sits in the band "This document as a server".
   At the end of the tool bar above it went into the overflow first, even
-  with the editor at full width.
+  with the editor at full width. The band wraps in a narrow pane, as beside
+  the editor's trees, instead of cutting off its last commands.
+- The endpoint URL on the Server tab keeps room to be typed in a narrow pane:
+  user, password and Secure then go to a second line. Beside the editor's
+  trees the box had no width at all. The connection state shows in full as
+  a tooltip, and Tab moves through the band from left to right.
 - Every button of the plugin has a name for screen readers and UI
   Automation: the text it shows, else its tooltip. A button of glyph and
-  text had none.
+  text had none. So do the entries of the plugin's dialog lists (the
+  companion specifications, the Cloud Library, the missing models), the
+  nodes of a server's address space and their check boxes; they were read
+  out as "System.Windows.Controls.ListBoxItem" and the like.
+- The grey detail of a list entry (namespace, version, date) and the scope
+  beside a node of a server's address space ("with everything below") stay
+  readable on the colour of the selection.
+- A node of a server's address space ticked through UI Automation, as a
+  screen reader or voice control does it, is taken. The box showed the tick
+  and the selection stayed empty, since the plugin followed only clicks.
+- The certificates of the document server and of `uaaml serve --nodeset`
+  name AMLOpcUa as their organisation. The OPC UA stack filled in
+  "O=OPC Foundation" for a subject without one, and the dialog that asks to
+  trust the server showed it. The stack kept such a certificate for the new
+  subject; the server now makes its certificate anew when the subject
+  differs, so a client that trusted the old one asks again once.
+- The dialog "Trust this server?" gives the validity as yyyy-MM-dd, like
+  every date of the plugin, not in the format of Windows' regional settings
+  beside English texts.
 - **New instance…** no longer asks for children of a MandatoryPlaceholder
   below an Optional child that is not ticked; that placeholder is not
   created, and names given for it were dropped without a word.
