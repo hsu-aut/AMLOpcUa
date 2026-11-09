@@ -31,4 +31,10 @@ can be reported upstream and reapplied after an update.
 1. Copy the library files of the new upstream commit over this folder.
 2. Apply the patches in order (`git apply ../patches/NNNN-*.patch` from this
    folder); drop a patch that upstream has made unnecessary.
+   Patch 0010 is no longer needed for its reason: since the plugin converts
+   in a process of its own (`converter\uaaml.exe`, AMLOpcUa 0.2.0), Opc2Aml
+   runs with the Aml.Engine it was built against, where `AddRoot` exists. It
+   stays because the plain file is what the importer and the conversion cache
+   read and needs no unzipping; on the next update it can go, together with
+   reading the container back in `NodeSetImporter`.
 3. Run `dotnet test dotnet/OpcUaAml.Tests`, update the commit above.
