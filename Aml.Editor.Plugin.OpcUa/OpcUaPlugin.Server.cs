@@ -160,6 +160,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    /// <summary>When a certificate is valid, for the dialog that asks to trust it.</summary>
+    internal static string Validity(DateTime from, DateTime to, DateTime now)
+    {
+        // As every date of the plugin, whatever the regional settings say.
+        var validFrom = from.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var validTo = to.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        return to < now ? L.T("{0} to {1}  (expired)", validFrom, validTo) : L.T("{0} to {1}", validFrom, validTo);
+    }
+
     /// <summary>
     /// Connects; if the server's certificate is unknown, shows it and asks,
     /// instead of trusting silently. Trusted, exactly that certificate is kept,
@@ -180,16 +189,13 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         catch (UaConnectionException ex) when (ex.UntrustedCertificate is { } certificate)
         {
-            var dates = System.Globalization.CultureInfo.CurrentCulture;
-            var validFrom = certificate.NotBefore.ToString("d", dates);
-            var validTo = certificate.NotAfter.ToString("d", dates);
             var trust = DialogKit.Confirm(Window.GetWindow(this), "\uE72E", DialogKit.Verify, L.T("Trust this server?"),
                 L.T("The server at {0} presents a certificate this computer does not know. Trust it only if it is the server you mean: compare the fingerprint with the one its administrator gives you. Trusted, it is kept; a server that later shows another certificate is asked about again.", url),
                 L.T("Trust this certificate"),
                 DialogKit.Facts(
                     (L.T("Subject"), certificate.Subject, false),
                     (L.T("Issued by"), certificate.Issuer == certificate.Subject ? L.T("itself (self-signed)") : certificate.Issuer, false),
-                    (L.T("Valid"), certificate.NotAfter < DateTime.Now ? L.T("{0} to {1}  (expired)", validFrom, validTo) : L.T("{0} to {1}", validFrom, validTo), false),
+                    (L.T("Valid"), Validity(certificate.NotBefore, certificate.NotAfter, DateTime.Now), false),
                     (L.T("SHA-256"), certificate.Sha256, true)),
                 risky: true);
             if (!trust) throw;
