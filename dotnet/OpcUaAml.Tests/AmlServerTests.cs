@@ -118,10 +118,20 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
         var port = FreePort();
         await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") });
 
-        var listeners = System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners()
-            .Where(l => l.Port == port).ToList();
-        Assert.NotEmpty(listeners);
-        Assert.All(listeners, l => Assert.True(System.Net.IPAddress.IsLoopback(l.Address), $"listens on {l.Address}"));
+        // Tried by connecting, not by the listener table: Windows 11 build 26300 lists the
+        // listening socket as a connection in an unknown state, and the table came back empty.
+        using (var local = new System.Net.Sockets.TcpClient())
+        {
+            await local.ConnectAsync(System.Net.IPAddress.Loopback, port);
+            Assert.True(local.Connected);
+        }
+        var addresses = System.Net.Dns.GetHostAddresses(System.Net.Dns.GetHostName())
+            .Where(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(a)).ToList();
+        foreach (var address in addresses)
+        {
+            using var remote = new System.Net.Sockets.TcpClient();
+            await Assert.ThrowsAnyAsync<System.Net.Sockets.SocketException>(() => remote.ConnectAsync(address, port));
+        }
     }
 
     [Fact]
