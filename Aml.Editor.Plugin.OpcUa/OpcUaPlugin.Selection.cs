@@ -268,11 +268,14 @@ public partial class OpcUaPlugin
         System.Windows.Automation.AutomationProperties.SetName(item, node.DisplayName);
         System.Windows.Automation.AutomationProperties.SetName(check, L.T("Take {0}", node.DisplayName));
 
+        var showing = false;
         void Show()
         {
             inDocument.Visibility = _inDocument.Contains(Key(node.Address)) ? Visibility.Visible : Visibility.Collapsed;
             var selected = ItemFor(node.Address);
-            check.IsChecked = selected != null;
+            showing = true;
+            try { check.IsChecked = selected != null; }
+            finally { showing = false; }
             scope.Text = selected?.Scope switch
             {
                 MirrorScope.Node => L.T("   node only"),
@@ -283,7 +286,11 @@ public partial class OpcUaPlugin
         }
         _showChecks.Add(Show);
         Show();
-        check.Click += (_, __) => SetScope(node.Address, check.IsChecked == true ? MirrorScope.Subtree : null, view);
+        // Checked and Unchecked, not Click: UI Automation (a screen reader, voice control)
+        // toggles the box without a click. Showing the selection sets the box too; that
+        // is no choice of the user's and must not turn "node only" into "everything below".
+        check.Checked += (_, __) => { if (!showing) SetScope(node.Address, MirrorScope.Subtree, view); };
+        check.Unchecked += (_, __) => { if (!showing) SetScope(node.Address, null, view); };
 
         if (node.NodeClass != "Method")
         {
