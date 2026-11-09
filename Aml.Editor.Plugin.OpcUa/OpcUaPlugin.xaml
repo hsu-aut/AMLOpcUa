@@ -584,7 +584,9 @@
 
                     <!-- This document as a server -->
                     <Border Grid.Row="3" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,3">
-                        <StackPanel Orientation="Horizontal">
+                        <!-- Wraps in a narrow pane (the plugin beside the editor's trees) instead
+                             of cutting off what does not fit. -->
+                        <WrapPanel Orientation="Horizontal">
                             <TextBlock Text="{l:T 'This document as a server'}" Style="{StaticResource Caption}" VerticalAlignment="Center"/>
                             <guide:HelpButton Topic="server.serve" Margin="4,0,10,0"/>
                             <Button x:Name="ServeButton" Click="ServeButton_Click" Padding="4,1"
@@ -611,7 +613,7 @@
                                     <TextBlock Text="{l:T 'Remove server addresses…'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
-                        </StackPanel>
+                        </WrapPanel>
                     </Border>
 
                     <!-- Address space, details, selection -->

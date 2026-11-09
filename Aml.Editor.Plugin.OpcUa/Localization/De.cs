@@ -565,6 +565,7 @@ internal static class De
         ["Take again"] = "Erneut übernehmen",
         ["Take into a new InstanceHierarchy"] = "In eine neue InstanceHierarchy übernehmen",
         ["Take into document"] = "Ins Dokument übernehmen",
+        ["Take {0}"] = "{0} übernehmen",
         ["Take it with everything below"] = "Mit allem darunter übernehmen",
         ["Take it with its children"] = "Mit seinen Kindknoten übernehmen",
         ["Take only nodes of these namespaces, with what they hold."] = "Nur Knoten dieser Namespaces übernehmen, mit allem, was sie enthalten.",

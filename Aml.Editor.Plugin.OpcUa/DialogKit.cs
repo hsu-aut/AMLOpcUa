@@ -193,9 +193,15 @@ internal static class DialogKit
         if (glyph != null)
             row.Children.Add(new TextBlock { FontFamily = Icons, Text = glyph, Foreground = glyphBrush ?? Plain, FontSize = 11, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center });
         row.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center });
+        // Lighter by opacity, not by a grey of its own: the detail keeps the colour of the
+        // entry, which the selection changes, and stays readable on it.
         if (detail.Length > 0)
-            row.Children.Add(new TextBlock { Text = detail, Foreground = Muted, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
-        return new ListBoxItem { Content = row, Tag = tag, ToolTip = detail.Length > 0 ? $"{name}  {detail}" : name };
+            row.Children.Add(new TextBlock { Text = detail, Opacity = 0.62, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+        var text = detail.Length > 0 ? $"{name}  {detail}" : name;
+        var item = new ListBoxItem { Content = row, Tag = tag, ToolTip = text };
+        // Without it a screen reader says "System.Windows.Controls.ListBoxItem".
+        AutomationProperties.SetName(item, text);
+        return item;
     }
 
     /// <summary>The object of the selected entry.</summary>

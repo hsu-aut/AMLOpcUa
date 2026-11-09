@@ -236,6 +236,7 @@ public partial class OpcUaPlugin
             folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = DialogKit.Relate });
             folderHeader.Children.Add(new TextBlock { Text = L.T("Views ({0})", views.Count), VerticalAlignment = VerticalAlignment.Center });
             var folder = new TreeViewItem { Header = folderHeader, ToolTip = L.T("The Views the server defines: parts of its address space for a purpose.") };
+            System.Windows.Automation.AutomationProperties.SetName(folder, L.T("Views ({0})", views.Count));
             foreach (var v in views) folder.Items.Add(NodeItem(v, v.Address));
             AddressTree.Items.Add(folder);
         }
@@ -245,7 +246,7 @@ public partial class OpcUaPlugin
         }
     }
 
-    private TreeViewItem NodeItem(UaBrowseItem node, UaNodeAddress? view)
+    internal TreeViewItem NodeItem(UaBrowseItem node, UaNodeAddress? view)
     {
         _names[Key(node.Address)] = node.DisplayName;
         var check = new CheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0), IsEnabled = node.NodeClass != "Method" };
@@ -263,6 +264,9 @@ public partial class OpcUaPlugin
         header.Children.Add(inDocument);
         header.Children.Add(scope);
         var item = new TreeViewItem { Header = header, Tag = node, ToolTip = $"{node.NodeClass}  {node.Address}" };
+        // Without them a screen reader says "TreeViewItem" and "check box".
+        System.Windows.Automation.AutomationProperties.SetName(item, node.DisplayName);
+        System.Windows.Automation.AutomationProperties.SetName(check, L.T("Take {0}", node.DisplayName));
 
         void Show()
         {
