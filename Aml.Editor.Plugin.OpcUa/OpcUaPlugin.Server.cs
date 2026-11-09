@@ -175,9 +175,14 @@ public partial class OpcUaPlugin : ISupportsSelection
         var width = ConnectionBand.ActualWidth;
         if (width <= 0) return;
         var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        ConnectionPill.MaxWidth = double.PositiveInfinity;
         foreach (var part in new FrameworkElement[] { ConnectionPill, Credentials, ConnectCommands }) part.Measure(unbounded);
         var oneLine = ConnectionPill.DesiredSize.Width + EndpointRoom + Credentials.DesiredSize.Width + ConnectCommands.DesiredSize.Width;
         var twoLines = oneLine > width;
+        // The state grows while serving ("serving at …"); beyond what leaves the URL its
+        // room it is shortened, and the whole of it is the tooltip.
+        var beside = ConnectCommands.DesiredSize.Width + (twoLines ? 0 : Credentials.DesiredSize.Width);
+        ConnectionPill.MaxWidth = Math.Max(80, width - beside - EndpointRoom);
         Grid.SetRow(Credentials, twoLines ? 1 : 0);
         Grid.SetColumn(Credentials, twoLines ? 0 : 1);
         Grid.SetColumnSpan(Credentials, twoLines ? 3 : 1);

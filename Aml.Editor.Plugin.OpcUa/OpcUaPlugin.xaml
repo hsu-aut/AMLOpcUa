@@ -475,7 +475,7 @@
                                         SizeChanged="ConnectionBand_SizeChanged" ToolTip="{Binding Text, ElementName=ServerStateText}">
                                     <StackPanel Orientation="Horizontal">
                                         <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                        <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11"/>
+                                        <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </Border>
                                 <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"

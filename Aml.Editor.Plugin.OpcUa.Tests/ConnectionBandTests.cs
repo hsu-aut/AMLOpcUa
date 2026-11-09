@@ -66,10 +66,16 @@ public class ConnectionBandTests
         return (endpoint, outside);
     }
 
+    // Connected while serving the document, as seen in the editor: the state took the
+    // whole line, and the endpoint box was gone again.
+    private const string ServingState = LongState + "  ·  serving at opc.tcp://127.0.0.1:48400/AMLOpcUa";
+
     [Theory]
     [InlineData(700, "Not connected")]
     [InlineData(900, LongState)]
     [InlineData(1400, LongState)]
+    [InlineData(900, ServingState)]
+    [InlineData(1400, ServingState)]
     public void The_endpoint_box_has_room_and_nothing_is_cut_off(double width, string state)
     {
         var (endpoint, outside) = Layout(width, state);
