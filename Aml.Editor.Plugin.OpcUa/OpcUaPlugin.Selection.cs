@@ -250,7 +250,8 @@ public partial class OpcUaPlugin
     {
         _names[Key(node.Address)] = node.DisplayName;
         var check = new CheckBox { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0), IsEnabled = node.NodeClass != "Method" };
-        var scope = new TextBlock { Foreground = Brushes.Gray, VerticalAlignment = VerticalAlignment.Center, FontStyle = FontStyles.Italic };
+        // Lighter by opacity, not by a grey of its own, so it stays readable on the selection.
+        var scope = new TextBlock { Opacity = 0.62, VerticalAlignment = VerticalAlignment.Center, FontStyle = FontStyles.Italic };
         var inDocument = new TextBlock
         {
             FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE73E", FontSize = 10, Margin = new Thickness(6, 1, 0, 0),

@@ -71,6 +71,28 @@ public class AddressTreeTests
     }
 
     [Fact]
+    public void The_scope_beside_a_node_takes_the_colour_of_the_node_when_it_is_selected()
+    {
+        // A fixed grey stood on the blue of the selection and was hard to read.
+        bool? follows = null;
+        OnUiThread(() =>
+        {
+            var plugin = new OpcUaPlugin();
+            var item = plugin.NodeItem(Station, null);
+            var tree = new TreeView();
+            tree.Items.Add(item);
+            var window = new Window { Content = tree, Width = 600, Height = 300, ShowInTaskbar = false, Left = -4000 };
+            window.Show();
+            item.Foreground = System.Windows.Media.Brushes.White;
+            var scope = Descendants<TextBlock>(item).Last();
+            follows = ReferenceEquals(scope.Foreground, item.Foreground);
+            window.Close();
+        });
+
+        Assert.True(follows);
+    }
+
+    [Fact]
     public void A_node_taken_alone_from_its_menu_stays_taken_alone()
     {
         // The box shows the tick for any part taken; showing it must not turn
