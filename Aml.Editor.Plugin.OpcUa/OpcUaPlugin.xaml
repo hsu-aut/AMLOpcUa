@@ -538,14 +538,6 @@
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="{l:T 'Stop watching'}" Click="UnwatchButton_Click" ToolTip="{l:T 'Stop watching and clear the live list.'}">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
-                        <Separator/>
-                        <Button x:Name="StripAddressesButton" Click="StripAddressesButton_Click"
-                                ToolTip="{l:T 'Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE72E;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="{l:T 'Remove server addresses…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
                         <guide:HelpButton Topic="server.commands"/>
                     </ToolBar>
 
@@ -610,6 +602,15 @@
                                       ToolTip="{l:T 'Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session.'}"/>
                             <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="{l:T 'Clients…'}" Padding="4,1"
                                     ToolTip="{l:T 'The clients the document server refused over the network, to trust, and those it trusts.'}"/>
+                            <!-- About the document, not the connection: here it stays in view, where the
+                                 tool bar above put it into its overflow first. -->
+                            <Button x:Name="StripAddressesButton" Click="StripAddressesButton_Click" Padding="4,1" Margin="16,0,0,0"
+                                    ToolTip="{l:T 'Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE72E;" Foreground="{DynamicResource Plain}"/>
+                                    <TextBlock Text="{l:T 'Remove server addresses…'}" Style="{StaticResource Label}"/>
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </Border>
 

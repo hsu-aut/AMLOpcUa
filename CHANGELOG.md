@@ -64,6 +64,9 @@ minor versions.
   modeler's instance hierarchy work the same way. The core now builds
   against Aml.Engine.Services 4.3.1, the version the editor brings
   (`docs/import.md`).
+- **Remove server addresses…** sits in the band "This document as a server".
+  At the end of the tool bar above it went into the overflow first, even
+  with the editor at full width.
 - Every button of the plugin has a name for screen readers and UI
   Automation: the text it shows, else its tooltip. A button of glyph and
   text had none.

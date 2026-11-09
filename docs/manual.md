@@ -782,9 +782,8 @@ server element carries `EndpointUrl` and `ServerUri`, every NodeId below it a
 after BPR 007 or DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. Before you
 pass the document on:
 
-1. On the **Server** tab, click **Remove server addresses…**. In a narrow
-   window it sits in the overflow of the tool bar (the small arrow at its
-   right end).
+1. On the **Server** tab, in the band "This document as a server", click
+   **Remove server addresses…**. It needs no connection.
 2. Choose where to save the copy; the plugin proposes
    `<name>-without-addresses.aml` beside the document.
 

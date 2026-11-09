@@ -274,7 +274,7 @@ A mirrored document says where its servers are: the server element carries
 `EndpointUrl` and `ServerUri`, every NodeId below it a `ServerInstanceUri`
 (which usually holds the host name), and a server element after BPR 007 or
 DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. **Remove server addresses…**
-(Server tab) and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
+(Server tab, band "This document as a server") and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
 them; the open document stays as it is. What a node is known by (NamespaceUri
 and identifier), links to planned elements and how a server is secured stay,
 and so do the libraries, whose NodeId type declares `ServerInstanceUri`

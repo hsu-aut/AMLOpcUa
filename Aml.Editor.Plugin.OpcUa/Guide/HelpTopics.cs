@@ -31,7 +31,7 @@ internal static class HelpTopics
             new[] { "Endpoint", "Security mode", "Certificate" }, "server"),
         ["server.commands"] = new(
             L.T("What to do with the server"),
-            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads once, Keep document values live writes every change into the document, Watch only shows values in the list below. Remove server addresses saves a copy of the document without where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the log names every place a host name still appears."),
+            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads once, Keep document values live writes every change into the document, Watch only shows values in the list below."),
             new[] { "NodeId", "Address space" }, "server"),
         ["server.take"] = new(
             L.T("What to take"),
@@ -39,7 +39,7 @@ internal static class HelpTopics
             new[] { "Address space", "Property", "View" }, "server"),
         ["server.serve"] = new(
             L.T("This document as a server"),
-            L.T("Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then other computers may, over secured connections and only with a certificate you trusted under Clients…."),
+            L.T("Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then other computers may, over secured connections and only with a certificate you trusted under Clients…. Remove server addresses saves a copy of the document without where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the log names every place a host name still appears."),
             new[] { "Endpoint", "Certificate" }, "server"),
         ["diagram"] = new(
             L.T("Diagram"),
