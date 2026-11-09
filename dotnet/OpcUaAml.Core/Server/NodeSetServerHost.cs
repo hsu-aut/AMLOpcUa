@@ -88,7 +88,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         if (files.Count == 0) throw new ArgumentException("No NodeSet to serve.", nameof(nodeSets));
 
         var (app, url, replaced) = await ServerStartup.PrepareAsync(
-            "AMLOpcUa NodeSet server", "NodeSetServer", "CN=AMLOpcUa NodeSet server",
+            "AMLOpcUa NodeSet server", "NodeSetServer", "CN=AMLOpcUa NodeSet server, O=AMLOpcUa",
             options.Port, options.Network, options.PkiRoot, ct).ConfigureAwait(false);
 
         var server = new PlantServer(files, options.PublishNodeSets, options.Simulate);

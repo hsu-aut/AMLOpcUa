@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OpcUaAml.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The UA base NodeSet and DI ship with every build: an import always
          needs the base model, and DI is required by most companion specs. -->
     <None Include="..\..\nodesets\*.xml" Link="nodesets\%(Filename)%(Extension)"

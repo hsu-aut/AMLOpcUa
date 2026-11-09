@@ -143,7 +143,7 @@ public sealed class AmlServerHost : IAsyncDisposable
         options ??= new AmlServerOptions();
         var model = AmlAddressSpace.From(document, options.DocumentNamespace);
         var (app, url, replaced) = await ServerStartup.PrepareAsync(
-            "AMLOpcUa document server", "DocumentServer", "CN=AMLOpcUa document server",
+            "AMLOpcUa document server", "DocumentServer", "CN=AMLOpcUa document server, O=AMLOpcUa",
             options.Port, options.Network, options.PkiRoot, ct).ConfigureAwait(false);
 
         var server = new DocumentServer(model, options.Simulate);

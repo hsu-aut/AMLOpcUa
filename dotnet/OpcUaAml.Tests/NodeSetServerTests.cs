@@ -60,6 +60,16 @@ public class NodeSetServerTests(NodeSetServerFixture fixture) : IClassFixture<No
     }
 
     [Fact]
+    public void Its_certificate_names_this_build_not_the_OPC_Foundation()
+    {
+        // A client shows the subject when it is asked to trust the server.
+        var file = Directory.GetFiles(Path.Combine(fixture.PkiRoot, "server", "own", "certs"), "*.der").Single();
+        var subject = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(file).Subject;
+
+        Assert.Equal("CN=AMLOpcUa NodeSet server, O=AMLOpcUa", subject);
+    }
+
+    [Fact]
     public async Task A_client_takes_the_NodeSet_from_the_server_unchanged()
     {
         // The whole point of the published file: what the client gets back is

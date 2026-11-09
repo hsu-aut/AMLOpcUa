@@ -35,22 +35,38 @@ internal static class ServerStartup
             .SetAutoAcceptUntrustedCertificates(!network)
             .CreateAsync(ct).ConfigureAwait(false);
 
-        var replaced = false;
+        bool usable;
         try
         {
             await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+            usable = await NamesAsync(app, subjectName).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // The certificate names the addresses it was made for (the computer's name, or
-            // 127.0.0.1); served under another, the stack refuses it. It is the server's own,
-            // so a new one is made. Clients that trusted the old one are asked again.
-            foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(pkiRoot, "own", f)).Where(Directory.Exists))
-                foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
-            app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
-            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
-            replaced = true;
+            // 127.0.0.1); served under another, the stack refuses it.
+            usable = false;
         }
-        return (app, url, replaced);
+        if (usable) return (app, url, false);
+
+        // It is the server's own, so a new one is made. Clients that trusted the old one
+        // are asked again.
+        foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(pkiRoot, "own", f)).Where(Directory.Exists))
+            foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
+        app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
+        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        return (app, url, true);
+    }
+
+    /// <summary>
+    /// Whether the certificate the stack found has the subject asked for. The stack
+    /// takes one whose common name matches, though the rest of the subject differs:
+    /// before 0.2.0 the subject had no organisation and the stack filled in
+    /// "O=OPC Foundation", which a client then showed when it asked to trust it.
+    /// </summary>
+    private static async Task<bool> NamesAsync(ApplicationInstance app, string subjectName)
+    {
+        var certificate = await app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.FindAsync(false).ConfigureAwait(false);
+        return certificate != null && Opc.Ua.X509Utils.CompareDistinguishedName(certificate.Subject, subjectName);
     }
 }

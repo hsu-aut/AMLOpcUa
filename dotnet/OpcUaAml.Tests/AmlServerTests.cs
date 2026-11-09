@@ -111,6 +111,44 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task Its_certificate_names_this_build_not_the_OPC_Foundation()
+    {
+        // A client shows the subject when it is asked to trust the server.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Named");
+        var serverPki = Path.Combine(TempPki(), "server");
+        await using (await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = serverPki })) { }
+
+        var file = Directory.GetFiles(Path.Combine(serverPki, "own", "certs"), "*.der").Single();
+        var subject = System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(file).Subject;
+
+        Assert.Equal("CN=AMLOpcUa document server, O=AMLOpcUa", subject);
+    }
+
+    [Fact]
+    public async Task A_certificate_with_the_organisation_the_stack_filled_in_is_replaced()
+    {
+        // Before 0.2.0 the subject had no organisation, and the stack filled in
+        // "O=OPC Foundation". It keeps such a certificate for the new subject, so
+        // the server makes it anew itself, once.
+        var serverPki = Path.Combine(TempPki(), "server");
+        await ServerStartup.PrepareAsync("AMLOpcUa document server", "DocumentServer", "CN=AMLOpcUa document server",
+            FreePort(), false, serverPki, CancellationToken.None);
+        Assert.Equal("CN=AMLOpcUa document server, O=OPC Foundation", OwnSubject(serverPki));
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Renamed");
+
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = serverPki });
+
+        Assert.Equal("CN=AMLOpcUa document server, O=AMLOpcUa", OwnSubject(serverPki));
+        Assert.True(host.CertificateReplaced);
+    }
+
+    private static string OwnSubject(string pki) =>
+        System.Security.Cryptography.X509Certificates.X509CertificateLoader.LoadCertificateFromFile(
+            Directory.GetFiles(Path.Combine(pki, "own", "certs"), "*.der").Single()).Subject;
+
+    [Fact]
     public async Task By_default_the_server_is_reachable_from_this_computer_only()
     {
         var doc = CAEXDocument.New_CAEXDocument();
