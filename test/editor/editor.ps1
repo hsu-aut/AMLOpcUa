@@ -41,6 +41,20 @@ public static class Win32Top {
     }, IntPtr.Zero);
     return found;
   }
+  [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr parent, Each each, IntPtr l);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr h);
+  // The file name box of a file dialog: the visible Edit with the id 1001, which a
+  // save dialog keeps deeper than an open dialog does (below FloatNotifySink).
+  public static IntPtr FileNameEdit(IntPtr dialog) {
+    var found = IntPtr.Zero;
+    EnumChildWindows(dialog, (h, l) => {
+      var c = new StringBuilder(64); GetClassName(h, c, 64);
+      if (c.ToString() == "Edit" && GetDlgCtrlID(h) == 1001 && IsWindowVisible(h)) { found = h; return false; }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
 }
 "@ }
 
@@ -113,6 +127,7 @@ function Fill-FileDialog($dlg, [string]$path) {
     $edit = [Win32Dlg]::FindWindowEx([Win32Dlg]::FindWindowEx($combo, [IntPtr]::Zero, 'ComboBox', $null), [IntPtr]::Zero, 'Edit', $null)
     if ($edit -eq [IntPtr]::Zero) { $edit = [Win32Dlg]::FindWindowEx($combo, [IntPtr]::Zero, 'Edit', $null) }
   }
+  if ($edit -eq [IntPtr]::Zero) { $edit = [Win32Top]::FileNameEdit($h) }
   if ($edit -eq [IntPtr]::Zero) {
     $box = $dlg.FindFirst($TS::Descendants, (New-Object System.Windows.Automation.PropertyCondition($AE::AutomationIdProperty, '1001')))
     if ($box) { Set-Text $box $path }
