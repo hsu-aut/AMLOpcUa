@@ -50,6 +50,9 @@ that were there before the session stay.
 - The overflow of a WPF tool bar is not reachable through UI Automation.
 - The plugin's dialogs are windows of their own; `Shot` takes their picture
   from their own handle.
+- Editor 6.4.3.8 has the file dialogs no longer among the windows UI
+  Automation lists; `Dialog` then finds them among the process's own windows
+  by their title.
 - When the PlugIn Manager lists a plugin folder that is gone (an update half
   done), the editor loads no plugin at all; see the PlugIn Manager first when
   the AMLOpcUa tab is missing.

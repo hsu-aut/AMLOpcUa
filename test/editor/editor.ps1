@@ -19,6 +19,30 @@ public static class Win32Dlg {
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
 }
 "@ }
+if (-not ('Win32Top' -as [type])) {
+Add-Type @"
+using System;
+using System.Text;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public static class Win32Top {
+  delegate bool Each(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] static extern bool EnumWindows(Each each, IntPtr l);
+  [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
+  [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  // The visible top-level windows of a process, front first, with their titles.
+  public static List<KeyValuePair<IntPtr, string>> Of(int pid) {
+    var found = new List<KeyValuePair<IntPtr, string>>();
+    EnumWindows((h, l) => {
+      uint p; GetWindowThreadProcessId(h, out p);
+      if (p == pid && IsWindowVisible(h)) { var t = new StringBuilder(512); GetWindowText(h, t, 512); found.Add(new KeyValuePair<IntPtr, string>(h, t.ToString())); }
+      return true;
+    }, IntPtr.Zero);
+    return found;
+  }
+}
+"@ }
 
 function Main { Get-EditorWindow '*AutomationML Editor*' }
 
@@ -57,7 +81,9 @@ function Toggle($el) { (Get-Pattern $el ([System.Windows.Automation.TogglePatter
 function Tab([string]$id) { Select-El (ById $id); Start-Sleep -Milliseconds 800 }
 
 # A window of the editor whose title matches: a top-level one, or one UI
-# Automation lists below the main window (WPF dialogs with an owner).
+# Automation lists below the main window (WPF dialogs with an owner). Editor
+# 6.4.3.8 no longer has the file dialogs among the windows UI Automation lists,
+# so the process's own top-level windows are asked as well.
 function Dialog([string]$title, [int]$timeout = 15) {
   $end = (Get-Date).AddSeconds($timeout)
   do {
@@ -66,6 +92,12 @@ function Dialog([string]$title, [int]$timeout = 15) {
     if ($m) {
       $cond = New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Window)
       foreach ($w in $m.FindAll($TS::Descendants, $cond)) { if ($w.Current.Name -like $title) { return $w } }
+    }
+    $p = Get-EditorProcess
+    if ($p) {
+      foreach ($kv in [Win32Top]::Of($p.Id)) {
+        if ($kv.Value -like $title) { try { return $AE::FromHandle($kv.Key) } catch { } }
+      }
     }
     Start-Sleep -Milliseconds 400
   } while ((Get-Date) -lt $end)
