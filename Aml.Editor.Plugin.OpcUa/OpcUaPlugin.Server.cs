@@ -160,6 +160,31 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    /// <summary>The width the endpoint URL keeps at least before user, password and Secure leave its line.</summary>
+    private const double EndpointRoom = 240;
+
+    private void ConnectionBand_SizeChanged(object sender, SizeChangedEventArgs e) => FitConnectionBand();
+
+    /// <summary>
+    /// One line for the connection when the endpoint URL keeps room in it; else
+    /// user, password and Secure go to a second line below it. The state beside
+    /// the URL grows when connected, so this is asked again then.
+    /// </summary>
+    private void FitConnectionBand()
+    {
+        var width = ConnectionBand.ActualWidth;
+        if (width <= 0) return;
+        var unbounded = new Size(double.PositiveInfinity, double.PositiveInfinity);
+        foreach (var part in new FrameworkElement[] { ConnectionPill, Credentials, ConnectCommands }) part.Measure(unbounded);
+        var oneLine = ConnectionPill.DesiredSize.Width + EndpointRoom + Credentials.DesiredSize.Width + ConnectCommands.DesiredSize.Width;
+        var twoLines = oneLine > width;
+        Grid.SetRow(Credentials, twoLines ? 1 : 0);
+        Grid.SetColumn(Credentials, twoLines ? 0 : 1);
+        Grid.SetColumnSpan(Credentials, twoLines ? 3 : 1);
+        Credentials.HorizontalAlignment = twoLines ? HorizontalAlignment.Left : HorizontalAlignment.Stretch;
+        Credentials.Margin = twoLines ? new Thickness(-8, 4, 0, 0) : new Thickness(0);
+    }
+
     /// <summary>When a certificate is valid, for the dialog that asks to trust it.</summary>
     internal static string Validity(DateTime from, DateTime to, DateTime now)
     {

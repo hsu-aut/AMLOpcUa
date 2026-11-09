@@ -457,29 +457,48 @@
                          and serving this document, which needs no connection at all. -->
                     <!-- Connection -->
                     <Border Grid.Row="0" Background="{DynamicResource Ua.Band}" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,5">
-                        <DockPanel>
-                            <guide:HelpButton DockPanel.Dock="Right" Topic="server.connection"/>
-                            <Button x:Name="ConnectButton" DockPanel.Dock="Right" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
-                                    <TextBlock x:Name="ConnectText" Text="{l:T 'Connect'}" Style="{StaticResource Label}"/>
-                                </StackPanel>
-                            </Button>
-                            <CheckBox x:Name="SecurityToggle" DockPanel.Dock="Right" Content="{l:T 'Secure'}" VerticalAlignment="Center" Margin="8,0,0,0"
-                                      ToolTip="{l:T 'Connect signed and encrypted only; a server without a secured endpoint is refused.'}"/>
-                            <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="{l:T 'Password'}" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'Password (empty for anonymous)'}"/>
-                            <Label DockPanel.Dock="Right" Content="{l:T '_Password'}" Target="{Binding ElementName=PasswordBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
-                            <TextBox x:Name="UserBox" AutomationProperties.Name="{l:T 'User name'}" DockPanel.Dock="Right" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'User name (empty for anonymous)'}"/>
-                            <Label DockPanel.Dock="Right" Content="{l:T '_User'}" Target="{Binding ElementName=UserBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
-                            <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11"/>
-                                </StackPanel>
-                            </Border>
-                            <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
-                                      ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
-                        </DockPanel>
+                        <!-- One line when there is room. In a narrow pane (the plugin beside the
+                             editor's trees) user, password and Secure go to a second line, so the
+                             endpoint URL keeps room to be typed (FitConnectionBand). -->
+                        <Grid x:Name="ConnectionBand" SizeChanged="ConnectionBand_SizeChanged">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <DockPanel Grid.Column="0">
+                                <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0"
+                                        SizeChanged="ConnectionBand_SizeChanged" ToolTip="{Binding Text, ElementName=ServerStateText}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                                <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
+                                          ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
+                            </DockPanel>
+                            <StackPanel x:Name="Credentials" Grid.Column="1" Orientation="Horizontal">
+                                <Label Content="{l:T '_User'}" Target="{Binding ElementName=UserBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
+                                <TextBox x:Name="UserBox" AutomationProperties.Name="{l:T 'User name'}" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'User name (empty for anonymous)'}"/>
+                                <Label Content="{l:T '_Password'}" Target="{Binding ElementName=PasswordBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
+                                <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="{l:T 'Password'}" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'Password (empty for anonymous)'}"/>
+                                <CheckBox x:Name="SecurityToggle" Content="{l:T 'Secure'}" VerticalAlignment="Center" Margin="8,0,0,0"
+                                          ToolTip="{l:T 'Connect signed and encrypted only; a server without a secured endpoint is refused.'}"/>
+                            </StackPanel>
+                            <StackPanel x:Name="ConnectCommands" Grid.Column="2" Orientation="Horizontal">
+                                <Button x:Name="ConnectButton" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
+                                        <TextBlock x:Name="ConnectText" Text="{l:T 'Connect'}" Style="{StaticResource Label}"/>
+                                    </StackPanel>
+                                </Button>
+                                <guide:HelpButton Topic="server.connection"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
                     <!-- Commands -->
