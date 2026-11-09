@@ -53,6 +53,11 @@ public class ConnectionBandTests
                         if (right > band.ActualWidth + 0.5 || c.ActualWidth < 1)
                             outside.Add(c.Name is { Length: > 0 } id ? id : c.GetType().Name);
                     }
+                    // A state longer than its room is shortened with "…", not cut off at the edge.
+                    var text = plugin.ServerStateText;
+                    var pill = plugin.ConnectionPill;
+                    if (text.TranslatePoint(new Point(text.ActualWidth, 0), pill).X > pill.ActualWidth + 0.5)
+                        outside.Add(text.Name);
                     window.Close();
                 }
                 catch (Exception ex) { failure = ex; }

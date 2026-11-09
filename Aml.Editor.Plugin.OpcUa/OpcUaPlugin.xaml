@@ -473,10 +473,11 @@
                             <DockPanel Grid.Column="0">
                                 <Border x:Name="ConnectionPill" DockPanel.Dock="Left" CornerRadius="9" Padding="8,2" Margin="0,0,8,0"
                                         SizeChanged="ConnectionBand_SizeChanged" ToolTip="{Binding Text, ElementName=ServerStateText}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse x:Name="ConnectionDot" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                    <!-- A DockPanel, not a StackPanel: the text gets the pill's width and can be shortened. -->
+                                    <DockPanel>
+                                        <Ellipse x:Name="ConnectionDot" DockPanel.Dock="Left" Width="8" Height="8" Fill="#9AA0A6" Margin="0,0,5,0" VerticalAlignment="Center"/>
                                         <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis"/>
-                                    </StackPanel>
+                                    </DockPanel>
                                 </Border>
                                 <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
                                           ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
