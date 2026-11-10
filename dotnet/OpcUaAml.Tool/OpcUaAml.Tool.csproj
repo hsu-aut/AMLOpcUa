@@ -6,6 +6,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>uaaml</AssemblyName>
     <RootNamespace>OpcUaAml.Tool</RootNamespace>
+    <!-- The plugin runs this as its converter. The AutomationML Editor 6.4.3.8
+         runs on .NET 10, so a computer set up for it may have no .NET 8: the
+         converter takes the next newer runtime then. -->
+    <RollForward>Major</RollForward>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpcUaAml.Core\OpcUaAml.Core.csproj" />

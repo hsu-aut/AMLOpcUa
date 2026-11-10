@@ -45,9 +45,13 @@ jobs:
           npm ci
           npm run build:web
 
+      # 10 beside 8: the AutomationML Editor 6.4.3.8 runs on .NET 10, and a
+      # test runs the converter with that runtime alone.
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Build
         working-directory: AMLOpcUa
@@ -88,6 +92,10 @@ jobs:
               if ($names -like '*Aml.Editor.Plugin.Contract.dll') { throw "$($package.Name) carries the contract assembly; the editor would not load the plugin." }
               # The converter keeps its own Aml.Engine; one beside the plugin would be loaded into the plugin's context.
               if ($names -contains "$root/Aml.Engine.dll") { throw "$($package.Name) carries Aml.Engine.dll beside the plugin." }
+              # Without it the converter does not start on a computer that has .NET 10 and no .NET 8.
+              $reader = New-Object System.IO.StreamReader($zip.GetEntry("$root/converter/uaaml.runtimeconfig.json").Open())
+              try { $runtime = $reader.ReadToEnd() } finally { $reader.Dispose() }
+              if ($runtime -notmatch '"rollForward":\s*"Major"') { throw "$($package.Name): the converter does not roll forward to a newer .NET." }
               Write-Host "$($package.Name): $($names.Count) entries, modeler and converter included."
             }
             finally { $zip.Dispose() }

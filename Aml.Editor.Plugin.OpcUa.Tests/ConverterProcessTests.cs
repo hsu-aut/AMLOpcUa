@@ -47,6 +47,80 @@ public class ConverterProcessTests
         Assert.Contains("is not an OPC UA NodeSet", error.Message);
     }
 
+    /// <summary>
+    /// The AutomationML Editor 6.4.3.8 runs on .NET 10, so a computer set up
+    /// for it may have no .NET 8. Seen with 0.2.0: there the converter did not
+    /// start ("You must install or update .NET"), and every import failed.
+    /// The converter is run here with the newest runtime of this computer
+    /// alone, as such a computer would have it.
+    /// </summary>
+    [Fact]
+    public void The_converter_runs_on_a_computer_with_only_a_newer_NET()
+    {
+        var installed = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "..", "..", ".."));
+        var newest = new DirectoryInfo(Path.Combine(installed, "shared", "Microsoft.NETCore.App")).GetDirectories()
+            .Select(d => (Dir: d, Version: Version.TryParse(d.Name.Split('-')[0], out var v) ? v : null))
+            .Where(r => r.Version is { Major: > 8 })
+            .OrderByDescending(r => r.Version)
+            .FirstOrDefault();
+        Assert.True(newest.Dir != null, $"No .NET runtime newer than 8 in {installed}; the editor needs .NET 10, install it to run this test.");
+        var fxr = new DirectoryInfo(Path.Combine(installed, "host", "fxr")).GetDirectories()
+            .Where(d => Version.TryParse(d.Name.Split('-')[0], out var v) && v.Major == newest.Version!.Major)
+            .OrderByDescending(d => d.Name)
+            .First();
+
+        var root = Directory.CreateTempSubdirectory("opcuaaml-runtime-");
+        var links = new[]
+        {
+            (Link: Path.Combine(root.FullName, "host", "fxr", fxr.Name), Target: fxr.FullName),
+            (Link: Path.Combine(root.FullName, "shared", "Microsoft.NETCore.App", newest.Dir!.Name), Target: newest.Dir.FullName),
+        };
+        try
+        {
+            foreach (var (link, target) in links)
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(link)!);
+                Run("cmd.exe", new[] { "/c", "mklink", "/J", link, target }, null);
+            }
+            var output = Path.Combine(root.FullName, "converted.aml");
+
+            var (exitCode, errors) = Run(Converter(), new[] { "convert", Mini(), "-o", output }, root.FullName);
+
+            Assert.True(exitCode == 0, $"The converter ended with {exitCode} on .NET {newest.Version} alone: {errors}");
+            Assert.True(File.Exists(output));
+        }
+        finally
+        {
+            // The links first, on their own, so nothing of the real runtime is touched.
+            foreach (var (link, _) in links)
+                if (Directory.Exists(link)) Directory.Delete(link);
+            root.Delete(recursive: true);
+        }
+    }
+
+    /// <summary>Runs a program; with <paramref name="dotnetRoot"/>, it sees the runtimes there and no others.</summary>
+    private static (int ExitCode, string Errors) Run(string program, IEnumerable<string> arguments, string? dotnetRoot)
+    {
+        var start = new System.Diagnostics.ProcessStartInfo(program)
+        {
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true,
+        };
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        if (dotnetRoot != null)
+        {
+            start.Environment["DOTNET_ROOT"] = dotnetRoot;
+            start.Environment["DOTNET_ROOT_X64"] = dotnetRoot;
+            start.Environment.Remove("DOTNET_ROLL_FORWARD");
+        }
+        using var process = System.Diagnostics.Process.Start(start)!;
+        var output = process.StandardOutput.ReadToEndAsync();
+        var errors = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        output.Wait();
+        if (dotnetRoot == null && process.ExitCode != 0) throw new InvalidOperationException($"{program} failed: {errors}{output.Result}");
+        return (process.ExitCode, errors + output.Result);
+    }
+
     [Fact]
     public async Task A_missing_converter_is_named()
     {
