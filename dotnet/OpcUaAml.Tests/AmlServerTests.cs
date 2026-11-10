@@ -278,6 +278,23 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task A_second_server_on_the_same_port_is_refused_in_a_sentence()
+    {
+        // A second serve, or the editor serving while uaaml does: the stack's
+        // "Failed to establish tcp listener sockets" says nothing to a user.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Twice");
+        var port = FreePort();
+        await using var first = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") });
+
+        var ex = await Assert.ThrowsAsync<PortInUseException>(() =>
+            AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") }));
+
+        Assert.Equal(port, ex.Port);
+        Assert.Equal($"Port {port} is in use (another server, a second serve or editor). Stop it or choose another port.", ex.Message);
+    }
+
+    [Fact]
     public void Duplicate_NodeIds_are_made_unique()
     {
         var doc = CAEXDocument.New_CAEXDocument();

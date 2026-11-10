@@ -149,7 +149,7 @@ public sealed class AmlServerHost : IAsyncDisposable
         var server = new DocumentServer(model, options.Simulate);
         try
         {
-            await app.StartAsync(server).ConfigureAwait(false);
+            await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
         }
         catch
         {

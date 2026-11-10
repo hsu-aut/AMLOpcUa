@@ -59,6 +59,30 @@ internal static class ServerStartup
     }
 
     /// <summary>
+    /// Starts the server. A port another program holds is said in a sentence
+    /// (<see cref="PortInUseException"/>), not in the stack's "Failed to
+    /// establish tcp listener sockets".
+    /// </summary>
+    public static async Task StartAsync(ApplicationInstance app, Opc.Ua.ServerBase server, int port)
+    {
+        try
+        {
+            await app.StartAsync(server).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (HeldByAnother(ex))
+        {
+            throw new PortInUseException(port, ex);
+        }
+    }
+
+    private static bool HeldByAnother(Exception ex)
+    {
+        for (Exception? e = ex; e != null; e = e.InnerException)
+            if (e is System.Net.Sockets.SocketException { SocketErrorCode: System.Net.Sockets.SocketError.AddressAlreadyInUse }) return true;
+        return false;
+    }
+
+    /// <summary>
     /// Whether the certificate the stack found has the subject asked for. The stack
     /// takes one whose common name matches, though the rest of the subject differs:
     /// before 0.2.0 the subject had no organisation and the stack filled in
@@ -69,4 +93,20 @@ internal static class ServerStartup
         var certificate = await app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.FindAsync(false).ConfigureAwait(false);
         return certificate != null && Opc.Ua.X509Utils.CompareDistinguishedName(certificate.Subject, subjectName);
     }
+}
+
+/// <summary>
+/// A server of this build could not listen because another program holds its
+/// port: another OPC UA server, a second <c>uaaml serve</c>, or the editor
+/// serving a document.
+/// </summary>
+public sealed class PortInUseException : IOException
+{
+    public PortInUseException(int port, Exception? inner = null)
+        : base($"Port {port} is in use (another server, a second serve or editor). Stop it or choose another port.", inner)
+    {
+        Port = port;
+    }
+
+    public int Port { get; }
 }

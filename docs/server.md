@@ -259,7 +259,10 @@ not exist yet, or a companion specification to try a client against.
   browsing, which is the other way of that dialog.
 - It listens on 4840, the port OPC UA is registered for, because it stands in
   for a real server of that model; the document server keeps 48400, so both
-  can run at once. `--port` says otherwise.
+  can run at once. `--port` says otherwise. A port another program holds
+  (another OPC UA server, a second `uaaml serve`, the editor serving a
+  document) is refused in a sentence that names it (`PortInUseException`),
+  for both servers.
 - `--simulate` moves the values as the document server does, and `--network`
   and the security work the same way.
 

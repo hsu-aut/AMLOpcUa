@@ -257,6 +257,16 @@ public static class Program
         {
             return Fail(ex.Message);
         }
+        catch (OpcUaAml.Server.PortInUseException ex)
+        {
+            // The core's sentence, with the option that chooses another port.
+            return Fail(ex.Message.TrimEnd('.') + " (--port).");
+        }
+        catch (Opc.Ua.ServiceResultException ex)
+        {
+            // What the OPC UA stack refuses (a certificate it cannot use, for one): its sentence, not a stack trace.
+            return Fail(ex.Message);
+        }
         catch (ArgumentException ex)
         {
             return Fail(ex.Message + "\n\n" + Usage);
@@ -496,6 +506,22 @@ public static class Program
 
     private static int Run(Task<int> task) => task.GetAwaiter().GetResult();
 
+    /// <summary>
+    /// The folder below which the certificates and trust lists are kept; null
+    /// keeps the folders the plugin uses as well (%LOCALAPPDATA%\AMLOpcUa).
+    /// The tests set it, so they never touch the user's certificates.
+    /// </summary>
+    internal static string? PkiFolder { get; set; }
+
+    private static string ClientPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki") : new OpcUaAml.Server.UaConnectOptions { EndpointUrl = "" }.PkiRoot;
+
+    private static string DocumentServerPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki-server") : new OpcUaAml.Server.AmlServerOptions().PkiRoot;
+
+    private static string NodeSetServerPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki-nodeset-server") : new OpcUaAml.Server.NodeSetServerOptions().PkiRoot;
+
     /// <summary>A line typed without echo.</summary>
     private static string ReadSecret(string prompt)
     {
@@ -516,6 +542,19 @@ public static class Program
         EndpointUrl = endpoint,
         UseSecurity = !o.Has("--insecure"),
         AcceptUntrustedServerCertificates = o.Has("--accept"),
+        PkiRoot = ClientPki,
+    };
+
+    /// <summary>Options made elsewhere (from a document's data source), with the client's certificate folder.</summary>
+    private static OpcUaAml.Server.UaConnectOptions WithClientPki(OpcUaAml.Server.UaConnectOptions options) => new()
+    {
+        EndpointUrl = options.EndpointUrl,
+        UseSecurity = options.UseSecurity,
+        UserName = options.UserName,
+        Password = options.Password,
+        AcceptUntrustedServerCertificates = options.AcceptUntrustedServerCertificates,
+        OperationTimeoutMs = options.OperationTimeoutMs,
+        PkiRoot = ClientPki,
     };
 
     private static async Task<int> ReadCommand(List<string> args)
@@ -693,7 +732,7 @@ public static class Program
         var connections = o.Positional.Count == 2
             ? new List<OpcUaAml.Server.UaConnectOptions> { Connect(o, o.Positional[0]) }
             : OpcUaAml.Addressing.BprDataVariable.SourcesIn(doc).Where(s => s.Url != null)
-                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => g.First().ToConnectOptions(o.Has("--accept"))).ToList();
+                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => WithClientPki(g.First().ToConnectOptions(o.Has("--accept")))).ToList();
         if (connections.Count == 0) throw new ArgumentException("The document names no server with an EndpointURL or DiscoveryURL; give an endpoint.");
 
         var failed = 0;
@@ -729,6 +768,7 @@ public static class Program
                 Simulate = o.Has("--simulate"),
                 PublishNodeSets = !o.Has("--no-publish"),
                 Folders = o.All("--search"),
+                PkiRoot = NodeSetServerPki,
             };
             await using var plant = await OpcUaAml.Server.NodeSetServerHost.StartAsync(nodeSets, options);
             Console.WriteLine($"Serving {plant.Nodes} node(s) of {string.Join(", ", plant.Served)} at {plant.EndpointUrl}"
@@ -741,7 +781,7 @@ public static class Program
 
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
-        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate") });
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki });
         Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + " Press Enter to stop.");
         Console.ReadLine();
         return 0;
@@ -755,13 +795,14 @@ public static class Program
             var found = list.Where(c => c.Thumbprint.StartsWith(thumbprint, StringComparison.OrdinalIgnoreCase)).ToList();
             return found.Count == 1 ? found[0] : throw new ArgumentException($"No single certificate with thumbprint {thumbprint}.");
         }
+        var pki = DocumentServerPki;
         if (o.One("--trust") is { } trust)
-            OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(), trust));
+            OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(pki), trust), pki);
         if (o.One("--distrust") is { } distrust)
-            OpcUaAml.Server.AmlServerHost.DistrustClient(Find(OpcUaAml.Server.AmlServerHost.TrustedClients(), distrust));
-        foreach (var c in OpcUaAml.Server.AmlServerHost.RejectedClients())
+            OpcUaAml.Server.AmlServerHost.DistrustClient(Find(OpcUaAml.Server.AmlServerHost.TrustedClients(pki), distrust));
+        foreach (var c in OpcUaAml.Server.AmlServerHost.RejectedClients(pki))
             Console.WriteLine($"refused  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
-        foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients())
+        foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients(pki))
             Console.WriteLine($"trusted  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
         return 0;
     }

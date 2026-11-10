@@ -136,6 +136,28 @@ public class NodeSetServerTests(NodeSetServerFixture fixture) : IClassFixture<No
     }
 
     [Fact]
+    public async Task A_port_in_use_is_named_in_a_sentence()
+    {
+        // 4840 is where real servers listen; one may run on the same computer.
+        var taken = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        taken.Start();
+        try
+        {
+            var port = ((System.Net.IPEndPoint)taken.LocalEndpoint).Port;
+
+            var ex = await Assert.ThrowsAsync<PortInUseException>(() => NodeSetServerHost.StartAsync(new[] { DiTestServer.DiPath },
+                new NodeSetServerOptions { Port = port, PkiRoot = Path.Combine(fixture.PkiRoot, "server-taken") }));
+
+            Assert.Equal(port, ex.Port);
+            Assert.StartsWith($"Port {port} is in use", ex.Message);
+        }
+        finally
+        {
+            taken.Stop();
+        }
+    }
+
+    [Fact]
     public async Task The_values_move_when_the_plant_is_simulated()
     {
         var example = Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml");
