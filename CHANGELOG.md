@@ -9,6 +9,10 @@ minor versions.
 
 ### Fixed
 
+- Keys pressed in the Modeler tab reached the editor first: Ctrl+Z undid the
+  last change of the AML document instead of the modeler's, and Ctrl+S, Ctrl+C,
+  Ctrl+V and Delete acted on the document too. The modeler now keeps its keys.
+
 - Importing failed on a computer with .NET 10 and no .NET 8, as one set up
   for the AutomationML Editor 6.4.3.8 can be: the converter did not start.
   It now runs on the next newer .NET, and so does `uaaml`.

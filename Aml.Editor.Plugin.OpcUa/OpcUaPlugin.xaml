@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:aml="clr-namespace:Aml.Editor.Plugin.WPFBase;assembly=Aml.Editor.Plugin.Contract"
-    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    xmlns:bridge="clr-namespace:Aml.Editor.Plugin.OpcUa.Bridge"
     xmlns:guide="clr-namespace:Aml.Editor.Plugin.OpcUa.Guide"
     xmlns:l="clr-namespace:Aml.Editor.Plugin.OpcUa.Localization"
     mc:Ignorable="d"
@@ -808,7 +808,8 @@
                     </ToolBar>
                     <TextBlock x:Name="ModelerStatus" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
                                Text="{l:T 'Edit a namespace of the document, start a new model, or open a NodeSet file. \'Apply to document\' in the modeler imports the result.'}"/>
-                    <wv2:WebView2 x:Name="ModelerView"/>
+                    <!-- Keeps its keys: a plain WebView2 hands Ctrl+Z, Ctrl+S, Delete … to the editor. -->
+                    <bridge:PageKeysWebView x:Name="ModelerView"/>
                 </DockPanel>
             </TabItem>
         </TabControl>
