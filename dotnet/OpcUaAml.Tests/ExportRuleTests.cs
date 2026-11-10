@@ -134,6 +134,32 @@ public class ExportRuleTests(ITestOutputHelper output)
             References(Node(nodeSet, $"ns={ns};s={{11111111-1111-1111-1111-111111111111}}")));
     }
 
+    /// <summary>
+    /// The publication date is an xs:dateTime whatever the culture of the
+    /// machine: Finnish writes the time with dots, Thai counts the years from
+    /// the Buddha.
+    /// </summary>
+    [Theory]
+    [InlineData("fi-FI")]
+    [InlineData("th-TH")]
+    public void The_publication_date_is_the_same_in_every_culture(string culture)
+    {
+        var before = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo(culture);
+        try
+        {
+            var nodeSet = NodeSetExporter.ExportFile(Input, new NodeSetExportOptions { PublicationDate = new DateTime(2026, 9, 18, 0, 0, 0, DateTimeKind.Utc) });
+
+            var dates = nodeSet.Root!.Element(Ua + "Models")!.Elements(Ua + "Model").Select(m => (string?)m.Attribute("PublicationDate")).ToList();
+            Assert.NotEmpty(dates);
+            Assert.All(dates, d => Assert.Equal("2026-09-18T00:00:00Z", d));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
+    }
+
     [Fact]
     public void Section_comments_can_be_switched_off()
     {

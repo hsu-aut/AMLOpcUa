@@ -549,7 +549,7 @@ public static class ServerNodeSets
         if (!metadata.TryGetValue(uri, out var m)) return;
         if (!string.IsNullOrEmpty(m.Version)) model.Add(new XAttribute("Version", m.Version));
         if (m.PublicationDate is { } date && date > DateTime.MinValue)
-            model.Add(new XAttribute("PublicationDate", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")));
+            model.Add(new XAttribute("PublicationDate", date.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture)));
     }
 
     // ---- Namespace metadata and files ----

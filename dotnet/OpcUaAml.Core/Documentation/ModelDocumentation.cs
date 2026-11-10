@@ -55,7 +55,7 @@ public static class ModelDocumentation
             .Append($"<title>{E(title)}</title><style>{Css}</style></head><body>\n");
         html.Append($"<header><h1>{E(title)}</h1><p class=\"uri\">{E(namespaceUri)}</p><p class=\"meta\">")
             .Append(entry.ModelVersion != null ? $"Version {E(entry.ModelVersion)}" : "")
-            .Append(entry.PublicationDate is { } date ? $" · published {date:yyyy-MM-dd}" : "")
+            .Append(entry.PublicationDate is { } date ? $" · published {date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}" : "")
             .Append($" · {objectTypes.Count} ObjectTypes, {variableTypes.Count} VariableTypes, {dataTypes.Count} DataTypes, {referenceTypes.Count} ReferenceTypes")
             .Append("</p></header>\n");
 

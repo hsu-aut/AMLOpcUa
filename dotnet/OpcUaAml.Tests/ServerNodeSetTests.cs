@@ -192,6 +192,30 @@ public class ServerNodeSetTests(DiTestServer server) : IClassFixture<DiTestServe
     }
 
     [Fact]
+    public async Task The_publication_date_of_a_browsed_model_is_the_same_in_every_culture()
+    {
+        // Finnish writes the time with dots, which no xs:dateTime reads.
+        var before = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fi-FI");
+        try
+        {
+            await using var client = await UaClient.ConnectAsync(Options());
+            var di = (await ServerNodeSets.ListAsync(client)).Single(n => n.Uri == Fixtures.DiUri);
+            var set = await ServerNodeSets.FetchAsync(client, Fixtures.DiUri, new ServerNodeSetOptions { PreferNamespaceFile = false });
+
+            XNamespace ua = "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd";
+            var model = set.Document.Root!.Element(ua + "Models")!.Element(ua + "Model")!;
+            Assert.NotNull(di.PublicationDate);
+            var expected = di.PublicationDate!.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
+            Assert.Equal(expected, (string?)model.Attribute("PublicationDate"));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
+    }
+
+    [Fact]
     public async Task Types_only_leave_out_the_objects_of_the_namespace()
     {
         await using var client = await UaClient.ConnectAsync(Options());

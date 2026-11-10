@@ -15,6 +15,7 @@
 // Where the default rules deviate from the XSLT, the code tests _compat; each
 // such place names its deviation (D1 to D12, see docs/export.md).
 
+using System.Globalization;
 using System.Xml.Linq;
 
 namespace OpcUaAml.Export;
@@ -71,7 +72,8 @@ internal sealed partial class AmlUaXsltTranslator
         _root = root;
         _options = options;
         _compat = options.XsltCompatibility;
-        _publicationDate = (options.PublicationDate ?? DateTime.UtcNow).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        // Invariant: ':' is the culture's time separator, and not every culture counts years from 1 AD.
+        _publicationDate = (options.PublicationDate ?? DateTime.UtcNow).ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
         _allAttributes = root.DescendantsAndSelf().SelectMany(Attributes).ToList();
         _importedLibraries = ImportedAmlLibraries();
         _namespaceUris = NamespaceUris();
