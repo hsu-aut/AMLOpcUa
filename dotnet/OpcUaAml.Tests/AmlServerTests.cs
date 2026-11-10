@@ -278,6 +278,36 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task A_decimal_comma_is_served_as_text_not_as_a_thousands_separator()
+    {
+        // "3,5" typed in a German habit is not 35; it is no xs:double at all.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Comma");
+        void Add(string name, string type, string text)
+        {
+            var value = ih.InternalElement.Append(name).Attribute.Append("Value");
+            value.AttributeDataType = type;
+            value.Value = text;
+        }
+        Add("Pressure", "xs:double", "3,5");
+        Add("Flow", "xs:float", "1,250");
+        Add("Mass", "xs:decimal", "2,5");
+        Add("Exponent", "xs:double", "1.5E3");
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        UaNodeAddress Node(string name) => new("urn:amlopcua:document", UaIdType.String, "Comma/" + name);
+
+        var read = await client.ReadManyAsync(new[] { Node("Pressure"), Node("Flow"), Node("Mass"), Node("Exponent") });
+
+        Assert.Equal(new[] { "3,5", "1,250", "2,5", "1500" }, read.Select(r => r.ValueText));
+        Assert.Equal(new[] { "String", "String", "String", "Double" }, read.Select(r => r.DataType));
+    }
+
+    [Fact]
     public async Task A_second_server_on_the_same_port_is_refused_in_a_sentence()
     {
         // A second serve, or the editor serving while uaaml does: the stack's

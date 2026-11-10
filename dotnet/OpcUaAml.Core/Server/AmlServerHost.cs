@@ -369,8 +369,8 @@ public sealed class AmlServerHost : IAsyncDisposable
                 return xsType switch
                 {
                     "xs:boolean" => (DataTypeIds.Boolean, text == null ? null : text is "true" or "1"),
-                    "xs:double" or "xs:decimal" => (DataTypeIds.Double, text == null ? null : double.Parse(text, inv)),
-                    "xs:float" => (DataTypeIds.Float, text == null ? null : float.Parse(text, inv)),
+                    "xs:double" or "xs:decimal" => (DataTypeIds.Double, text == null ? null : XsDouble(text)),
+                    "xs:float" => (DataTypeIds.Float, text == null ? null : XsFloat(text)),
                     "xs:int" => (DataTypeIds.Int32, text == null ? null : int.Parse(text, inv)),
                     "xs:long" or "xs:integer" => (DataTypeIds.Int64, text == null ? null : long.Parse(text, inv)),
                     "xs:short" => (DataTypeIds.Int16, text == null ? null : short.Parse(text, inv)),
@@ -387,6 +387,26 @@ public sealed class AmlServerHost : IAsyncDisposable
                 return (DataTypeIds.String, text);
             }
         }
+
+        /// <summary>
+        /// The XML Schema lexical form of a double, and the "Infinity" ToAml
+        /// writes. No thousands separator: "3,5" is no number (a decimal comma),
+        /// not 35, so it is served as text.
+        /// </summary>
+        private static double XsDouble(string text) => text.Trim() switch
+        {
+            "INF" => double.PositiveInfinity,
+            "-INF" => double.NegativeInfinity,
+            var t => double.Parse(t, NumberStyles.Float, CultureInfo.InvariantCulture),
+        };
+
+        /// <summary>The same for a float (<see cref="XsDouble"/>).</summary>
+        private static float XsFloat(string text) => text.Trim() switch
+        {
+            "INF" => float.PositiveInfinity,
+            "-INF" => float.NegativeInfinity,
+            var t => float.Parse(t, NumberStyles.Float, CultureInfo.InvariantCulture),
+        };
     }
 }
 

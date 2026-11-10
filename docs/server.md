@@ -216,7 +216,8 @@ then have something to follow.
 
 Values are written as AML holds them: invariant culture, XML Schema lexical
 forms, arrays separated by spaces. A value its type cannot hold (3000000000
-as `xs:int`) is served as text.
+as `xs:int`, or "3,5" with a decimal comma as `xs:double`, which is not 35)
+is served as text.
 
 By default the server is for this computer only: it listens on 127.0.0.1,
 under a certificate made for the address it is served at (one made for
