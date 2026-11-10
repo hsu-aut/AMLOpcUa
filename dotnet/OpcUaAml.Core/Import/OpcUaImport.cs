@@ -51,10 +51,13 @@ public static class OpcUaImport
     public static ImportResult MergeConverted(CAEXDocument target, ConversionResult conversion, string nodeSetPath,
         MergeOptions? options = null)
     {
-        var merge = LibraryMerger.Merge(target, conversion.Document, options);
+        // Everything the report needs is read before the document is touched:
+        // a failure in it must not leave a merged document behind.
         var modelUri = conversion.NodeSet.PrimaryModel.Model.ModelUri;
         var warnings = conversion.Warnings.Concat(UnmappedChildren(nodeSetPath, modelUri)).ToList();
-        return new ImportResult(conversion with { Warnings = warnings }, merge, InstancesOf(conversion.Document, modelUri));
+        var instances = InstancesOf(conversion.Document, modelUri);
+        var merge = LibraryMerger.Merge(target, conversion.Document, options);
+        return new ImportResult(conversion with { Warnings = warnings }, merge, instances);
     }
 
     /// <summary>
@@ -83,8 +86,10 @@ public static class OpcUaImport
         if (index < 1) yield break;
         var prefix = $"ns={index};";
 
-        var aliases = (nodeSet.Root.Element(ua + "Aliases")?.Elements(ua + "Alias") ?? [])
-            .ToDictionary(a => (string)a.Attribute("Alias")!, a => a.Value.Trim(), StringComparer.Ordinal);
+        // An alias may be declared twice; the last one counts, as in Opc2Aml.
+        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var alias in nodeSet.Root.Element(ua + "Aliases")?.Elements(ua + "Alias") ?? [])
+            if ((string?)alias.Attribute("Alias") is { } name) aliases[name] = alias.Value.Trim();
         string Resolve(string? text) => text is null ? "" : aliases.TryGetValue(text, out var id) ? id : text;
 
         // What holds a node: the references Annex A maps as a child, and the

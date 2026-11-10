@@ -81,6 +81,35 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
     }
 
     [Fact]
+    public void A_NodeSet_that_repeats_an_alias_is_imported_and_reported()
+    {
+        // Two <Alias Alias="Boolean"> entries: Opc2Aml takes the last one. The
+        // report threw on the second after the libraries were already in the
+        // document, which the import promises to leave unchanged on failure.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-alias-").FullName;
+        try
+        {
+            var nodeSet = XDocument.Load(di.Catalog.Find(Fixtures.DiUri)!.FilePath);
+            XNamespace ua = "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd";
+            var aliases = nodeSet.Root!.Element(ua + "Aliases")!;
+            aliases.Add(new XElement(ua + "Alias", new XAttribute("Alias", "Boolean"), "i=1"));
+            aliases.Add(new XElement(ua + "Alias", new XAttribute("Alias", "Boolean"), "i=1"));
+            var file = Path.Combine(folder, "Opc.Ua.Di.NodeSet2.xml");
+            nodeSet.Save(file);
+            var document = CAEXDocument.New_CAEXDocument();
+
+            var result = OpcUaImport.MergeConverted(document, di.Result, file);
+
+            Assert.Contains(result.Warnings, w => w.Contains("hang off their type"));
+            Assert.Subset(LibraryNames(document).ToHashSet(), GeneratedDiLibraries.ToHashSet());
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void An_import_says_how_many_instances_it_leaves_behind()
     {
         var document = CAEXDocument.New_CAEXDocument();
