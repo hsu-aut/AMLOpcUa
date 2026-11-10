@@ -19,7 +19,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <!-- The plugin leaves these to the editor at run time; a test host brings them itself. -->
     <PackageReference Include="Aml.Editor.Plugin.Contract" Version="[4.3.0]" />
-    <PackageReference Include="Aml.Engine" Version="[4.*, 5.0.0)" />
+    <PackageReference Include="Aml.Engine" Version="[4.5.2, 5.0.0)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Aml.Editor.Plugin.OpcUa\Aml.Editor.Plugin.OpcUa.csproj" />
