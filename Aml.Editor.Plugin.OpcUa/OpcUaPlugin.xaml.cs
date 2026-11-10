@@ -288,6 +288,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         try { _hostFollow?.Dispose(); _host?.DisposeAsync().AsTask().Wait(3000); }
         catch { /* shutting down */ }
         _host = null;
+        try { _plant?.DisposeAsync().AsTask().Wait(3000); }
+        catch { /* shutting down */ }
+        _plant = null;
         try { _modeler?.Dispose(); }
         catch { /* shutting down */ }
     }

@@ -494,13 +494,20 @@
                                 <Label Content="{l:T '_Password'}" Target="{Binding ElementName=PasswordBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
                                 <PasswordBox x:Name="PasswordBox" AutomationProperties.Name="{l:T 'Password'}" Width="100" VerticalContentAlignment="Center" ToolTip="{l:T 'Password (empty for anonymous)'}"/>
                                 <CheckBox x:Name="SecurityToggle" Content="{l:T 'Secure'}" VerticalAlignment="Center" Margin="8,0,0,0"
-                                          ToolTip="{l:T 'Connect signed and encrypted only; a server without a secured endpoint is refused.'}"/>
+                                          ToolTip="{l:T 'Connect secured only: signed, and encrypted where the server offers it; a server without a secured endpoint is refused.'}"/>
                             </StackPanel>
                             <StackPanel x:Name="ConnectCommands" Grid.Column="2" Orientation="Horizontal">
                                 <Button x:Name="ConnectButton" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
                                         <TextBlock x:Name="ConnectText" Text="{l:T 'Connect'}" Style="{StaticResource Label}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="PracticePlantButton" Click="PracticePlantButton_Click" Margin="6,0,0,0" Padding="4,1"
+                                        ToolTip="{l:T 'Start the MPS 500 learning factory of the Helmut Schmidt University as an OPC UA server on this computer, with simulated values, to connect to and practise on. Click again to stop it.'}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="PracticePlantGlyph" Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Create}"/>
+                                        <TextBlock x:Name="PracticePlantText" Text="{l:T 'Practice plant'}" Style="{StaticResource Label}"/>
                                     </StackPanel>
                                 </Button>
                                 <guide:HelpButton Topic="server.connection"/>

@@ -752,6 +752,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServePortBox.IsEnabled = _host == null;
         ServeNetworkBox.IsEnabled = _host == null;
         ServeSimulateBox.IsEnabled = _host == null;
+        UpdatePracticePlantButton();
         var lost = connected && !_client!.Reachable;
         ServerStateText.Text = (lost ? L.T("Connection lost") : connected ? L.T("Connected  ·  {0}", SecurityText(_client!.SecurityMode)) : L.T("Not connected"))
                                + (_host != null ? L.T("  ·  serving at {0}", _host.EndpointUrl) : "");

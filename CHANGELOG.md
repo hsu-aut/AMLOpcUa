@@ -7,7 +7,20 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Practice plant** beside Connect in the Server tab: starts the MPS 500
+  learning factory, which the plugin now brings, as an OPC UA server on this
+  computer with simulated values, and puts its address in the endpoint box.
+  Connecting, taking types and nodes and keeping values live can be tried
+  without a plant and without the command line. It takes the next free port
+  when another server holds 4840.
+
 ### Fixed
+
+- The Secure box and its help said "signed and encrypted only"; it takes the
+  most secure endpoint the server offers, which may be signed only. The texts
+  say so now.
 
 - Keys pressed in the Modeler tab reached the editor first: Ctrl+Z undid the
   last change of the AML document instead of the modeler's, and Ctrl+S, Ctrl+C,

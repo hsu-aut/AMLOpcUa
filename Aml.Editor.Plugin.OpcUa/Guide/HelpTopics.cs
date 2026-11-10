@@ -27,7 +27,7 @@ internal static class HelpTopics
             new[] { "ModellingRule", "Placeholder", "Abstract type" }, "instances"),
         ["server.connection"] = new(
             L.T("Connecting"),
-            L.T("The endpoint URL of a running server, such as opc.tcp://host:4840. With Secure ticked only signed and encrypted endpoints are taken. A server certificate this computer does not know is shown with its fingerprint before you trust it; trusted, exactly that one is kept. User and password are only sent over a secured connection; empty means anonymous."),
+            L.T("The endpoint URL of a running server, such as opc.tcp://host:4840. With Secure ticked only secured endpoints are taken, the most secure the server offers: signed, and encrypted where offered. A server certificate this computer does not know is shown with its fingerprint before you trust it; trusted, exactly that one is kept. User and password are only sent over a secured connection; empty means anonymous. No server at hand? Practice plant starts the MPS 500 learning factory on this computer, with simulated values."),
             new[] { "Endpoint", "Security mode", "Certificate" }, "server"),
         ["server.commands"] = new(
             L.T("What to do with the server"),

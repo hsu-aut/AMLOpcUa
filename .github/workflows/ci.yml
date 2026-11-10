@@ -80,7 +80,8 @@ jobs:
           $required = @('Aml.Editor.Plugin.OpcUa.dll', 'OpcUaAml.Core.dll', 'Opc2Aml.dll', 'WebView2Loader.dll',
                         'nodesets/Opc.Ua.NodeSet2.xml', 'nodesets/Opc.Ua.Di.NodeSet2.xml', 'modeler-assets/index.html',
                         'converter/uaaml.exe', 'converter/uaaml.dll', 'converter/uaaml.runtimeconfig.json',
-                        'converter/Aml.Engine.dll', 'converter/Opc2Aml.dll', 'converter/nodesets/Opc.Ua.NodeSet2.xml')
+                        'converter/Aml.Engine.dll', 'converter/Opc2Aml.dll', 'converter/nodesets/Opc.Ua.NodeSet2.xml',
+                        'examples/MPS500.NodeSet2.xml')
           foreach ($package in $packages) {
             $zip = [System.IO.Compression.ZipFile]::OpenRead($package.FullName)
             try {

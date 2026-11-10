@@ -113,6 +113,9 @@
 
   <ItemGroup>
     <None Include="Metadata.xml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The practice plant: the MPS 500, served from the Server tab. -->
+    <None Include="..\examples\mps500\MPS500.NodeSet2.xml" Link="examples\MPS500.NodeSet2.xml" CopyToOutputDirectory="PreserveNewest"
+          Pack="true" PackagePath="lib\$(TargetFramework)\examples\" />
     <None Include="..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="" />
     <None Include="$(OutputPath)$(AssemblyName).deps.json" Pack="true" PackagePath="lib\$(TargetFramework)" />
