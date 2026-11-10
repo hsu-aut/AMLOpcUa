@@ -287,6 +287,9 @@ public static class TypeInstantiator
             if (UaTypes.IsAbstract(fill.Type) && !run.Options.AllowAbstract)
                 throw new InstantiationException($"'{fill.Type.Name}' is abstract. OPC UA only instantiates concrete subtypes of it.");
             concrete = fill.Type.CreateClassInstance();
+            // As for the instance itself: what an overriding declaration of the
+            // subtype does not repeat is still inherited.
+            MergeInherited(concrete, UaTypes.Chain(fill.Type).Cast<SystemUnitClassType>().ToList());
             if (concrete.Attribute["IsAbstract"] is { } isAbstract) concrete.Attribute.RemoveElement(isAbstract);
             // An instance of a type has no end for the reference from its parent; it gets the placeholder's.
             foreach (var link in links)

@@ -17,8 +17,9 @@ A placeholder's child is a copy of the placeholder's declaration, which Annex
 A writes with the whole structure of its type, renamed and linked to its
 owner the way the placeholder was; its own children follow the same rules.
 Given another type (a subtype of the placeholder's, for instance a concrete
-one for an abstract `<DeviceName>`), the child is an instance of that type and
-gets the placeholder's end of the link. The dialog offers the declared type
+one for an abstract `<DeviceName>`), the child is an instance of that type,
+made like a new instance with what the type inherits (see below), and gets
+the placeholder's end of the link. The dialog offers the declared type
 and its concrete subtypes, and preselects a concrete one when the declared
 type is abstract.
 

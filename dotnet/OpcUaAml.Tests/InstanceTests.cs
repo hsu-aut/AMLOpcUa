@@ -187,6 +187,28 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
         Assert.Empty(di.FindingsIn(ih));
     }
 
+    /// <summary>
+    /// PubSubDiagnosticsWriterGroupType declares Counters again, without the
+    /// Mandatory StateError and the other state counters that
+    /// PubSubDiagnosticsType declares below it. An instance keeps them (OPC
+    /// 10000-3, the fully inherited instance declaration hierarchy). In the
+    /// bundled base model 3DFrameType repeats LengthUnit, so it shows nothing.
+    /// </summary>
+    private SystemUnitFamilyType OverridingType => di.UaType("PubSubDiagnosticsWriterGroupType");
+
+    [Fact]
+    public void A_placeholder_filled_with_a_subtype_keeps_what_the_subtype_inherits()
+    {
+        var result = TypeInstantiator.Instantiate(di.Type("ConfigurableObjectType"), "Modules", new InstantiationOptions
+        {
+            FillPlaceholder = p => p == "<ObjectIdentifier>" ? [new PlaceholderFill("Diagnostics", OverridingType)] : [],
+        });
+
+        var counters = result.Instance.InternalElement.Single(c => c.Name == "Diagnostics").InternalElement.Single(c => c.Name == "Counters");
+        Assert.Contains("StateError", ChildNames(counters));
+        Assert.Contains("Diagnostics/Counters/StateError", result.Included);
+    }
+
     [Fact]
     public void Two_children_of_one_name_are_refused()
     {
