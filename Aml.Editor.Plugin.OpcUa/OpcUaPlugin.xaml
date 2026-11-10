@@ -364,7 +364,8 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="{Binding Time}" Foreground="{DynamicResource Ua.Muted}" Margin="0,0,8,0"/>
+                                            <!-- Lighter by opacity, not by a grey of its own, so it stays readable on the selection. -->
+                                            <TextBlock Text="{Binding Time}" Opacity="0.62" Margin="0,0,8,0"/>
                                             <Border x:Name="Badge" CornerRadius="3" Padding="4,0" Margin="0,0,8,0" BorderThickness="1" BorderBrush="#4A8AD0" MinWidth="46">
                                                 <TextBlock x:Name="Level" Text="{Binding Level}" Foreground="#4A8AD0" TextAlignment="Center"/>
                                             </Border>
@@ -382,6 +383,11 @@
                                             <DataTrigger Binding="{Binding Level}" Value="DEBUG">
                                                 <Setter TargetName="Badge" Property="BorderBrush" Value="{DynamicResource Ua.Muted}"/>
                                                 <Setter TargetName="Level" Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
+                                            </DataTrigger>
+                                            <!-- Last, so it wins: on the selection the level takes the colour of the line. -->
+                                            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                <Setter TargetName="Badge" Property="BorderBrush" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
+                                                <Setter TargetName="Level" Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"/>
                                             </DataTrigger>
                                         </DataTemplate.Triggers>
                                     </DataTemplate>

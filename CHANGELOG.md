@@ -12,6 +12,8 @@ minor versions.
 - Importing failed on a computer with .NET 10 and no .NET 8, as one set up
   for the AutomationML Editor 6.4.3.8 can be: the converter did not start.
   It now runs on the next newer .NET, and so does `uaaml`.
+- A selected line of the log shows its time and level in the colour of the
+  selection; in grey and blue they could hardly be read on it.
 
 ## [0.2.0] - 2026-11-09
 
