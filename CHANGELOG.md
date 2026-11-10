@@ -14,6 +14,9 @@ minor versions.
   It now runs on the next newer .NET, and so does `uaaml`.
 - A selected line of the log shows its time and level in the colour of the
   selection; in grey and blue they could hardly be read on it.
+- "Types of the server…" uses the models fetched before from the OPC
+  Foundation, the Cloud Library or other servers. It fetched them again from
+  the server, often rebuilt by browsing and with less in them.
 
 ## [0.2.0] - 2026-11-09
 

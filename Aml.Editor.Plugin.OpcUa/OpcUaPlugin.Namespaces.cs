@@ -470,6 +470,13 @@ public partial class OpcUaPlugin
             .Concat(OpcfFolders(opcf))
             .Concat(Directory.Exists(servers) ? Directory.GetDirectories(servers) : Array.Empty<string>());
 
+    /// <summary>
+    /// Where a model the plugin already has is looked for: the models folder,
+    /// the NodeSet folders, and everything it fetched before.
+    /// </summary>
+    internal static IEnumerable<string> KnownNodeSetFolders(IEnumerable<string> nodeSetFolders, string models, string cloud, string opcf, string servers) =>
+        new[] { models }.Concat(nodeSetFolders).Concat(OwnNodeSetFolders(models, cloud, opcf, servers)).Distinct();
+
     /// <summary>The <see cref="OwnNodeSetFolders(string, string, string, string)"/> of this user.</summary>
     private static IEnumerable<string> OwnNodeSetFolders() =>
         OwnNodeSetFolders(ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder);

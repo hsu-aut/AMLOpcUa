@@ -535,7 +535,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             Directory.CreateDirectory(ModelsFolder);
-            var catalog = NodeSetCatalog.Create(new[] { ModelsFolder }.Concat(_settings.NodeSetFolders));
+            var catalog = NodeSetCatalog.Create(KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder));
             files = await ServerNodeSets.FetchForImportAsync(client, ns.Uri, catalog, folder,
                 new ServerNodeSetOptions { IncludeInstances = picker.IncludeInstances });
             foreach (var set in files.NodeSets)
