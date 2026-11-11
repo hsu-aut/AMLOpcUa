@@ -126,9 +126,11 @@ public static class Program
             --simulate lets numbers swing around the document's values and
             booleans toggle, as in a running plant.
 
-        uaaml clients [--trust <thumbprint>] [--distrust <thumbprint>]
+        uaaml clients [--nodeset] [--trust <thumbprint>] [--distrust <thumbprint>]
             The client certificates the document server refused and those it
             trusts; --trust admits a refused one, --distrust removes a trusted one.
+            --nodeset: those of the NodeSet server ('serve --nodeset'), which
+            keeps its own.
 
         uaaml doc <doc.aml> [--namespace <uri>] -o <out.html>
             Documentation of an imported OPC UA model as one HTML file: its types with
@@ -754,7 +756,9 @@ public static class Program
             flags: new[] { "--network", "--simulate", "--no-publish" });
         var network = o.Has("--network");
         var nodeSets = o.All("--nodeset");
-        var where = network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.";
+        var where = !network ? ", to this computer only."
+            : nodeSets.Count > 0 ? " to the network, to trusted clients only (see 'uaaml clients --nodeset')."
+            : " to the network, to trusted clients only (see 'uaaml clients').";
 
         if (nodeSets.Count > 0)
         {
@@ -789,13 +793,14 @@ public static class Program
 
     private static int ClientsCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--trust", "--distrust" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--trust", "--distrust" }, flags: new[] { "--nodeset" });
         static OpcUaAml.Server.ClientCertificate Find(IReadOnlyList<OpcUaAml.Server.ClientCertificate> list, string thumbprint)
         {
             var found = list.Where(c => c.Thumbprint.StartsWith(thumbprint, StringComparison.OrdinalIgnoreCase)).ToList();
             return found.Count == 1 ? found[0] : throw new ArgumentException($"No single certificate with thumbprint {thumbprint}.");
         }
-        var pki = DocumentServerPki;
+        // The NodeSet server keeps its certificates apart from the document server's.
+        var pki = o.Has("--nodeset") ? NodeSetServerPki : DocumentServerPki;
         if (o.One("--trust") is { } trust)
             OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(pki), trust), pki);
         if (o.One("--distrust") is { } distrust)

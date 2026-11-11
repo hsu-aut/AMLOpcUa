@@ -1,5 +1,6 @@
 using Aml.Engine.CAEX;
 using OpcUaAml.Import;
+using OpcUaAml.Server;
 
 namespace OpcUaAml.Tests;
 
@@ -15,6 +16,9 @@ internal sealed class Uaaml : IDisposable
 
     public sealed record Run(int Exit, string Out, string Error);
 
+    /// <summary>What uaaml reads from its input; nothing (at its end at once) by default, as from a script.</summary>
+    public string Input { get; set; } = "";
+
     /// <summary>Runs uaaml with these arguments to its end.</summary>
     public async Task<Run> RunAsync(params string[] args)
     {
@@ -26,9 +30,10 @@ internal sealed class Uaaml : IDisposable
     /// <summary>Starts uaaml; its output goes to the writers given while it runs.</summary>
     public Task<int> StartAsync(TextWriter output, TextWriter error, params string[] args)
     {
-        var (o, e) = (Console.Out, Console.Error);
+        var (o, e, i) = (Console.Out, Console.Error, Console.In);
         Console.SetOut(TextWriter.Synchronized(output));
         Console.SetError(TextWriter.Synchronized(error));
+        Console.SetIn(new StringReader(Input));
         OpcUaAml.Tool.Program.PkiFolder = Pki;
         return Task.Run(() =>
         {
@@ -37,6 +42,7 @@ internal sealed class Uaaml : IDisposable
             {
                 Console.SetOut(o);
                 Console.SetError(e);
+                Console.SetIn(i);
                 OpcUaAml.Tool.Program.PkiFolder = null;
             }
         });
@@ -94,5 +100,43 @@ public class CliTests
         {
             taken.Stop();
         }
+    }
+
+    private static string Number(int n) => n.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    [Fact]
+    public async Task The_clients_of_the_NodeSet_server_are_trusted_with_nodeset()
+    {
+        // The NodeSet server keeps its certificates apart from the document server's.
+        using var uaaml = new Uaaml();
+        var serverPki = Path.Combine(uaaml.Pki, "pki-nodeset-server");
+        await using var host = await NodeSetServerHost.StartAsync(new[] { DiTestServer.DiPath },
+            new NodeSetServerOptions { Port = Uaaml.FreePort(), PkiRoot = serverPki, Network = true });
+        var options = new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = true, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(uaaml.Folder, "client"),
+        };
+        await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
+        var refused = Assert.Single(AmlServerHost.RejectedClients(serverPki));
+
+        var list = await uaaml.RunAsync("clients", "--nodeset");
+        var trust = await uaaml.RunAsync("clients", "--nodeset", "--trust", refused.Thumbprint[..8]);
+
+        Assert.True(list.Exit == 0, list.Error);
+        Assert.Contains($"refused  {refused.Thumbprint}", list.Out);
+        Assert.True(trust.Exit == 0, trust.Error);
+        Assert.Contains($"trusted  {refused.Thumbprint}", trust.Out);
+        await using var client = await UaClient.ConnectAsync(options);
+    }
+
+    [Fact]
+    public async Task Serving_a_NodeSet_to_the_network_names_the_command_for_its_clients()
+    {
+        using var uaaml = new Uaaml { Input = "\n" };
+
+        var run = await uaaml.RunAsync("serve", "--nodeset", DiTestServer.DiPath, "--port", Number(Uaaml.FreePort()), "--network");
+
+        Assert.True(run.Exit == 0, run.Error);
+        Assert.Contains("'uaaml clients --nodeset'", run.Out);
     }
 }

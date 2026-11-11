@@ -295,7 +295,9 @@ not exist yet, or a companion specification to try a client against.
   document) is refused in a sentence that names it (`PortInUseException`),
   for both servers.
 - `--simulate` moves the values as the document server does, and `--network`
-  and the security work the same way.
+  and the security work the same way. The NodeSet server keeps its
+  certificates and trust lists apart (`pki-nodeset-server`); `uaaml clients
+  --nodeset` lists, trusts and distrusts its clients.
 
 `examples/mps500` holds such a plant: the MPS 500 learning factory on DI, with
 stations, modules, devices and a state machine per station. Its README walks
