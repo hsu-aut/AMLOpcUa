@@ -20,7 +20,7 @@ OPC UA information models in AutomationML.
   Annex A: an imported OPC UA model written back as the nodes it was
 - ModelDesign in and out: a model written in the form the OPC Foundation's
   ModelCompiler reads, and a design compiled and imported ([docs/modeldesign.md](docs/modeldesign.md))
-- Command line tool `uaaml` with the same functions
+- Command line tool `uaaml` with most of these functions, for scripts and CI
 - Structural comparison of AML class libraries and of NodeSets, used as test oracles
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
@@ -113,11 +113,15 @@ command line does.
 - NodeSet files dropped on the plugin are imported. When a NodeSet requires
   models no folder holds, a dialog names them and fetches them from the OPC
   Foundation's published NodeSets, or adds a folder, or searches the Cloud
-  Library; the import then tries again. Models
-  the plugin keeps itself (from the modeler, the Cloud Library, servers) are
-  always searched. A document
-  without OPC UA shows the first steps instead: import a NodeSet, search the
-  Cloud Library, connect to a server, model a new information model.
+  Library; the import then tries again, and asks again with the reason when
+  a way brought nothing. Models the plugin keeps itself (from the modeler, the
+  Cloud Library, the OPC Foundation, servers, and copies of NodeSets imported
+  from elsewhere) are always searched. A document without OPC UA shows the
+  first steps instead: import a NodeSet, get a companion specification,
+  connect to a server, take the tutorial, model a new information model.
+- **Practice plant** in the Server tab starts the MPS 500 learning factory,
+  which the plugin brings, as a simulated OPC UA server on this computer, to
+  connect to without a plant or a network.
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
 - **New instance…** creates an instance of a UA type: every Mandatory child,

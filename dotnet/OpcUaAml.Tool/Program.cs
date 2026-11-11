@@ -1,5 +1,6 @@
-﻿// uaaml: the command line face of OpcUaAml.Core. Everything the plugin does
-// can be done here too, so it can be scripted and tested without the editor.
+﻿// uaaml: the command line face of OpcUaAml.Core. Most of what the plugin does
+// can be done here too, so it can be scripted and tested without the editor;
+// binding, keeping values live and removing a namespace are the plugin's alone.
 
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;

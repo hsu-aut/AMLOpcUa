@@ -162,7 +162,8 @@ Below all tabs runs one status bar:
 - a progress bar while the plugin works;
 - the last message; when it is cut off, its tooltip holds the whole text;
 - **Log**, which shows the log. When warnings or errors arrived that you have
-  not seen, it reads "Log (n new warning(s))" with a warning sign;
+  not seen, it reads "Log (n new problem(s))" with a warning sign; an error
+  counts once, with its stack trace;
 - **Tutorial**, which opens the lessons.
 
 The log fills the lower part of the **Namespaces** tab. Every line has its
@@ -401,8 +402,9 @@ Select a namespace to see its details on the right:
 | **Publish…** | Publishes the model's NodeSet to the UA Cloud Library (see below). |
 | **Remove…** | Removes the namespace's libraries (see [Removing a namespace](#removing-a-namespace)). |
 
-**Publish…** sends the NodeSet file the namespace was imported from; the file
-must lie in the modeler's models folder or in a NodeSet folder. The dialog
+**Publish…** sends the NodeSet file the namespace was imported from. The
+plugin keeps a copy of every NodeSet imported from a folder it does not
+search, so the file is found wherever it came from. The dialog
 "Publish to the UA Cloud Library" asks for **Title**, **Description**,
 **Copyright**, **License** (MIT, ApacheLicense20 or Custom), optional
 **Keywords** and **Documentation URL**, and the account. **Replace my earlier
@@ -714,21 +716,25 @@ node from AML differ: [servers](server.md#addressing-a-node-from-aml).
 
 ### A plant to practise on
 
-The repository holds a plant to connect to, the MPS 500 learning factory on
-DI with stations, modules, devices and a state machine per station
-([examples/mps500](../examples/mps500/README.md)). The command line tool
-serves it as an OPC UA server with moving values:
+The plugin brings a plant to connect to: the MPS 500 learning factory of the
+Helmut Schmidt University on DI, with stations, modules, devices and a state
+machine per station ([examples/mps500](../examples/mps500/README.md)).
+**Practice plant** beside **Connect** starts it as an OPC UA server on this
+computer, with moving values, and puts its address into the endpoint box; it
+takes the next free port when another server holds 4840. Clicking it again
+stops it, and so does closing the editor.
 
-```bash
-uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml --simulate
-```
+1. Click **Practice plant**, then **Connect**, and trust its certificate.
+2. **Types of the server…**, choose `http://hsu-hh.de/UA/MPS500/`, **Import
+   types**.
+3. Tick `MPS500` or one station, **Take into document**.
+4. **Keep document values live**: spindle speeds and cycle times move in the
+   document.
 
-Then connect the plugin to `opc.tcp://127.0.0.1:4840/AMLOpcUa`, trust its
-certificate, import the namespace `http://hsu-hh.de/UA/MPS500/` with **Types
-of the server…**, tick `MPS500` or one station, **Take into document** and
-**Keep document values live**. Without the command line tool, the document
-itself can serve as the plant (next chapter); the tutorial's third lesson
-does that.
+No network and no command line is needed. The command line tool serves the
+same plant with `uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml
+--simulate`. The document itself can serve as a plant too (next chapter); the
+tutorial's third lesson does that.
 
 ## Serving the document as an OPC UA server
 
@@ -870,14 +876,16 @@ to reload the modeler. The modeler's own toolbar holds **Apply to document**,
 1. Choose the namespace in the list of the plugin's toolbar and click
    **Edit**, or click **Edit in the modeler** in the details of a namespace.
 2. The plugin looks for the NodeSet file the namespace was imported from, in
-   the modeler's models folder, the NodeSet folders and the NodeSets it brings
-   along, and opens it with every NodeSet it requires.
+   the modeler's models folder, its copies of imported NodeSets, the NodeSet
+   folders, what it fetched from the OPC Foundation, the Cloud Library and
+   servers, and the NodeSets it brings along, and opens it with every NodeSet
+   it requires.
 
-When the file is not found, the status line says so. This is the case for
-models fetched from the OPC Foundation, the Cloud Library or a server: add
-their folder under **Settings ▾** › **NodeSet folders…**, or open the file
-with **Open NodeSet file…** (see
-[Where the plugin keeps its files](#where-the-plugin-keeps-its-files)).
+When the file is not found, the status line says so. This only happens for a
+namespace imported before version 0.2.1 from a folder the plugin does not
+search: import it again, or open the file with **Open NodeSet file…** (see
+[Where the plugin keeps its files](#where-the-plugin-keeps-its-files)). The UA
+base model is built into the modeler and is not edited there.
 
 **Open NodeSet file…** opens any NodeSet file; the models it requires come
 from its own folder and the NodeSet folders.
@@ -1012,10 +1020,13 @@ whose target is gone (UA008). Background: [VDI 3682](vdi3682.md).
 
 ## The command line tool uaaml
 
-Everything the plugin does can also be done without the editor, with the
-command line tool `uaaml`, for scripts and tests. It is part of the
-repository (`dotnet/OpcUaAml.Tool`), not of the plugin package, and is built
-with the .NET 8 SDK; in the repository folder:
+Most of what the plugin does can also be done without the editor, with the
+command line tool `uaaml`, for scripts and tests. Only in the plugin: binding
+a node to an element, keeping values live in a document, removing a
+namespace, and taking a NodeSet's instances with **Apply**. The plugin
+package brings the tool as its converter: `uaaml.exe` in the plugin's folder
+`converter`, which runs on .NET 8 or newer. In the repository it is built
+with the .NET SDK:
 
 ```bash
 dotnet run --project dotnet/OpcUaAml.Tool -- help
@@ -1023,7 +1034,9 @@ dotnet run --project dotnet/OpcUaAml.Tool -- help
 
 `uaaml help` lists every command with its options. Connections to servers are
 secured by default; `--insecure` allows an unsecured endpoint and `--accept`
-trusts an unknown server certificate for one run.
+trusts an unknown server certificate for one run. `--user <name>` logs in;
+the password comes from the environment variable `AMLOPCUA_PASSWORD` or is
+asked for, never given on the command line.
 
 | Command | What it does | Background |
 |---|---|---|
@@ -1037,11 +1050,12 @@ trusts an unknown server certificate for one run.
 | `export` | Writes a document as NodeSet, or with `--annex-a-inverse` an imported model as it was | [export](export.md) |
 | `browse` | Lists the children of a node of a running server | [servers](server.md) |
 | `read` | Prints the current values of nodes, given by NodeId or by a path of BrowseNames | [servers](server.md) |
+| `watch` | Prints the values of nodes as they change, until Ctrl+C | [servers](server.md) |
 | `nodeset` | Lists a server's namespaces, or fetches and imports the NodeSet of one | [servers](server.md) |
 | `mirror` | Takes nodes of a server into a document | [servers](server.md) |
 | `snapshot` | Reads the current value of every bound element | [servers](server.md) |
 | `serve` | Serves a document, or with `--nodeset` a NodeSet with its types, as an OPC UA server | [servers](server.md) |
-| `clients` | Lists the clients the document server refused or trusts, and trusts or drops one | [servers](server.md) |
+| `clients` | Lists the clients the document server (with `--nodeset` the NodeSet server) refused or trusts, and trusts or drops one | [servers](server.md) |
 | `strip-addresses` | Writes a copy of a document without server addresses | [servers](server.md) |
 | `doc` | Writes the HTML documentation of an imported model | [README](../README.md) |
 | `diagram` | Draws a type or an instance as SVG, with `--state-chart` a state machine | [diagram](diagram.md) |
