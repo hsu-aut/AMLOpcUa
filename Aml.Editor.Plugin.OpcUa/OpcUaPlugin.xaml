@@ -785,7 +785,7 @@
             <TabItem Header="{l:T 'Modeler'}" x:Name="ModelerTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
-                        <ComboBox x:Name="ModelerNamespaceBox" Width="300" ToolTip="{l:T 'A namespace of the document whose NodeSet is in a NodeSet folder'}"/>
+                        <ComboBox x:Name="ModelerNamespaceBox" Width="300" ToolTip="{l:T 'A namespace of the document; its NodeSet is the file it was imported from, or one in a NodeSet folder'}"/>
                         <Button x:Name="ModelerEditButton" Click="ModelerEdit_Click" ToolTip="{l:T 'Edit the NodeSet of this namespace in the modeler.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE70F;" Foreground="{DynamicResource Exchange}"/>

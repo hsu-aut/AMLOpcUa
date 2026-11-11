@@ -22,6 +22,12 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- "Edit in the modeler" found a namespace's NodeSet only in the NodeSet
+  folders; one imported from anywhere else ended in "No NodeSet of … found".
+  The plugin keeps a copy of every NodeSet imported from another folder
+  (`%LOCALAPPDATA%\AMLOpcUa\imported`), and later imports find it there too.
+  On the UA base model the command says that the modeler has it built in,
+  instead of opening an empty tab.
 - "Remove server addresses…" saved an .amlx document as a plain .aml file,
   without the libraries, geometry and other parts of the container; the copy of
   a container is a container again, with every other part as it was.

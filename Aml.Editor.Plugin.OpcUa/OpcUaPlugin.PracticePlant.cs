@@ -70,7 +70,7 @@ public partial class OpcUaPlugin
         SetBusy(true, L.T("Starting the practice plant …"));
         try
         {
-            var folders = KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder).ToList();
+            var folders = KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder).ToList();
             var options = pkiRoot == null
                 ? new NodeSetServerOptions { Port = port, Simulate = true, Folders = folders }
                 : new NodeSetServerOptions { Port = port, Simulate = true, Folders = folders, PkiRoot = pkiRoot };

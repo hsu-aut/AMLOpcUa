@@ -27,6 +27,23 @@ public partial class OpcUaPlugin
     internal static string ModelsFolder =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "models");
 
+    /// <summary>
+    /// Copies of the NodeSets imported from folders the plugin does not search,
+    /// so that "Edit in the modeler" and later imports find them again.
+    /// </summary>
+    internal static string ImportedFolder =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "imported");
+
+    /// <summary>Keeps a copy of an imported NodeSet in <paramref name="folder"/>, unless it lies in one of <paramref name="known"/>.</summary>
+    internal static void KeepImportedCopy(string file, string folder, IEnumerable<string> known)
+    {
+        var from = Path.GetFullPath(Path.GetDirectoryName(file)!).TrimEnd(Path.DirectorySeparatorChar);
+        if (known.Append(folder).Any(k => string.Equals(Path.GetFullPath(k).TrimEnd(Path.DirectorySeparatorChar), from, StringComparison.OrdinalIgnoreCase)))
+            return;
+        Directory.CreateDirectory(folder);
+        File.Copy(file, Path.Combine(folder, Path.GetFileName(file)), overwrite: true);
+    }
+
     /// <summary>Models the modeler ships itself and need not be sent.</summary>
     private static readonly HashSet<string> BundledInModeler = new(StringComparer.Ordinal)
     {

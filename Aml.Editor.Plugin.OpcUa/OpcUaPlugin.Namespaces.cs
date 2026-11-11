@@ -465,8 +465,8 @@ public partial class OpcUaPlugin
     /// first, then what it fetched from the Cloud Library, the OPC Foundation
     /// and servers (one folder per server). Folders not made yet are left out.
     /// </summary>
-    internal static IEnumerable<string> OwnNodeSetFolders(string models, string cloud, string opcf, string servers) =>
-        new[] { models, cloud }.Where(Directory.Exists)
+    internal static IEnumerable<string> OwnNodeSetFolders(string models, string cloud, string opcf, string servers, string? imported = null) =>
+        new[] { models, imported ?? "", cloud }.Where(f => f.Length > 0 && Directory.Exists(f))
             .Concat(OpcfFolders(opcf))
             .Concat(Directory.Exists(servers) ? Directory.GetDirectories(servers) : Array.Empty<string>());
 
@@ -474,12 +474,12 @@ public partial class OpcUaPlugin
     /// Where a model the plugin already has is looked for: the models folder,
     /// the NodeSet folders, and everything it fetched before.
     /// </summary>
-    internal static IEnumerable<string> KnownNodeSetFolders(IEnumerable<string> nodeSetFolders, string models, string cloud, string opcf, string servers) =>
-        new[] { models }.Concat(nodeSetFolders).Concat(OwnNodeSetFolders(models, cloud, opcf, servers)).Distinct();
+    internal static IEnumerable<string> KnownNodeSetFolders(IEnumerable<string> nodeSetFolders, string models, string cloud, string opcf, string servers, string? imported = null) =>
+        new[] { models }.Concat(nodeSetFolders).Concat(OwnNodeSetFolders(models, cloud, opcf, servers, imported)).Distinct();
 
-    /// <summary>The <see cref="OwnNodeSetFolders(string, string, string, string)"/> of this user.</summary>
+    /// <summary>The <see cref="OwnNodeSetFolders(string, string, string, string, string?)"/> of this user.</summary>
     private static IEnumerable<string> OwnNodeSetFolders() =>
-        OwnNodeSetFolders(ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder);
+        OwnNodeSetFolders(ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder);
 
     private static readonly System.Net.Http.HttpClient OpcfHttp = new() { Timeout = TimeSpan.FromSeconds(60) };
 

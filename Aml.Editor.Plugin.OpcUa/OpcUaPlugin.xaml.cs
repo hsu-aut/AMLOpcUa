@@ -462,6 +462,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
             SetStatus(Summaries.Import(result) + (more != null ? " " + more.Text : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
+            // "Edit in the modeler" and later imports look for it again; a file from
+            // a folder the plugin does not search would not be found.
+            try { KeepImportedCopy(file, ImportedFolder, _settings.NodeSetFolders.Concat(OwnNodeSetFolders())); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { PluginLog.Warn($"No copy of {file} kept: {ex.Message}"); }
             return true;
         }
         catch (OperationCanceledException)
@@ -673,6 +677,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     private void NamespaceEdit_Click(object sender, RoutedEventArgs e)
     {
         if (NamespaceList.SelectedItem is not NamespaceRow row) return;
+        // Not in the modeler's list: selecting it there selected nothing, and the
+        // click opened an empty tab without a word.
+        if (row.NamespaceUri == "http://opcfoundation.org/UA/")
+        {
+            SetStatus(L.T("The UA base model is built into the modeler; it is not edited there."));
+            return;
+        }
         Tabs.SelectedItem = ModelerTab;
         ModelerNamespaceBox.SelectedItem = row.NamespaceUri;
         ModelerEdit_Click(sender, e);

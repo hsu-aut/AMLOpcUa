@@ -64,6 +64,50 @@ public class OwnFoldersTests
         }
     }
 
+    /// <summary>
+    /// "Edit in the modeler" looks for a namespace's NodeSet in the known
+    /// folders. A file imported from anywhere else (Downloads, a USB stick) was
+    /// not found: "No NodeSet of … found".
+    /// </summary>
+    [Fact]
+    public void A_NodeSet_imported_from_another_folder_is_found_again()
+    {
+        var root = Directory.CreateTempSubdirectory("opcuaaml-own-").FullName;
+        try
+        {
+            var downloads = Directory.CreateDirectory(Path.Combine(root, "Downloads")).FullName;
+            var file = Path.Combine(downloads, "Mini.NodeSet2.xml");
+            File.Copy(Mini(), file);
+            var imported = Path.Combine(root, "imported");
+
+            OpcUaPlugin.KeepImportedCopy(file, imported, Array.Empty<string>());
+            Directory.Delete(downloads, recursive: true);
+            var own = OpcUaPlugin.OwnNodeSetFolders(Path.Combine(root, "models"), Path.Combine(root, "cloud"),
+                Path.Combine(root, "opcf"), Path.Combine(root, "servers"), imported);
+
+            Assert.NotNull(OpcUaAml.NodeSets.NodeSetCatalog.Create(own).Find("http://example.org/Mini/"));
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void A_NodeSet_from_a_known_folder_is_not_copied()
+    {
+        var root = Directory.CreateTempSubdirectory("opcuaaml-own-").FullName;
+        try
+        {
+            var known = Directory.CreateDirectory(Path.Combine(root, "nodesets")).FullName;
+            var file = Path.Combine(known, "Mini.NodeSet2.xml");
+            File.Copy(Mini(), file);
+            var imported = Path.Combine(root, "imported");
+
+            OpcUaPlugin.KeepImportedCopy(file, imported, new[] { known });
+
+            Assert.False(Directory.Exists(imported) && Directory.EnumerateFiles(imported).Any());
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
+
     private static string Mini()
     {
         for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
