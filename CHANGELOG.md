@@ -22,6 +22,9 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- "Check again" and "Add missing Mandatory children" were enabled without a
+  document, and "Export SVG…" without a diagram; a click did nothing. They are
+  greyed out until they can work.
 - The address space showed its top nodes twice when it was loaded twice at
   once (two filter boxes clicked quickly, or F5 twice).
 - A node that could not be expanded, because the server did not answer, stayed

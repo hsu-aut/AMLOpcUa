@@ -71,6 +71,7 @@ public partial class OpcUaPlugin
         {
             _diagram = DiagramLayout.Apply(DiagramBuilder.Build(element, depth));
             Draw(_diagram);
+            DiagramExportButton.IsEnabled = true;
             DiagramInfo.Text = _diagram.Truncated
                 ? L.T("{0}: {1} nodes, truncated. Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.", element.Name, _diagram.Nodes.Count)
                 : L.T("{0}: {1} nodes. Click a shape to select its element, double click to draw its type. Rules: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray.", element.Name, _diagram.Nodes.Count);

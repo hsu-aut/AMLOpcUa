@@ -402,7 +402,7 @@
             <TabItem Header="{l:T 'Check'}" x:Name="CheckTab">
                 <DockPanel>
                     <ToolBar DockPanel.Dock="Top">
-                        <Button Click="CheckButton_Click" ToolTip="{l:T 'Check the instance hierarchies again.'}">
+                        <Button x:Name="CheckAgainButton" Click="CheckButton_Click" ToolTip="{l:T 'Check the instance hierarchies again.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Verify}"/>
                                 <TextBlock Text="{l:T 'Check again'}" Style="{StaticResource Label}"/>

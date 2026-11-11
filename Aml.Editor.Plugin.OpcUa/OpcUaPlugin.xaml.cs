@@ -807,6 +807,9 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         OpcfButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
         CheckButton.IsEnabled = doc != null && !_busy;
+        CheckAgainButton.IsEnabled = doc != null && !_busy;
+        UpgradeButton.IsEnabled = doc != null && !_busy;
+        DiagramExportButton.IsEnabled = _diagram != null;
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
         FoldersButton.IsEnabled = !_busy;
