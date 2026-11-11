@@ -101,6 +101,41 @@ public class LocalizationTests
         Assert.Equal(german, L.IsGerman(setting, new System.Globalization.CultureInfo(windows)));
     }
 
+    /// <summary>
+    /// The language chosen under Settings › Language, between the environment
+    /// variable (for support) and Windows. Before, only the variable could
+    /// choose, which a user at a booth does not set.
+    /// </summary>
+    [Theory]
+    [InlineData(null, "en", "de", false)]
+    [InlineData(null, "de", "en", true)]
+    [InlineData(null, null, "de", true)]
+    [InlineData("de", "en", "en", true)]
+    [InlineData("en", "de", "de", false)]
+    public void The_language_of_the_settings_comes_before_that_of_Windows(string? variable, string? chosen, string windows, bool german)
+    {
+        Assert.Equal(german, L.IsGerman(variable, chosen, new System.Globalization.CultureInfo(windows)));
+    }
+
+    [Fact]
+    public void The_chosen_language_is_kept_in_the_settings()
+    {
+        var settings = Aml.Editor.Plugin.OpcUa.Diagnostics.PluginSettings.Load(out _);
+        var before = settings.Language;
+        try
+        {
+            settings.Language = "en";
+            settings.Save();
+
+            Assert.Equal("en", Aml.Editor.Plugin.OpcUa.Diagnostics.PluginSettings.Load(out _).Language);
+        }
+        finally
+        {
+            settings.Language = before;
+            settings.Save();
+        }
+    }
+
     [Fact]
     public void Taking_instances_is_reported_in_the_plugins_language()
     {

@@ -228,6 +228,11 @@
                                               ToolTip="{l:T 'Trigger the editor\'s save command after a successful import.'}"/>
                                     <MenuItem x:Name="DebugToggle" Header="{l:T 'Debug log'}" IsCheckable="True"
                                               Checked="DebugToggle_Changed" Unchecked="DebugToggle_Changed"/>
+                                    <MenuItem Header="{l:T 'Language'}" ToolTip="{l:T 'The language of the plugin and the modeler; it changes when the editor starts again.'}">
+                                        <MenuItem x:Name="LanguageWindows" Header="{l:T 'As Windows'}" Tag="" Click="Language_Click"/>
+                                        <MenuItem x:Name="LanguageEnglish" Header="English" Tag="en" Click="Language_Click"/>
+                                        <MenuItem x:Name="LanguageGerman" Header="Deutsch" Tag="de" Click="Language_Click"/>
+                                    </MenuItem>
                                     <Separator/>
                                     <MenuItem Header="{l:T 'Forget earlier conversions'}" Click="ClearCache_Click"
                                               ToolTip="{l:T 'A NodeSet converted before is taken from a cache instead of being converted again (seconds instead of a quarter minute). This empties the cache.'}"/>

@@ -15,6 +15,9 @@ minor versions.
   Connecting, taking types and nodes and keeping values live can be tried
   without a plant and without the command line. It takes the next free port
   when another server holds 4840.
+- **Settings › Language**: as Windows, English or Deutsch, from the next start
+  of the editor. Before, only the environment variable `AMLOPCUA_LANGUAGE`
+  chose, which it still does first.
 - `uaaml`: `--user <name>` on every command that connects, the password from
   `AMLOPCUA_PASSWORD` or a prompt, never from the command line; `uaaml watch
   <endpoint> <node>…` prints value changes; `uaaml clients --nodeset` manages

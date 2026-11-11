@@ -431,6 +431,7 @@ NodeSet again does.
 | **Replace existing libraries** | Replace OPC UA libraries the document already has on a new import (on by default). An older model never replaces a newer one. |
 | **Save after import** | Trigger the editor's save command after an import and after **New instance…** (off by default). |
 | **Debug log** | Write detailed lines (DEBUG) to the log. |
+| **Language** | The plugin's language: as Windows, English or Deutsch; from the next start of the editor. |
 | **Forget earlier conversions** | Empty the cache of conversions; the next import converts again. |
 | **Forget fetched NodeSets…** | Delete the NodeSets fetched from servers, the OPC Foundation and the Cloud Library. They are fetched again when needed. Models applied from the modeler stay, and the document does not change. The plugin asks first and says how many files and megabytes it deletes. |
 
@@ -1074,10 +1075,10 @@ breaks off.
 
 The plugin speaks English or German, as the display language of Windows
 says: German when it is German, English otherwise. The editor itself stays
-English. To choose the other language, set the environment variable
-`AMLOPCUA_LANGUAGE` to `en` or `de` before the editor starts; a changed
-language applies from the next start of the editor. The modeler gets the same
-language.
+English. To choose, use **Settings ▾** › **Language**: **As Windows**,
+**English** or **Deutsch**; the choice applies from the next start of the
+editor. The environment variable `AMLOPCUA_LANGUAGE` (`en` or `de`) comes
+before that choice, for support. The modeler gets the same language.
 
 OPC UA and AutomationML terms stay as the specifications name them in both
 languages: NodeSet, NodeId, InstanceHierarchy, SystemUnitClass, ModellingRule.

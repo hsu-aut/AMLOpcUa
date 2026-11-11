@@ -40,6 +40,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         // The log first, so that a problem reading the settings is written down.
         PluginLog.Init();
         _settings = PluginSettings.Load(out var settingsProblem);
+        // Before the texts are read: a language chosen under Settings › Language.
+        if (!string.IsNullOrEmpty(_settings.Language)) L.Choose(_settings.Language);
         InitializeComponent();
         // The editor's theme is known once the view sits in its window, and may change while it is shown.
         Loaded += (_, __) => ApplyTheme();
@@ -71,6 +73,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SaveToggle.IsChecked = _settings.SaveAfterImport;
         _applyingSettings = false;
         DebugToggle.IsChecked = PluginLog.DebugEnabled;
+        ShowLanguageChoice();
         LogFilePathLabel.Text = PluginLog.FilePath;
         InitServerTab();
         InitModelerTab();
@@ -815,6 +818,23 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         PluginLog.DebugEnabled = DebugToggle.IsChecked == true;
         _settings.DebugLogging = PluginLog.DebugEnabled;
         _settings.Save();
+    }
+
+    /// <summary>Settings › Language: kept, and taken when the editor starts again (the texts are set when the view is made).</summary>
+    private void Language_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.MenuItem { Tag: string language }) return;
+        _settings.Language = language.Length == 0 ? null : language;
+        _settings.Save();
+        ShowLanguageChoice();
+        SetStatus(L.T("The language changes when the editor starts again."));
+    }
+
+    private void ShowLanguageChoice()
+    {
+        LanguageWindows.IsChecked = string.IsNullOrEmpty(_settings.Language);
+        LanguageEnglish.IsChecked = _settings.Language == "en";
+        LanguageGerman.IsChecked = _settings.Language == "de";
     }
 
     // ── view state ──────────────────────────────────────────────────────────

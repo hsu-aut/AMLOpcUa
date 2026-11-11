@@ -19,12 +19,25 @@ public static class L
     public static bool German { get; set; } = IsGerman(Environment.GetEnvironmentVariable("AMLOPCUA_LANGUAGE"), WindowsLanguage());
 
     /// <summary>German or English, by <paramref name="setting"/> when it is "de" or "en", else by Windows.</summary>
-    internal static bool IsGerman(string? setting, CultureInfo windows) => setting?.Trim().ToLowerInvariant() switch
+    internal static bool IsGerman(string? setting, CultureInfo windows) => IsGerman(setting, null, windows);
+
+    /// <summary>
+    /// German or English: by the environment variable <paramref name="variable"/>, else
+    /// by the language <paramref name="chosen"/> in the settings, else by Windows.
+    /// </summary>
+    internal static bool IsGerman(string? variable, string? chosen, CultureInfo windows) =>
+        Choice(variable) ?? Choice(chosen) ?? windows.TwoLetterISOLanguageName == "de";
+
+    private static bool? Choice(string? language) => language?.Trim().ToLowerInvariant() switch
     {
         "de" => true,
         "en" => false,
-        _ => windows.TwoLetterISOLanguageName == "de",
+        _ => null,
     };
+
+    /// <summary>Takes the language chosen in the settings; null or "" follows Windows. The variable still comes first.</summary>
+    public static void Choose(string? chosen) =>
+        German = IsGerman(Environment.GetEnvironmentVariable("AMLOPCUA_LANGUAGE"), chosen, WindowsLanguage());
 
     /// <summary>
     /// The display language of Windows. Not the UI culture of the process: the

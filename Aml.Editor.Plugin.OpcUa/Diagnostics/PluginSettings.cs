@@ -35,6 +35,9 @@ public sealed class PluginSettings
     /// <summary>The OPC UA ModelCompiler, when it is not where its installer puts it.</summary>
     public string? ModelCompilerPath { get; set; }
 
+    /// <summary>The plugin's language: "en", "de", or null to follow Windows. Taken when the editor starts.</summary>
+    public string? Language { get; set; }
+
     /// <summary>Prefer a secured endpoint when connecting.</summary>
     public bool UseSecurity { get; set; } = true;
 
