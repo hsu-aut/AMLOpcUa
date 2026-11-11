@@ -28,6 +28,7 @@
 // the values of variables.
 
 using System.Globalization;
+using System.Net;
 using System.Xml.Linq;
 using OpcUaAml.Addressing;
 using OpcUaAml.NodeSets;
@@ -263,7 +264,8 @@ public static partial class AnnexAInverse
         private static UaNodeAddress? NodeIdInId(XElement e)
         {
             if ((string?)e.Attribute("ID") is not { } id) return null;
-            var decoded = Uri.UnescapeDataString(id);
+            // Opc2Aml encodes IDs with WebUtility.UrlEncode: a space is '+', which Uri.UnescapeDataString keeps.
+            var decoded = WebUtility.UrlDecode(id);
             // Reference types carry "f;" (forward) or "r;" (inverse), role classes of Interfaces "rc;".
             foreach (var prefix in new[] { "f;", "r;", "rc;" })
                 if (decoded.StartsWith(prefix, StringComparison.Ordinal)) { decoded = decoded[prefix.Length..]; break; }
@@ -302,12 +304,12 @@ public static partial class AnnexAInverse
                 var targets = Attr(ei, "ReferenceIds")?.Elements(_caex + "Attribute").Select(a => (string?)a.Element(_caex + "Value")).ToList();
                 if (targets == null || targets.Count == 0) continue;
                 if (Resolve((string?)ei.Attribute("RefBaseClassPath")) is not { } cls) continue;
-                var inverse = Uri.UnescapeDataString((string?)cls.Attribute("ID") ?? "").StartsWith("r;", StringComparison.Ordinal);
+                var inverse = WebUtility.UrlDecode((string?)cls.Attribute("ID") ?? "").StartsWith("r;", StringComparison.Ordinal);
                 var refClass = inverse ? cls.Parent : cls;
                 if (refClass == null || NodeIdOf(refClass) is not { } refId) continue;
                 foreach (var target in targets)
                     // Opc2Aml writes these NodeIds URL-encoded, like its IDs.
-                    if (target != null && UaNodeAddress.TryParse(Uri.UnescapeDataString(target), null, out var to) && to != null)
+                    if (target != null && UaNodeAddress.TryParse(WebUtility.UrlDecode(target), null, out var to) && to != null)
                         _listed.Add((id, refId, renewed?.GetValueOrDefault(to.ToString()) ?? to, !inverse));
             }
         }

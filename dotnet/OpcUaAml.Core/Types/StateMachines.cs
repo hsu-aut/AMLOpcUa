@@ -8,6 +8,7 @@
 // The modeler shows the same machine while it is being built; this side reads
 // it back out of the document, for the documentation and for a diagram.
 
+using System.Net;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
@@ -92,9 +93,12 @@ public static class StateMachines
         return type != null && UaTypes.Chain(type).Any(t => NodeIdOf(t) == typeNodeId);
     }
 
-    /// <summary>The NodeId of an element, as Annex A writes it into the ID ("nsu=…;i=…").</summary>
+    /// <summary>
+    /// The NodeId of an element, as Annex A writes it into the ID ("nsu=…;i=…"),
+    /// encoded with WebUtility.UrlEncode: a space is '+'.
+    /// </summary>
     private static string? NodeIdOf(SystemUnitClassType element) =>
-        UaNodeAddress.TryParse(Uri.UnescapeDataString(element.ID ?? ""), null, out var address) ? address!.ToString() : null;
+        UaNodeAddress.TryParse(WebUtility.UrlDecode(element.ID ?? ""), null, out var address) ? address!.ToString() : null;
 
     private static int? Number(InternalElementType element, string name)
     {
@@ -113,7 +117,7 @@ public static class StateMachines
         var first = ids?.Attribute.FirstOrDefault()?.Value ?? ids?.Value;
         if (string.IsNullOrEmpty(first)) return null;
         // The list holds the NodeId escaped, as the ID of an element does.
-        var text = Uri.UnescapeDataString(first);
+        var text = WebUtility.UrlDecode(first);
         return UaNodeAddress.TryParse(text, null, out var address) ? address!.ToString() : text;
     }
 
@@ -144,6 +148,6 @@ public static class StateMachines
                 if (NodeIdOf(child) == nodeId) return child;
             }
         }
-        return type.CAEXDocument?.FindByID(Uri.EscapeDataString(nodeId), true, null) as CAEXBasicObject;
+        return type.CAEXDocument?.FindByID(WebUtility.UrlEncode(nodeId), true, null) as CAEXBasicObject;
     }
 }

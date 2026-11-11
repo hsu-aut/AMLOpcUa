@@ -126,6 +126,30 @@ public class AnnexAInverseTests(BundledDiConversion di) : IClassFixture<BundledD
         }
     }
 
+    [Fact]
+    public void String_NodeIds_with_spaces_come_back_with_their_spaces()
+    {
+        // Opc2Aml writes NodeIds into IDs URL-encoded, a space as '+'.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-spaces-").FullName;
+        try
+        {
+            var converted = OpcUaAml.Import.NodeSetImporter.Convert(StateMachineTests.MachineWithSpaces(folder), di.Catalog);
+            var nodeSet = NodeSetExporter.Export(converted.Document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = "http://example.org/Pump/" });
+
+            Assert.Equal("ns=1;s=Idle State", (string?)ByBrowseName(nodeSet, "1:Idle").Attribute("NodeId"));
+            Assert.Equal("ns=1;s=Start Pump", (string?)ByBrowseName(nodeSet, "1:Start").Attribute("NodeId"));
+            // FromState and HasCause come from the lists of NodeIds on the transition's interfaces.
+            var ends = ByBrowseName(nodeSet, "1:IdleToRunning").Element(Ua + "References")!.Elements().Select(r => r.Value).ToList();
+            Assert.Contains("ns=1;s=Idle State", ends);
+            Assert.Contains("ns=1;s=Start Pump", ends);
+            Assert.DoesNotContain(nodeSet.Root!.Descendants(), e => e.Value.Contains("Idle+State") || e.Attributes().Any(a => a.Value.Contains('+')));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
     private static XElement ByBrowseName(XDocument nodeSet, string browseName) =>
         nodeSet.Root!.Elements().Single(e => (string?)e.Attribute("BrowseName") == browseName);
 

@@ -310,7 +310,7 @@ public static partial class AnnexAInverse
         private bool IsInverseEnd(XElement ei)
         {
             var path = (string?)ei.Attribute("RefBaseClassPath") ?? "";
-            return Resolve(path) is { } c && Uri.UnescapeDataString((string?)c.Attribute("ID") ?? "").StartsWith("r;", StringComparison.Ordinal);
+            return Resolve(path) is { } c && System.Net.WebUtility.UrlDecode((string?)c.Attribute("ID") ?? "").StartsWith("r;", StringComparison.Ordinal);
         }
 
         private bool IsHierarchicalClass(XElement refClass)
