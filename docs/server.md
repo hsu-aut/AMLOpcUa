@@ -265,6 +265,11 @@ certificate made on another computer (the folder copied, the computer
 renamed) failed every connection, because its ApplicationUri named the other
 computer; now it is used as it is, and one the stack refuses is made anew.
 
+The stack makes these certificates for twelve months and never renews them.
+A server's or the client's own certificate that expires within 30 days is
+made anew when the server starts or the client connects; peers that trusted
+the old one are asked again.
+
 ## A NodeSet as a server
 
 Where the document server serves the structure of a document, **`uaaml serve

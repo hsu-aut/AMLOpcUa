@@ -138,6 +138,38 @@ public class OwnCertificateTests
     }
 
     [Fact]
+    public async Task A_server_certificate_about_to_expire_is_made_anew()
+    {
+        // The stack makes them for twelve months and never renews them; a server
+        // whose certificate expired is refused by every client that checks.
+        var pki = TempPki();
+        var serverPki = Path.Combine(pki, "server");
+        var port = FreePort();
+        await SeedAsync(serverPki, OwnApplicationUris.DocumentServer, "CN=AMLOpcUa document server, O=AMLOpcUa", $"opc.tcp://127.0.0.1:{port}/AMLOpcUa", months: 1);
+        Assert.True(Own(serverPki).NotAfter < DateTime.Now.AddDays(30), $"seeded until {Own(serverPki).NotAfter}");
+
+        await using var host = await AmlServerHost.StartAsync(Booth(), new AmlServerOptions { Port = port, PkiRoot = serverPki });
+
+        Assert.True(host.CertificateReplaced);
+        Assert.True(Own(serverPki).NotAfter > DateTime.Now.AddDays(300));
+    }
+
+    [Fact]
+    public async Task A_client_certificate_about_to_expire_is_made_anew()
+    {
+        var pki = TempPki();
+        var clientPki = Path.Combine(pki, "client");
+        await SeedAsync(clientPki, "urn:OFFICE-PC:AMLOpcUa", "CN=AMLOpcUa, O=AMLOpcUa", months: 1);
+        Assert.True(Own(clientPki).NotAfter < DateTime.Now.AddDays(30), $"seeded until {Own(clientPki).NotAfter}");
+        await using var host = await AmlServerHost.StartAsync(Booth(), new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+
+        await using var client = await UaClient.ConnectAsync(Options(host.EndpointUrl, clientPki, secure: true));
+
+        Assert.True(Own(clientPki).NotAfter > DateTime.Now.AddDays(300));
+        Assert.Equal(OwnApplicationUris.Client, UriOf(Own(clientPki)));
+    }
+
+    [Fact]
     public async Task A_client_certificate_that_names_another_computer_still_connects_secured()
     {
         // The client's certificate of 0.2.0, made on another computer (the

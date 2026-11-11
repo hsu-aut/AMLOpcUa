@@ -106,8 +106,16 @@ internal static class OwnCertificate
     }
 
     /// <summary>
+    /// How long before it expires a certificate is made anew. The stack makes
+    /// them for twelve months and never renews them; an expired one is refused
+    /// by every peer that checks, and a renewed one has to be trusted again.
+    /// </summary>
+    public static readonly TimeSpan RenewBefore = TimeSpan.FromDays(30);
+
+    /// <summary>
     /// Whether the certificate the stack found has the subject and the
-    /// ApplicationUri asked for. The stack takes one whose common name matches,
+    /// ApplicationUri asked for, and is valid for a while yet (<see cref="RenewBefore"/>).
+    /// The stack takes one whose common name matches,
     /// though the rest of the subject differs: before 0.2.0 the subject had no
     /// organisation and the stack filled in "O=OPC Foundation", which a client
     /// then showed when it asked to trust it.
@@ -117,7 +125,8 @@ internal static class OwnCertificate
         var certificate = await app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.FindAsync(false).ConfigureAwait(false);
         return certificate != null
                && Opc.Ua.X509Utils.CompareDistinguishedName(certificate.Subject, subjectName)
-               && Opc.Ua.X509Utils.GetApplicationUrisFromCertificate(certificate).Contains(app.ApplicationConfiguration.ApplicationUri);
+               && Opc.Ua.X509Utils.GetApplicationUrisFromCertificate(certificate).Contains(app.ApplicationConfiguration.ApplicationUri)
+               && certificate.NotAfter.ToUniversalTime() > DateTime.UtcNow + RenewBefore;
     }
 }
 
