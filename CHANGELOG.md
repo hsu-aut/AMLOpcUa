@@ -22,6 +22,9 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- "Types of the server…" with "Include the namespace's objects" ticked and
+  Import types browsed the objects for nothing and reported them as not taken;
+  an import fetches the types only.
 - "Check again" and "Add missing Mandatory children" were enabled without a
   document, and "Export SVG…" without a diagram; a click did nothing. They are
   greyed out until they can work.

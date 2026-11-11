@@ -44,7 +44,11 @@ public sealed class NamespacePickerWindow : Window
 
     public ServerNamespace? Selected { get; private set; }
     public NamespaceAction Action { get; private set; }
-    public bool IncludeInstances => _instances.IsChecked == true;
+    /// <summary>
+    /// The objects too, for the modeler or a file. An import takes the types only,
+    /// so for it they would be browsed for nothing.
+    /// </summary>
+    public bool IncludeInstances => _instances.IsChecked == true && Action != NamespaceAction.Import;
 
     public NamespacePickerWindow(IReadOnlyList<ServerNamespace> namespaces, bool canImport)
     {
