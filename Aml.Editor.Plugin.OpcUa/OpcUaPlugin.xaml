@@ -674,7 +674,7 @@
                             <Grid>
                                 <TreeView x:Name="AddressTree" SelectedItemChanged="AddressTree_SelectedItemChanged" KeyDown="AddressTree_KeyDown"/>
                                 <TextBlock x:Name="AddressTreeEmpty" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" VerticalAlignment="Top" IsHitTestVisible="False"
-                                           Text="{l:T 'Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a server, serve this document below and connect to opc.tcp://127.0.0.1:48400/AMLOpcUa.'}"/>
+                                           Text="{l:T 'Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a plant, click Practice plant above: it serves the MPS 500 learning factory on this computer; then connect.'}"/>
                             </Grid>
                         </DockPanel>
                         <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent"/>

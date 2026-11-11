@@ -396,7 +396,7 @@ internal static class De
         ["Not at all"] = "Gar nicht",
         ["Not available with this editor version: its save command was not found. Save with Ctrl+S."] = "Mit dieser Editor-Version nicht verfügbar: Der Speicherbefehl des Editors wurde nicht gefunden. Speichere mit Strg+S.",
         ["Not connected"] = "Nicht verbunden",
-        ["Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a server, serve this document below and connect to opc.tcp://127.0.0.1:48400/AMLOpcUa."] = "Nicht verbunden. Gib oben einen Endpunkt ein (die Liste enthält die zuletzt verwendeten Server) und verbinde dich. Um das Plugin ohne Server auszuprobieren, stelle unten dieses Dokument bereit und verbinde dich mit opc.tcp://127.0.0.1:48400/AMLOpcUa.",
+        ["Not connected. Enter an endpoint above (the list holds the servers used recently) and connect. To try the plugin without a plant, click Practice plant above: it serves the MPS 500 learning factory on this computer; then connect."] = "Nicht verbunden. Gib oben einen Endpunkt ein (die Liste enthält die zuletzt verwendeten Server) und verbinde dich. Um das Plugin ohne Anlage auszuprobieren, klicke oben auf 'Übungsanlage': Sie stellt die Lernfabrik MPS 500 auf diesem Computer bereit; dann verbinde dich.",
         ["Not saved."] = "Nicht gespeichert.",
         ["not secured"] = "nicht gesichert",
         ["Nothing checked: 'Take into document' takes the selected node with what is below it."] = "Nichts angehakt: 'Ins Dokument übernehmen' übernimmt den ausgewählten Knoten mit allem darunter.",
