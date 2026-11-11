@@ -168,6 +168,32 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
     }
 
     [Fact]
+    public async Task Live_values_count_and_name_bindings_the_server_lacks()
+    {
+        // A document made for another installation, or a server not (yet) complete:
+        // a value that never arrives has to be named, not counted as followed.
+        await using var client = await UaClient.ConnectAsync(Options());
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Bound");
+        var counter = ih.InternalElement.Append("Counter");
+        AnnexANodeId.Write(counter, new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Counter"));
+        counter.Attribute.Append("Value");
+        foreach (var name in new[] { "Ghost", "Phantom" })
+        {
+            var ghost = ih.InternalElement.Append(name);
+            AnnexANodeId.Write(ghost, new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant." + name));
+            ghost.Attribute.Append("Value");
+        }
+
+        await using var live = await LiveValues.FollowAsync(doc, client, write => write(), publishingIntervalMs: 100);
+
+        Assert.Equal(1, live.Count);
+        Assert.Equal(2, live.NotOnServer);
+        Assert.Contains(live.Problems, p => p.StartsWith("Ghost", StringComparison.Ordinal) && p.Contains("BadNodeIdUnknown"));
+        Assert.Contains(live.Problems, p => p.StartsWith("Phantom", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task A_snapshot_fills_the_older_aml_opcua_variable_binding()
     {
         await using var client = await UaClient.ConnectAsync(Options());

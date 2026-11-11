@@ -24,18 +24,26 @@ public sealed class LiveValues : IAsyncDisposable
     /// <summary>Bindings to another server, left out.</summary>
     public int Skipped { get; }
 
+    /// <summary>
+    /// Bindings whose node this server refused to follow, mostly because it
+    /// does not have it (BadNodeIdUnknown); not in <see cref="Count"/>, each
+    /// named in <see cref="Problems"/> with the server's status.
+    /// </summary>
+    public int NotOnServer { get; }
+
     /// <summary>Bindings that could not be read (a malformed NodeId, for instance).</summary>
     public IReadOnlyList<string> Problems { get; }
 
     /// <summary>Values written into the document so far.</summary>
     public int Updates => Volatile.Read(ref _counter.Value);
 
-    private LiveValues(IAsyncDisposable watch, Counter counter, int count, int skipped, IReadOnlyList<string> problems)
+    private LiveValues(IAsyncDisposable watch, Counter counter, int count, int skipped, int notOnServer, IReadOnlyList<string> problems)
     {
         _watch = watch;
         _counter = counter;
         Count = count;
         Skipped = skipped;
+        NotOnServer = notOnServer;
         Problems = problems;
     }
 
@@ -52,19 +60,26 @@ public sealed class LiveValues : IAsyncDisposable
         var byAddress = targets.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.ToList());
         // The first values arrive while the subscription is created, before this object exists.
         var counter = new Counter();
-        var watch = byAddress.Count == 0
-            ? new Nothing()
-            : await client.WatchAsync(byAddress.Keys.ToList(), result =>
+        if (byAddress.Count == 0) return new LiveValues(new Nothing(), counter, 0, skipped, 0, problems);
+        var (watch, refused) = await client.WatchCoreAsync(byAddress.Keys.ToList(), result =>
+        {
+            if (!result.Good || !byAddress.TryGetValue(result.Address, out var bound)) return;
+            dispatch(() =>
             {
-                if (!result.Good || !byAddress.TryGetValue(result.Address, out var bound)) return;
-                dispatch(() =>
-                {
-                    foreach (var target in bound) target.Write(result);
-                    var updates = Interlocked.Add(ref counter.Value, bound.Count);
-                    changed?.Invoke(new LiveUpdate(bound[0].What, result.ValueText, updates));
-                });
-            }, publishingIntervalMs, ct);
-        return new LiveValues(watch, counter, targets.Count, skipped, problems);
+                foreach (var target in bound) target.Write(result);
+                var updates = Interlocked.Add(ref counter.Value, bound.Count);
+                changed?.Invoke(new LiveUpdate(bound[0].What, result.ValueText, updates));
+            });
+        }, publishingIntervalMs, ct);
+        // A node the server refused is never heard of again: named here, not counted as followed.
+        var notOnServer = 0;
+        foreach (var r in refused)
+        {
+            if (!byAddress.TryGetValue(r.Address, out var bound)) continue;
+            notOnServer += bound.Count;
+            problems.AddRange(bound.Select(t => $"{t.What}: not followed, {r.Status}"));
+        }
+        return new LiveValues(watch, counter, targets.Count - notOnServer, skipped, notOnServer, problems);
     }
 
     public ValueTask DisposeAsync() => _watch.DisposeAsync();

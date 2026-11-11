@@ -75,6 +75,9 @@ server it was bound to ([export](export.md), D16).
 - **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
   keep the document itself current, see "Keep document values live" below.
+  A node the server refuses to watch (it does not have it, BadNodeIdUnknown)
+  is reported once as a bad result with the server's status, instead of
+  staying silent.
 
 ## The server's types
 
@@ -148,6 +151,8 @@ file (`ServerNodeSetTests`).
   thread, one monitored item per node however many elements are bound to it)
   until the button is pressed again, the client disconnects or the document
   is closed. The document is not saved; Ctrl+S keeps the last values.
+  Bindings whose node the server refuses are not counted as followed
+  (`Count`); they are counted in `NotOnServer` and named in `Problems`.
 
 ## Selecting what to mirror
 

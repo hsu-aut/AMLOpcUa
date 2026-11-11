@@ -164,6 +164,25 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
     }
 
     [Fact]
+    public async Task Watching_a_node_the_server_lacks_reports_it_as_bad()
+    {
+        // The server refuses the monitored item; without a word the node would just stay silent.
+        await using var client = await UaClient.ConnectAsync(Options());
+        var seen = new System.Collections.Concurrent.ConcurrentQueue<UaReadResult>();
+
+        await using (await client.WatchAsync(new[] { Plant("Plant.Counter"), Plant("Plant.Nothing") }, seen.Enqueue, publishingIntervalMs: 100))
+        {
+            var missing = Assert.Single(seen, r => r.Address == Plant("Plant.Nothing"));
+            Assert.False(missing.Good);
+            Assert.Contains("BadNodeIdUnknown", missing.Status);
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (!seen.Any(r => r.Address == Plant("Plant.Counter")) && DateTime.UtcNow < deadline) await Task.Delay(50);
+        }
+
+        Assert.All(seen.Where(r => r.Address == Plant("Plant.Counter")), r => Assert.True(r.Good));
+    }
+
+    [Fact]
     public async Task Watching_delivers_changing_values_until_disposed()
     {
         await using var client = await UaClient.ConnectAsync(Options());
