@@ -78,6 +78,82 @@ public class InstanceTransferTests(BundledDiConversion di) : IClassFixture<Bundl
         Assert.Equal(ids.Count, ids.Distinct().Count());
     }
 
+    private static readonly XNamespace Ua = OpcUaAml.Export.NodeSetExporter.UaNodeSetNamespace;
+
+    /// <summary>The model written back as the nodes it was (the inverse of Annex A).</summary>
+    private static XDocument Exported(CAEXDocument target) =>
+        OpcUaAml.Export.NodeSetExporter.Export(target, new OpcUaAml.Export.NodeSetExportOptions
+        {
+            Mode = OpcUaAml.Export.ExportMode.AnnexAInverse,
+            NamespaceUri = Plant,
+        });
+
+    private static List<XElement> Named(XDocument nodeSet, string browseName) =>
+        nodeSet.Root!.Elements().Where(e => (string?)e.Attribute("BrowseName") == browseName).ToList();
+
+    /// <summary>Whether the node hangs below Objects (i=85), as the instances of a model do.</summary>
+    private static bool BelowObjects(XElement node) =>
+        node.Element(Ua + "References")!.Elements().Any(r =>
+            (string?)r.Attribute("IsForward") == "false" && r.Value == "i=85"
+            && (string?)r.Attribute("ReferenceType") is "Organizes" or "i=35");
+
+    /// <summary>References and parents in the model's namespace (ns=1) that lead to no node of the file.</summary>
+    private static List<string> Dangling(XDocument nodeSet)
+    {
+        var nodes = nodeSet.Root!.Elements().Select(e => (string?)e.Attribute("NodeId")).Where(id => id != null).ToHashSet();
+        return nodeSet.Root.Elements()
+            .SelectMany(e => e.Element(Ua + "References")?.Elements().Select(r => r.Value) ?? [])
+            .Concat(nodeSet.Root.Elements().Select(e => (string?)e.Attribute("ParentNodeId") ?? ""))
+            .Where(target => target.StartsWith("ns=1;", StringComparison.Ordinal) && !nodes.Contains(target))
+            .Distinct().ToList();
+    }
+
+    [Fact]
+    public void Instances_in_their_own_hierarchy_are_written_below_Objects()
+    {
+        var (target, conversion) = Imported();
+        InstanceTransfer.Take(target, conversion.Document, Plant, new InstanceDestination.OwnHierarchy("IH_Plant"));
+        // One more, added by hand: it has no NodeId yet.
+        var ih = target.CAEXFile.InstanceHierarchy["IH_Plant"]!;
+        var added = ih.InternalElement.Append("Pump3");
+        added.RefBaseSystemUnitPath = ih.InternalElement["Pump1"]!.RefBaseSystemUnitPath;
+
+        var nodeSet = Exported(target);
+
+        var pump = Assert.Single(Named(nodeSet, "1:Pump1"));
+        Assert.Equal("ns=1;i=1002", (string?)pump.Attribute("NodeId"));
+        Assert.True(BelowObjects(pump));
+        Assert.True(BelowObjects(Assert.Single(Named(nodeSet, "1:Hall"))));
+        Assert.Single(Named(nodeSet, "1:Pump2"));
+        var third = Assert.Single(Named(nodeSet, "1:Pump3"));
+        Assert.True(BelowObjects(third));
+        Assert.StartsWith("ns=1;i=", (string?)third.Attribute("NodeId"));
+        Assert.Empty(Dangling(nodeSet));
+    }
+
+    [Fact]
+    public void Instances_below_a_chosen_element_are_written_below_Objects_each_with_NodeIds_of_its_own()
+    {
+        var (target, conversion) = Imported();
+        var station = target.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Station");
+        InstanceTransfer.Take(target, conversion.Document, Plant, new InstanceDestination.Below(station));
+        InstanceTransfer.Take(target, conversion.Document, Plant, new InstanceDestination.Below(station));
+
+        var nodeSet = Exported(target);
+
+        // Two Applies are two pumps, in AML and in OPC UA.
+        var pumps = Named(nodeSet, "1:Pump1").Concat(Named(nodeSet, "1:Pump1 (2)")).ToList();
+        Assert.Equal(2, pumps.Count);
+        Assert.All(pumps, p => Assert.True(BelowObjects(p)));
+        Assert.Equal(2, pumps.Select(p => (string?)p.Attribute("NodeId")).Distinct().Count());
+        // Each pump with its own Speed: Pump1 and Pump2 (in Hall), twice.
+        Assert.Equal(2, Named(nodeSet, "1:Hall").Concat(Named(nodeSet, "1:Hall (2)")).Count());
+        Assert.Equal(4, Named(nodeSet, "1:Speed").Count(s => (string?)s.Attribute("ParentNodeId") != "ns=1;i=1000"));
+        var ids = nodeSet.Root!.Elements().Select(e => (string?)e.Attribute("NodeId")).Where(id => id != null).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Empty(Dangling(nodeSet));
+    }
+
     [Fact]
     public void Every_link_of_what_is_taken_ends_at_an_element_of_the_document()
     {

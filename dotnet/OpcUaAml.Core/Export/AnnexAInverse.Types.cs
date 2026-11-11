@@ -153,29 +153,54 @@ public static partial class AnnexAInverse
         /// <summary>
         /// An element of an instance hierarchy: exported when it is a node of the
         /// namespace; otherwise (Objects, Server …) searched for nodes of the namespace.
+        /// In the model's own hierarchy (<paramref name="own"/>) an element at the
+        /// top belongs to the model even without a NodeId, and gets one.
         /// </summary>
-        private void Instance(XElement e, XElement? parentNode, UaNodeAddress? parentId, XElement? parentType)
+        private void Instance(XElement e, XElement? parentNode, UaNodeAddress? parentId, XElement? parentType, bool own = false)
         {
             if (IsCopy(e, parentType)) return;
             var id = NodeIdOf(e);
-            if (id?.NamespaceUri == _ns && parentId != null)
+            if (id?.NamespaceUri == _ns || (own && id == null))
             {
-                Declaration(e, parentNode, parentId, parentType);
+                if (parentId != null) Declaration(e, parentNode, parentId, parentType);
+                else Root(e);
                 return;
             }
             var type = Resolve((string?)e.Attribute("RefBaseSystemUnitPath"));
             foreach (var child in e.Elements(_caex + "InternalElement")) Instance(child, null, id, type);
         }
 
-        private void Declaration(XElement e, XElement? parent, UaNodeAddress parentId, XElement? parentType)
+        /// <summary>
+        /// An instance with no node of the file above it: the Apply puts the
+        /// instances of a model into a hierarchy of their own or below an element
+        /// of the user's, without the Objects folder they hung below. Written
+        /// below Objects again.
+        ///
+        /// A copy the Apply placed below an element has IDs of its own but the
+        /// NodeId attributes of the instance it was copied from. When that
+        /// instance is in the document too, or an earlier copy took its NodeIds,
+        /// the copy is another instance and gets NodeIds of its own.
+        /// </summary>
+        private void Root(XElement e)
+        {
+            Dictionary<string, UaNodeAddress>? renewed = null;
+            if (NodeIdInId(e) == null && NodeIdOf(e) is { } id
+                && (_nodes.ContainsKey(id.ToString()) || CarriedByInstances().Contains(id.ToString())))
+                renewed = new Dictionary<string, UaNodeAddress>(StringComparer.Ordinal);
+            Declaration(e, null, UaId(85), null, renewed, heldBy: UaId(35));
+        }
+
+        private void Declaration(XElement e, XElement? parent, UaNodeAddress parentId, XElement? parentType,
+            Dictionary<string, UaNodeAddress>? renewed = null, UaNodeAddress? heldBy = null)
         {
             if (IsCopy(e, parentType)) return;
-            var id = Assign(e);
+            var id = Assign(e, renewed);
             var typePath = (string?)e.Attribute("RefBaseSystemUnitPath");
             var isMethod = typePath == MethodClass;
             var type = isMethod ? null : Resolve(typePath);
             var nodeClass = isMethod ? "UAMethod" : type != null && ChainHas(type, "BaseVariableType") ? "UAVariable" : "UAObject";
-            var (reference, rule) = HeldBy(e);
+            // Below Objects an instance is organized, whatever held it before, and follows no ModellingRule.
+            var (reference, rule) = heldBy != null ? (heldBy, (string?)null) : HeldBy(e);
 
             // A node held by two parents: Opc2Aml writes it below each, the NodeSet once,
             // with a reference from each parent.
@@ -193,7 +218,7 @@ public static partial class AnnexAInverse
             if ((parent != null || parentId.NamespaceUri == UaUri) && !organizes) node.Add(new XAttribute("ParentNodeId", Text(parentId)));
             if (isMethod && MethodDeclaration(Name(e), parentType) is { } declaration && declaration.ToString() != id.ToString())
                 node.Add(new XAttribute("MethodDeclarationId", Text(declaration)));
-            ListedReferences(e, id);
+            ListedReferences(e, id, renewed);
             Interfaces(id, e);
             if (parent != null) Reference(parent, reference, id);
             Reference(node, reference, parentId, forward: false);
@@ -202,7 +227,7 @@ public static partial class AnnexAInverse
             Describe(node, e);
             if (nodeClass == "UAVariable") VariableAttributes(node, e);
 
-            foreach (var child in e.Elements(_caex + "InternalElement")) Declaration(child, node, id, type);
+            foreach (var child in e.Elements(_caex + "InternalElement")) Declaration(child, node, id, type, renewed);
         }
 
         /// <summary>OPC UA Interfaces become role classes in Annex A: HasInterface from SupportedRoleClass and RoleRequirements.</summary>

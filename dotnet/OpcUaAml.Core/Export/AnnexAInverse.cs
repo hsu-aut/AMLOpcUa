@@ -257,17 +257,17 @@ public static partial class AnnexAInverse
         // ── NodeIds ─────────────────────────────────────────────────────────
 
         /// <summary>The NodeId Annex A gave an element: its ID ("f;"/"r;" for reference types), else its NodeId attribute.</summary>
-        internal static UaNodeAddress? NodeIdOf(XElement e)
+        internal static UaNodeAddress? NodeIdOf(XElement e) => NodeIdInId(e) ?? NodeIdAttribute(e);
+
+        /// <summary>The NodeId an element's ID carries, as Annex A derives IDs from NodeIds; null for any other ID.</summary>
+        private static UaNodeAddress? NodeIdInId(XElement e)
         {
-            if ((string?)e.Attribute("ID") is { } id)
-            {
-                var decoded = Uri.UnescapeDataString(id);
-                // Reference types carry "f;" (forward) or "r;" (inverse), role classes of Interfaces "rc;".
-                foreach (var prefix in new[] { "f;", "r;", "rc;" })
-                    if (decoded.StartsWith(prefix, StringComparison.Ordinal)) { decoded = decoded[prefix.Length..]; break; }
-                if (decoded.StartsWith("nsu=", StringComparison.Ordinal) && UaNodeAddress.TryParse(decoded, null, out var fromId)) return fromId;
-            }
-            return NodeIdAttribute(e);
+            if ((string?)e.Attribute("ID") is not { } id) return null;
+            var decoded = Uri.UnescapeDataString(id);
+            // Reference types carry "f;" (forward) or "r;" (inverse), role classes of Interfaces "rc;".
+            foreach (var prefix in new[] { "f;", "r;", "rc;" })
+                if (decoded.StartsWith(prefix, StringComparison.Ordinal)) { decoded = decoded[prefix.Length..]; break; }
+            return decoded.StartsWith("nsu=", StringComparison.Ordinal) && UaNodeAddress.TryParse(decoded, null, out var fromId) ? fromId : null;
         }
 
         private static UaNodeAddress? NodeIdAttribute(XElement e)
@@ -295,7 +295,7 @@ public static partial class AnnexAInverse
         /// NodeIds ("ReferenceIds"): FromState, HasEffect, HasInterface … An
         /// interface of an inverse class ([FromState]/[…]) lists the other direction.
         /// </summary>
-        private void ListedReferences(XElement e, UaNodeAddress id)
+        private void ListedReferences(XElement e, UaNodeAddress id, Dictionary<string, UaNodeAddress>? renewed = null)
         {
             foreach (var ei in e.Elements(_caex + "ExternalInterface"))
             {
@@ -308,7 +308,7 @@ public static partial class AnnexAInverse
                 foreach (var target in targets)
                     // Opc2Aml writes these NodeIds URL-encoded, like its IDs.
                     if (target != null && UaNodeAddress.TryParse(Uri.UnescapeDataString(target), null, out var to) && to != null)
-                        _listed.Add((id, refId, to, !inverse));
+                        _listed.Add((id, refId, renewed?.GetValueOrDefault(to.ToString()) ?? to, !inverse));
             }
         }
 
@@ -338,18 +338,43 @@ public static partial class AnnexAInverse
         private bool IsCopy(XElement e, XElement? holderType) =>
             holderType != null && NodeIdOf(e) is { } id && DeclarationsOf(holderType).TryGetValue(id.ToString(), out var declared) && declared != e;
 
-        private UaNodeAddress Assign(XElement e)
+        /// <summary>
+        /// The NodeId an element is written with: the one Annex A gave it, else a
+        /// new one. Within a copy that is another instance (<paramref name="renewed"/>),
+        /// every NodeId it carries is replaced by a new one, the same one wherever
+        /// it occurs in the copy.
+        /// </summary>
+        private UaNodeAddress Assign(XElement e, Dictionary<string, UaNodeAddress>? renewed = null)
         {
             if (_assigned.TryGetValue(e, out var known)) return known;
             var id = NodeIdOf(e);
-            if (id == null)
+            if (id != null && renewed != null)
             {
-                if (_next == 0) _next = FirstFree();
-                id = new UaNodeAddress(_ns, UaIdType.Numeric, (_next++).ToString(CultureInfo.InvariantCulture));
+                if (!renewed.TryGetValue(id.ToString(), out var replaced)) renewed[id.ToString()] = replaced = NewId();
+                id = replaced;
             }
+            id ??= NewId();
             _assigned[e] = id;
             return id;
         }
+
+        private UaNodeAddress NewId()
+        {
+            if (_next == 0) _next = FirstFree();
+            return new UaNodeAddress(_ns, UaIdType.Numeric, (_next++).ToString(CultureInfo.InvariantCulture));
+        }
+
+        private HashSet<string>? _carriedByInstances;
+
+        /// <summary>
+        /// The NodeIds of the namespace that elements of the instance hierarchies
+        /// carry in their IDs: the instances as Opc2Aml wrote them and as the
+        /// Apply takes them into the model's own hierarchy.
+        /// </summary>
+        private HashSet<string> CarriedByInstances() =>
+            _carriedByInstances ??= _root.Elements(_caex + "InstanceHierarchy").SelectMany(ih => ih.Descendants(_caex + "InternalElement"))
+                .Select(NodeIdInId).Where(id => id?.NamespaceUri == _ns).Select(id => id!.ToString())
+                .ToHashSet(StringComparer.Ordinal);
 
         /// <summary>
         /// Where invented NodeIds start. Annex A keeps no encodings and no type
@@ -433,7 +458,11 @@ public static partial class AnnexAInverse
                 if (!Name(dt).StartsWith("ListOf", StringComparison.Ordinal)) DataType(dt);
             foreach (var type in suc?.Descendants(_caex + "SystemUnitClass") ?? Enumerable.Empty<XElement>()) Type(type);
             foreach (var ih in _root.Elements(_caex + "InstanceHierarchy"))
-                foreach (var e in ih.Elements(_caex + "InternalElement")) Instance(e, null, null, null);
+            {
+                // The hierarchy the Apply makes for the model (IH_<name>): what stands at its top belongs to the model.
+                var own = Name(ih) == OpcUaAml.Import.InstanceTransfer.HierarchyName(_ns);
+                foreach (var e in ih.Elements(_caex + "InternalElement")) Instance(e, null, null, null, own);
+            }
             foreach (var type in suc?.Descendants(_caex + "SystemUnitClass") ?? Enumerable.Empty<XElement>()) Links(type);
             foreach (var ih in _root.Elements(_caex + "InstanceHierarchy")) Links(ih);
             foreach (var (from, type, to, forward) in _listed)
