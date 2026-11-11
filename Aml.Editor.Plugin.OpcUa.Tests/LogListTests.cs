@@ -88,4 +88,42 @@ public class LogListTests
     }
 
     private static string Colour(Brush brush) => brush is SolidColorBrush s ? s.Color.ToString() : brush.ToString();
+
+    /// <summary>
+    /// One error with its stack trace showed as "Log (17 new warning(s))":
+    /// every line of the trace counted, and errors were called warnings.
+    /// </summary>
+    [Fact]
+    public void One_error_counts_once_at_the_log_link()
+    {
+        string? link = null;
+        Exception? failure = null;
+        var german = L.German;
+        L.German = false;
+        try
+        {
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    var plugin = new OpcUaPlugin();
+                    Exception error;
+                    try { throw new InvalidOperationException("broken"); }
+                    catch (InvalidOperationException ex) { error = ex; }
+                    Aml.Editor.Plugin.OpcUa.Diagnostics.PluginLog.Error("Something failed", error);
+                    // The lines reach the list once the dispatcher is idle.
+                    plugin.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                    link = plugin.LogLinkText.Text;
+                }
+                catch (Exception ex) { failure = ex; }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+        }
+        finally { L.German = german; }
+        if (failure != null) throw new Xunit.Sdk.XunitException(failure.ToString());
+
+        Assert.Equal("Log (1 new problem(s))", link);
+    }
 }

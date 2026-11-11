@@ -18,6 +18,10 @@ minor versions.
 
 ### Fixed
 
+- One error showed at the log link as many new warnings, one per line of its
+  stack trace; it counts once now, and the link says "problem(s)".
+- A failed "Add missing Mandatory children" was reported half in English in
+  the German interface.
 - The Secure box and its help said "signed and encrypted only"; it takes the
   most secure endpoint the server offers, which may be signed only. The texts
   say so now.

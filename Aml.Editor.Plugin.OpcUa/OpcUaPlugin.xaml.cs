@@ -575,7 +575,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
-    private void UpgradeButton_Click(object sender, RoutedEventArgs e) => Guard("Adding the Mandatory children", () => Upgrade(sender, e));
+    private void UpgradeButton_Click(object sender, RoutedEventArgs e) => Guard(L.T("Adding the Mandatory children"), () => Upgrade(sender, e));
 
     private void Upgrade(object sender, RoutedEventArgs e)
     {
@@ -864,7 +864,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private void ShowLogLink()
     {
-        LogLinkText.Text = _unseenProblems == 0 ? L.T("Log") : L.T("Log ({0} new warning(s))", _unseenProblems);
+        LogLinkText.Text = _unseenProblems == 0 ? L.T("Log") : L.T("Log ({0} new problem(s))", _unseenProblems);
         LogLinkGlyph.Visibility = _unseenProblems == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -928,8 +928,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var parsed = LogLine.Parse(line);
             _log.Add(parsed);
             added = true;
-            // Counted unless the log is in view.
-            if (parsed.Level is "WARN" or "ERROR" && !(Tabs.SelectedIndex == 0 && LogList.IsVisible)) _unseenProblems++;
+            // Counted unless the log is in view; an error's own lines (type, stack trace)
+            // are indented and belong to it, so they do not count again.
+            if (parsed.Level is "WARN" or "ERROR" && !parsed.Message.StartsWith("  ", StringComparison.Ordinal)
+                && !(Tabs.SelectedIndex == 0 && LogList.IsVisible)) _unseenProblems++;
         }
         if (!added) return;
         ShowLogLink();

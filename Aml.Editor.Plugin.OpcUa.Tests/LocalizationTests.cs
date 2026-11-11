@@ -53,7 +53,9 @@ public class LocalizationTests
         var bypassing = Directory.EnumerateFiles(PluginFolder(), "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
             .SelectMany(f => File.ReadAllLines(f).Select(line => (File: Path.GetFileName(f), Line: line.Trim())))
-            .Where(l => Regex.IsMatch(l.Line, @"\b(SetStatus|SetBusy)\((\w+,\s*)?\$?""[^""]"))
+            // Guard names the command in "… failed: …"; seen in German as
+            // "Adding the Mandatory children fehlgeschlagen".
+            .Where(l => Regex.IsMatch(l.Line, @"\b(SetStatus|SetBusy|Guard)\((\w+,\s*)?\$?""[^""]"))
             .Select(l => $"{l.File}: {l.Line}");
 
         Assert.Empty(bypassing);
