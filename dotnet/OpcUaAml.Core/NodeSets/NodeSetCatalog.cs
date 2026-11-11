@@ -50,10 +50,23 @@ public sealed class NodeSetCatalog
             AddFile(file);
     }
 
-    /// <summary>Adds one file. Returns its header, or null if it is not a NodeSet.</summary>
+    /// <summary>
+    /// Adds one file. Returns its header, or null if it is not a NodeSet or
+    /// cannot be read (another program holds it, no read rights); the latter
+    /// is a warning, so one such file does not fail a whole folder.
+    /// </summary>
     public NodeSetInfo? AddFile(string file)
     {
-        var info = NodeSetInfo.TryRead(file);
+        NodeSetInfo? info;
+        try
+        {
+            info = NodeSetInfo.TryRead(file);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _warnings.Add($"'{file}' could not be read and is skipped: {ex.Message}");
+            return null;
+        }
         if (info == null) return null;
         foreach (var model in info.Models)
         {

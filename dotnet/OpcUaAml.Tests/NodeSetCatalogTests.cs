@@ -1,3 +1,4 @@
+using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 
 namespace OpcUaAml.Tests;
@@ -74,6 +75,32 @@ public class NodeSetCatalogTests
     {
         var catalog = NodeSetCatalog.Create(new[] { @"Z:\does\not\exist" });
         Assert.Contains(catalog.Warnings, w => w.Contains("does not exist"));
+    }
+
+    [Fact]
+    public void A_file_that_cannot_be_read_is_skipped_with_a_warning()
+    {
+        // A file another program holds open, or one without read rights, threw
+        // out of the folder scan: the whole catalog failed, the import with it.
+        var folder = Directory.CreateTempSubdirectory("catalog-locked-").FullName;
+        try
+        {
+            File.Copy(Fixtures.Path("uafx", "opc.ua.fx.data.nodeset2.xml"), Path.Combine(folder, "opc.ua.fx.data.nodeset2.xml"));
+            var locked = Path.Combine(folder, "locked.nodeset2.xml");
+            File.Copy(Fixtures.Path("uafx", "opc.ua.fx.ac.nodeset2.xml"), locked);
+            using (new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var catalog = NodeSetCatalog.Create(new[] { folder });
+
+                Assert.NotNull(catalog.Find("http://opcfoundation.org/UA/FX/Data/"));
+                Assert.Null(catalog.Find("http://opcfoundation.org/UA/FX/AC/"));
+                Assert.Contains(catalog.Warnings, w => w.Contains("locked.nodeset2.xml") && w.Contains("could not be read"));
+                // Imported directly, the file is refused the way the import refuses files.
+                var ex = Assert.Throws<ImportException>(() => NodeSetImporter.Convert(locked, catalog));
+                Assert.Contains("could not be read", ex.Message);
+            }
+        }
+        finally { Directory.Delete(folder, recursive: true); }
     }
 
     [Fact]

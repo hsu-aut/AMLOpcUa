@@ -29,6 +29,9 @@ transitively, must be available as a file:
 2. the folders given with `--search` or under "NodeSet folders",
 3. the NodeSets shipped in `nodesets/` (UA base model 1.05.07, DI 1.05.0).
 
+A file in these folders that cannot be read (another program holds it, no
+read rights) is skipped with a warning of the catalog; the rest is used.
+
 Without an account the plugin fetches the NodeSets the OPC Foundation
 publishes on GitHub, [OPCFoundation/UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset),
 branch `latest`: every released companion specification (**Companion

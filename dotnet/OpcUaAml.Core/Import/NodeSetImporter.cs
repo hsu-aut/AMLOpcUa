@@ -55,8 +55,16 @@ public static class NodeSetImporter
     public static ConversionResult Convert(string nodeSetPath, NodeSetCatalog catalog)
     {
         var fullPath = Path.GetFullPath(nodeSetPath);
-        var info = NodeSetInfo.TryRead(fullPath)
-            ?? throw new ImportException($"'{nodeSetPath}' is not an OPC UA NodeSet (no UANodeSet root element).");
+        NodeSetInfo? read;
+        try
+        {
+            read = NodeSetInfo.TryRead(fullPath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new ImportException($"'{nodeSetPath}' could not be read: {ex.Message}", ex);
+        }
+        var info = read ?? throw new ImportException($"'{nodeSetPath}' is not an OPC UA NodeSet (no UANodeSet root element).");
         if (info.Models.Count == 0)
             throw new ImportException($"'{nodeSetPath}' declares no model, so its namespace cannot be identified.");
 
