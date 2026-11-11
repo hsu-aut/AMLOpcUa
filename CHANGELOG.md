@@ -57,6 +57,10 @@ minor versions.
   secured connection would have failed.
 - Stopping a server while a client was connected froze the editor for five
   seconds.
+- Closing the plugin, or opening another document, while Serve, Connect or
+  "Keep document values live" was still starting left the port, the session
+  or the subscription behind until the editor ended; a later Serve then found
+  the port in use. What started is ended again.
 - A port already in use (another OPC UA server, a second editor) is named as
   such, "Port N is in use …", instead of the stack's "Failed to establish tcp
   listener sockets".

@@ -155,7 +155,14 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetBusy(true, L.T("Connecting to {0} …", url));
         try
         {
-            await AttachClientAsync(await ConnectWithTrustPromptAsync(url), url);
+            var connected = await ConnectWithTrustPromptAsync(url);
+            // Closed while connecting: the session would stay open until the editor ends.
+            if (_released)
+            {
+                await connected.DisposeAsync();
+                return;
+            }
+            await AttachClientAsync(connected, url);
         }
         catch (Exception ex)
         {
@@ -333,7 +340,16 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetBusy(true, L.T("Starting the document server …"));
         try
         {
-            _host = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network, Simulate = simulate });
+            var started = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network, Simulate = simulate });
+            // Closed, or another document opened, while it started (the first start
+            // makes a certificate and takes seconds): it would hold the port until the
+            // editor ends, or serve a closed document.
+            if (_released || !ReferenceEquals(_document, document))
+            {
+                await started.DisposeAsync();
+                return;
+            }
+            _host = started;
             if (_host.CertificateReplaced)
                 PluginLog.Info("The document server made itself a new certificate for its address; clients that trusted the old one ask again.");
             // Values edited in the document reach the served nodes; new or removed elements need a restart.
@@ -736,7 +752,8 @@ public partial class OpcUaPlugin : ISupportsSelection
             // Writes run on the UI thread, and only while the same document is open.
             var token = new object();
             _liveToken = token;
-            _live = await LiveValues.FollowAsync(document, _client,
+            var client = _client;
+            var live = await LiveValues.FollowAsync(document, client,
                 write => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_document, document) && ReferenceEquals(_liveToken, token)) write(); }),
                 update =>
                 {
@@ -744,6 +761,14 @@ public partial class OpcUaPlugin : ISupportsSelection
                     _liveStatusShown = DateTime.Now;
                     SetStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
                 });
+            // Closed, disconnected or another document opened meanwhile: the subscription
+            // would stay with nothing to stop it.
+            if (_released || !ReferenceEquals(_document, document) || !ReferenceEquals(_client, client))
+            {
+                await live.DisposeAsync();
+                return;
+            }
+            _live = live;
             foreach (var p in _live.Problems) PluginLog.Warn(p);
             var message = LiveStartText(_live.Count, _live.Skipped, _live.NotOnServer, _client.EndpointUrl);
             PluginLog.Info(message);
