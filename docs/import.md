@@ -122,8 +122,12 @@ search the Cloud Library, then tries again.
 VariableTypes (SUC_), DataTypes (ATL_, without the `ListOf` array types),
 ReferenceTypes (ICL_), the namespaces it builds on (any path of its libraries
 into another's) and the elements typed by it. `Remove` deletes its four
-libraries, and refuses while another namespace builds on it or an element
-uses its types. Checked with DI: 42, 2, 9 and 5, as its NodeSet declares.
+libraries, and refuses while another namespace builds on it, an element uses
+its types, any other path of the instance hierarchies leads into its
+libraries (an interface, an attribute, a role), or a library of no namespace,
+the user's own, refers to them. The metamodel libraries of Annex A
+(`…_OpcAmlMetaModel`) are such libraries and keep the base model. Checked
+with DI: 42, 2, 9 and 5, as its NodeSet declares.
 
 ## Verification
 

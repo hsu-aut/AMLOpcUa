@@ -48,4 +48,37 @@ public class NamespaceInspectorTests(BundledDiConversion di) : IClassFixture<Bun
         Assert.DoesNotContain(NamespaceOverview.Of(doc), e => e.NamespaceUri == Fixtures.DiUri);
         Assert.Contains(NamespaceOverview.Of(doc), e => e.NamespaceUri == Fixtures.UaUri);
     }
+
+    [Fact]
+    public void Paths_into_a_namespace_from_anywhere_keep_it()
+    {
+        // No element typed by DI, yet an interface, an attribute and a role of
+        // an instance and a class of the user's own library point into its
+        // libraries. Removing DI deleted the libraries and left those paths
+        // dangling.
+        var doc = Fresh();
+        var pump = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Pump");
+        pump.ExternalInterface.Append("Peer").RefBaseClassPath = $"[ICL_{Fixtures.DiUri}]/[ConnectsTo]";
+        pump.Attribute.Append("Health").RefAttributeType = $"[ATL_{Fixtures.DiUri}]/[DeviceHealthEnumeration]";
+        pump.RoleRequirements.Append().RefBaseRoleClassPath = $"[RCL_{Fixtures.DiUri}]/[IVendorNameplateType]";
+        var own = doc.CAEXFile.SystemUnitClassLib.Append("MyLib").SystemUnitClass.Append("MyDevice");
+        own.RefBaseClassPath = $"[SUC_{Fixtures.DiUri}]/[DeviceType]";
+        Assert.All(new[] { pump.ExternalInterface["Peer"]!.RefBaseClassPath, pump.Attribute["Health"]!.RefAttributeType, own.RefBaseClassPath },
+            p => Assert.NotNull(doc.FindByPath(p)));
+
+        var blockers = NamespaceInspector.RemovalBlockers(doc, Fixtures.DiUri);
+
+        Assert.Contains(blockers, b => b.Contains("3 ") && b.Contains("instance hierarchies"));
+        Assert.Contains(blockers, b => b.Contains("'MyLib'"));
+        Assert.Throws<InvalidOperationException>(() => NamespaceInspector.Remove(doc, Fixtures.DiUri));
+        Assert.Contains(NamespaceOverview.Of(doc), e => e.NamespaceUri == Fixtures.DiUri);
+
+        doc.CAEXFile.InstanceHierarchy["Plant"]!.Remove();
+        doc.CAEXFile.SystemUnitClassLib["MyLib"]!.Remove();
+        Assert.Empty(NamespaceInspector.RemovalBlockers(doc, Fixtures.DiUri));
+        NamespaceInspector.Remove(doc, Fixtures.DiUri);
+        // The metamodel libraries of Annex A belong to no namespace and point
+        // into the base model's, so they keep it too.
+        Assert.Contains(NamespaceInspector.RemovalBlockers(doc, Fixtures.UaUri), b => b.Contains("'SUC_OpcAmlMetaModel'"));
+    }
 }

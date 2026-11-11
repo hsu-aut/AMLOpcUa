@@ -62,15 +62,39 @@ public static class NamespaceInspector
 
     /// <summary>
     /// What keeps a namespace's libraries in the document: namespaces that build
-    /// on it and elements of instance hierarchies typed by it. Empty when it can go.
+    /// on it, elements of instance hierarchies typed by it, any other path of
+    /// the instance hierarchies into its libraries (an interface, an attribute,
+    /// a role) and libraries of no namespace, the user's own, that refer to
+    /// them. Empty when it can go.
     /// </summary>
     public static IReadOnlyList<string> RemovalBlockers(CAEXDocument doc, string namespaceUri)
     {
         var details = Of(doc, namespaceUri);
         var blockers = details.UsedBy.Select(u => $"{u} builds on it.").ToList();
         if (details.Instances > 0) blockers.Add($"{details.Instances} element(s) of the instance hierarchies use its types.");
+
+        var entries = NamespaceOverview.Of(doc);
+        var own = details.Libraries.ToHashSet(StringComparer.Ordinal);
+        // Typed elements are counted above; every other path counts here.
+        var paths = doc.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Node.Descendants().Attributes())
+            .Count(a => PathAttributes.Contains(a.Name.LocalName) && a.Name.LocalName != "RefBaseSystemUnitPath" && PointsInto(a.Value, own));
+        if (paths > 0) blockers.Add($"{paths} interface(s), attribute(s) or role(s) of the instance hierarchies refer to its libraries.");
+
+        // Libraries of other namespaces are covered by "builds on it".
+        var owned = OwnerOfLibraries(entries);
+        foreach (var lib in Libraries(doc).Where(l => !owned.ContainsKey(l.Name)))
+        {
+            if (lib.Node.DescendantsAndSelf().Attributes().Any(a => PathAttributes.Contains(a.Name.LocalName) && PointsInto(a.Value, own)))
+                blockers.Add($"The library '{lib.Name}' refers to it.");
+        }
         return blockers;
     }
+
+    /// <summary>Whether a path ("[Lib]/[Class]" or "Lib/Class") leads into one of the libraries.</summary>
+    private static bool PointsInto(string path, IReadOnlySet<string> libraries) =>
+        LibraryOf(path) is { } name
+            ? libraries.Contains(name)
+            : libraries.Any(l => path.StartsWith(l + "/", StringComparison.Ordinal));
 
     /// <summary>Removes the namespace's libraries; returns their names.</summary>
     /// <exception cref="InvalidOperationException">Something still depends on them (see <see cref="RemovalBlockers"/>).</exception>
