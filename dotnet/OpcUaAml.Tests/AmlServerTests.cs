@@ -241,6 +241,38 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task While_simulating_edited_texts_and_dates_are_served_at_once()
+    {
+        // The simulation moves numbers and booleans; a text or a date it does
+        // not move, so an edit of the Manufacturer has to reach the clients itself.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("SimText");
+        var manufacturer = ih.InternalElement.Append("Manufacturer").Attribute.Append("Value");
+        manufacturer.AttributeDataType = "xs:string";
+        manufacturer.Value = "Festo";
+        var built = ih.InternalElement.Append("Built").Attribute.Append("Value");
+        built.AttributeDataType = "xs:dateTime";
+        built.Value = "2020-01-01T00:00:00Z";
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server"), Simulate = true });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        UaNodeAddress Node(string name) => new("urn:amlopcua:document", UaIdType.String, "SimText/" + name);
+
+        manufacturer.Value = "Siemens";
+        built.Value = "2026-11-10T08:00:00Z";
+        var changed = host.RefreshValues();
+        await Task.Delay(700); // a simulation step, which must not undo the edit
+
+        var read = await client.ReadManyAsync(new[] { Node("Manufacturer"), Node("Built") });
+        Assert.Equal(2, changed);
+        Assert.Equal("Siemens", read[0].ValueText);
+        Assert.Equal("2026-11-10T08:00:00Z", read[1].ValueText);
+    }
+
+    [Fact]
     public async Task A_certificate_made_for_another_address_is_replaced()
     {
         // Served to the network first, the certificate names the computer; served

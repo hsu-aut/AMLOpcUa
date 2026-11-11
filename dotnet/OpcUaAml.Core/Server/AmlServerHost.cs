@@ -46,8 +46,8 @@ public sealed class AmlServerOptions
     /// <summary>
     /// Let the served values move, as a running plant's would: numbers swing
     /// around the document's value, booleans toggle every few seconds, texts
-    /// stay. The document itself is not changed; a value edited in it becomes
-    /// the new middle.
+    /// stay. The document itself is not changed; a number edited in it becomes
+    /// the new middle, an edited text or date is served as it is.
     /// </summary>
     public bool Simulate { get; init; }
 }
@@ -282,9 +282,10 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     if (node.Source?.Attribute["Value"] is not { } attribute) continue;
                     var (_, value) = Typed(attribute.Value, attribute.AttributeDataType ?? node.DataType);
-                    if (Simulating)
+                    if (Simulating && ValueSimulation.Moves(state.DataType))
                     {
                         // An edit in the document moves the middle; the simulation writes the value.
+                        // A text or a date it does not move is written below, as without simulation.
                         _middle.TryGetValue(state, out var middle);
                         if (!Equals(middle, value)) { _middle[state] = value; changed++; }
                         continue;

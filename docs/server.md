@@ -210,8 +210,9 @@ With **simulate values** (`AmlServerOptions.Simulate`, `uaaml serve
 --simulate`) the served values move as a running plant's would: every half
 second each number swings on a slow sine (30 s) around the document's value,
 by a fifth of it (by 10 around zero), each variable in its own phase; booleans
-toggle every five seconds; texts stay. The document keeps its values; one
-edited there becomes the new middle. Clients, and the plugin's own live values,
+toggle every five seconds; texts and dates stay. The document keeps its
+values; a number edited there becomes the new middle, an edited text or date
+(a Manufacturer, say) is served at once. Clients, and the plugin's own live values,
 then have something to follow.
 
 Values are written as AML holds them: invariant culture, XML Schema lexical
