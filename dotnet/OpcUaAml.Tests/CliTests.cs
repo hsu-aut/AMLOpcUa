@@ -187,6 +187,25 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.Equal("42", AmlFiles.Load(file).CAEXFile.InstanceHierarchy["Line"]!.InternalElement["Machine"]!.Attribute["Temperature"]!.Value);
     }
 
+    [Fact]
+    public async Task The_types_of_a_server_go_into_a_CAEX_2_15_document_converted_first()
+    {
+        // As import --into does: the OPC UA libraries need CAEX 3.0.
+        using var uaaml = new Uaaml();
+        await using var host = await NodeSetServerHost.StartAsync(new[] { DiTestServer.DiPath },
+            new NodeSetServerOptions { Port = Uaaml.FreePort(), PkiRoot = Path.Combine(uaaml.Folder, "server") });
+        var old = uaaml.Save(CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX2_15), "old.aml");
+        var converted = Path.Combine(uaaml.Folder, "new.aml");
+
+        var run = await uaaml.RunAsync("nodeset", host.EndpointUrl, Fixtures.DiUri, "--into", old, "-o", converted, "--insecure", "--accept");
+
+        Assert.True(run.Exit == 0, run.Error);
+        Assert.Contains("CAEX 2.15", run.Error);
+        var doc = AmlFiles.Load(converted);
+        Assert.Equal("3.0", doc.CAEXFile.SchemaVersion);
+        Assert.NotNull(doc.CAEXFile.SystemUnitClassLib["SUC_" + Fixtures.DiUri]);
+    }
+
     private const string PasswordVariable = "AMLOPCUA_PASSWORD";
 
     /// <summary>Runs with the password variable set as given, and puts it back afterwards.</summary>

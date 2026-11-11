@@ -103,8 +103,9 @@ public static class Program
             server publishes for it, else rebuilt by browsing its types (with
             --instances also its objects; --browse ignores a published file).
             -o writes it. --into imports it into a document (Annex A, saved to -o
-            or in place), with the models it requires that neither --search nor
-            the bundled NodeSets provide, fetched from the server too.
+            or in place; a CAEX 2.15 document is converted to CAEX 3.0 first),
+            with the models it requires that neither --search nor the bundled
+            NodeSets provide, fetched from the server too.
 
         uaaml snapshot [<endpoint>] <doc.aml> [--insecure] [--accept] [--user <name>] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
@@ -733,6 +734,12 @@ public static class Program
                 Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
             }
             var doc = Documents.Load(into);
+            if (CaexUpgrade.IsNeeded(doc))
+            {
+                // As import --into does: the OPC UA libraries need CAEX 3.0.
+                Console.Error.WriteLine($"note: {into} is CAEX {doc.CAEXFile.SchemaVersion}; converted to CAEX 3.0 for the OPC UA libraries.");
+                doc = CaexUpgrade.ToCaex3(doc);
+            }
             var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog, new MergeOptions { DocumentFolder = FolderOf(into) });
             foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
             Documents.Save(doc, output ?? into);
