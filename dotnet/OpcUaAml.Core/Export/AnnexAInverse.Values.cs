@@ -290,9 +290,10 @@ public static partial class AnnexAInverse
                 case "DateTime" or "UtcTime":
                     // OPC UA times are UTC. Opc2Aml writes them with the local offset but
                     // the UTC clock time (00:00:00+01:00 for 00:00:00Z); the clock time counts.
+                    // Fractions of a second stay; a whole second is written without one.
                     if (text == null) return null;
                     return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dto)
-                        ? new XElement(name, dto.DateTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture) + "Z")
+                        ? new XElement(name, dto.DateTime.ToString("yyyy-MM-ddTHH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture) + "Z")
                         : new XElement(name, text);
                 default:
                     return text == null ? null : new XElement(name, text);
