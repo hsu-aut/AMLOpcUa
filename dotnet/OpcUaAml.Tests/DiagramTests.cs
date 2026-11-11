@@ -54,6 +54,20 @@ public class DiagramTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void What_an_overriding_declaration_inherits_below_it_is_part_of_the_picture()
+    {
+        // PubSubDiagnosticsWriterGroupType declares Counters again without the
+        // state counters PubSubDiagnosticsType declares below it; an instance
+        // has them, so the picture of the type has them too.
+        var d = DiagramBuilder.Build(di.UaType("PubSubDiagnosticsWriterGroupType"), maxDepth: 2);
+
+        var counters = d.Nodes.Single(n => n.Name == "Counters");
+        var stateError = d.Nodes.Single(n => n.Name == "StateError");
+        Assert.Contains(d.Edges, e => e.From == counters.Id && e.To == stateError.Id && e.Hierarchical);
+        Assert.Contains(d.Nodes, n => n.Name == "SentNetworkMessages");
+    }
+
+    [Fact]
     public void An_instance_shows_its_type_names()
     {
         var instance = TypeInstantiator.Instantiate(di.Type("SoftwareVersionType"), "Firmware").Instance;

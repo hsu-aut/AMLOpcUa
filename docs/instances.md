@@ -71,7 +71,10 @@ the editor.
 
 **Add missing Mandatory children** (`InstanceUpgrader`) brings instances up
 to date after a newer version of their types was imported. The plugin lists
-what it would add (`PreviewDocument`) and asks before it adds anything.
+what it would add (`PreviewDocument`) and asks before it adds anything. It
+looks at every element against the same declarations as the check below,
+including those its parent's type declares below it, and makes each missing
+child from its declaration as a new instance would get it.
 
 ## Checking a document
 
@@ -83,11 +86,21 @@ instance hierarchies; the generated libraries are trusted.
 | UA001 | Error | The element refers to a UA type (`[SUC_…]` path) the document does not contain. |
 | UA002 | Error | The element instantiates an abstract type. |
 | UA003 | Error | A Mandatory child of the type (including inherited ones) is missing, by name. |
-| UA004 | Error | A MandatoryPlaceholder has no child of its type or a subtype. |
+| UA004 | Error | A MandatoryPlaceholder has no child of its type or a subtype. A child another declaration names counts too (OPC 10000-3 6.4.4.4.5 asks only for an instance of the type). |
 | UA005 | Error | An InternalLink side does not resolve. |
 | UA006 | Error | An InternalLink connects reference interfaces against `RefClassConnectsToPath` (Annex A, Table A.8), inherited along the interface class chain. |
 | UA007 | Warning | An element named like a placeholder (`<Name>`) sits in an instance hierarchy. |
 | UA008 | Warning | A VDI 3682 element links to an OPC UA element that does not exist ([VDI 3682](vdi3682.md)). |
+
+UA003 and UA004 measure an element against its own type and against what
+its parent's type declares below it, inherited declarations included at every
+level (`UaTypes.Declarations`). `PubSubDiagnosticsWriterGroupType` declares
+`Counters` again without the Mandatory `StateError` that
+`PubSubDiagnosticsType` declares below it, and `Counters` is a
+`BaseObjectType`, which requires nothing: a missing `StateError` is found
+there all the same. Likewise DI's `TopologyElementType` declares the Optional
+`ParameterSet` with a MandatoryPlaceholder `<ParameterIdentifier>` below it,
+so a `ParameterSet` without any parameter is reported (UA004).
 
 ## Why not OCL.NET (yet)
 

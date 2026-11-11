@@ -50,54 +50,78 @@ public static class AnnexAChecker
             foreach (var ei in ih.Descendants<ExternalInterfaceType>())
                 if (!string.IsNullOrEmpty(ei.ID)) interfaces[ei.ID] = ei;
 
+        // The declarations of a type, worked out once per type.
+        var declarations = new Dictionary<string, IReadOnlyList<ChildDeclaration>>(StringComparer.Ordinal);
         foreach (var ih in doc.CAEXFile.InstanceHierarchy)
-        {
-            foreach (var ie in ih.Descendants<InternalElementType>())
-            {
-                CheckElement(doc, ie, findings);
-                CheckLinks(doc, ie, interfaces, findings);
-            }
-        }
+            foreach (var top in ih.InternalElement)
+                Walk(top, null);
         foreach (var link in Links.Vdi3682Links.Links(doc).Where(l => l.Target == null))
             findings.Add(new Finding(Rules.BrokenVdi3682Link, Severity.Warning, PathOf(link.Source),
                 $"links to '{link.TargetId}', which is not in the document.", link.Source.ID));
         return findings;
+
+        // Down the hierarchy, so that what a type declares below its children
+        // is checked on them too, not only what their own types declare.
+        void Walk(InternalElementType ie, IReadOnlyList<ChildDeclaration>? declared)
+        {
+            var applying = CheckElement(doc, ie, declared, declarations, findings);
+            CheckLinks(doc, ie, interfaces, findings);
+            foreach (var child in ie.InternalElement)
+                Walk(child, UaTypes.Below(applying, child));
+        }
     }
 
-    private static void CheckElement(CAEXDocument doc, InternalElementType ie, List<Finding> findings)
+    /// <summary>Checks one element; returns the declarations that apply to it.</summary>
+    /// <param name="declared">What the parent's type declares below the element, if anything.</param>
+    private static IReadOnlyList<ChildDeclaration> CheckElement(CAEXDocument doc, InternalElementType ie,
+        IReadOnlyList<ChildDeclaration>? declared, Dictionary<string, IReadOnlyList<ChildDeclaration>> declarations, List<Finding> findings)
     {
         var path = PathOf(ie);
         if (ie.Name.Length > 2 && ie.Name[0] == '<' && ie.Name[^1] == '>')
             findings.Add(new Finding(Rules.PlaceholderInInstance, Severity.Warning, path,
                 "placeholder declarations stand for any number of children; replace it by concrete ones or remove it.", ie.ID));
 
-        if (!UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath)) return;
-        var type = UaTypes.Resolve(doc, ie.RefBaseSystemUnitPath);
-        if (type == null)
+        SystemUnitFamilyType? type = null;
+        IReadOnlyList<ChildDeclaration> own = Array.Empty<ChildDeclaration>();
+        if (UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath))
         {
-            findings.Add(new Finding(Rules.UnknownType, Severity.Error, path,
-                $"type '{ie.RefBaseSystemUnitPath}' not found; import the NodeSet that defines it.", ie.ID));
-            return;
+            type = UaTypes.Resolve(doc, ie.RefBaseSystemUnitPath);
+            if (type == null)
+            {
+                findings.Add(new Finding(Rules.UnknownType, Severity.Error, path,
+                    $"type '{ie.RefBaseSystemUnitPath}' not found; import the NodeSet that defines it.", ie.ID));
+            }
+            else
+            {
+                if (UaTypes.IsAbstract(type))
+                    findings.Add(new Finding(Rules.AbstractType, Severity.Error, path, $"'{type.Name}' is abstract.", ie.ID));
+                if (!declarations.TryGetValue(ie.RefBaseSystemUnitPath, out own!))
+                    declarations[ie.RefBaseSystemUnitPath] = own = UaTypes.Declarations(type);
+            }
         }
-        if (UaTypes.IsAbstract(type))
-            findings.Add(new Finding(Rules.AbstractType, Severity.Error, path, $"'{type.Name}' is abstract.", ie.ID));
+        var applying = UaTypes.Merge(declared ?? Array.Empty<ChildDeclaration>(), own);
+        var fromOwnType = own.ToHashSet(ReferenceEqualityComparer.Instance);
 
         var children = ie.InternalElement.ToList();
-        foreach (var decl in UaTypes.Declarations(type))
+        foreach (var decl in applying)
         {
+            // Named after the element's type, or after the type that declares
+            // the child below the element.
+            var owner = type != null && fromOwnType.Contains(decl) ? type.Name : UaTypes.DeclaringType(decl)?.Name ?? ie.Name;
             switch (decl.Rule)
             {
                 case ModellingRule.Mandatory when children.All(c => c.Name != decl.Name):
                     findings.Add(new Finding(Rules.MissingMandatory, Severity.Error, path,
-                        $"Mandatory child '{decl.Name}' of '{type.Name}' is missing.", ie.ID));
+                        $"Mandatory child '{decl.Name}' of '{owner}' is missing.", ie.ID));
                     break;
                 case ModellingRule.MandatoryPlaceholder when !HasInstanceOf(doc, children, decl):
                     findings.Add(new Finding(Rules.MissingMandatoryPlaceholder, Severity.Error, path,
-                        $"'{type.Name}' requires at least one child for '{decl.Name}'" +
+                        $"'{owner}' requires at least one child for '{decl.Name}'" +
                         (decl.TypePath != null ? $" of type {Short(decl.TypePath)}" : "") + ".", ie.ID));
                     break;
             }
         }
+        return applying;
     }
 
     /// <summary>A child that instantiates the placeholder's type or a subtype of it.</summary>
@@ -110,7 +134,9 @@ public static class AnnexAChecker
             // that carries a placeholder rule of its own is not a filled one.
             // The name says nothing: an object or variable is filled under a
             // name of its own, while a method keeps the name its declaration
-            // gives it (OPC 10000-3 6.4.4.4).
+            // gives it (OPC 10000-3 6.4.4.4). A child another declaration
+            // stands for counts as well: 6.4.4.4.5 asks for an instance of the
+            // type, not for one no other declaration names.
             if (UaTypes.RuleOf(c) is ModellingRule.MandatoryPlaceholder or ModellingRule.OptionalPlaceholder) return false;
             if (wanted == null) return c.RefBaseSystemUnitPath == decl.TypePath;
             var t = UaTypes.Resolve(doc, c.RefBaseSystemUnitPath);

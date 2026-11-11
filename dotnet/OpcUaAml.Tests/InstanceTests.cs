@@ -290,6 +290,90 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
         Assert.Contains("<ProfileIdentifier>", finding.Message);
     }
 
+    /// <summary>Removes a child and the links of its parent that end at it.</summary>
+    internal static void RemoveChild(InternalElementType parent, string name)
+    {
+        var child = parent.InternalElement.Single(c => c.Name == name);
+        var ends = child.ExternalInterface.Select(ei => ei.ID).ToHashSet(StringComparer.Ordinal);
+        foreach (var link in parent.InternalLink.Where(l => ends.Contains(l.RefPartnerSideA) || ends.Contains(l.RefPartnerSideB)).ToList())
+            parent.InternalLink.RemoveElement(link);
+        parent.InternalElement.RemoveElement(child);
+    }
+
+    [Fact]
+    public void A_missing_child_below_an_overriding_declaration_is_an_error()
+    {
+        // Counters is a BaseObjectType; StateError is required by the
+        // declaration PubSubDiagnosticsWriterGroupType inherits, not by
+        // BaseObjectType, and was not checked.
+        var ih = di.Hierarchy("NestedMissing");
+        ih.InternalElement.Insert(TypeInstantiator.Instantiate(OverridingType, "Diagnostics").Instance, asFirst: false);
+        var counters = ih.InternalElement["Diagnostics"]!.InternalElement["Counters"]!;
+        Assert.Empty(di.FindingsIn(ih));
+
+        RemoveChild(counters, "StateError");
+
+        var finding = Assert.Single(di.FindingsIn(ih));
+        Assert.Equal(Rules.MissingMandatory, finding.Rule);
+        Assert.Equal("NestedMissing/Diagnostics/Counters", finding.ElementPath);
+        Assert.Contains("StateError", finding.Message);
+    }
+
+    [Fact]
+    public void A_mandatory_placeholder_below_a_child_needs_an_instance()
+    {
+        // TopologyElementType declares ParameterSet (Optional) with
+        // <ParameterIdentifier> (MandatoryPlaceholder) below it; ParameterSet
+        // itself is a BaseObjectType, which requires nothing.
+        var ih = di.Hierarchy("NestedPlaceholder");
+        ih.InternalElement.Insert(TypeInstantiator.Instantiate(di.Type("SoftwareType"), "Sw",
+            new InstantiationOptions { IncludeOptional = p => p == "ParameterSet" }).Instance, asFirst: false);
+
+        var finding = Assert.Single(di.FindingsIn(ih));
+        Assert.Equal(Rules.MissingMandatoryPlaceholder, finding.Rule);
+        Assert.Equal("NestedPlaceholder/Sw/ParameterSet", finding.ElementPath);
+        Assert.Contains("<ParameterIdentifier>", finding.Message);
+
+        var filled = di.Hierarchy("NestedPlaceholderFilled");
+        filled.InternalElement.Insert(TypeInstantiator.Instantiate(di.Type("SoftwareType"), "Sw", new InstantiationOptions
+        {
+            IncludeOptional = p => p == "ParameterSet",
+            FillPlaceholder = p => p == "ParameterSet/<ParameterIdentifier>" ? [new PlaceholderFill("Speed")] : [],
+        }).Instance, asFirst: false);
+        Assert.Empty(di.FindingsIn(filled));
+    }
+
+    [Fact]
+    public void A_declared_child_of_the_placeholder_type_counts_for_it()
+    {
+        // HolderType requires Fixed (a BaseType) and at least one <Item> (a
+        // BaseType). OPC 10000-3 6.4.4.4.5 asks for one instance of the type
+        // under the reference, not for one no other declaration names, so
+        // Fixed is enough; a subtype that names its parameters in a
+        // ParameterSet relies on that.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var lib = doc.CAEXFile.SystemUnitClassLib.Append("SUC_urn:test:holder");
+        const string basePath = "[SUC_urn:test:holder]/[BaseType]";
+        lib.SystemUnitClass.Append("BaseType");
+        var holder = lib.SystemUnitClass.Append("HolderType");
+        foreach (var (name, rule) in new[] { ("Fixed", "Mandatory"), ("<Item>", "MandatoryPlaceholder") })
+        {
+            var declaration = holder.InternalElement.Append(name);
+            declaration.RefBaseSystemUnitPath = basePath;
+            declaration.ExternalInterface.Append("ComponentOf").Attribute.Append(UaTypes.ModellingRuleAttribute).Value = rule;
+        }
+        var instance = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Holder");
+        instance.RefBaseSystemUnitPath = "[SUC_urn:test:holder]/[HolderType]";
+        var fixedChild = instance.InternalElement.Append("Fixed");
+        fixedChild.RefBaseSystemUnitPath = basePath;
+
+        Assert.Empty(AnnexAChecker.Check(doc));
+
+        fixedChild.RefBaseSystemUnitPath = "[SUC_urn:test:holder]/[HolderType]";
+        var finding = Assert.Single(AnnexAChecker.Check(doc), f => f.Rule == Rules.MissingMandatoryPlaceholder && f.ElementPath == "Plant/Holder");
+        Assert.Contains("<Item>", finding.Message);
+    }
+
     [Fact]
     public void A_filled_placeholder_counts_whatever_the_child_is_called()
     {

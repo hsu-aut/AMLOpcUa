@@ -34,6 +34,28 @@ public class UpgradeTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void A_missing_child_below_an_overriding_declaration_is_added()
+    {
+        // PubSubDiagnosticsWriterGroupType inherits StateError below Counters
+        // from PubSubDiagnosticsType; Counters itself is a BaseObjectType.
+        var ih = di.Hierarchy("UpgradeNested");
+        ih.InternalElement.Insert(TypeInstantiator.Instantiate(di.UaType("PubSubDiagnosticsWriterGroupType"), "Diagnostics").Instance, asFirst: false);
+        var counters = ih.InternalElement["Diagnostics"]!.InternalElement["Counters"]!;
+        InstanceTests.RemoveChild(counters, "StateError");
+        Assert.NotEmpty(di.FindingsIn(ih));
+
+        var preview = InstanceUpgrader.PreviewDocument(di.Document).Where(c => c.ElementPath.StartsWith("UpgradeNested/")).ToList();
+        var changes = InstanceUpgrader.UpgradeDocument(di.Document).Where(c => c.ElementPath.StartsWith("UpgradeNested/")).ToList();
+
+        var expected = new UpgradeChange("UpgradeNested/Diagnostics/Counters", "StateError");
+        Assert.Equal(expected, Assert.Single(preview));
+        Assert.Equal(expected, Assert.Single(changes));
+        Assert.Contains("DiagnosticsLevel", counters.InternalElement["StateError"]!.InternalElement.Select(c => c.Name));
+        Assert.Contains(counters.InternalLink, l => l.Name == "StateError");
+        Assert.Empty(di.FindingsIn(ih));
+    }
+
+    [Fact]
     public void An_up_to_date_instance_is_left_alone()
     {
         var ih = di.Hierarchy("Current");
