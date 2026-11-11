@@ -89,7 +89,10 @@ internal sealed partial class AmlUaXsltTranslator
             Models(),
             Aliases(),
             _output);
-        return new XDocument(new XDeclaration("1.0", "utf-8", null), nodeSet);
+        var document = new XDocument(new XDeclaration("1.0", "utf-8", null), nodeSet);
+        // What could not be carried over, for NodeSetExporter.NotesOf.
+        document.AddAnnotation(new NodeSetExporter.ExportNotes(_notes.ToArray()));
+        return document;
     }
 
     // ------------------------------------------------------------------

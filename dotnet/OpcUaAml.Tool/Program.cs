@@ -358,13 +358,15 @@ public static class Program
                 throw new ArgumentException($"--date: '{d}' is not a date.");
             date = parsed;
         }
-        NodeSetExporter.ExportFile(file, output, new NodeSetExportOptions
+        var nodeSet = NodeSetExporter.ExportFile(file, new NodeSetExportOptions
         {
             PublicationDate = date,
             XsltCompatibility = options.Has("--xslt-compatible"),
             Mode = options.Has("--annex-a-inverse") ? ExportMode.AnnexAInverse : ExportMode.AmlUaXslt,
             NamespaceUri = options.One("--namespace"),
         });
+        NodeSetExporter.Save(nodeSet, output);
+        foreach (var note in NodeSetExporter.NotesOf(nodeSet)) Console.Error.WriteLine("note: " + note);
         Console.WriteLine($"Written to {Path.GetFullPath(output)}");
         return 0;
     }

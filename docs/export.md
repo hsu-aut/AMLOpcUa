@@ -319,7 +319,9 @@ A class whose `RefBaseClassPath` names a library the document neither holds
 nor reaches through an `ExternalReference` has no namespace to point into. The
 XSLT writes `ns=;s=`, which no OPC UA tool reads: the file is lost, not just
 incomplete. The class is written without a supertype instead, and the export
-says so.
+says so: `NodeSetExporter.NotesOf(nodeSet)` returns one sentence per such
+class for the NodeSet the export returned, and `uaaml export` prints them as
+`note:` lines. `ExportNotesTests`.
 
 ### D19 Libraries of one name and different kinds
 
