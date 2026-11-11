@@ -154,20 +154,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetBusy(true, L.T("Connecting to {0} …", url));
         try
         {
-            _client = await ConnectWithTrustPromptAsync(url);
-            var client = _client;
-            client.ReachableChanged += reachable => Dispatcher.BeginInvoke(() =>
-            {
-                if (!ReferenceEquals(_client, client)) return;
-                if (reachable) PluginLog.Info($"{url} answers again.");
-                else PluginLog.Warn($"{url} does not answer any more.");
-                SetStatus(reachable ? L.T("{0} answers again.", url) : L.T("{0} does not answer any more. Disconnect, and connect again once it is back.", url));
-                UpdateServerState();
-            });
-            PluginLog.Info($"Connected to {url} ({_client.SecurityMode}); {_client.NamespaceTable.Count} namespaces.");
-            SetStatus(L.T("Connected to {0}.", url));
-            RememberEndpoint(url);
-            await LoadRootAsync();
+            await AttachClientAsync(await ConnectWithTrustPromptAsync(url), url);
         }
         catch (Exception ex)
         {
@@ -182,6 +169,24 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetBusy(false, null);
             UpdateServerState();
         }
+    }
+
+    /// <summary>Takes a connected client: follows whether it answers, remembers the endpoint, shows the address space.</summary>
+    internal async Task AttachClientAsync(UaClient client, string url)
+    {
+        _client = client;
+        client.ReachableChanged += reachable => Dispatcher.BeginInvoke(() =>
+        {
+            if (!ReferenceEquals(_client, client)) return;
+            if (reachable) PluginLog.Info($"{url} answers again.");
+            else PluginLog.Warn($"{url} does not answer any more.");
+            SetStatus(reachable ? L.T("{0} answers again.", url) : L.T("{0} does not answer any more. Disconnect, and connect again once it is back.", url));
+            UpdateServerState();
+        });
+        PluginLog.Info($"Connected to {url} ({client.SecurityMode}); {client.NamespaceTable.Count} namespaces.");
+        SetStatus(L.T("Connected to {0}.", url));
+        RememberEndpoint(url);
+        await LoadRootAsync();
     }
 
     /// <summary>The width the endpoint URL keeps at least before user, password and Secure leave its line.</summary>
@@ -405,7 +410,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetStatus(L.T("Trusted clients changed; they apply from a client's next connection."));
     });
 
-    private async Task DisconnectAsync()
+    internal async Task DisconnectAsync()
     {
         // The commands go first: ending the subscriptions of a server that is gone
         // takes as long as the stack waits, and meanwhile nothing may use the session

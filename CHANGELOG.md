@@ -22,6 +22,11 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- The address space showed its top nodes twice when it was loaded twice at
+  once (two filter boxes clicked quickly, or F5 twice).
+- A node that could not be expanded, because the server did not answer, stayed
+  empty for good and nothing was said; it folds again with the reason in the
+  status, and expanding it tries again.
 - Disconnecting from a server that is gone showed nothing while the
   subscriptions ended, and Disconnect could be clicked again; the plugin is
   busy now until it is done.

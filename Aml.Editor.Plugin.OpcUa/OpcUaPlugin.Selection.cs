@@ -202,36 +202,45 @@ public partial class OpcUaPlugin
         return shape;
     }
 
+    /// <summary>Counts the loads of the tree; a load overtaken by a newer one drops what it read.</summary>
+    private int _rootLoads;
+
     /// <summary>Fills the tree from the Objects folder; false, with the reason in the status, when the server did not answer.</summary>
-    private async Task<bool> LoadRootAsync()
+    internal async Task<bool> LoadRootAsync()
     {
+        var load = ++_rootLoads;
         AddressTree.Items.Clear();
         _showChecks.Clear();
         if (_client == null) return false;
         RefreshInDocument();
         var filter = CurrentFilter();
+        IReadOnlyList<UaBrowseItem> roots;
         try
         {
-            foreach (var item in await _client.BrowseAsync())
-                if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
+            roots = await _client.BrowseAsync();
         }
         catch (Exception ex)
         {
+            if (load != _rootLoads) return false;
             PluginLog.Error("Browsing the Objects folder failed", ex);
             SetStatus(L.T("The server did not answer: {0} Disconnect and connect again if it restarted.", ex.Message));
             return false;
         }
-        await LoadViewsAsync();
+        // Two filter boxes clicked quickly, or F5 twice: only the last load fills the tree.
+        if (load != _rootLoads) return false;
+        foreach (var item in roots)
+            if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
+        await LoadViewsAsync(load);
         return true;
     }
 
-    private async Task LoadViewsAsync()
+    private async Task LoadViewsAsync(int load)
     {
         if (_client == null) return;
         try
         {
             var views = await _client.ViewsAsync();
-            if (views.Count == 0) return;
+            if (views.Count == 0 || load != _rootLoads) return;
             var folderHeader = new StackPanel { Orientation = Orientation.Horizontal };
             folderHeader.Children.Add(new TextBlock { FontFamily = new FontFamily("Segoe MDL2 Assets"), Text = "\uE890", Margin = new Thickness(18, 0, 5, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = DialogKit.Relate });
             folderHeader.Children.Add(new TextBlock { Text = L.T("Views ({0})", views.Count), VerticalAlignment = VerticalAlignment.Center });
@@ -334,6 +343,11 @@ public partial class OpcUaPlugin
             catch (Exception ex)
             {
                 PluginLog.Error($"Browsing {node.Address} failed", ex);
+                // Folded again with its placeholder, so expanding it once more tries again.
+                item.Items.Clear();
+                item.Items.Add(Pending);
+                item.IsExpanded = false;
+                SetStatus(L.T("The server did not answer: {0} Disconnect and connect again if it restarted.", ex.Message));
             }
         };
         return item;
