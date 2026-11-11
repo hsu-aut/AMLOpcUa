@@ -56,6 +56,11 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- **Taking nodes into the document was slow in the editor:** the MPS 500 (188
+  nodes) took 46 s there and 1.7 s on the command line, because the editor's
+  services followed each element and value written, its undo recording 1394
+  changes. "Take into document" and "Read values into document" write with
+  them held now, as an import does.
 - **Removing vanished nodes removed more than it named.** "Take into document"
   with "remove them, after asking" removed every element marked NotOnServer
   below the server, also those an earlier run of another part had marked,

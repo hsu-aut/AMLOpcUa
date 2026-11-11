@@ -33,11 +33,15 @@ public static class ValueSnapshot
         if (targets.Count > 0)
         {
             var results = await client.ReadManyAsync(targets.Select(t => t.Address).ToList(), ct);
-            for (var i = 0; i < results.Count; i++)
+            // One value after the other: in the editor its services would follow each one.
+            Import.EditorServices.Quietly(doc, () =>
             {
-                if (results[i].Good) { targets[i].Write(results[i]); read++; }
-                else { failed++; problems.Add($"{targets[i].What}: {results[i].Status}"); }
-            }
+                for (var i = 0; i < results.Count; i++)
+                {
+                    if (results[i].Good) { targets[i].Write(results[i]); read++; }
+                    else { failed++; problems.Add($"{targets[i].What}: {results[i].Status}"); }
+                }
+            });
         }
         return new SnapshotResult(read, failed, skipped, problems);
     }

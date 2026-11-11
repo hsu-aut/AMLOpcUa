@@ -57,6 +57,43 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         Assert.Equal(client.ServerUri, result.Server.Attribute[AddressSpaceMirror.ServerUriAttribute]!.Value);
     }
 
+    /// <summary>
+    /// In the AutomationML Editor, the services it registers for the whole
+    /// process passed every element and attribute a mirror wrote: taking the
+    /// MPS 500 (188 nodes) took 46 s there, 1.7 s on the command line.
+    /// </summary>
+    [Fact]
+    public async Task Taking_nodes_records_a_few_changes_with_the_editors_services()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var lookup = Aml.Engine.Services.LookupService.Register();
+        var undo = Aml.Engine.Services.UndoRedoService.Register();
+        Aml.Engine.Services.UniqueNameService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(doc, true);
+            lookup.AddDocument(doc);
+            var recorded = 0;
+            undo.PropertyChanged += (_, _) => recorded++;
+            await using var client = await UaClient.ConnectAsync(Options());
+            var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant"), MirrorScope.Subtree) } };
+
+            var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, doc.CAEXFile.InstanceHierarchy.Append("Editor"));
+
+            Assert.True(result.Created > 5);
+            Assert.InRange(recorded, 0, 20);
+            Assert.True(lookup.IsAutoUpdateEnabled);
+        }
+        finally
+        {
+            Aml.Engine.Services.UniqueNameService.UnRegister();
+            Aml.Engine.Services.UndoRedoService.UnRegister();
+            Aml.Engine.Services.LookupService.UnRegister();
+        }
+    }
+
     [Fact]
     public async Task Mirror_and_snapshot_write_the_document_on_the_callers_thread_only()
     {

@@ -46,4 +46,28 @@ public static class EditorServices
 
     /// <inheritdoc cref="Hold{T}(CAEXDocument, Func{T})"/>
     public static void Hold(CAEXDocument document, Action change) => Hold(document, () => { change(); return 0; });
+
+    /// <summary>
+    /// <see cref="Hold{T}(CAEXDocument, Func{T})"/>, and the editor's undo service
+    /// paused for the document meanwhile: for changes made element by element,
+    /// which it would record one by one. Taking 188 nodes of a server recorded
+    /// 1394 changes and took 46 s in the editor, 1.7 s without it. The plugin's
+    /// changes are not undone with Ctrl+Z anyway (see the user manual).
+    /// </summary>
+    public static T Quietly<T>(CAEXDocument document, Func<T> change)
+    {
+        var undo = ServiceLocator.UndoRedoService;
+        undo?.Pause(document);
+        try
+        {
+            return Hold(document, change);
+        }
+        finally
+        {
+            undo?.Resume(document);
+        }
+    }
+
+    /// <inheritdoc cref="Quietly{T}(CAEXDocument, Func{T})"/>
+    public static void Quietly(CAEXDocument document, Action change) => Quietly(document, () => { change(); return 0; });
 }

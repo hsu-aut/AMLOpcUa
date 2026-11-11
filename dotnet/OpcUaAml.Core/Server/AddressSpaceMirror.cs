@@ -146,13 +146,18 @@ public static class AddressSpaceMirror
         var plan = await MirrorPlan.BuildAsync(client, selection, options.MaxNodes, ct, options.Progress);
         var doc = ih.CAEXDocument;
         var types = TypeIndex(doc);
-        var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
-        SetText(server, ServerUriAttribute, "xs:anyURI", client.ServerUri);
-        SetText(server, EndpointAttribute, "xs:anyURI", client.EndpointUrl);
         var state = new State(options) { Planned = options.LinkToPlanned ? PlannedIndex(doc, ih, options.PlannedIn) : new() };
         var apply = new Apply(client, types, state);
-        foreach (var root in plan.Roots) apply.Node(root, server);
-        selection.WriteTo(server);
+        // Element by element: in the editor its services would follow each one.
+        var server = Import.EditorServices.Quietly(doc, () =>
+        {
+            var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
+            SetText(server, ServerUriAttribute, "xs:anyURI", client.ServerUri);
+            SetText(server, EndpointAttribute, "xs:anyURI", client.EndpointUrl);
+            foreach (var root in plan.Roots) apply.Node(root, server);
+            selection.WriteTo(server);
+            return server;
+        });
         if (options.ReadValues) await ReadValues(client, state, ct);
         return new SelectionMirrorResult(server, plan.Nodes, apply.Created, apply.Updated, state.Typed, state.Linked, plan.Truncated,
             apply.Vanished, state.Notes) { VanishedElements = apply.VanishedElements };
@@ -349,11 +354,15 @@ public static class AddressSpaceMirror
     {
         if (state.Variables.Count == 0) return;
         var results = await client.ReadManyAsync(state.Variables.Select(v => v.Address).ToList(), ct);
-        for (var i = 0; i < results.Count; i++)
+        if (state.Variables.Count == 0) return;
+        Import.EditorServices.Quietly(state.Variables[0].Element.CAEXDocument, () =>
         {
-            if (!results[i].Good) continue;
-            ValueSnapshot.SetValue(state.Variables[i].Element, results[i]);
-        }
+            for (var i = 0; i < results.Count; i++)
+            {
+                if (!results[i].Good) continue;
+                ValueSnapshot.SetValue(state.Variables[i].Element, results[i]);
+            }
+        });
     }
 
     /// <summary>
