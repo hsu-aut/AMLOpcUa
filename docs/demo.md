@@ -1,17 +1,82 @@
 ﻿# Demo
 
-A run through the whole toolchain in about fifteen minutes, in the order that
-tells the story: a model is built, it becomes AutomationML, it becomes a
-server, and it goes back out to the OPC UA world. Every step has a fallback,
-because a demo that needs the network is a demo that fails.
+Two runs: four minutes at a trade fair booth, on a laptop without network and
+by someone who did not build the tool; and a run through the whole toolchain
+in about fifteen minutes for an audience that wants to see everything.
 
-Prepare beforehand: a document with DI imported, the modeler built
-(`npm run build` in `NodeSet.js`), the ModelCompiler installed if step 6 is
-shown (`dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool`),
-and the plugin's log window open on the Namespaces tab, because it answers the
-question "what did it just do" without leaving the screen.
+## At the booth: four minutes, no network
+
+Everything runs on the laptop: the plant is the MPS 500 learning factory the
+plugin brings, served with moving values by **Practice plant**.
+
+**Once, on the booth laptop, under the account that will show it**
+
+1. AutomationML Editor 6.4.3.8 (About shows the version). Do not accept the
+   editor's offer to update during the fair.
+2. The plugin installed through the PlugIn Manager from the downloaded
+   `.nupkg`, with the network switched off, then the editor restarted.
+   `%LOCALAPPDATA%\AutomationML\AutomationMLEditor\ErrorLog.txt` stays empty.
+3. The language: the plugin follows the display language of Windows; to pick
+   one, **Settings ▾** › **Language** in the Namespaces tab, then start the
+   editor again. The steps below name the English buttons.
+4. An empty CAEX 3.0 document saved as `booth.aml`, and a copy of it to start
+   again from.
+5. The loop below once, completely. It makes the certificates, trusts the
+   practice plant and warms the conversion cache: the first import of the
+   MPS 500 with DI takes about twenty seconds, every later one under a second.
+   Then close the document without saving.
+6. Screen: the plugin docked beside the trees; nothing of the Server tab may
+   sit in a tool bar's overflow.
+
+**The loop**
+
+1. Open `booth.aml`. **Server** tab, **Practice plant**. Say: this is the
+   MPS 500 learning factory as an OPC UA server, on this laptop; a running
+   plant looks the same to the plugin.
+2. **Connect**. The address space shows `MPS500` with its stations.
+3. **Types of the server…**, choose `http://hsu-hh.de/UA/MPS500/`, **Import
+   types**. Say: nobody handed over a file; the server publishes its
+   information model, and the plugin turns it into AutomationML libraries by
+   OPC 10000-83 Annex A, the OPC Foundation's own rules, with DI beside it.
+4. Tick `MPS500`, **Take into document**. The plant arrives as
+   InternalElements: each with its OPC UA type as its class and its NodeId.
+5. **Keep document values live**. Click a drill's spindle speed in the
+   editor's attributes: it moves.
+6. **Diagram** tab: `StationType`, the type as a diagram in the notation of
+   OPC 10000-3: its parameters, its modules and its state machine.
+7. If there is time: **Modeler** tab, `http://hsu-hh.de/UA/MPS500/`, **Edit**:
+   the same model, graphically, in NodeSet.js.
+
+To start again: **Stop keeping values live**, **Disconnect**, close the
+document without saving, open `booth.aml` again. The practice plant can keep
+running.
+
+**When something goes wrong**
+
+| What you see | What to do |
+|---|---|
+| "Port … is in use" | Another OPC UA server holds the port; the practice plant takes the next free one by itself. Use the address it puts into the endpoint box. |
+| "Trust this server?" | The rehearsal was under another account. Check the subject (AMLOpcUa NodeSet server) and trust it. |
+| An import takes twenty seconds | The cache is cold (a new plugin version). It is quick from the second time on. |
+| The status line names a problem | **Log** in the status bar has the details. |
+| The plugin's window is gone | Open it again from the editor's plugin menu; if that does not help, restart the editor. |
+
+## The whole toolchain: fifteen minutes
+
+A run in the order that tells the story: a model is built, it becomes
+AutomationML, it becomes a server, and it goes back out to the OPC UA world.
+
+Prepare beforehand: a document with DI imported, the ModelCompiler installed
+if step 7 is shown (`dotnet tool install --global
+OPCFoundation.Opc.Ua.ModelCompiler.Tool`, which needs the .NET SDK), and the
+plugin's log on the Namespaces tab in view, because it answers the question
+"what did it just do" without leaving the screen.
 
 ## 1. A model out of nothing (3 min, NodeSet.js)
+
+In the plugin: **Modeler** tab, enter `http://example.org/Pump/`, **New
+model**; version and required models are set with **Model** in the modeler.
+Standalone NodeSet.js (in a browser) has its own **New model…** dialog:
 
 1. **New model…**, namespace `http://example.org/Pump/`, version 1.0.0, DI
    ticked as a model it builds on. Say why: a companion specification never
@@ -50,12 +115,14 @@ question "what did it just do" without leaving the screen.
 
 ## 3. A running server (2 min, plugin)
 
-1. Server tab, **Serve**. The document itself becomes an OPC UA server, local
-   only by default; the network needs a tick and then only accepts clients
-   whose certificate is trusted.
-2. **Simulate** ticked: the numbers swing around the document's values.
-3. Connect with UaExpert or with `uaaml browse opc.tcp://127.0.0.1:48400/AMLOpcUa`
-   and walk to the pump.
+1. Server tab, tick **simulate values** first (it cannot change while
+   serving): the numbers will swing around the document's values.
+2. **Serve**. The document itself becomes an OPC UA server, local only by
+   default; the network needs a tick and then only accepts clients whose
+   certificate is trusted.
+3. Connect with UaExpert, or with
+   `uaaml browse opc.tcp://127.0.0.1:48400/AMLOpcUa --accept` (the tool is the
+   plugin's `converter\uaaml.exe`), and walk to the pump.
 
 *Fallback:* `uaaml serve plant.aml --simulate` in a terminal shows the same
 thing without the editor.
@@ -67,14 +134,11 @@ a plant that is already running, whose model the plugin has never seen.
 `examples/mps500` is the MPS 500 learning factory as an OPC UA server would
 hold it, on DI, with stations, modules, devices and a state machine each.
 
-Before recording, in a terminal that stays visible:
-
-```bash
-uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml --simulate
-```
-
-It answers with the models it serves, the endpoint and the number of nodes.
-Say the sentence that matters: from here on nothing knows this is not a plant.
+**Practice plant** in the Server tab serves it on this computer. In a
+terminal that stays visible, `uaaml serve --nodeset
+examples/mps500/MPS500.NodeSet2.xml --simulate` does the same and answers with
+the models it serves, the endpoint and the number of nodes. Say the sentence
+that matters: from here on nothing knows this is not a plant.
 
 1. **Connect** in the Server tab to `opc.tcp://127.0.0.1:4840/AMLOpcUa`. The
    certificate is unknown, so the plugin shows it and asks; trust it once, and
@@ -135,15 +199,15 @@ numbers itself.
 
 | What | Number | Where it comes from |
 |---|---|---|
-| Tests | 302 C# and 81 TypeScript | `dotnet test`, `npx vitest run` |
-| Companion specifications measured | 34 | `uaaml roundtrip --inverse`, docs/roundtrip.md |
+| Tests | 504 C# of the core and tool, 96 of the plugin, 173 TypeScript and 23 in the browser of the modeler | `dotnet test`, `npx vitest run`, `npm run test:e2e` |
+| Companion specifications measured | 34 (September 2026) | `uaaml roundtrip --inverse`, docs/roundtrip.md |
 | Facts surviving UA → AML → UA | 94.9 % | same run |
 | Lost on the way back (our side) | 0.17 % | same run; the rest is Annex A |
 | DI through ModelDesign and back | 417 of 447 nodes identical | docs/modeldesign.md |
 | A state machine through ModelDesign and back | 16 of 16 nodes identical | docs/modeldesign.md |
 | The same machine through AutomationML and back | every node, defaults aside | `uaaml compare` |
-| Opc2Aml defects found and patched | 4 of 8 patches | third_party/Opc2Aml/UPSTREAM.md |
-| Rules on a NodeSet in the modeler | M001 to M021 | src/nodeset/checks.ts |
+| Opc2Aml patches | 11, most of them defects found here | third_party/Opc2Aml/UPSTREAM.md |
+| Rules on a NodeSet in the modeler | M001 to M025 | src/nodeset/checks.ts in NodeSet.js |
 | Cold conversion of DI, then cached | 15 s, then 0.7 s | conversion cache |
 
 ## What not to promise
