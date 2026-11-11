@@ -155,6 +155,84 @@ public class InstanceTransferTests(BundledDiConversion di) : IClassFixture<Bundl
     }
 
     [Fact]
+    public void A_reference_inside_a_second_copy_stays_inside_that_copy()
+    {
+        const string cells = "urn:test:cells";
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-cells-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Cells.NodeSet2.xml");
+            System.IO.File.WriteAllText(file, $"""
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>{cells}</Uri></NamespaceUris>
+                  <Models><Model ModelUri="{cells}" Version="1.0.0" PublicationDate="2026-09-19T00:00:00Z">
+                    <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.02" PublicationDate="2022-11-01T00:00:00Z" /></Model></Models>
+                  <UAReferenceType NodeId="ns=1;i=4000" BrowseName="1:PairedWith" Symmetric="true">
+                    <DisplayName>PairedWith</DisplayName>
+                    <References><Reference ReferenceType="i=45" IsForward="false">i=32</Reference></References>
+                  </UAReferenceType>
+                  <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:CellType">
+                    <DisplayName>CellType</DisplayName>
+                    <References><Reference ReferenceType="i=45" IsForward="false">i=58</Reference></References>
+                  </UAObjectType>
+                  <UAObject NodeId="ns=1;i=5000" BrowseName="1:Cell1">
+                    <DisplayName>Cell1</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=40">ns=1;i=1000</Reference>
+                      <Reference ReferenceType="i=35" IsForward="false">i=85</Reference>
+                      <Reference ReferenceType="i=47">ns=1;i=5001</Reference>
+                      <Reference ReferenceType="i=47">ns=1;i=5002</Reference>
+                    </References>
+                  </UAObject>
+                  <UAObject NodeId="ns=1;i=5001" BrowseName="1:Left" ParentNodeId="ns=1;i=5000">
+                    <DisplayName>Left</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=47" IsForward="false">ns=1;i=5000</Reference>
+                      <Reference ReferenceType="i=40">i=58</Reference>
+                      <Reference ReferenceType="ns=1;i=4000">ns=1;i=5002</Reference>
+                    </References>
+                  </UAObject>
+                  <UAObject NodeId="ns=1;i=5002" BrowseName="1:Right" ParentNodeId="ns=1;i=5000">
+                    <DisplayName>Right</DisplayName>
+                    <References>
+                      <Reference ReferenceType="i=47" IsForward="false">ns=1;i=5000</Reference>
+                      <Reference ReferenceType="i=40">i=58</Reference>
+                    </References>
+                  </UAObject>
+                </UANodeSet>
+                """);
+            var conversion = NodeSetImporter.Convert(file, di.Catalog);
+            var target = CAEXDocument.New_CAEXDocument();
+            LibraryMerger.Merge(target, conversion.Document);
+            var station = target.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Station");
+            InstanceTransfer.Take(target, conversion.Document, cells, new InstanceDestination.Below(station));
+            InstanceTransfer.Take(target, conversion.Document, cells, new InstanceDestination.Below(station));
+
+            var nodeSet = OpcUaAml.Export.NodeSetExporter.Export(target, new OpcUaAml.Export.NodeSetExportOptions
+            {
+                Mode = OpcUaAml.Export.ExportMode.AnnexAInverse,
+                NamespaceUri = cells,
+            });
+
+            var lefts = Named(nodeSet, "1:Left");
+            Assert.Equal(2, lefts.Count);
+            foreach (var left in lefts)
+            {
+                // PairedWith is symmetric: Left names Right, and Right names Left back.
+                var paired = left.Element(Ua + "References")!.Elements()
+                    .Where(r => (string?)r.Attribute("ReferenceType") == "ns=1;i=4000").Select(r => r.Value).Distinct().ToList();
+                var right = nodeSet.Root!.Elements().Single(e => (string?)e.Attribute("NodeId") == Assert.Single(paired));
+                Assert.Equal("1:Right", (string?)right.Attribute("BrowseName"));
+                Assert.Equal((string?)left.Attribute("ParentNodeId"), (string?)right.Attribute("ParentNodeId"));
+            }
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Every_link_of_what_is_taken_ends_at_an_element_of_the_document()
     {
         var (target, conversion) = Imported();

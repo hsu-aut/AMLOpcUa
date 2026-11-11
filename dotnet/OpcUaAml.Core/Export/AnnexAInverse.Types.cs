@@ -238,7 +238,7 @@ public static partial class AnnexAInverse
             foreach (var path in paths)
             {
                 if (path == null || path.StartsWith("RCL_OpcAmlMetaModel", StringComparison.Ordinal)) continue;
-                if (Resolve(path) is { } role && NodeIdOf(role) is { } interfaceId) _listed.Add((id, UaId(17603), interfaceId, true));
+                if (Resolve(path) is { } role && NodeIdOf(role) is { } interfaceId) _listed.Add((id, UaId(17603), interfaceId, true, null));
             }
         }
 

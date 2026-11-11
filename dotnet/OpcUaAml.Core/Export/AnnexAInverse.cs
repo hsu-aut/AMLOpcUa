@@ -290,7 +290,9 @@ public static partial class AnnexAInverse
         }
 
         private readonly Dictionary<XElement, Dictionary<string, XElement>> _declarations = new();
-        private readonly List<(UaNodeAddress From, UaNodeAddress Type, UaNodeAddress To, bool Forward)> _listed = new();
+        // Renewed: the new NodeIds of the copy the source belongs to (see Root), read when the
+        // references are written, after every node of the copy has its NodeId.
+        private readonly List<(UaNodeAddress From, UaNodeAddress Type, UaNodeAddress To, bool Forward, Dictionary<string, UaNodeAddress>? Renewed)> _listed = new();
 
         /// <summary>
         /// References Annex A keeps on the source's interface as a list of target
@@ -310,7 +312,7 @@ public static partial class AnnexAInverse
                 foreach (var target in targets)
                     // Opc2Aml writes these NodeIds URL-encoded, like its IDs.
                     if (target != null && UaNodeAddress.TryParse(WebUtility.UrlDecode(target), null, out var to) && to != null)
-                        _listed.Add((id, refId, renewed?.GetValueOrDefault(to.ToString()) ?? to, !inverse));
+                        _listed.Add((id, refId, to, !inverse, renewed));
             }
         }
 
@@ -467,8 +469,9 @@ public static partial class AnnexAInverse
             }
             foreach (var type in suc?.Descendants(_caex + "SystemUnitClass") ?? Enumerable.Empty<XElement>()) Links(type);
             foreach (var ih in _root.Elements(_caex + "InstanceHierarchy")) Links(ih);
-            foreach (var (from, type, to, forward) in _listed)
+            foreach (var (from, type, listed, forward, renewed) in _listed)
             {
+                var to = renewed?.GetValueOrDefault(listed.ToString()) ?? listed;
                 if (_nodes.TryGetValue(from.ToString(), out var fromNode)) Reference(fromNode, type, to, forward);
                 if (_nodes.TryGetValue(to.ToString(), out var toNode)) Reference(toNode, type, from, !forward);
             }
