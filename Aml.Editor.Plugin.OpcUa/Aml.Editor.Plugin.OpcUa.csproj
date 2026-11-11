@@ -28,18 +28,24 @@
     <PackageReference Include="Aml.Editor.Plugin.Contract" Version="[4.3.0]">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
-    <!-- Aml.Engine comes from the editor. A range without a wildcard builds
-         against its lowest version, the one tested, and the package asks the
-         editor for that version or newer. With "4.*" each build took the
-         newest one on nuget.org and needed an editor at least as new. -->
+    <!-- Provided by the editor at run time: not copied (ExcludeAssets) and not
+         declared as dependencies of the package (PrivateAssets). Declared, the
+         PlugIn Manager downloads them from nuget.org next to the plugin, and
+         without a network the installation fails.
+         Aml.Engine: a range without a wildcard builds against its lowest
+         version, the one tested. With "4.*" each build took the newest one on
+         nuget.org and needed an editor at least as new. -->
     <PackageReference Include="Aml.Engine" Version="[4.5.2, 5.0.0)">
       <ExcludeAssets>runtime</ExcludeAssets>
+      <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Aml.Editor.API" Version="[2.3.0]">
       <ExcludeAssets>runtime</ExcludeAssets>
+      <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Aml.Skins" Version="2.2.0">
       <ExcludeAssets>runtime</ExcludeAssets>
+      <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <!-- Hosts the graphical modeler (NodeSet.js). Bundled with the plugin
          like the other runtime dependencies, not a NuGet dependency. -->
