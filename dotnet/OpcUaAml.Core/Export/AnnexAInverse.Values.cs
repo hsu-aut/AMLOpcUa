@@ -127,7 +127,7 @@ public static partial class AnnexAInverse
             var uri = NodeIdOf(type)?.NamespaceUri ?? _ns;
             var ns = uri == UaUri ? Types : XNamespace.Get(uri + "Types.xsd");
             var body = new XElement(ns + XmlName(elementName));
-            foreach (var field in item.Elements(_caex + "Attribute"))
+            foreach (var field in FieldsInOrder(item, type))
             {
                 var path = (string?)field.Attribute("RefAttributeType") ?? "";
                 var typeName = path.Split('/').LastOrDefault()?.Trim('[', ']') ?? "";
@@ -149,6 +149,25 @@ public static partial class AnnexAInverse
                 else return null;
             }
             return body;
+        }
+
+        /// <summary>
+        /// The fields of a structure value in the order of the XML encoding: the
+        /// fields of the base structure first, down the DataType chain, each in
+        /// the order of its definition. Opc2Aml writes a value's own fields
+        /// before the inherited ones. A field no definition names stays at the end.
+        /// </summary>
+        private IEnumerable<XElement> FieldsInOrder(XElement item, XElement type)
+        {
+            var chain = new List<XElement>();
+            var seen = new HashSet<XElement>();
+            for (var t = type; t != null && seen.Add(t); t = Resolve((string?)t.Attribute("RefAttributeType"))) chain.Add(t);
+            var order = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (var i = chain.Count - 1; i >= 0; i--)
+                foreach (var definition in chain[i].Elements(_caex + "Attribute").Where(a => Attr(a, "StructureFieldDefinition") != null))
+                    order.TryAdd(Name(definition), order.Count);
+            // OrderBy is stable: fields of one rank keep the order they have.
+            return item.Elements(_caex + "Attribute").OrderBy(f => order.TryGetValue(Name(f), out var rank) ? rank : int.MaxValue).ToList();
         }
 
         /// <summary>One field or list item: built-in, enumeration ("Name_Value"), or a nested structure.</summary>
@@ -290,9 +309,10 @@ public static partial class AnnexAInverse
                 case "DateTime" or "UtcTime":
                     // OPC UA times are UTC. Opc2Aml writes them with the local offset but
                     // the UTC clock time (00:00:00+01:00 for 00:00:00Z); the clock time counts.
+                    // Fractions of a second stay; a whole second is written without one.
                     if (text == null) return null;
                     return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dto)
-                        ? new XElement(name, dto.DateTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture) + "Z")
+                        ? new XElement(name, dto.DateTime.ToString("yyyy-MM-ddTHH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture) + "Z")
                         : new XElement(name, text);
                 default:
                     return text == null ? null : new XElement(name, text);

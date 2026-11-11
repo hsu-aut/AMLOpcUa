@@ -271,6 +271,8 @@ instances of one namespace and writes the nodes they came from:
 | SupportedRoleClass or RoleRequirements to `RCL_<uri>` | HasInterface |
 | ExternalInterface with `ReferenceIds` | the listed non hierarchical references |
 | instances below the ns0 folders of the InstanceHierarchy | UAObject and UAVariable below Objects or Server |
+| instances of the namespace with no node of it above them (the Apply puts them into `IH_<name>` or below an element of the user's) | UAObject and UAVariable organized by Objects |
+| an element at the top of `IH_<name>` without a NodeId | a new node of the namespace, organized by Objects |
 
 NodeIds are the ones Annex A kept in the IDs and `NodeId` attributes, so the
 result can replace the original. Values are written for built in types and
@@ -280,7 +282,10 @@ per option), Arguments, and structures of the namespace itself or of a
 bundled model (UA, DI), whose XML encodings are known. A DisplayName that
 differs from the BrowseName comes back; a node that two parents hold is
 written once with a reference from each. Children that Opc2Aml repeats below typed declarations
-are recognised by their NodeId and written once.
+are recognised by their NodeId and written once. A copy the Apply placed below
+an element keeps the NodeId attributes of the instance it was copied from;
+when that instance is in the document too, or an earlier copy took the
+NodeIds, the copy is another instance and gets new NodeIds throughout.
 
 ```bash
 uaaml export Opc.Ua.Di.NodeSet2.xml.amlx -o DI.NodeSet2.xml --annex-a-inverse
@@ -314,7 +319,9 @@ A class whose `RefBaseClassPath` names a library the document neither holds
 nor reaches through an `ExternalReference` has no namespace to point into. The
 XSLT writes `ns=;s=`, which no OPC UA tool reads: the file is lost, not just
 incomplete. The class is written without a supertype instead, and the export
-says so.
+says so: `NodeSetExporter.NotesOf(nodeSet)` returns one sentence per such
+class for the NodeSet the export returned, and `uaaml export` prints them as
+`note:` lines. `ExportNotesTests`.
 
 ### D19 Libraries of one name and different kinds
 
@@ -322,6 +329,16 @@ A class is looked for in the library of the matching kind. The XSLT stops at
 the first library that carries the name, whatever kind it is, so a class of
 the next kind is never found and its `HasTypeDefinition` disappears without a
 word.
+
+### D20 InternalLinks of CAEX 3.0
+
+CAEX 3.0 names each side of an InternalLink by the ID of its interface;
+CAEX 2.15 wrote `element ID:interface name`. The XSLT splits every side at the
+colon, so a side of the 3.0 form is nothing to it and every link of a CAEX 3.0
+document is dropped without a word. A side that is the ID of an
+ExternalInterface is taken as that interface, and `HasAMLInternalLink` leads
+from one interface to exactly the other; a side of the 2.15 form is split as
+before. `ExportInternalLinkTests`.
 
 ### Beyond the deviations: what a NodeSet must be
 

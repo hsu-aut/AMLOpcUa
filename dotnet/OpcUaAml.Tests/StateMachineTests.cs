@@ -4,6 +4,7 @@ using OpcUaAml.Diagram;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Types;
+using System.Xml.Linq;
 using Xunit.Abstractions;
 
 namespace OpcUaAml.Tests;
@@ -125,5 +126,52 @@ public class StateMachineTests(MachineDocument machine, ITestOutputHelper output
         Assert.Contains("<summary>State chart</summary>", html);
         Assert.Contains("<th>Sub-state machine</th>", html);
         Assert.Contains("<td>FaultHandling (FaultHandlingStateMachineType)</td>", html);
+    }
+
+    /// <summary>
+    /// The fixture with string NodeIds that hold spaces, which Opc2Aml writes
+    /// into IDs as '+': Idle is "Idle State", and Start, moved to PumpType, is
+    /// "Start Pump", so the cause of a transition lies outside the machine type
+    /// and is looked for in the whole document.
+    /// </summary>
+    internal static string MachineWithSpaces(string folder)
+    {
+        XNamespace ua = "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd";
+        var doc = XDocument.Load(Fixtures.Path("modeldesign", "Machine.NodeSet2.xml"));
+        XElement Node(string id) => doc.Root!.Elements().Single(e => (string?)e.Attribute("NodeId") == id);
+        Node("ns=1;i=1002").Element(ua + "References")!.Elements()
+            .Single(r => r.Value == "ns=1;i=1003" && (string?)r.Attribute("ReferenceType") == "HasComponent").Remove();
+        Node("ns=1;i=1000").Element(ua + "References")!.Add(new XElement(ua + "Reference", new XAttribute("ReferenceType", "HasComponent"), "ns=1;i=1003"));
+        var start = Node("ns=1;i=1003");
+        start.SetAttributeValue("ParentNodeId", "ns=1;i=1000");
+        start.Element(ua + "References")!.Elements().Single(r => (string?)r.Attribute("ReferenceType") == "HasComponent").Value = "ns=1;i=1000";
+        var path = Path.Combine(folder, "Machine.NodeSet2.xml");
+        File.WriteAllText(path, doc.ToString().Replace("ns=1;i=1003", "ns=1;s=Start Pump").Replace("ns=1;i=1004", "ns=1;s=Idle State"));
+        return path;
+    }
+
+    [Fact]
+    public void NodeIds_with_spaces_are_read_as_they_are()
+    {
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-spaces-").FullName;
+        try
+        {
+            var converted = NodeSetImporter.Convert(MachineWithSpaces(folder), NodeSetCatalog.Create(Array.Empty<string>()));
+            var document = CAEXDocument.New_CAEXDocument();
+            LibraryMerger.Merge(document, converted.Document);
+            var type = (SystemUnitFamilyType)document.FindByPath("[SUC_http://example.org/Pump/]/[PumpStateMachineType]")!;
+
+            var read = StateMachines.Read(type);
+
+            var idle = read.States.Single(s => s.Name == "Idle");
+            Assert.Equal("nsu=http://example.org/Pump/;s=Idle State", idle.NodeId);
+            var transition = read.Transitions.Single(t => t.Name == "IdleToRunning");
+            Assert.Equal(idle.NodeId, transition.From);
+            Assert.Equal("Start", transition.Cause);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
     }
 }

@@ -204,7 +204,7 @@ public static class LibraryMerger
         && present.PublicationDate > incoming.PublicationDate;
 
     private static string Describe(OpcUaLibraryInfo info) =>
-        $"{info.ModelVersion ?? "?"} ({info.PublicationDate:yyyy-MM-dd})";
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{info.ModelVersion ?? "?"} ({info.PublicationDate:yyyy-MM-dd})");
 
     /// <summary>
     /// Which base libraries the target gets through an ExternalReference, and

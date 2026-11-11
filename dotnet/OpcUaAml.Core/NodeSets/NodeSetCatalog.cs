@@ -77,7 +77,8 @@ public sealed class NodeSetCatalog
                 var newDate = model.Model.PublicationDate ?? DateTime.MinValue;
                 if (newDate > existingDate)
                 {
-                    _warnings.Add($"Model '{uri}': using '{file}' ({newDate:yyyy-MM-dd}) over '{existing.FilePath}' ({existingDate:yyyy-MM-dd}).");
+                    _warnings.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                        $"Model '{uri}': using '{file}' ({newDate:yyyy-MM-dd}) over '{existing.FilePath}' ({existingDate:yyyy-MM-dd})."));
                     _byUri[uri] = info;
                 }
                 else if (!SamePath(existing.FilePath, file))

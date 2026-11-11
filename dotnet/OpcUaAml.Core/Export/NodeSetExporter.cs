@@ -102,12 +102,27 @@ public static class NodeSetExporter
     }
 
     /// <summary>Exports <paramref name="amlPath"/> and writes the NodeSet to <paramref name="nodeSetPath"/>.</summary>
-    public static void ExportFile(string amlPath, string nodeSetPath, NodeSetExportOptions? options = null)
+    public static void ExportFile(string amlPath, string nodeSetPath, NodeSetExportOptions? options = null) =>
+        Save(ExportFile(amlPath, options), nodeSetPath);
+
+    /// <summary>Writes a NodeSet to a file as indented UTF-8 XML, as <see cref="ExportFile(string, string, NodeSetExportOptions?)"/> does.</summary>
+    public static void Save(XDocument nodeSet, string nodeSetPath)
     {
-        var nodeSet = ExportFile(amlPath, options);
         using var writer = XmlWriter.Create(nodeSetPath, WriterSettings);
         nodeSet.Save(writer);
     }
+
+    /// <summary>
+    /// What the export could not carry over as the document has it, one
+    /// sentence each, naming the class or element (docs/export.md, D18). The
+    /// notes travel with the NodeSet the export returned, not into the file;
+    /// empty when there is nothing to say, in compatibility mode (the XSLT says
+    /// nothing), and for a NodeSet this exporter did not make.
+    /// </summary>
+    public static IReadOnlyList<string> NotesOf(XDocument nodeSet) => nodeSet.Annotation<ExportNotes>()?.Notes ?? [];
+
+    /// <summary>The notes of one export, kept as an annotation of the NodeSet it returned.</summary>
+    internal sealed record ExportNotes(IReadOnlyList<string> Notes);
 
     /// <summary>The NodeSet as indented UTF-8 XML text.</summary>
     public static string ToXml(XDocument nodeSet)

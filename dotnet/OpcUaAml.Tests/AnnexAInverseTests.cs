@@ -100,4 +100,153 @@ public class AnnexAInverseTests(BundledDiConversion di) : IClassFixture<BundledD
         var nodeSet = NodeSetExporter.Export(document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = "http://opcfoundation.org/UA/FX/AC/" });
         Assert.Equal("http://opcfoundation.org/UA/FX/AC/", nodeSet.Root!.Element(Ua + "NamespaceUris")!.Elements().First().Value);
     }
+
+    /// <summary>A small NodeSet of <paramref name="uri"/> into AML by Annex A, changed there if asked, and written back.</summary>
+    private XDocument Back(string uri, string nodes, Action<Aml.Engine.CAEX.CAEXDocument>? edit = null)
+    {
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-inverse-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Test.NodeSet2.xml");
+            File.WriteAllText(file, $"""
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>{uri}</Uri></NamespaceUris>
+                  <Models><Model ModelUri="{uri}" Version="1.0.0" PublicationDate="2026-09-19T00:00:00Z">
+                    <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.02" PublicationDate="2022-11-01T00:00:00Z" /></Model></Models>
+                {nodes}
+                </UANodeSet>
+                """);
+            var result = OpcUaAml.Import.NodeSetImporter.Convert(file, di.Catalog);
+            edit?.Invoke(result.Document);
+            return NodeSetExporter.Export(result.Document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = uri });
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void String_NodeIds_with_spaces_come_back_with_their_spaces()
+    {
+        // Opc2Aml writes NodeIds into IDs URL-encoded, a space as '+'.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-spaces-").FullName;
+        try
+        {
+            var converted = OpcUaAml.Import.NodeSetImporter.Convert(StateMachineTests.MachineWithSpaces(folder), di.Catalog);
+            var nodeSet = NodeSetExporter.Export(converted.Document, new NodeSetExportOptions { Mode = ExportMode.AnnexAInverse, NamespaceUri = "http://example.org/Pump/" });
+
+            Assert.Equal("ns=1;s=Idle State", (string?)ByBrowseName(nodeSet, "1:Idle").Attribute("NodeId"));
+            Assert.Equal("ns=1;s=Start Pump", (string?)ByBrowseName(nodeSet, "1:Start").Attribute("NodeId"));
+            // FromState and HasCause come from the lists of NodeIds on the transition's interfaces.
+            var ends = ByBrowseName(nodeSet, "1:IdleToRunning").Element(Ua + "References")!.Elements().Select(r => r.Value).ToList();
+            Assert.Contains("ns=1;s=Idle State", ends);
+            Assert.Contains("ns=1;s=Start Pump", ends);
+            Assert.DoesNotContain(nodeSet.Root!.Descendants(), e => e.Value.Contains("Idle+State") || e.Attributes().Any(a => a.Value.Contains('+')));
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    private static XElement ByBrowseName(XDocument nodeSet, string browseName) =>
+        nodeSet.Root!.Elements().Single(e => (string?)e.Attribute("BrowseName") == browseName);
+
+    [Fact]
+    public void A_time_keeps_its_fractions_of_a_second()
+    {
+        var nodeSet = Back("urn:test:times", """
+            <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:ClockType">
+              <DisplayName>ClockType</DisplayName>
+              <References>
+                <Reference ReferenceType="i=45" IsForward="false">i=58</Reference>
+                <Reference ReferenceType="i=46">ns=1;i=1001</Reference>
+                <Reference ReferenceType="i=46">ns=1;i=1002</Reference>
+              </References>
+            </UAObjectType>
+            <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Started" ParentNodeId="ns=1;i=1000" DataType="i=13">
+              <DisplayName>Started</DisplayName>
+              <References>
+                <Reference ReferenceType="i=46" IsForward="false">ns=1;i=1000</Reference>
+                <Reference ReferenceType="i=40">i=68</Reference>
+                <Reference ReferenceType="i=37">i=78</Reference>
+              </References>
+              <Value><DateTime xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">2026-09-18T12:34:56.789Z</DateTime></Value>
+            </UAVariable>
+            <UAVariable NodeId="ns=1;i=1002" BrowseName="1:Stopped" ParentNodeId="ns=1;i=1000" DataType="i=13">
+              <DisplayName>Stopped</DisplayName>
+              <References>
+                <Reference ReferenceType="i=46" IsForward="false">ns=1;i=1000</Reference>
+                <Reference ReferenceType="i=40">i=68</Reference>
+                <Reference ReferenceType="i=37">i=78</Reference>
+              </References>
+              <Value><DateTime xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">2026-09-18T12:34:56Z</DateTime></Value>
+            </UAVariable>
+            """,
+            // Opc2Aml already drops the fraction on the way in; here it is a time given in AML.
+            document => document.CAEXFile.Node.Descendants()
+                .Single(e => e.Name.LocalName == "Attribute" && (string?)e.Attribute("Name") == "Value" && (string?)e.Parent?.Attribute("Name") == "Started")
+                .Elements().Single(v => v.Name.LocalName == "Value").Value = "2026-09-18T12:34:56.789Z");
+
+        XNamespace types = NodeSetExporter.UaTypesNamespace;
+        Assert.Equal("2026-09-18T12:34:56.789Z", ByBrowseName(nodeSet, "1:Started").Element(Ua + "Value")!.Element(types + "DateTime")!.Value);
+        // A whole second stays without a fraction.
+        Assert.Equal("2026-09-18T12:34:56Z", ByBrowseName(nodeSet, "1:Stopped").Element(Ua + "Value")!.Element(types + "DateTime")!.Value);
+    }
+
+    [Fact]
+    public void A_structure_value_writes_the_fields_of_its_base_structure_first()
+    {
+        // The XML encoding of MotorConfig : BaseConfig is Name (from BaseConfig), then Speed.
+        var nodeSet = Back("urn:test:motor", """
+            <UADataType NodeId="ns=1;i=3000" BrowseName="1:BaseConfig">
+              <DisplayName>BaseConfig</DisplayName>
+              <References><Reference ReferenceType="i=45" IsForward="false">i=22</Reference></References>
+              <Definition Name="1:BaseConfig"><Field Name="Name" DataType="i=12" /></Definition>
+            </UADataType>
+            <UADataType NodeId="ns=1;i=3001" BrowseName="1:MotorConfig">
+              <DisplayName>MotorConfig</DisplayName>
+              <References>
+                <Reference ReferenceType="i=45" IsForward="false">ns=1;i=3000</Reference>
+                <Reference ReferenceType="i=38">ns=1;i=5001</Reference>
+              </References>
+              <Definition Name="1:MotorConfig"><Field Name="Speed" DataType="i=11" /></Definition>
+            </UADataType>
+            <UAObject NodeId="ns=1;i=5001" BrowseName="Default XML" SymbolicName="DefaultXml">
+              <DisplayName>Default XML</DisplayName>
+              <References>
+                <Reference ReferenceType="i=38" IsForward="false">ns=1;i=3001</Reference>
+                <Reference ReferenceType="i=40">i=76</Reference>
+              </References>
+            </UAObject>
+            <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:MotorType">
+              <DisplayName>MotorType</DisplayName>
+              <References>
+                <Reference ReferenceType="i=45" IsForward="false">i=58</Reference>
+                <Reference ReferenceType="i=46">ns=1;i=1001</Reference>
+              </References>
+            </UAObjectType>
+            <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Config" ParentNodeId="ns=1;i=1000" DataType="ns=1;i=3001">
+              <DisplayName>Config</DisplayName>
+              <References>
+                <Reference ReferenceType="i=46" IsForward="false">ns=1;i=1000</Reference>
+                <Reference ReferenceType="i=40">i=68</Reference>
+                <Reference ReferenceType="i=37">i=78</Reference>
+              </References>
+              <Value>
+                <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+                  <TypeId><Identifier>ns=1;i=5001</Identifier></TypeId>
+                  <Body><MotorConfig xmlns="urn:test:motor/Types.xsd"><Name>M1</Name><Speed>1500</Speed></MotorConfig></Body>
+                </ExtensionObject>
+              </Value>
+            </UAVariable>
+            """);
+
+        XNamespace types = NodeSetExporter.UaTypesNamespace;
+        var body = ByBrowseName(nodeSet, "1:Config").Element(Ua + "Value")?.Element(types + "ExtensionObject")?.Element(types + "Body")?.Elements().Single();
+        Assert.NotNull(body);
+        Assert.Equal(["Name", "Speed"], body.Elements().Select(f => f.Name.LocalName));
+        Assert.Equal(["M1", "1500"], body.Elements().Select(f => f.Value));
+    }
 }
