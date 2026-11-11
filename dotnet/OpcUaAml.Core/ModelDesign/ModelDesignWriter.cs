@@ -24,6 +24,14 @@ public sealed class ModelDesignOptions
 
     /// <summary>The name and prefix of the target namespace; derived from its URI when absent.</summary>
     public string? ModelName { get; init; }
+
+    /// <summary>
+    /// Where the NodeSets of the models this one builds on are found, besides
+    /// the UA base model. The design names their nodes by symbolic name in
+    /// their namespace (DI's DeviceType as "ns1:DeviceType"), which it takes
+    /// from these NodeSets. The bundled models (DI among them) when absent.
+    /// </summary>
+    public OpcUaAml.NodeSets.NodeSetCatalog? Catalog { get; init; }
 }
 
 /// <summary>A design and the identifier file that gives its nodes their NodeIds.</summary>
@@ -65,7 +73,11 @@ public static class ModelDesignWriter
         From(SafeXml.Load(nodeSetPath, LoadOptions.None), options);
 
     /// <summary>The ModelDesign of one model of the NodeSet.</summary>
-    /// <exception cref="InvalidDataException">The document is no NodeSet, or holds no such model.</exception>
+    /// <exception cref="InvalidDataException">
+    /// The document is no NodeSet, holds no such model, or refers to a node of
+    /// another model that no NodeSet of the catalog holds, so the design could
+    /// not name it.
+    /// </exception>
     public static ModelDesignResult From(XDocument nodeSet, ModelDesignOptions? options = null)
     {
         options ??= new ModelDesignOptions();
@@ -105,6 +117,12 @@ public static class ModelDesignWriter
         private readonly Dictionary<string, string> _holderOf = new(StringComparer.Ordinal);
         private readonly HashSet<string> _paths = new(StringComparer.Ordinal);
         private string _target = "";
+
+        // The models this one builds on, read to name their nodes, by namespace
+        // URI; null where the catalog has no NodeSet of the model.
+        private readonly Dictionary<string, Dependency?> _dependencies = new(StringComparer.Ordinal);
+        // The node being written, for a message that says where a name was missing.
+        private XElement? _writing;
 
         public Model(XDocument nodeSet, ModelDesignOptions options)
         {
@@ -304,6 +322,7 @@ public static class ModelDesignWriter
 
         private XElement Node(XElement node)
         {
+            _writing = node;
             Note(Path(node), node);
             return node.Name.LocalName switch
             {
@@ -430,6 +449,7 @@ public static class ModelDesignWriter
             if (definition is null) return design;
 
             GeneratedIdentifiers(node);
+            _writing = node;
             if ((string?)definition.Attribute("IsOptionSet") == "true") design.SetAttributeValue("IsOptionSet", "true");
             if ((string?)definition.Attribute("IsUnion") == "true") design.SetAttributeValue("IsUnion", "true");
             var enumeration = Chain(node).Any(t => t is "i=29" or "i=12756");   // Enumeration, OptionSet
@@ -460,6 +480,7 @@ public static class ModelDesignWriter
         /// <summary>An object, variable, property or method, as a child or on its own.</summary>
         private XElement Instance(XElement node, string? holder)
         {
+            _writing = node;
             var id = (string)node.Attribute("NodeId")!;
             var property = holder == "i=46";
             var name = node.Name.LocalName switch
@@ -478,6 +499,7 @@ public static class ModelDesignWriter
             // The schema puts these after the children and references: a child
             // held by anything but the usual reference names it, and a method
             // carries its arguments.
+            _writing = node;
             if (holder is { } h && h != "i=47" && h != "i=46")
                 design.Add(new XElement(Opc + "ReferenceType", QName(h)));
             if (node.Name.LocalName == "UAMethod") Arguments(design, id, Path(node));
@@ -504,6 +526,7 @@ public static class ModelDesignWriter
         /// <summary>References that no child and no supertype already carries.</summary>
         private void References(XElement design, XElement node)
         {
+            _writing = node;
             var id = (string)node.Attribute("NodeId")!;
             var references = new XElement(Opc + "References");
             foreach (var r in Outgoing(id))
@@ -678,10 +701,43 @@ public static class ModelDesignWriter
             // is the path through its parents ("PumpType_Start"), not its name.
             if (_pathOf.TryGetValue(nodeId, out var path)) return path;
             if (_nodes.TryGetValue(nodeId, out var node)) return Symbolic(node);
+            if (space != UaNamespace && space != _target) return DependencyName(nodeId, space);
             var name = space == UaNamespace ? UaNames.Of(nodeId) : null;
             if (name is null) return null;
             var prefix = _prefixes.GetValueOrDefault(space, "");
             return prefix.Length == 0 ? name : $"{prefix}:{name}";
+        }
+
+        private static readonly Lazy<OpcUaAml.NodeSets.NodeSetCatalog> Bundled =
+            new(() => OpcUaAml.NodeSets.NodeSetCatalog.Create(Array.Empty<string>()));
+
+        /// <summary>
+        /// The symbolic id of a node of a model this one builds on, in that
+        /// model's namespace ("ns1:DeviceType", "ns1:DeviceType_SerialNumber"):
+        /// the compiler looks it up in the design or NodeSet of that model given
+        /// with -d2. The model's NodeSet comes from the catalog.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The catalog has no NodeSet of the model, or the node is not in it.</exception>
+        private string DependencyName(string nodeId, string space)
+        {
+            if (!_dependencies.TryGetValue(space, out var model))
+            {
+                var file = (_options.Catalog ?? Bundled.Value).Find(space);
+                _dependencies[space] = model = file == null ? null : new Dependency(SafeXml.Load(file.FilePath, LoadOptions.None));
+            }
+
+            var identifier = nodeId[(nodeId.IndexOf(';') + 1)..];
+            if (model?.SymbolicId(space, identifier) is { } id)
+            {
+                var prefix = _prefixes.GetValueOrDefault(space, "");
+                return prefix.Length == 0 ? id : $"{prefix}:{id}";
+            }
+
+            var where = _writing is { } writing ? $"'{BrowseName(writing)}' refers to" : "The model refers to";
+            throw new InvalidDataException(model == null
+                ? $"{where} nsu={space};{identifier}, a node of a model no NodeSet is at hand for. A design names such a node by its symbolic name, "
+                  + $"which only the NodeSet of {space} tells; add that NodeSet to the catalog."
+                : $"{where} nsu={space};{identifier}, which the NodeSet of {space} does not hold.");
         }
 
         private string? TypeDefinition(string id) =>
@@ -703,5 +759,101 @@ public static class ModelDesignWriter
 
         /// <summary>HasComponent, HasProperty, HasOrderedComponent: the references that hold a child.</summary>
         private static bool Hierarchical(string type) => type is "i=47" or "i=46" or "i=49";
+    }
+
+    /// <summary>
+    /// A model another one builds on, read from its NodeSet to name its nodes
+    /// the way the ModelCompiler names them when it reads that NodeSet
+    /// (NodeSetToModelDesign, ModelCompiler 2.8): a type, or a node without a
+    /// parent of its namespace, by its SymbolicName, else its BrowseName made a
+    /// symbol; an instance by the symbolic id of its ParentNodeId, '_' and its
+    /// own name; a placeholder ("&lt;Name&gt;") with a SymbolicName gets
+    /// "_Placeholder".
+    /// </summary>
+    private sealed class Dependency
+    {
+        private readonly List<string> _namespaces = [UaNamespace];
+        private readonly Dictionary<string, XElement> _nodes = new(StringComparer.Ordinal);
+
+        private static readonly HashSet<string> Keywords =
+        [
+            "private", "public", "protected", "internal", "lock", "char", "byte", "int", "uint", "long",
+            "ulong", "float", "double", "decimal", "for", "foreach", "while", "string",
+        ];
+
+        public Dependency(XDocument nodeSet)
+        {
+            var root = nodeSet.Root!;
+            _namespaces.AddRange(root.Element(Ua + "NamespaceUris")?.Elements(Ua + "Uri").Select(u => u.Value.Trim()) ?? []);
+            foreach (var node in root.Elements().Where(e => e.Name.LocalName.StartsWith("UA", StringComparison.Ordinal)))
+                if ((string?)node.Attribute("NodeId") is { Length: > 0 } id) _nodes.TryAdd(id, node);
+        }
+
+        /// <summary>The symbolic id of the node with this identifier ("i=1002") in that namespace; null when the NodeSet has no such node.</summary>
+        public string? SymbolicId(string namespaceUri, string identifier)
+        {
+            var index = _namespaces.IndexOf(namespaceUri);
+            return index <= 0 ? null : Id($"ns={index};{identifier}", 0);
+        }
+
+        private string? Id(string nodeId, int depth)
+        {
+            if (depth > 100 || !_nodes.TryGetValue(nodeId, out var node)) return null;
+            var name = SymbolicName(node);
+            var parent = (string?)node.Attribute("ParentNodeId");
+            var instance = node.Name.LocalName is "UAObject" or "UAVariable" or "UAMethod" or "UAView";
+            if (!instance || string.IsNullOrWhiteSpace(parent) || Index(parent) != Index(nodeId)) return name;
+            return Id(parent.Trim(), depth + 1) is { } parentId ? parentId + "_" + name : null;
+        }
+
+        private static int Index(string nodeId)
+        {
+            if (!nodeId.StartsWith("ns=", StringComparison.Ordinal)) return 0;
+            var end = nodeId.IndexOf(';');
+            return end > 3 && int.TryParse(nodeId[3..end], out var index) ? index : 0;
+        }
+
+        private static string SymbolicName(XElement node)
+        {
+            var browseName = (string?)node.Attribute("BrowseName") ?? "";
+            if ((string?)node.Attribute("SymbolicName") is { Length: > 0 } given)
+                return browseName.Contains(":<") && !given.EndsWith("_Placeholder", StringComparison.Ordinal) ? given + "_Placeholder" : given;
+            var colon = browseName.IndexOf(':');
+            var name = colon > 0 && int.TryParse(browseName[..colon], out _) ? browseName[(colon + 1)..] : browseName;
+            return ToSymbolicName(QualifiedNamePart(name));
+        }
+
+        /// <summary>The name part of a BrowseName as the compiler imports it: what XML cannot carry becomes '_'.</summary>
+        private static string QualifiedNamePart(string name)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (var c in name)
+            {
+                if (text.Length == 0 ? !char.IsLetter(c) && c != '_' : !char.IsLetterOrDigit(c) && c != '_' && c != '.' && c != '+')
+                {
+                    text.Append('_');
+                    continue;
+                }
+                text.Append(c);
+            }
+            return text.ToString();
+        }
+
+        private static string ToSymbolicName(string name)
+        {
+            if (Keywords.Contains(name)) name = "_" + name;
+            var text = new System.Text.StringBuilder();
+            foreach (var c in name)
+            {
+                if (c is not ((>= '0' and <= '9') or (>= 'A' and <= 'Z') or (>= 'a' and <= 'z')))
+                {
+                    text.Append(text.Length == 0 ? 'x' : '_');
+                    continue;
+                }
+                if (text.Length == 0 && c is >= '0' and <= '9') text.Append('n');
+                text.Append(c);
+            }
+            return text.ToString();
+        }
     }
 }

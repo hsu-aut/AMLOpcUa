@@ -208,6 +208,72 @@ public class ModelDesignTests
         Assert.Contains("PumpStateMachineType_IdleToRunning_TransitionNumber,1011,Variable", identifiers);
     }
 
+    /// <summary>A QName of the design ("ns1:DeviceType") as the namespace URI and the name it stands for.</summary>
+    private static (string? Uri, string Name) Resolve(XElement context, string qname)
+    {
+        var colon = qname.IndexOf(':');
+        return colon < 0
+            ? (context.GetDefaultNamespace().NamespaceName, qname)
+            : (context.GetNamespaceOfPrefix(qname[..colon])?.NamespaceName, qname[(colon + 1)..]);
+    }
+
+    /// <summary>
+    /// A model built on DI (the Plant fixture: PumpType derives from DI's
+    /// DeviceType). The compiler finds DI's nodes by symbolic name in DI's
+    /// namespace, given DI's design or NodeSet with -d2; a NodeId such as
+    /// "ns=2;i=1002" it cannot read, and the design does not compile.
+    /// </summary>
+    [Fact]
+    public void Nodes_of_a_model_it_depends_on_are_named_by_their_symbolic_names()
+    {
+        var root = ModelDesignWriter.FromFile(Fixtures.Path("instances", "Plant.NodeSet2.xml")).Design.Root!;
+
+        var pump = root.Elements(Opc + "ObjectType").Single(t => (string?)t.Attribute("SymbolicName") == "PumpType");
+        Assert.Equal((Fixtures.DiUri, "DeviceType"), Resolve(pump, (string)pump.Attribute("BaseType")!));
+        Assert.DoesNotContain(root.DescendantsAndSelf().Attributes(), a => a.Value.StartsWith("ns=", StringComparison.Ordinal));
+        Assert.DoesNotContain(root.Descendants(Opc + "TargetId"), t => t.Value.StartsWith("ns=", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_reference_to_a_node_of_another_model_is_kept()
+    {
+        // Pump1 is ConnectsTo (DI) the pump of another model; before, the reference was dropped silently.
+        var nodeSet = XDocument.Load(Fixtures.Path("instances", "Plant.NodeSet2.xml"));
+        XNamespace ua = "http://opcfoundation.org/UA/2011/03/UANodeSet.xsd";
+        // A child is named by its parent's symbolic id, a placeholder as the compiler names it.
+        var references = nodeSet.Root!.Elements(ua + "UAObject").Single(o => (string?)o.Attribute("BrowseName") == "1:Pump1").Element(ua + "References")!;
+        foreach (var target in new[] { "ns=2;i=5001", "ns=2;i=6001", "ns=2;i=6571" })
+            references.Add(new XElement(ua + "Reference", new XAttribute("ReferenceType", "ns=2;i=6030"), target));
+
+        var root = ModelDesignWriter.From(nodeSet).Design.Root!;
+
+        var pump = root.Elements(Opc + "Object").Single(o => (string?)o.Attribute("SymbolicName") == "Pump1");
+        var targets = pump.Element(Opc + "References")!.Elements(Opc + "Reference")
+            .Where(r => Resolve(r, r.Element(Opc + "ReferenceType")!.Value) == (Fixtures.DiUri, "ConnectsTo"))
+            .Select(r => Resolve(r, r.Element(Opc + "TargetId")!.Value)).ToList();
+        Assert.Equal([(Fixtures.DiUri, "DeviceSet"), (Fixtures.DiUri, "DeviceType_SerialNumber"), (Fixtures.DiUri, "DeviceType_CPIdentifier_Placeholder")], targets);
+    }
+
+    [Fact]
+    public void A_node_of_a_model_no_NodeSet_is_at_hand_for_is_refused_by_name()
+    {
+        var nodeSet = XDocument.Parse("""
+            <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+              <NamespaceUris><Uri>http://example.org/Own/</Uri><Uri>urn:example:nowhere</Uri></NamespaceUris>
+              <Models><Model ModelUri="http://example.org/Own/" Version="1.0.0" PublicationDate="2026-01-01T00:00:00Z" /></Models>
+              <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:MachineType">
+                <DisplayName>MachineType</DisplayName>
+                <References><Reference ReferenceType="i=45" IsForward="false">ns=2;i=77</Reference></References>
+              </UAObjectType>
+            </UANodeSet>
+            """);
+
+        var ex = Assert.Throws<InvalidDataException>(() => ModelDesignWriter.From(nodeSet));
+        Assert.Contains("urn:example:nowhere", ex.Message);
+        Assert.Contains("i=77", ex.Message);
+        Assert.Contains("MachineType", ex.Message);
+    }
+
     [Fact]
     public async Task Names_a_design_that_does_not_exist()
     {

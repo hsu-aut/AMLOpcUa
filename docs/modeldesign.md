@@ -88,6 +88,19 @@ NodeId that is a string goes onto the node as `StringId`; one that is a GUID
 cannot be carried, and the model is then compiled with identifiers of the
 compiler's own.
 
+A node of another model the design refers to (a supertype, a type
+definition, a DataType, a reference type or the target of a reference) is
+named as the compiler names it when it reads that model's NodeSet: its
+symbolic id in that model's namespace, `ns1:DeviceType` for DI's DeviceType,
+`ns1:DeviceType_SerialNumber` for a child, `..._Placeholder` for a placeholder.
+The name comes from the model's NodeSet in the catalog
+(`ModelDesignOptions.Catalog`, `--search` for `design export`; the bundled
+models such as DI when none is given). Where no NodeSet of the model is at hand, or it does not hold the
+node, the design is refused with a message naming the node and the model,
+rather than written with a NodeId the compiler cannot read. Compile such a
+design with the other model's NodeSet or design given as well
+(`--include`, `-d2`).
+
 Left out, because the compiler makes them from the design itself: the
 encodings of a structure, the names of an enumeration (EnumStrings,
 EnumValues, OptionSetValues), the arguments as a property, the type
@@ -118,5 +131,5 @@ OutputArguments as a node without a value. A NodeSet that goes in as a NodeSet
 (the compiler reads those too) keeps its argument values.
 
 Not carried at all: the `Documentation` attribute of a node (the design has no
-place for it), values of variables, and everything outside the model's own
-namespace.
+place for it), values of variables, and the nodes of other namespaces
+themselves, which the design only names.

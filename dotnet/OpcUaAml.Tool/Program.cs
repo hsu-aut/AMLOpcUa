@@ -171,7 +171,7 @@ public static class Program
             The password comes from UACLOUD_PASSWORD or is asked for; an API key
             from UACLOUD_API_KEY instead.
 
-        uaaml design export <NodeSet.xml|doc.aml> -o <design.xml> [--namespace <uri>] [--name <n>]
+        uaaml design export <NodeSet.xml|doc.aml> -o <design.xml> [--namespace <uri>] [--name <n>] [--search <dir>]...
         uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105]
         uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]...
             ModelDesign, the form the OPC Foundation's ModelCompiler reads and
@@ -905,7 +905,11 @@ public static class Program
             case "export" when o.Positional.Count == 2:
             {
                 var output = o.One("-o") ?? throw new ArgumentException("design export needs -o <design.xml>.");
-                var options = new ModelDesignOptions { NamespaceUri = o.One("--namespace"), ModelName = o.One("--name") };
+                // The NodeSets of the models it builds on name their nodes in the design.
+                var options = new ModelDesignOptions
+                {
+                    NamespaceUri = o.One("--namespace"), ModelName = o.One("--name"), Catalog = NodeSetCatalog.Create(o.All("--search")),
+                };
                 // A document goes out as the nodes Annex A made of it (the
                 // inverse export), a NodeSet is read as it is.
                 var source = o.Positional[1];
