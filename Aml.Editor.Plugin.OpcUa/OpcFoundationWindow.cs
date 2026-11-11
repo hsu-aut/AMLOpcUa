@@ -4,6 +4,7 @@
 
 using System.Windows;
 using System.Windows.Controls;
+using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.OpcUa.Localization;
 using OpcUaAml.NodeSets;
 
@@ -81,6 +82,12 @@ public sealed class OpcFoundationWindow : Window
         {
             _models = await _source.ModelsAsync(refresh);
             Filter();
+            // Offline, or a file left out: the list from before is used, and that is said.
+            if (_source.Notes is { Count: > 0 } notes)
+            {
+                foreach (var note in notes) PluginLog.Warn("OPC Foundation: " + note);
+                DialogKit.ShowInfo(_info, string.Join(" ", notes));
+            }
         }
         catch (OpcFoundationNodeSetsException ex)
         {

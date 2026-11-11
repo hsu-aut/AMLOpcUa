@@ -22,6 +22,33 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- Importing a NodeSet that declares the same alias twice failed after its
+  libraries were already in the document; the import goes through and uses
+  the last value, as Opc2Aml does. The round trip and a server's NodeSet read
+  such files too.
+- Filling a placeholder with a chosen subtype left out children the subtype
+  inherits below a declaration it overrides (for example the state counters
+  below Counters of the PubSub diagnostics types); they are there now, as in a
+  new instance of that type.
+- The check, "Add missing Mandatory children" and the diagram looked at a
+  type's top-level declarations only, so children required below a child were
+  neither checked, added nor drawn; they are now. **Existing documents may show
+  new UA003 or UA004 findings**, for example a DI device whose ParameterSet is
+  present but holds no parameter: fill one, or leave ParameterSet out.
+- One NodeSet file in a NodeSet folder that could not be read (held by another
+  program, no read rights) made the whole import fail; it is skipped with a
+  warning.
+- NodeSets without a Models element (valid before OPC UA 1.04) were refused
+  and never counted as a required model; they stand for their first namespace
+  now, as Opc2Aml reads them.
+- Removing a namespace ignored interfaces, attributes and roles in instance
+  hierarchies and the user's own libraries that pointed into it, and left
+  their paths dangling; such uses keep the namespace and are named as reasons.
+- The OPC Foundation's list of companion specifications downloaded every file
+  again and failed as a whole when one file could not be read. Unchanged files
+  are reused, a failing file keeps its entry from before, and without a
+  connection the list and files from before are used, which the dialog and the
+  log say.
 - "Edit in the modeler" found a namespace's NodeSet only in the NodeSet
   folders; one imported from anywhere else ended in "No NodeSet of … found".
   The plugin keeps a copy of every NodeSet imported from another folder

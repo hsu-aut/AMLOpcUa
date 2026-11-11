@@ -515,8 +515,10 @@ public partial class OpcUaPlugin
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
             var missing = new List<string>();
-            var files = await OpcfSource().DownloadWithDependenciesAsync(chosen, catalog, missing);
+            var source = OpcfSource();
+            var files = await source.DownloadWithDependenciesAsync(chosen, catalog, missing);
             foreach (var f in files) PluginLog.Info("Downloaded " + f);
+            foreach (var note in source.Notes) PluginLog.Warn("OPC Foundation: " + note);
             foreach (var m in missing) PluginLog.Warn($"The OPC Foundation's repository has no model {m}; the import will ask for it.");
             return files;
         }
@@ -540,8 +542,10 @@ public partial class OpcUaPlugin
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
             var notThere = new List<string>();
-            var files = await OpcfSource().DownloadModelsAsync(missing.Select(m => m.ModelUri), catalog, notThere);
+            var source = OpcfSource();
+            var files = await source.DownloadModelsAsync(missing.Select(m => m.ModelUri), catalog, notThere);
             foreach (var f in files) PluginLog.Info("Downloaded " + f);
+            foreach (var note in source.Notes) PluginLog.Warn("OPC Foundation: " + note);
             if (notThere.Count > 0)
                 PluginLog.Warn("Not published by the OPC Foundation: " + string.Join(", ", notThere) + ". A NodeSet folder or the UA Cloud Library may have them.");
             return files.Count > 0;
