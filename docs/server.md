@@ -148,7 +148,8 @@ file (`ServerNodeSetTests`).
   Bindings to another server (a different ServerInstanceUri or data source
   endpoint) are skipped. On the command line, `uaaml snapshot <doc.aml>`
   without an endpoint connects to every server the document names as a data
-  source, with the security its description asks for. Nothing is subscribed; the document records one
+  source, with the security its description asks for; one it describes as
+  unsecured only with `--insecure`, as an endpoint given on the command line. Nothing is subscribed; the document records one
   point in time.
 - **Keep document values live** (`LiveValues`): the same bindings, subscribed. Every
   change the server reports is written into the document (on the editor's UI

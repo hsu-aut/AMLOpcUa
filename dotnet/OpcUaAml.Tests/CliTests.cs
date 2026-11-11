@@ -160,6 +160,33 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.Contains("Ctrl+C", output.ToString());
     }
 
+    [Fact]
+    public async Task A_document_asking_for_no_security_needs_insecure()
+    {
+        // A document from elsewhere names its servers and how to reach them; that
+        // it says "None" is no reason to connect unsecured without being told to.
+        using var uaaml = new Uaaml();
+        var doc = CAEXDocument.New_CAEXDocument();
+        var machine = doc.CAEXFile.InstanceHierarchy.Append("Line").InternalElement.Append("Machine");
+        var source = machine.InternalElement.Append("Plant server");
+        source.Attribute.Append("EndpointURL").Value = server.EndpointUrl;
+        source.Attribute.Append("MessageSecurityMode").Value = "None";
+        OpcUaAml.Addressing.BprDataVariable.Write(machine, "Temperature",
+            new OpcUaAml.Addressing.UaNodeAddress(TestServer.Namespace, OpcUaAml.Addressing.UaIdType.String, "Plant.Pump1.Motor.Temperature"), source);
+        var file = uaaml.Save(doc);
+
+        var refused = await uaaml.RunAsync("snapshot", file);
+        var unchanged = AmlFiles.Load(file);
+        var allowed = await uaaml.RunAsync("snapshot", file, "--insecure");
+
+        Assert.Equal(1, refused.Exit);
+        Assert.Contains("--insecure", refused.Error);
+        Assert.Contains("Plant server", refused.Error);
+        Assert.Null(unchanged.CAEXFile.InstanceHierarchy["Line"]!.InternalElement["Machine"]!.Attribute["Temperature"]!.Value);
+        Assert.True(allowed.Exit == 0, allowed.Error);
+        Assert.Equal("42", AmlFiles.Load(file).CAEXFile.InstanceHierarchy["Line"]!.InternalElement["Machine"]!.Attribute["Temperature"]!.Value);
+    }
+
     private const string PasswordVariable = "AMLOPCUA_PASSWORD";
 
     /// <summary>Runs with the password variable set as given, and puts it back afterwards.</summary>

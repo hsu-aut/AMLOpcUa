@@ -110,7 +110,9 @@ public static class Program
             Read the current value of every bound element and DataVariable. Without
             an endpoint, from every server the document names as a data source
             (--accept and --user then need an endpoint: the servers a document
-            names are not trusted blindly, nor sent a password).
+            names are not trusted blindly, nor sent a password). A server the
+            document describes as unsecured (MessageSecurityMode or
+            SecurityPolicy None) is connected to only with --insecure.
 
         uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]... [--for <seconds>]
             Serve a NodeSet with its types as an OPC UA server until Ctrl+C or
@@ -560,6 +562,20 @@ public static class Program
         };
     }
 
+    /// <summary>
+    /// How to connect to a server a document names: secured unless its
+    /// description says None, and then only with --insecure, as for an
+    /// endpoint given on the command line. Checked before anything connects.
+    /// </summary>
+    private static OpcUaAml.Server.UaConnectOptions FromDocument(OpcUaAml.Addressing.DataSource source, Options o)
+    {
+        var options = WithClientPki(source.ToConnectOptions(o.Has("--accept")));
+        if (!options.UseSecurity && !o.Has("--insecure"))
+            throw new OpcUaAml.Server.UaConnectionException(
+                $"The document asks for an unsecured connection to '{source.Element.Name}' ({source.Url}). Give --insecure to allow it.");
+        return options;
+    }
+
     /// <summary>Options made elsewhere (from a document's data source), with the client's certificate folder.</summary>
     private static OpcUaAml.Server.UaConnectOptions WithClientPki(OpcUaAml.Server.UaConnectOptions options) => new()
     {
@@ -749,7 +765,7 @@ public static class Program
         var connections = o.Positional.Count == 2
             ? new List<OpcUaAml.Server.UaConnectOptions> { Connect(o, o.Positional[0]) }
             : OpcUaAml.Addressing.BprDataVariable.SourcesIn(doc).Where(s => s.Url != null)
-                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => WithClientPki(g.First().ToConnectOptions(o.Has("--accept")))).ToList();
+                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => FromDocument(g.First(), o)).ToList();
         if (connections.Count == 0) throw new ArgumentException("The document names no server with an EndpointURL or DiscoveryURL; give an endpoint.");
 
         var failed = 0;
