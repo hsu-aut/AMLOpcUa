@@ -16,7 +16,7 @@ internal static class De
         [" ({0:0.0} s)."] = " ({0:0.0} s).",
         [" ({0:0.0} s, converted before)."] = " ({0:0.0} s, schon früher umgewandelt).",
         [" Press Ctrl+S to save."] = " Drücke Strg+S, um zu speichern.",
-        [" Saved."] = " Gespeichert.",
+        [" The editor was asked to save it."] = " Der Editor wurde gebeten, es zu speichern.",
         [" The log names each place."] = " Das Protokoll nennt jede Stelle.",
         [" The type is abstract; OPC UA does not instantiate it."] = " Der Typ ist abstrakt; in OPC UA hat er keine Instanzen.",
         ["'{0}' already holds an element named '{1}'. Create again to add a second one."] = "'{0}' enthält schon ein Element namens '{1}'. Klicke noch einmal auf 'Anlegen', um ein zweites hinzuzufügen.",

@@ -79,6 +79,10 @@ minor versions.
   busy now until it is done.
 - The endpoint offered first is `opc.tcp://127.0.0.1:4840`: with `localhost`
   every connection to a server on 127.0.0.1 waited about two seconds for ::1.
+- After one failed write (disk full, the file taken away) the log file stayed
+  silent for the rest of the session; the next line opens it again.
+- "Save after import" reported "Saved." when it had only asked the editor to
+  save, which a cancelled "Save as" does not do; it says so now.
 - One error showed at the log link as many new warnings, one per line of its
   stack trace; it counts once now, and the link says "problem(s)".
 - A failed "Add missing Mandatory children" was reported half in English in

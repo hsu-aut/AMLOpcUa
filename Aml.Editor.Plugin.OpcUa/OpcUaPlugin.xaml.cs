@@ -468,7 +468,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             PluginLog.Info($"Import took: conversion {conversion.Duration.TotalSeconds:F1} s{(conversion.FromCache ? " (cache)" : "")}, "
                 + $"merge {merged.TotalSeconds:F1} s, editor updating {shown.TotalSeconds:F1} s"
                 + (SaveAfterImport ? $", saving {(clock.Elapsed - before).TotalSeconds:F1} s" : ""));
-            SetStatus(Summaries.Import(result) + (more != null ? " " + more.Text : "") + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
+            SetStatus(Summaries.Import(result) + (more != null ? " " + more.Text : "") + (saved ? L.T(" The editor was asked to save it.") : L.T(" Press Ctrl+S to save.")));
             // "Edit in the modeler" and later imports look for it again; a file from
             // a folder the plugin does not search would not be found.
             try { KeepImportedCopy(file, ImportedFolder, _settings.NodeSetFolders.Concat(OwnNodeSetFolders())); }
@@ -545,7 +545,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 PluginLog.Warn($"'{window.SelectedType.Name}' is abstract; OPC UA only instantiates concrete subtypes.");
 
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
-            SetStatus(message + (saved ? L.T(" Saved.") : L.T(" Press Ctrl+S to save.")));
+            SetStatus(message + (saved ? L.T(" The editor was asked to save it.") : L.T(" Press Ctrl+S to save.")));
             Selected?.Invoke(this, new SelectionEventArgs(created));
         }
         catch (InstantiationException ex)

@@ -185,14 +185,35 @@ public static class PluginLog
         _writer = null;
     }
 
+    /// <summary>The file a failed write dropped, opened again by the next line.</summary>
+    private static string? _reopenPath;
+
+    /// <summary>After opening it again failed, the next try waits until then.</summary>
+    private static DateTime _nextReopen;
+
     private static void WriteLineLocked(string line)
     {
+        if (_writer == null && _reopenPath != null && DateTime.UtcNow >= _nextReopen)
+        {
+            try
+            {
+                OpenWriter_NoLock(_reopenPath);
+                _reopenPath = null;
+            }
+            catch
+            {
+                CloseWriter_NoLock();
+                _nextReopen = DateTime.UtcNow.AddSeconds(30);
+            }
+        }
         if (_writer == null) return;
         try { _writer.WriteLine(line); }
         catch
         {
-            // Disk full / file deleted under us / handle invalid: drop the writer
-            // and try to re-open on the next Init() / Emit cycle.
+            // Disk full / file deleted under us / handle invalid: drop the writer;
+            // the next line opens the same file again.
+            _reopenPath = _filePath;
+            _nextReopen = DateTime.UtcNow;
             CloseWriter_NoLock();
             _filePath = null;
             return;
