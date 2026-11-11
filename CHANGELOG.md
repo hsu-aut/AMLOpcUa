@@ -33,6 +33,14 @@ minor versions.
 
 ### Changed
 
+- The Modeler tab brings NodeSet.js 0.2.1: it no longer breaks down when the
+  open model is loaded again, keeps a panel's unapplied input with its node,
+  fits a value to a changed DataType, refuses to delete a DataType in use,
+  finds reference targets in every loaded model, lists instances below DeviceSet,
+  and adds AccessLevel, Historizing, MinimumSamplingInterval, DisplayName,
+  "Add subtype", editing a transition's ends, the inherited declarations of a
+  type and SVG export. Edits made while a model is applied stay unsaved: the
+  plugin answers with the modeler's change count.
 - `uaaml serve` keeps serving when started with closed input (from a script);
   it stops with Ctrl+C or Enter. Before, it stopped at once.
 - `uaaml snapshot <doc>` without an endpoint connects unsecured only with
