@@ -50,6 +50,23 @@ public sealed class OpcFoundationNodeSets
     /// <summary>How long a file list from GitHub is taken as current.</summary>
     public TimeSpan ListValidFor { get; init; } = TimeSpan.FromDays(1);
 
+    private readonly List<string> _notes = new();
+
+    /// <summary>
+    /// What the calls on this object could not do as asked and what they did
+    /// instead: a list or a file from before because GitHub could not be
+    /// reached, files left out of a refresh. Empty when everything was current.
+    /// </summary>
+    public IReadOnlyList<string> Notes
+    {
+        get { lock (_notes) return _notes.ToList(); }
+    }
+
+    private void Note(string note)
+    {
+        lock (_notes) _notes.Add(note);
+    }
+
     private string IndexPath => Path.Combine(_folder, "index.json");
 
     /// <summary>Every model the repository declares, from the index, refreshed when it is older than <see cref="ListValidFor"/> or when asked.</summary>
@@ -63,24 +80,40 @@ public sealed class OpcFoundationNodeSets
         {
             files = await ListAsync(ct).ConfigureAwait(false);
         }
-        catch (OpcFoundationNodeSetsException) when (index != null)
+        catch (OpcFoundationNodeSetsException ex) when (index != null)
         {
             // GitHub unreachable or its hourly limit spent: the index on disk still serves.
+            Note($"The list of the OPC Foundation's NodeSets is the one from {index.Checked:yyyy-MM-dd HH:mm} UTC. {ex.Message}");
             return index.Models();
         }
 
         var known = index?.Files.ToDictionary(f => f.Path, StringComparer.Ordinal) ?? new();
-        var entries = new IndexFile[files.Count];
+        var entries = new IndexFile?[files.Count];
+        var failed = new List<string>();
         using var gate = new SemaphoreSlim(8);
         await Task.WhenAll(files.Select(async (f, i) =>
         {
             if (known.TryGetValue(f.Path, out var old) && old.Sha == f.Sha) { entries[i] = old; return; }
             await gate.WaitAsync(ct).ConfigureAwait(false);
             try { entries[i] = new IndexFile(f.Path, f.Sha, await ModelsOfAsync(f.Path, ct).ConfigureAwait(false)); }
+            catch (Exception ex) when (ex is OpcFoundationNodeSetsException or HttpRequestException or IOException)
+            {
+                // One file must not cost the others: it keeps what it declared
+                // before under its old SHA, or stays out, and the next refresh
+                // reads it again.
+                entries[i] = old;
+                lock (failed) failed.Add(f.Path);
+            }
             finally { gate.Release(); }
         })).ConfigureAwait(false);
+        if (failed.Count > 0)
+        {
+            failed.Sort(StringComparer.Ordinal);
+            Note($"{failed.Count} file(s) could not be read from GitHub and are read again on the next refresh; "
+                 + "what they declared before still counts: " + string.Join(", ", failed.Take(5)) + (failed.Count > 5 ? ", …" : "") + ".");
+        }
 
-        index = new Index(DateTime.UtcNow, entries.ToList());
+        index = new Index(DateTime.UtcNow, entries.OfType<IndexFile>().ToList());
         WriteIndex(index);
         return index.Models();
     }
@@ -145,13 +178,29 @@ public sealed class OpcFoundationNodeSets
         return written;
     }
 
-    /// <summary>The whole file of a model, kept in the folder under its repository path.</summary>
+    /// <summary>
+    /// The whole file of a model, kept in the folder under its repository path.
+    /// A file kept before is used again while its content is still the one the
+    /// index lists (the same git blob SHA), and when GitHub cannot give the
+    /// current one (see <see cref="Notes"/>).
+    /// </summary>
     public async Task<string> DownloadAsync(PublishedModel model, CancellationToken ct = default)
     {
         var target = Path.Combine(_folder, "files", model.Path.Replace('/', Path.DirectorySeparatorChar));
         if (!Path.GetFullPath(target).StartsWith(Path.GetFullPath(Path.Combine(_folder, "files")), StringComparison.OrdinalIgnoreCase))
             throw new OpcFoundationNodeSetsException($"'{model.Path}' is not a path inside the repository.");
-        var bytes = await GetBytesAsync(RawUrl(model.Path), null, ct).ConfigureAwait(false);
+        var listed = ReadIndex()?.Files.FirstOrDefault(f => f.Path == model.Path)?.Sha;
+        if (listed != null && BlobSha(target) == listed) return target;
+        byte[] bytes;
+        try
+        {
+            bytes = await GetBytesAsync(RawUrl(model.Path), null, ct).ConfigureAwait(false);
+        }
+        catch (OpcFoundationNodeSetsException ex) when (File.Exists(target))
+        {
+            Note($"'{model.Path}' is the copy downloaded before; GitHub did not give the current one. {ex.Message}");
+            return target;
+        }
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
@@ -162,6 +211,24 @@ public sealed class OpcFoundationNodeSets
             throw new OpcFoundationNodeSetsException($"'{target}' could not be written: {ex.Message}", ex);
         }
         return target;
+    }
+
+    /// <summary>The git blob SHA of a file (SHA-1 of "blob &lt;length&gt;\0" and the content), as GitHub's tree lists it; null without a readable file.</summary>
+    private static string? BlobSha(string file)
+    {
+        try
+        {
+            if (!File.Exists(file)) return null;
+            var content = File.ReadAllBytes(file);
+            using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA1);
+            sha.AppendData(Encoding.ASCII.GetBytes($"blob {content.Length}\0"));
+            sha.AppendData(content);
+            return Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static string RawUrl(string path) =>

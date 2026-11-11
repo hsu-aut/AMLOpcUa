@@ -46,8 +46,14 @@ are allowed without login), and of each file only its beginning up to
 again at most once a day; then only files that changed are read (143 files in
 about seven seconds the first time). A chosen model is downloaded with every
 model it requires that the catalog lacks. When GitHub cannot be reached or the
-hourly limit is spent, the index on disk still serves. Tests run against a fake
-of the tree API and the raw files.
+hourly limit is spent, the index on disk still serves. A file that cannot be
+read during a refresh keeps what it declared before and is read again on the
+next refresh; the others are indexed. A downloaded file is kept under
+`files\` and used again while its git blob SHA is still the one the index
+lists, without asking GitHub; when GitHub cannot give a newer one, the copy
+from before is used. Each of these cases leaves a line in
+`OpcFoundationNodeSets.Notes`. Tests run against a fake of the tree API and
+the raw files.
 
 The plugin can also fetch NodeSets from the OPC Foundation's
 [UA Cloud Library](https://uacloudlibrary.opcfoundation.org) (**Cloud
