@@ -249,6 +249,22 @@ closed or another is opened. Nothing is writable and no method is offered;
 anonymous sessions stay allowed, so on the network the client certificate is
 the whole access control.
 
+The ApplicationUris of this build's servers name no computer
+(`urn:AMLOpcUa:DocumentServer`, `urn:AMLOpcUa:NodeSetServer`,
+`OwnApplicationUris`), so a document mirrored from one of them on one
+computer names the same server on the next: prepared in the office, shown on
+the booth laptop. Up to 0.2.0 the computer's name was part of them
+(`urn:OFFICE-PC:AMLOpcUa:DocumentServer`); such a URI in a document still
+names the same server (`OwnApplicationUris.Same`), when a mirror is updated
+and for snapshots and live values. A server certificate made for the old
+URI is made anew at start, and clients that trusted it are asked again. The
+client keeps the certificate it has, with the ApplicationUri it names, so
+servers that trust exactly that certificate go on doing so; a certificate
+it has to make anew names `urn:AMLOpcUa:Client`. Under 0.2.0 a client
+certificate made on another computer (the folder copied, the computer
+renamed) failed every connection, because its ApplicationUri named the other
+computer; now it is used as it is, and one the stack refuses is made anew.
+
 ## A NodeSet as a server
 
 Where the document server serves the structure of a document, **`uaaml serve
@@ -285,7 +301,8 @@ instances.
 
 A mirrored document says where its servers are: the server element carries
 `EndpointUrl` and `ServerUri`, every NodeId below it a `ServerInstanceUri`
-(which usually holds the host name), and a server element after BPR 007 or
+(which usually holds the host name; not for this build's own servers since
+0.2.1), and a server element after BPR 007 or
 DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. **Remove server addresses…**
 (Server tab, band "This document as a server") and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
 them; the open document stays as it is. What a node is known by (NamespaceUri

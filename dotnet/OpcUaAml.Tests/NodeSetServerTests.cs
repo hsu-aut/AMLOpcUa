@@ -70,6 +70,15 @@ public class NodeSetServerTests(NodeSetServerFixture fixture) : IClassFixture<No
     }
 
     [Fact]
+    public async Task Its_ApplicationUri_names_no_computer()
+    {
+        // A document mirrored from it in the office names the same server on the booth laptop.
+        await using var client = await ConnectAsync();
+
+        Assert.Equal(OwnApplicationUris.NodeSetServer, client.ServerUri);
+    }
+
+    [Fact]
     public async Task A_client_takes_the_NodeSet_from_the_server_unchanged()
     {
         // The whole point of the published file: what the client gets back is

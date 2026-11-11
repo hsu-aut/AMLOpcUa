@@ -194,14 +194,20 @@ public sealed class UaClient : IAsyncDisposable
             ApplicationName = "AMLOpcUa",
             ApplicationType = ApplicationType.Client,
         };
-        var config = await app.Build("urn:" + System.Net.Dns.GetHostName() + ":AMLOpcUa", "uri:hsu-aut:AMLOpcUa")
+        // A certificate kept from earlier goes on with the ApplicationUri it names, an earlier
+        // build's with the computer's name included: servers may trust exactly that one.
+        // The stack refuses a certificate whose ApplicationUri differs from the configured one.
+        const string subject = "CN=AMLOpcUa, O=AMLOpcUa";
+        var uri = OwnApplicationUris.KeptClientUri(options.PkiRoot, subject) ?? OwnApplicationUris.Client;
+        var config = await app.Build(uri, "uri:hsu-aut:AMLOpcUa")
             .AsClient()
-            .AddSecurityConfiguration("CN=AMLOpcUa, O=AMLOpcUa", options.PkiRoot)
+            .AddSecurityConfiguration(subject, options.PkiRoot)
             .SetAutoAcceptUntrustedCertificates(options.AcceptUntrustedServerCertificates)
             .CreateAsync(ct).ConfigureAwait(false);
         config.ClientConfiguration.DefaultSessionTimeout = 60000;
         config.TransportQuotas.OperationTimeout = options.OperationTimeoutMs;
-        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        // One that does not fit is the client's own: a new one is made, with no computer's name.
+        await OwnCertificate.EnsureAsync(app, subject, options.PkiRoot, ct, OwnApplicationUris.Client).ConfigureAwait(false);
         return config;
     }
 

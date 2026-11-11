@@ -122,10 +122,12 @@ public static class AddressSpaceMirror
     /// <summary>
     /// The element of <paramref name="ih"/> that stands for the server, below
     /// which a selection was mirrored; null when the hierarchy holds no mirror of it.
+    /// A server of this build mirrored by an earlier one, with the computer's
+    /// name in its ServerUri, is the same server (<see cref="OwnApplicationUris.Same"/>).
     /// </summary>
     public static InternalElementType? MirroredServer(InstanceHierarchyType ih, UaClient client) =>
         ih.InternalElement.FirstOrDefault(e => e.Attribute[MirrorSelection.AttributeName] != null
-            && (client.ServerUri != null ? e.Attribute[ServerUriAttribute]?.Value == client.ServerUri
+            && (client.ServerUri != null ? OwnApplicationUris.Same(e.Attribute[ServerUriAttribute]?.Value, client.ServerUri)
                                          : e.Attribute[EndpointAttribute]?.Value == client.EndpointUrl));
 
     /// <summary>

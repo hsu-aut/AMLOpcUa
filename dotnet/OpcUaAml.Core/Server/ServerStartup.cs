@@ -25,7 +25,9 @@ internal static class ServerStartup
         var url = $"opc.tcp://{host}:{port}/AMLOpcUa";
 
         var app = new ApplicationInstance { ApplicationName = applicationName, ApplicationType = Opc.Ua.ApplicationType.Server };
-        var builder = app.Build("urn:" + System.Net.Dns.GetHostName() + ":AMLOpcUa:" + applicationSuffix, "uri:hsu-aut:AMLOpcUa")
+        // No computer's name in it: a document mirrored here names the same server
+        // on the next computer (OwnApplicationUris).
+        var builder = app.Build("urn:AMLOpcUa:" + applicationSuffix, "uri:hsu-aut:AMLOpcUa")
             .AsServer(new[] { url });
         var withPolicies = network
             ? builder.AddSignAndEncryptPolicies()
@@ -39,27 +41,11 @@ internal static class ServerStartup
         // server through their keep-alive anyway.
         app.ApplicationConfiguration.ServerConfiguration.ShutdownDelay = 0;
 
-        bool usable;
-        try
-        {
-            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
-            usable = await NamesAsync(app, subjectName).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // The certificate names the addresses it was made for (the computer's name, or
-            // 127.0.0.1); served under another, the stack refuses it.
-            usable = false;
-        }
-        if (usable) return (app, url, false);
-
-        // It is the server's own, so a new one is made. Clients that trusted the old one
-        // are asked again.
-        foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(pkiRoot, "own", f)).Where(Directory.Exists))
-            foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
-        app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
-        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
-        return (app, url, true);
+        // The certificate names the addresses it was made for (the computer's name, or
+        // 127.0.0.1); served under another, the stack refuses it. It is the server's
+        // own, so a new one is made then; clients that trusted the old one are asked again.
+        var replaced = await OwnCertificate.EnsureAsync(app, subjectName, pkiRoot, ct).ConfigureAwait(false);
+        return (app, url, replaced);
     }
 
     /// <summary>
@@ -85,17 +71,53 @@ internal static class ServerStartup
             if (e is System.Net.Sockets.SocketException { SocketErrorCode: System.Net.Sockets.SocketError.AddressAlreadyInUse }) return true;
         return false;
     }
+}
+
+/// <summary>The certificate of one of this build's applications, kept usable: made anew when it is not.</summary>
+internal static class OwnCertificate
+{
+    /// <summary>
+    /// Checks the application's own certificate and makes a new one when the
+    /// stack refuses it or it does not fit (<see cref="FitsAsync"/>).
+    /// </summary>
+    /// <returns>Whether a new certificate was made.</returns>
+    public static async Task<bool> EnsureAsync(ApplicationInstance app, string subjectName, string pkiRoot, CancellationToken ct,
+        string? applicationUriForNew = null)
+    {
+        bool usable;
+        try
+        {
+            await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+            usable = await FitsAsync(app, subjectName).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // The stack refuses a certificate made for other addresses or another ApplicationUri.
+            usable = false;
+        }
+        if (usable) return false;
+
+        foreach (var folder in new[] { "certs", "private" }.Select(f => Path.Combine(pkiRoot, "own", f)).Where(Directory.Exists))
+            foreach (var file in Directory.GetFiles(folder)) File.Delete(file);
+        if (applicationUriForNew != null) app.ApplicationConfiguration.ApplicationUri = applicationUriForNew;
+        app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.Certificate = null;
+        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        return true;
+    }
 
     /// <summary>
-    /// Whether the certificate the stack found has the subject asked for. The stack
-    /// takes one whose common name matches, though the rest of the subject differs:
-    /// before 0.2.0 the subject had no organisation and the stack filled in
-    /// "O=OPC Foundation", which a client then showed when it asked to trust it.
+    /// Whether the certificate the stack found has the subject and the
+    /// ApplicationUri asked for. The stack takes one whose common name matches,
+    /// though the rest of the subject differs: before 0.2.0 the subject had no
+    /// organisation and the stack filled in "O=OPC Foundation", which a client
+    /// then showed when it asked to trust it.
     /// </summary>
-    private static async Task<bool> NamesAsync(ApplicationInstance app, string subjectName)
+    private static async Task<bool> FitsAsync(ApplicationInstance app, string subjectName)
     {
         var certificate = await app.ApplicationConfiguration.SecurityConfiguration.ApplicationCertificate.FindAsync(false).ConfigureAwait(false);
-        return certificate != null && Opc.Ua.X509Utils.CompareDistinguishedName(certificate.Subject, subjectName);
+        return certificate != null
+               && Opc.Ua.X509Utils.CompareDistinguishedName(certificate.Subject, subjectName)
+               && Opc.Ua.X509Utils.GetApplicationUrisFromCertificate(certificate).Contains(app.ApplicationConfiguration.ApplicationUri);
     }
 }
 
