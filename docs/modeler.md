@@ -40,8 +40,12 @@ through the document.
   requires) or `new`; the page answers `ready` when it listens, `dirty`,
   `status`, `apply` with the NodeSet and `save` with the NodeSet and a file
   name. The plugin answers `apply` with `applied` and `save` with `saved`
-  (`ok` and a text). A message sent before `ready` waits; a reload or a
-  crashed renderer puts the bridge back into waiting.
+  (`ok` and a text). From NodeSet.js 0.2.1 on, `apply` and `save` carry
+  `change`, the modeler's count of changes, and the answer carries the same
+  count back: the modeler calls the model clean only when nothing changed
+  since, so edits made while a large model is applied stay unsaved. A message
+  sent before `ready` waits; a reload or a crashed renderer puts the bridge
+  back into waiting.
 - The control shows the modeler and nothing else: navigation to anything but
   `https://nodeset.local/` and new windows are refused, messages count only
   from that origin (whatever sends `apply` writes into the document), and the

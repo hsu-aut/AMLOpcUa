@@ -151,8 +151,19 @@ public sealed class ModelerWebView : IDisposable
     public void NewModel(string modelUri, IEnumerable<string> required) =>
         Send(new { type = "new", modelUri, required = required.ToArray() });
 
-    /// <summary>Answers "apply" ("applied") or "save" ("saved"): whether it worked, and what to show.</summary>
-    public void Reply(string type, bool ok, string text) => Send(new { type, ok, text });
+    /// <summary>The change counts the last "apply" and "save" came with; answered back with them.</summary>
+    private long? _applyChange, _saveChange;
+
+    /// <summary>
+    /// Answers "apply" ("applied") or "save" ("saved"): whether it worked, and what to show.
+    /// The answer carries the change count of the request, so the modeler calls the model
+    /// clean only when nothing changed meanwhile; a modeler that sends none gets none.
+    /// </summary>
+    public void Reply(string type, bool ok, string text) =>
+        Send(new { type, ok, text, change = type == "applied" ? _applyChange : type == "saved" ? _saveChange : null });
+
+    /// <summary>What waits for the page to be ready.</summary>
+    internal string? Pending => _pending;
 
     private static bool IsModeler(string? uri) =>
         Uri.TryCreate(uri, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps && u.Host == VirtualHost;
@@ -167,8 +178,14 @@ public sealed class ModelerWebView : IDisposable
     private void OnMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         if (_disposed || !IsModeler(e.Source)) return;
+        Receive(e.WebMessageAsJson);
+    }
+
+    /// <summary>A message of the modeler page, once its origin is checked.</summary>
+    internal void Receive(string json)
+    {
         Message? m;
-        try { m = JsonSerializer.Deserialize<Message>(e.WebMessageAsJson, Json); }
+        try { m = JsonSerializer.Deserialize<Message>(json, Json); }
         catch (JsonException ex) { Error?.Invoke(L.T("A message from the modeler could not be read: {0}", ex.Message)); return; }
         switch (m?.Type)
         {
@@ -178,9 +195,11 @@ public sealed class ModelerWebView : IDisposable
                 if (_pending is { } p) { _pending = null; _view.CoreWebView2.PostWebMessageAsJson(p); }
                 break;
             case "apply" when m.Xml != null:
+                _applyChange = m.Change;
                 Applied?.Invoke(m.Xml, m.ModelUri ?? "");
                 break;
             case "save" when m.Xml != null:
+                _saveChange = m.Change;
                 SaveRequested?.Invoke(m.Xml, m.Name ?? "Model.NodeSet2.xml");
                 break;
             case "dirty":
@@ -210,5 +229,5 @@ public sealed class ModelerWebView : IDisposable
         catch (InvalidOperationException) { /* the control is gone already */ }
     }
 
-    private sealed record Message(string? Type, string? Xml, string? ModelUri, string? Name, bool? Dirty, string? Text, bool? Warn);
+    private sealed record Message(string? Type, string? Xml, string? ModelUri, string? Name, bool? Dirty, string? Text, bool? Warn, long? Change);
 }
