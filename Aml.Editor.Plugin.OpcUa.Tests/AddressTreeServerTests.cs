@@ -134,4 +134,54 @@ public class AddressTreeServerTests
         Assert.True(collapsed);
         Assert.StartsWith("The server did not answer", status);
     }
+
+    [Fact]
+    public void Taking_nodes_that_fails_leaves_no_empty_hierarchy_behind()
+    {
+        // The hierarchy was made before the server was read; when reading
+        // failed (the server had stopped), an empty "OpcUaServer" stayed.
+        var pki = Directory.CreateTempSubdirectory("opcuaaml-tree-pki-").FullName;
+        List<string>? hierarchies = null;
+        string? status = null;
+        try
+        {
+            OnUiThread(async () =>
+            {
+                var (plant, plugin) = await ConnectedAsync(pki);
+                try
+                {
+                    var document = Aml.Engine.CAEX.CAEXDocument.New_CAEXDocument(Aml.Engine.CAEX.CAEXDocument.CAEXSchema.CAEX3_0);
+                    plugin.DocumentLoaded(document);
+                    var item = plugin.AddressTree.Items.OfType<TreeViewItem>().First();
+                    var box = LogicalTreeHelper(item).OfType<CheckBox>().First();
+                    ((System.Windows.Automation.Provider.IToggleProvider)System.Windows.Automation.Peers.UIElementAutomationPeer.CreatePeerForElement(box)).Toggle();
+                    await plant.DisposeAsync();
+
+                    plugin.MirrorButton.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    await Task.Delay(200);
+                    for (var i = 0; i < 300 && plugin.Busy.Visibility == System.Windows.Visibility.Visible; i++) await Task.Delay(100);
+
+                    hierarchies = document.CAEXFile.InstanceHierarchy.Select(h => h.Name).ToList();
+                    status = plugin.StatusText.Text;
+                }
+                finally
+                {
+                    await plugin.DisconnectAsync();
+                }
+            });
+        }
+        finally { Directory.Delete(pki, recursive: true); }
+
+        Assert.StartsWith("Taking into the document failed", status);
+        Assert.Empty(hierarchies!);
+    }
+
+    private static IEnumerable<System.Windows.DependencyObject> LogicalTreeHelper(System.Windows.DependencyObject root)
+    {
+        foreach (var child in System.Windows.LogicalTreeHelper.GetChildren(root).OfType<System.Windows.DependencyObject>())
+        {
+            yield return child;
+            foreach (var d in LogicalTreeHelper(child)) yield return d;
+        }
+    }
 }

@@ -87,6 +87,8 @@ minor versions.
   most secure endpoint the server offers, which may be signed only. The texts
   say so now.
 
+- "Take into document" that failed (the server had stopped) left an empty
+  InstanceHierarchy behind; one made for it goes again.
 - While the document was served, what "Take into document" or "New
   instance…" reported was replaced about 0.3 s later by the hint to restart
   serving; the hint is added to it now.

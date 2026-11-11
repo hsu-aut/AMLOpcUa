@@ -526,6 +526,7 @@ public partial class OpcUaPlugin
                 ih = null;
             }
         }
+        var made = ih == null;
         ih ??= document.CAEXFile.InstanceHierarchy.Append(ihName);
         MirrorHierarchyBox.Text = ih.Name;
 
@@ -568,6 +569,8 @@ public partial class OpcUaPlugin
         catch (Exception ex)
         {
             PluginLog.Error("Taking into the document failed", ex);
+            // A hierarchy made for this and left empty goes again.
+            if (made && !ih.InternalElement.Any()) document.CAEXFile.InstanceHierarchy.RemoveElement(ih);
             SetStatus(L.T("Taking into the document failed: {0}", ex.Message));
         }
         finally
