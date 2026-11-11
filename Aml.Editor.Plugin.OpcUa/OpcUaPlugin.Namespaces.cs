@@ -514,16 +514,22 @@ public partial class OpcUaPlugin
         if (window.CloudLibraryWanted) return await DownloadFromCloudAsync(search);
         if (chosen == null) return null;
         SetBusy(true, L.T("Downloading {0} …", chosen.ModelUri));
+        var token = BeginCancellable();
         try
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
             var missing = new List<string>();
             var source = OpcfSource();
-            var files = await source.DownloadWithDependenciesAsync(chosen, catalog, missing);
+            var files = await source.DownloadWithDependenciesAsync(chosen, catalog, missing, token);
             foreach (var f in files) PluginLog.Info("Downloaded " + f);
             foreach (var note in source.Notes) PluginLog.Warn("OPC Foundation: " + note);
             foreach (var m in missing) PluginLog.Warn($"The OPC Foundation's repository has no model {m}; the import will ask for it.");
             return files;
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            SetStatus(L.T("Downloading {0} cancelled.", chosen.ModelUri));
+            return null;
         }
         catch (Exception ex)
         {
@@ -533,6 +539,7 @@ public partial class OpcUaPlugin
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }
@@ -541,12 +548,13 @@ public partial class OpcUaPlugin
     private async Task<string?> FetchMissingFromOpcFoundationAsync(IReadOnlyList<ModelRef> missing)
     {
         SetBusy(true, L.T("Fetching the missing models from the OPC Foundation …"));
+        var token = BeginCancellable();
         try
         {
             var catalog = NodeSetCatalog.Create(OpcfFolders().Concat(_settings.NodeSetFolders));
             var notThere = new List<string>();
             var source = OpcfSource();
-            var files = await source.DownloadModelsAsync(missing.Select(m => m.ModelUri), catalog, notThere);
+            var files = await source.DownloadModelsAsync(missing.Select(m => m.ModelUri), catalog, notThere, token);
             foreach (var f in files) PluginLog.Info("Downloaded " + f);
             foreach (var note in source.Notes) PluginLog.Warn("OPC Foundation: " + note);
             if (notThere.Count > 0)
@@ -556,6 +564,10 @@ public partial class OpcUaPlugin
                 ? L.T("The OPC Foundation does not publish {0}. A NodeSet folder or the UA Cloud Library may have it.", string.Join(", ", notThere))
                 : L.T("Nothing could be fetched from the OPC Foundation.");
         }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            return L.T("Fetching from the OPC Foundation was cancelled.");
+        }
         catch (Exception ex)
         {
             PluginLog.Error("Fetching from the OPC Foundation failed", ex);
@@ -563,6 +575,7 @@ public partial class OpcUaPlugin
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }

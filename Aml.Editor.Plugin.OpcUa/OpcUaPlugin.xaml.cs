@@ -427,12 +427,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         // Logged before the work starts, so an import that never ends still leaves a trace.
         PluginLog.Info($"Importing {file}.");
         SetBusy(true, L.T("Converting {0} … The first conversion of a NodeSet takes up to a minute; later ones come from the cache.", Path.GetFileName(file)));
+        var token = BeginCancellable();
         try
         {
             // The conversion runs in a process of its own (ConverterProcess):
             // inside the editor, Aml.Engine's process wide services made it
             // take minutes. Only the merge below touches the open document.
-            var (conversion, notes) = await ConverterProcess.ConvertAsync(file, folders, token: _closing.Token);
+            var (conversion, notes) = await ConverterProcess.ConvertAsync(file, folders, token: token);
+            // From here on the document changes; that is not cut off halfway.
+            EndCancellable();
             foreach (var note in notes) PluginLog.Debug(note);
 
             // The user may have closed the document, or opened another, meanwhile.
@@ -480,7 +483,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         catch (OperationCanceledException)
         {
-            // The plugin is ending; the converter was stopped with it.
+            // Cancelled, or the plugin is ending; the converter was stopped with it.
+            if (!_released)
+            {
+                PluginLog.Info($"Import of {file} cancelled.");
+                SetStatus(L.T("Import of {0} cancelled.", Path.GetFileName(file)));
+            }
             return false;
         }
         catch (ImportException ex)
@@ -497,6 +505,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
             UpdateState();
         }
@@ -886,6 +895,51 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         UpdateCommands();
         if (status != null) SetStatus(status);
         UpdateServerState();
+    }
+
+    /// <summary>The long operation the user may stop with Cancel beside the progress bar.</summary>
+    private CancellationTokenSource? _operation;
+
+    /// <summary>
+    /// A token for a long operation (a conversion, a download, connecting, taking
+    /// nodes): Cancel beside the progress bar stops it, and so does the plugin ending.
+    /// End it with <see cref="EndCancellable"/>.
+    /// </summary>
+    private CancellationToken BeginCancellable()
+    {
+        _operation?.Dispose();
+        _operation = CancellationTokenSource.CreateLinkedTokenSource(_closing.Token);
+        CancelLink.Visibility = Visibility.Visible;
+        return _operation.Token;
+    }
+
+    private void EndCancellable()
+    {
+        CancelLink.Visibility = Visibility.Collapsed;
+        _operation?.Dispose();
+        _operation = null;
+    }
+
+    /// <summary>
+    /// Waits for <paramref name="work"/> until <paramref name="token"/> is cancelled. Some
+    /// calls of the OPC UA stack do not listen to a token (finding an endpoint waits
+    /// for its own timeout); the plugin stops waiting for them, and what such a call
+    /// still brings is handed to <paramref name="discard"/>.
+    /// </summary>
+    internal static async Task<T> UntilCancelled<T>(Task<T> work, CancellationToken token, Func<T, Task> discard)
+    {
+        var cancelled = Task.Delay(Timeout.Infinite, token);
+        if (await Task.WhenAny(work, cancelled) == work) return await work;
+        _ = work.ContinueWith(async t => { if (t.Status == TaskStatus.RanToCompletion) await discard(t.Result); },
+            CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        throw new OperationCanceledException(token);
+    }
+
+    private void CancelLink_Click(object sender, RoutedEventArgs e)
+    {
+        try { _operation?.Cancel(); }
+        catch (ObjectDisposedException) { /* ended meanwhile */ }
+        SetStatus(L.T("Cancelling …"));
     }
 
     /// <summary>The status line; the whole text is in its tooltip when the line is too short.</summary>

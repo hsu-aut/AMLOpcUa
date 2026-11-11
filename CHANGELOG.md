@@ -15,6 +15,13 @@ minor versions.
   Connecting, taking types and nodes and keeping values live can be tried
   without a plant and without the command line. It takes the next free port
   when another server holds 4840.
+- **Cancel** beside the progress bar while a long operation runs: converting a
+  NodeSet, connecting, taking nodes into the document, reading a server's
+  NodeSet, downloading from the OPC Foundation. Before, a server that did not
+  answer or a slow network meant waiting for the stack's timeout. Connecting
+  stops at once even where the stack does not listen; taking nodes stops
+  after the read in progress, since what it read would still go into the
+  document.
 - **Settings › Language**: as Windows, English or Deutsch, from the next start
   of the editor. Before, only the environment variable `AMLOPCUA_LANGUAGE`
   chose, which it still does first.

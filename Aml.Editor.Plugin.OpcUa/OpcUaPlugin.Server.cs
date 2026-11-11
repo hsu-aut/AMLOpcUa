@@ -153,9 +153,10 @@ public partial class OpcUaPlugin : ISupportsSelection
         _settings.Save();
 
         SetBusy(true, L.T("Connecting to {0} …", url));
+        var token = BeginCancellable();
         try
         {
-            var connected = await ConnectWithTrustPromptAsync(url);
+            var connected = await UntilCancelled(ConnectWithTrustPromptAsync(url, token), token, c => c.DisposeAsync().AsTask());
             // Closed while connecting: the session would stay open until the editor ends.
             if (_released)
             {
@@ -163,6 +164,12 @@ public partial class OpcUaPlugin : ISupportsSelection
                 return;
             }
             await AttachClientAsync(connected, url);
+        }
+        // The stack wraps a cancellation in its own exceptions; what counts is that the user cancelled.
+        catch (Exception) when (token.IsCancellationRequested && !_released)
+        {
+            PluginLog.Info($"Connecting to {url} cancelled.");
+            SetStatus(L.T("Connecting to {0} cancelled.", url));
         }
         catch (Exception ex)
         {
@@ -174,6 +181,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
             UpdateServerState();
         }
@@ -241,7 +249,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// instead of trusting silently. Trusted, exactly that certificate is kept,
     /// so the next connection checks it again: a different one is asked about.
     /// </summary>
-    private async Task<UaClient> ConnectWithTrustPromptAsync(string url)
+    private async Task<UaClient> ConnectWithTrustPromptAsync(string url, CancellationToken ct)
     {
         var options = new UaConnectOptions
         {
@@ -252,7 +260,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         };
         try
         {
-            return await UaClient.ConnectAsync(options);
+            return await UaClient.ConnectAsync(options, ct);
         }
         catch (UaConnectionException ex) when (ex.UntrustedCertificate is { } certificate)
         {
@@ -270,7 +278,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             PluginLog.Info($"Trusted the certificate of {url}: {certificate.Subject}, SHA-256 {certificate.Sha256}.");
             try
             {
-                return await UaClient.ConnectAsync(options);
+                return await UaClient.ConnectAsync(options, ct);
             }
             catch (UaConnectionException again) when (again.UntrustedCertificate != null)
             {
@@ -623,18 +631,26 @@ public partial class OpcUaPlugin : ISupportsSelection
         var folder = Path.Combine(ServerNodeSetsFolder, SafeFileName(client.ServerUri ?? client.EndpointUrl));
         ServerNodeSetFiles files;
         SetBusy(true, L.T("Reading the NodeSet of {0} …", ns.Uri));
+        // Rebuilding a large namespace by browsing takes a while; it writes files only.
+        var token = BeginCancellable();
         try
         {
             Directory.CreateDirectory(ModelsFolder);
             var catalog = NodeSetCatalog.Create(KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder));
             files = await ServerNodeSets.FetchForImportAsync(client, ns.Uri, catalog, folder,
-                new ServerNodeSetOptions { IncludeInstances = picker.IncludeInstances });
+                new ServerNodeSetOptions { IncludeInstances = picker.IncludeInstances }, token);
             foreach (var set in files.NodeSets)
             {
                 PluginLog.Info($"{set.ModelUri}: {set.NodeCount} node(s) from the "
                                + (set.Source == ServerNodeSetSource.NamespaceFile ? "file the server publishes." : "server's address space (rebuilt by browsing)."));
                 foreach (var note in set.Notes) PluginLog.Info($"{set.ModelUri}: {note}");
             }
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            PluginLog.Info($"Reading the NodeSet of {ns.Uri} cancelled.");
+            SetStatus(L.T("Reading the NodeSet of {0} cancelled.", ns.Uri));
+            return;
         }
         catch (Exception ex)
         {
@@ -644,6 +660,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
 

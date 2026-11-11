@@ -106,6 +106,13 @@
             <StatusBarItem DockPanel.Dock="Left">
                 <ProgressBar x:Name="Busy" Width="80" Height="12" IsIndeterminate="True" Visibility="Collapsed"/>
             </StatusBarItem>
+            <!-- Beside the progress while a long operation can be stopped. -->
+            <StatusBarItem DockPanel.Dock="Left">
+                <Button x:Name="CancelLink" Click="CancelLink_Click" Padding="4,0" Visibility="Collapsed"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand" ToolTip="{l:T 'Stop what the plugin is doing'}">
+                    <TextBlock Text="{l:T 'Cancel'}" TextDecorations="Underline"/>
+                </Button>
+            </StatusBarItem>
             <!-- The log sits on the first tab; this reaches it from every tab and counts what it has not shown yet. -->
             <StatusBarItem DockPanel.Dock="Right">
                 <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="{l:T 'Four short lessons on the plugin'}"

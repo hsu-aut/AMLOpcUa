@@ -535,6 +535,9 @@ public partial class OpcUaPlugin
         MirrorHierarchyBox.Text = ih.Name;
 
         SetBusy(true, L.T("Reading the selection from the server …"));
+        // Cancel stops the reading; the elements are written after it, all at once.
+        // Waited for, not left running: what it read would still go into the document.
+        var token = BeginCancellable();
         try
         {
             // Removing asks first, with the count: the elements are marked, and removed once the user agrees.
@@ -543,7 +546,8 @@ public partial class OpcUaPlugin
                 {
                     MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished,
                     Progress = NodesFound((n, max) => L.T("Reading the selection from the server … {0} of at most {1} node(s) found.", n, max)),
-                });
+                }, token);
+            EndCancellable();
             bool? removed = null;
             if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)
             {
@@ -572,13 +576,16 @@ public partial class OpcUaPlugin
         }
         catch (Exception ex)
         {
-            PluginLog.Error("Taking into the document failed", ex);
+            var cancelled = token.IsCancellationRequested;
+            if (cancelled) PluginLog.Info("Taking into the document cancelled.");
+            else PluginLog.Error("Taking into the document failed", ex);
             // A hierarchy made for this and left empty goes again.
             if (made && !ih.InternalElement.Any()) document.CAEXFile.InstanceHierarchy.RemoveElement(ih);
-            SetStatus(L.T("Taking into the document failed: {0}", ex.Message));
+            SetStatus(cancelled ? L.T("Taking into the document cancelled.") : L.T("Taking into the document failed: {0}", ex.Message));
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
             UpdateServerState();
         }
