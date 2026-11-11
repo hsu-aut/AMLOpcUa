@@ -655,8 +655,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var nodeSet = await Task.Run(() => OpcUaAml.Export.NodeSetExporter.Export(xml, options));
             nodeSet.Save(dialog.FileName);
             var nodes = nodeSet.Root?.Elements().Count(x => x.Name.LocalName.StartsWith("UA")) ?? 0;
+            // What the export left out or changed, as the command line prints it.
+            var notes = OpcUaAml.Export.NodeSetExporter.NotesOf(nodeSet);
+            foreach (var note in notes) PluginLog.Warn("Export: " + note);
             PluginLog.Info($"Exported {nodes} node(s) to {dialog.FileName}.");
-            SetStatus(L.T("Exported {0} node(s) to {1}.", nodes, Path.GetFileName(dialog.FileName)));
+            SetStatus(L.T("Exported {0} node(s) to {1}.", nodes, Path.GetFileName(dialog.FileName))
+                      + (notes.Count > 0 ? L.T(" {0} note(s) in the log.", notes.Count) : ""));
         }
         catch (Exception ex)
         {

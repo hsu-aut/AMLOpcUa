@@ -485,15 +485,19 @@ public partial class OpcUaPlugin
     /// Asks whether to remove the elements a mirror found gone from the server
     /// (marked with NotOnServer), naming them; removes them on yes.
     /// </summary>
-    private bool RemoveVanished(InternalElementType server, IReadOnlyList<string> vanished)
+    /// <remarks>
+    /// Exactly the elements this run found gone: it removed every element marked
+    /// NotOnServer below the server, also those an earlier run of another part
+    /// had marked and the dialog never named.
+    /// </remarks>
+    private bool RemoveVanished(IReadOnlyList<InternalElementType> elements, IReadOnlyList<string> vanished)
     {
         var shown = string.Join(Environment.NewLine, vanished.Take(12)) + (vanished.Count > 12 ? Environment.NewLine + L.T("… and {0} more (see log)", vanished.Count - 12) : "");
         if (!DialogKit.Confirm(Window.GetWindow(this), "\uE74D", DialogKit.Danger, L.T("Remove {0} element(s)?", vanished.Count),
                 L.T("The server no longer has their nodes. Removed, they leave the document with everything below them; Ctrl+Z in the editor does not bring them back. Not removed, they stay, marked with NotOnServer."),
                 L.T("Remove"), DialogKit.Facts((L.T("Elements"), shown, false)), risky: true))
             return false;
-        var marked = server.Descendants<InternalElementType>().Where(e => e.Attribute[MirrorOptions.NotOnServerAttribute] != null).ToList();
-        foreach (var e in marked)
+        foreach (var e in elements)
             if (e.CAEXParent is InternalElementType parent) parent.InternalElement.RemoveElement(e);
         return true;
     }
@@ -544,7 +548,7 @@ public partial class OpcUaPlugin
             if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)
             {
                 SetBusy(false, null);
-                removed = RemoveVanished(result.Server, result.Vanished);
+                removed = RemoveVanished(result.VanishedElements, result.Vanished);
             }
             var counts = L.T("{0} node(s), {1} added, {2} updated, {3} typed by an imported UA type", result.Nodes, result.Created, result.Updated, result.Typed);
             if (result.Linked > 0) counts += ", " + L.T("{0} linked to their planned element", result.Linked);

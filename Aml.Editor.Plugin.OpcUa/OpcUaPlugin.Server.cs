@@ -370,6 +370,20 @@ public partial class OpcUaPlugin : ISupportsSelection
     }
 
     /// <summary>
+    /// What keeping values live follows: the bound values of this server, those
+    /// bound to another server, and those this server does not have.
+    /// </summary>
+    internal static string LiveStartText(int count, int skipped, int notOnServer, string endpoint)
+    {
+        if (count == 0 && notOnServer > 0) return L.T("None of the {0} bound value(s) is on {1} (see log).", notOnServer, endpoint);
+        if (count == 0) return L.T("No element of this document is bound to this server.");
+        var text = L.T("Following {0} bound value(s) of {1}", count, endpoint);
+        if (skipped > 0) text += L.T("; {0} bound to another server left out", skipped);
+        if (notOnServer > 0) text += L.T("; {0} not on this server (see log)", notOnServer);
+        return text + ".";
+    }
+
+    /// <summary>
     /// Says that the served document gained or lost elements, after what the
     /// command that changed it reported, not instead of it.
     /// </summary>
@@ -731,11 +745,9 @@ public partial class OpcUaPlugin : ISupportsSelection
                     SetStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
                 });
             foreach (var p in _live.Problems) PluginLog.Warn(p);
-            var message = _live.Skipped > 0
-                ? L.T("Following {0} bound value(s) of {1}; {2} bound to another server left out.", _live.Count, _client.EndpointUrl, _live.Skipped)
-                : L.T("Following {0} bound value(s) of {1}.", _live.Count, _client.EndpointUrl);
+            var message = LiveStartText(_live.Count, _live.Skipped, _live.NotOnServer, _client.EndpointUrl);
             PluginLog.Info(message);
-            SetStatus(_live.Count == 0 ? L.T("No element of this document is bound to this server.") : message);
+            SetStatus(message);
             if (_live.Count == 0) await StopLiveAsync();
         }
         catch (Exception ex)

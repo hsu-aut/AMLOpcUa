@@ -15,6 +15,22 @@ minor versions.
   Connecting, taking types and nodes and keeping values live can be tried
   without a plant and without the command line. It takes the next free port
   when another server holds 4840.
+- `uaaml`: `--user <name>` on every command that connects, the password from
+  `AMLOPCUA_PASSWORD` or a prompt, never from the command line; `uaaml watch
+  <endpoint> <node>…` prints value changes; `uaaml clients --nodeset` manages
+  the clients of the NodeSet server; `serve --for <seconds>`; `design export
+  --search` for the models a design builds on.
+
+### Changed
+
+- `uaaml serve` keeps serving when started with closed input (from a script);
+  it stops with Ctrl+C or Enter. Before, it stopped at once.
+- `uaaml snapshot <doc>` without an endpoint connects unsecured only with
+  `--insecure`, even when the document describes the server as unsecured.
+- `uaaml nodeset --into` converts a CAEX 2.15 document to CAEX 3.0 first, as
+  `import --into` does.
+- The folder of NodeSets read from a server is named by the server's new
+  ApplicationUri; NodeSets read before are read again once.
 
 ### Fixed
 
@@ -22,6 +38,55 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- **Removing vanished nodes removed more than it named.** "Take into document"
+  with "remove them, after asking" removed every element marked NotOnServer
+  below the server, also those an earlier run of another part had marked,
+  which the dialog never listed and Ctrl+Z does not bring back. It removes
+  exactly the elements this run found gone.
+- The servers and the client named this computer in their ApplicationUris, so
+  a document taken from a server on one computer did not recognise the same
+  server on another (the booth laptop): live values and reading skipped every
+  binding, and taking again added a second server element. The URIs no longer
+  name the computer (`urn:AMLOpcUa:DocumentServer`, `…:NodeSetServer`,
+  `…:Client`), and documents taken with 0.2.0 keep matching. A server
+  certificate made with the old URI is replaced once at start, so clients that
+  trusted it are asked again; the client keeps its certificate. A client
+  certificate copied from another computer no longer breaks every connection.
+- Own certificates of the servers and the client are made anew when they
+  expire within 30 days; the stack never renewed them, and after a year every
+  secured connection would have failed.
+- Stopping a server while a client was connected froze the editor for five
+  seconds.
+- A port already in use (another OPC UA server, a second editor) is named as
+  such, "Port N is in use …", instead of the stack's "Failed to establish tcp
+  listener sockets".
+- The document server read a decimal comma as a thousands separator: "3,5" as
+  `xs:double` was served as 35. It is served as text now, as documented for
+  values the type cannot hold.
+- While simulating, edited texts and dates (a Manufacturer, say) never reached
+  clients; they do at once.
+- Keeping values live and watching counted bound nodes the server does not have
+  as followed, and they never moved; they are named in the status and the log.
+- The "as it was" export (inverse of Annex A) left out instances that Apply
+  had put into the document, and their children pointed at nodes missing from
+  the file; they are written below Objects, and each Apply below an element
+  gets NodeIds of its own instead of merging with the one before.
+- The export dropped every InternalLink of a CAEX 3.0 document (sides given as
+  interface IDs); they are exported between the two interfaces they connect
+  (D20).
+- NodeIds with spaces came back from the "as it was" export and the state
+  machine view with "+" for each space.
+- The "as it was" export cut fractions of a second from date and time values,
+  and wrote the fields of a structure value in the wrong order when the
+  structure inherits fields.
+- Exported NodeSets got invalid dates on computers with some regional settings
+  (dots in the time on Finnish Windows, a year 543 too high on Thai Windows).
+- What the export leaves out (D18) was collected and never shown; the plugin
+  logs it and says how many notes there are, the command line prints them.
+- A ModelDesign of a model built on DI or another companion specification
+  named those nodes by raw NodeIds, which the ModelCompiler refuses; they are
+  named as the compiler expects, and a design that cannot be named is refused
+  with the node it lacks.
 - Importing a NodeSet that declares the same alias twice failed after its
   libraries were already in the document; the import goes through and uses
   the last value, as Opc2Aml does. The round trip and a server's NodeSet read

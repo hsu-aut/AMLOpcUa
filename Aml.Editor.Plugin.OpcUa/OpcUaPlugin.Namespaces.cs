@@ -217,7 +217,10 @@ public partial class OpcUaPlugin
                 Mode = ExportMode.AnnexAInverse,
                 NamespaceUri = uri,
             });
-            var identifiers = ModelDesignWriter.From(nodeSet).Save(dialog.FileName);
+            foreach (var note in NodeSetExporter.NotesOf(nodeSet)) PluginLog.Warn("Export: " + note);
+            // Nodes of the models it builds on (DI, Machinery …) are named from their NodeSets.
+            var catalog = NodeSetCatalog.Create(KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder));
+            var identifiers = ModelDesignWriter.From(nodeSet, new ModelDesignOptions { Catalog = catalog }).Save(dialog.FileName);
             PluginLog.Info($"ModelDesign of {uri} written to {dialog.FileName}, identifiers to {identifiers ?? "(none)"}.");
             SetStatus(identifiers != null
                 ? L.T("ModelDesign written to {0}, with {1} beside it. The ModelCompiler turns it into a NodeSet and code.", Path.GetFileName(dialog.FileName), Path.GetFileName(identifiers))
