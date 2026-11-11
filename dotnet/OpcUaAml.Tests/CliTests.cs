@@ -140,6 +140,26 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.Contains("'uaaml clients --nodeset'", run.Out);
     }
 
+    [Fact]
+    public async Task Serve_keeps_serving_when_its_input_is_at_its_end()
+    {
+        // Started by a script, a scheduled task or another program, the input is at
+        // its end at once; serve stopped then, before any client came.
+        using var uaaml = new Uaaml();
+        var file = uaaml.Save(Plant());
+        var port = Uaaml.FreePort();
+        var (output, error) = (new StringWriter(), new StringWriter());
+
+        var run = uaaml.StartAsync(output, error, "serve", file, "--port", Number(port), "--for", "5");
+        for (var i = 0; i < 300 && !run.IsCompleted && !output.ToString().Contains("Serving", StringComparison.Ordinal); i++) await Task.Delay(100);
+        await Task.Delay(1000);
+
+        Assert.False(run.IsCompleted, $"serve stopped: {output}{error}");
+        using (var tcp = new System.Net.Sockets.TcpClient()) await tcp.ConnectAsync(System.Net.IPAddress.Loopback, port);
+        Assert.Equal(0, await run.WaitAsync(TimeSpan.FromSeconds(30)));
+        Assert.Contains("Ctrl+C", output.ToString());
+    }
+
     private const string PasswordVariable = "AMLOPCUA_PASSWORD";
 
     /// <summary>Runs with the password variable set as given, and puts it back afterwards.</summary>

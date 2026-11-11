@@ -112,9 +112,9 @@ public static class Program
             (--accept and --user then need an endpoint: the servers a document
             names are not trusted blindly, nor sent a password).
 
-        uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]...
-            Serve a NodeSet with its types as an OPC UA server until Enter, on
-            the port OPC UA is registered for (4840): the
+        uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]... [--for <seconds>]
+            Serve a NodeSet with its types as an OPC UA server until Ctrl+C or
+            Enter (or for the seconds given), on the port OPC UA is registered for (4840): the
             plant that does not exist yet, or a companion specification to try a
             client against. The models it requires are loaded first, from the
             bundled NodeSets and the folders searched. Each model is offered as
@@ -122,9 +122,10 @@ public static class Program
             the NodeSet from the server ('uaaml nodeset'); --no-publish leaves
             that out, and the client rebuilds it by browsing.
 
-        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate]
-            Serve the document's instance hierarchies as an OPC UA server until Enter,
-            to this computer only. --network offers it to other computers: secured
+        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate] [--for <seconds>]
+            Serve the document's instance hierarchies as an OPC UA server until
+            Ctrl+C or Enter (or for the seconds given), to this computer only. An
+            input at its end (a script, a scheduled task) does not stop it. --network offers it to other computers: secured
             endpoints only, and only to clients whose certificate is trusted.
             --simulate lets numbers swing around the document's values and
             booleans toggle, as in a running plant.
@@ -766,13 +767,16 @@ public static class Program
 
     private static async Task<int> ServeCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search" },
+        var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search", "--for" },
             flags: new[] { "--network", "--simulate", "--no-publish" });
         var network = o.Has("--network");
         var nodeSets = o.All("--nodeset");
         var where = !network ? ", to this computer only."
             : nodeSets.Count > 0 ? " to the network, to trusted clients only (see 'uaaml clients --nodeset')."
             : " to the network, to trusted clients only (see 'uaaml clients').";
+        var limit = Seconds(o, "--for");
+        var stop = limit != null ? $" Stops after {limit.Value.TotalSeconds:0} s, or with Ctrl+C."
+            : Console.IsInputRedirected ? " Press Ctrl+C to stop." : " Press Enter or Ctrl+C to stop.";
 
         if (nodeSets.Count > 0)
         {
@@ -792,17 +796,56 @@ public static class Program
             Console.WriteLine($"Serving {plant.Nodes} node(s) of {string.Join(", ", plant.Served)} at {plant.EndpointUrl}"
                               + where
                               + (options.PublishNodeSets ? " Each model is offered as its NamespaceFile." : "")
-                              + " Press Enter to stop.");
-            Console.ReadLine();
+                              + stop);
+            await UntilStoppedAsync(limit);
             return 0;
         }
 
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
         await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki });
-        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + " Press Enter to stop.");
-        Console.ReadLine();
+        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + stop);
+        await UntilStoppedAsync(limit);
         return 0;
+    }
+
+    /// <summary>A number of seconds given with an option, or null without it.</summary>
+    private static TimeSpan? Seconds(Options o, string option) => o.One(option) is not { } text ? null
+        : int.TryParse(text, out var s) && s > 0 ? TimeSpan.FromSeconds(s)
+        : throw new ArgumentException($"{option}: '{text}' is not a positive number of seconds.");
+
+    /// <summary>
+    /// Waits until the user stops: Ctrl+C, Enter, or the time given. An input
+    /// at its end, as a script, a scheduled task or another program leaves it,
+    /// stops nothing; it used to stop serve at once.
+    /// </summary>
+    private static async Task UntilStoppedAsync(TimeSpan? limit)
+    {
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnCancel(object? sender, ConsoleCancelEventArgs e)
+        {
+            // Ctrl+C ends the wait, so the server is stopped and disposed, not the process killed.
+            e.Cancel = true;
+            stopped.TrySetResult();
+        }
+        Console.CancelKeyPress += OnCancel;
+        try
+        {
+            var input = Console.In;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (input.ReadLine() != null) stopped.TrySetResult();
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException) { /* no input to read */ }
+            });
+            await (limit is { } l ? Task.WhenAny(stopped.Task, Task.Delay(l)) : stopped.Task);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= OnCancel;
+        }
     }
 
     private static int ClientsCommand(List<string> args)
