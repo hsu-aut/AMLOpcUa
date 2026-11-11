@@ -87,6 +87,9 @@ minor versions.
   most secure endpoint the server offers, which may be signed only. The texts
   say so now.
 
+- While the document was served, what "Take into document" or "New
+  instance…" reported was replaced about 0.3 s later by the hint to restart
+  serving; the hint is added to it now.
 - A modeler that could not start (WebView2 missing, the modeler's files
   missing) never tried again until the editor was restarted, and Edit then
   said "Opened …" over the reason although nothing was shown. Each visit to

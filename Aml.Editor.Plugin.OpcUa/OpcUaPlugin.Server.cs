@@ -344,8 +344,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 if (changed > 0) PluginLog.Debug($"Served values updated: {changed}.");
                 if (!host.StructureChanged || _structureNoted) return;
                 _structureNoted = true;
-                PluginLog.Info("Elements were added or removed; restart serving to show them.");
-                SetStatus(L.T("The document server shows the values as they change; restart it to show added or removed elements."));
+                NoteServedStructureChanged();
             });
             var message = (network, simulate) switch
             {
@@ -368,6 +367,18 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetBusy(false, null);
             UpdateServerState();
         }
+    }
+
+    /// <summary>
+    /// Says that the served document gained or lost elements, after what the
+    /// command that changed it reported, not instead of it.
+    /// </summary>
+    internal void NoteServedStructureChanged()
+    {
+        var hint = L.T("Restart serving to show added or removed elements.");
+        PluginLog.Info("Elements were added or removed; restart serving to show them.");
+        if (StatusText.Text.Contains(hint, StringComparison.Ordinal)) return;
+        SetStatus(StatusText.Text.Length > 0 ? StatusText.Text + "  " + hint : hint);
     }
 
     /// <summary>Stops the document server, if it runs; <paramref name="why"/> goes into the message.</summary>

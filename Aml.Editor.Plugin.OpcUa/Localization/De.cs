@@ -602,7 +602,7 @@ internal static class De
         ["The document changed while {0} was converted; import it again into the open one."] = "Das Dokument hat sich geändert, während {0} umgewandelt wurde; importiere es erneut in das geöffnete.",
         ["The document has no {0}. Process descriptions come from the FPB plugin (VDI 3682 library)."] = "Das Dokument enthält kein Element vom Typ {0}. Prozessbeschreibungen kommen aus dem FPB-Plugin (Bibliothek VDI 3682).",
         ["The document holds no OPC UA model imported by Annex A."] = "Das Dokument enthält kein nach Annex A importiertes OPC-UA-Modell.",
-        ["The document server shows the values as they change; restart it to show added or removed elements."] = "Der Dokumentserver zeigt die Werte an, sobald sie sich ändern; starte ihn neu, um hinzugefügte oder entfernte Elemente zu zeigen.",
+        ["Restart serving to show added or removed elements."] = "Starte die Bereitstellung neu, um hinzugefügte oder entfernte Elemente zu zeigen.",
         ["the document was closed"] = "das Dokument wurde geschlossen",
         ["The documentation URL is not a URL."] = "Die Dokumentations-URL ist keine URL.",
         ["The earlier state stays as it is."] = "Der bisherige Stand bleibt, wie er ist.",
