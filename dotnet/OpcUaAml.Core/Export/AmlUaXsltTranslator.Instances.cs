@@ -486,11 +486,12 @@ internal sealed partial class AmlUaXsltTranslator
             node.Ref("HasTypeDefinition", icAliasName);
         foreach (var r in References(ei, Attr(ei, "ID"), nsId)) node.References.Add(r);
 
-        foreach (var link in _internalLinks.Where(l => l.InterfaceSideA == interfaceName && l.ParentSideA == parentId))
-            foreach (var partner in LinkPartners(link.ParentSideB, link.InterfaceSideB, nsId))
+        // D20: a side that names an interface by its ID (CAEX 3.0) is that interface.
+        foreach (var link in _internalLinks.Where(l => l.InterfaceA != null ? l.InterfaceA == ei : l.InterfaceSideA == interfaceName && l.ParentSideA == parentId))
+            foreach (var partner in LinkPartners(link.InterfaceB, link.ParentSideB, link.InterfaceSideB, nsId))
                 node.Ref("HasAMLInternalLink", partner);
-        foreach (var link in _internalLinks.Where(l => l.InterfaceSideB == interfaceName && l.ParentSideB == parentId))
-            foreach (var partner in LinkPartners(link.ParentSideA, link.InterfaceSideA, nsId))
+        foreach (var link in _internalLinks.Where(l => l.InterfaceB != null ? l.InterfaceB == ei : l.InterfaceSideB == interfaceName && l.ParentSideB == parentId))
+            foreach (var partner in LinkPartners(link.InterfaceA, link.ParentSideA, link.InterfaceSideA, nsId))
                 node.Ref("HasAMLInternalLink", partner, forward: false);
         Emit(node);
         ApplyId(ei);
@@ -522,8 +523,9 @@ internal sealed partial class AmlUaXsltTranslator
     /// there is none. D8: one reference per match, in the partner's namespace,
     /// none without a match.
     /// </summary>
-    private IEnumerable<string> LinkPartners(string parentId, string interfaceName, string nsId)
+    private IEnumerable<string> LinkPartners(XElement? byId, string parentId, string interfaceName, string nsId)
     {
+        if (byId != null) return new[] { FormatRef(Attr(byId, "ID"), NamespaceId(byId)) };
         _elementsById ??= _root.DescendantsAndSelf().Where(e => e.Attribute("ID") != null).ToLookup(e => e.Attribute("ID")!.Value, StringComparer.Ordinal);
         var matches = _elementsById[parentId]
             .SelectMany(e => e.Descendants())

@@ -77,7 +77,7 @@ internal sealed partial class AmlUaXsltTranslator
         _allAttributes = root.DescendantsAndSelf().SelectMany(Attributes).ToList();
         _importedLibraries = ImportedAmlLibraries();
         _namespaceUris = NamespaceUris();
-        _internalLinks = root.Descendants().Where(e => L(e) == "InternalLink").Select(InternalLinkSides.Of).ToList();
+        _internalLinks = root.Descendants().Where(e => L(e) == "InternalLink").Select(SidesOf).ToList();
     }
 
     public XDocument Translate()
@@ -600,14 +600,52 @@ internal sealed partial class AmlUaXsltTranslator
     private string SourceDocumentInformationName(XElement sdi) =>
         _compat ? RemoveSpace(L(sdi)) : NumberedElementName(sdi);
 
-    /// <summary>One InternalLink with its two sides split at the colon.</summary>
+    /// <summary>
+    /// One InternalLink with its two sides split at the colon, as CAEX 2.15
+    /// writes them ("element ID:interface name") and the XSLT reads them.
+    /// </summary>
     private sealed record InternalLinkSides(string Name, string ParentSideA, string InterfaceSideA, string ParentSideB, string InterfaceSideB)
     {
+        /// <summary>The interface side A names by its ID alone, as CAEX 3.0 writes a side (D20); null otherwise.</summary>
+        public XElement? InterfaceA { get; init; }
+
+        /// <summary>The interface side B names by its ID alone (D20); null otherwise.</summary>
+        public XElement? InterfaceB { get; init; }
+
         public static InternalLinkSides Of(XElement link)
         {
             var a = Attr(link, "RefPartnerSideA");
             var b = Attr(link, "RefPartnerSideB");
             return new InternalLinkSides(Attr(link, "Name"), Before(a, ":"), After(a, ":"), Before(b, ":"), After(b, ":"));
         }
+    }
+
+    /// <summary>
+    /// D20: CAEX 3.0 names each side of an InternalLink by the ID of its
+    /// interface. Split at the colon such a side is nothing, and the XSLT
+    /// drops every link of a CAEX 3.0 document. The default takes a side that
+    /// is the ID of an ExternalInterface as that interface; any other side is
+    /// split as before.
+    /// </summary>
+    private InternalLinkSides SidesOf(XElement link)
+    {
+        var sides = InternalLinkSides.Of(link);
+        if (_compat) return sides;
+        return sides with
+        {
+            InterfaceA = InterfaceById(Attr(link, "RefPartnerSideA")),
+            InterfaceB = InterfaceById(Attr(link, "RefPartnerSideB")),
+        };
+    }
+
+    private Dictionary<string, XElement>? _interfacesById;
+
+    private XElement? InterfaceById(string side)
+    {
+        if (side.Length == 0) return null;
+        _interfacesById ??= _root.Descendants().Where(e => L(e) == "ExternalInterface" && e.Attribute("ID") != null)
+            .GroupBy(e => e.Attribute("ID")!.Value, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        return _interfacesById.GetValueOrDefault(side);
     }
 }

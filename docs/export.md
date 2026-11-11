@@ -328,6 +328,16 @@ the first library that carries the name, whatever kind it is, so a class of
 the next kind is never found and its `HasTypeDefinition` disappears without a
 word.
 
+### D20 InternalLinks of CAEX 3.0
+
+CAEX 3.0 names each side of an InternalLink by the ID of its interface;
+CAEX 2.15 wrote `element ID:interface name`. The XSLT splits every side at the
+colon, so a side of the 3.0 form is nothing to it and every link of a CAEX 3.0
+document is dropped without a word. A side that is the ID of an
+ExternalInterface is taken as that interface, and `HasAMLInternalLink` leads
+from one interface to exactly the other; a side of the 2.15 form is split as
+before. `ExportInternalLinkTests`.
+
 ### Beyond the deviations: what a NodeSet must be
 
 Three things the XSLT produces that are not a matter of taste, because the OPC
