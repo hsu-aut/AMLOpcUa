@@ -67,7 +67,7 @@ internal sealed class Uaaml : IDisposable
 }
 
 [Trait("Speed", "Slow")]
-public class CliTests
+public class CliTests(TestServer server) : IClassFixture<TestServer>
 {
     private static CAEXDocument Plant()
     {
@@ -138,5 +138,44 @@ public class CliTests
 
         Assert.True(run.Exit == 0, run.Error);
         Assert.Contains("'uaaml clients --nodeset'", run.Out);
+    }
+
+    private const string PasswordVariable = "AMLOPCUA_PASSWORD";
+
+    /// <summary>Runs with the password variable set as given, and puts it back afterwards.</summary>
+    private static async Task<T> WithPassword<T>(string? password, Func<Task<T>> run)
+    {
+        var before = Environment.GetEnvironmentVariable(PasswordVariable);
+        Environment.SetEnvironmentVariable(PasswordVariable, password);
+        try { return await run(); }
+        finally { Environment.SetEnvironmentVariable(PasswordVariable, before); }
+    }
+
+    [Fact]
+    public async Task A_user_logs_in_with_the_password_from_the_environment_never_from_the_command_line()
+    {
+        using var uaaml = new Uaaml();
+
+        // Unsecured the password would travel in clear text, so the client refuses:
+        // which shows that the user name reached it.
+        var run = await WithPassword("secret", () => uaaml.RunAsync("read", server.EndpointUrl, "/Plant/Pump1/Speed", "--insecure", "--accept", "--user", "operator"));
+        var onTheLine = await WithPassword("secret", () => uaaml.RunAsync("read", server.EndpointUrl, "/Plant/Pump1/Speed", "--accept", "--user", "operator", "--password", "secret"));
+
+        Assert.Equal(1, run.Exit);
+        Assert.Contains("clear text", run.Error);
+        Assert.DoesNotContain("Password for", run.Error);
+        Assert.Equal(1, onTheLine.Exit);
+        Assert.Contains("Unknown option '--password'", onTheLine.Error);
+    }
+
+    [Fact]
+    public async Task Without_the_environment_the_password_is_asked_for()
+    {
+        using var uaaml = new Uaaml { Input = "secret\n" };
+
+        var run = await WithPassword(null, () => uaaml.RunAsync("browse", server.EndpointUrl, "--insecure", "--accept", "--user", "operator"));
+
+        Assert.Contains("Password for operator: ", run.Error);
+        Assert.Contains("clear text", run.Error);
     }
 }

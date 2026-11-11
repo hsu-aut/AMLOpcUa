@@ -47,6 +47,10 @@ server it was bound to ([export](export.md), D16).
 
 - **Connect** to an endpoint, anonymous or with user name and password. The
   client creates its own certificate under `%LOCALAPPDATA%\AMLOpcUa\pki`.
+  On the command line `--user <name>` logs in; the password comes from the
+  environment variable `AMLOPCUA_PASSWORD` or is asked for without echo,
+  never from the command line, where the process list and the shell history
+  would show it.
   - With security on (the default of the plugin and of `uaaml`), only a
     secured endpoint (Sign or SignAndEncrypt) is taken; a server that offers
     none is refused rather than used unsecured. `uaaml --insecure` and the
