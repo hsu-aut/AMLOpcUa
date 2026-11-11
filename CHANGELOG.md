@@ -87,6 +87,12 @@ minor versions.
   most secure endpoint the server offers, which may be signed only. The texts
   say so now.
 
+- A modeler that could not start (WebView2 missing, the modeler's files
+  missing) never tried again until the editor was restarted, and Edit then
+  said "Opened …" over the reason although nothing was shown. Each visit to
+  the tab tries again, and nothing is reported as opened while it does not
+  run. Saving from the modeler no longer opens its dialog inside WebView2's
+  message event, which WebView2 does not allow.
 - Keys pressed in the Modeler tab reached the editor first: Ctrl+Z undid the
   last change of the AML document instead of the modeler's, and Ctrl+S, Ctrl+C,
   Ctrl+V and Delete acted on the document too. The modeler now keeps its keys.

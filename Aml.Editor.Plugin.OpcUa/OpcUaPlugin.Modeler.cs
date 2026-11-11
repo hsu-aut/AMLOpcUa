@@ -61,13 +61,25 @@ public partial class OpcUaPlugin
         };
     }
 
-    private async Task EnsureModelerAsync()
+    /// <summary>
+    /// Starts the modeler, or tries again after it could not start (the reason is
+    /// in its status line); true when it runs.
+    /// </summary>
+    private async Task<bool> EnsureModelerAsync()
     {
-        if (_modeler != null) return;
+        if (_modeler == null) CreateModeler();
+        await _modeler!.InitAsync();
+        return _modeler.Available;
+    }
+
+    private void CreateModeler()
+    {
         _modeler = new ModelerWebView(ModelerView);
         _modeler.SetTheme(ThemePalette.Current(this).Dark);
         _modeler.Applied += (xml, uri) => Dispatcher.InvokeAsync(() => ApplyModelAsync(xml, uri));
-        _modeler.SaveRequested += (xml, name) => Dispatcher.Invoke(() => SaveModel(xml, name));
+        // Later, not inside WebView2's message event: the save dialog runs a loop of
+        // its own, which WebView2 does not allow there.
+        _modeler.SaveRequested += (xml, name) => Dispatcher.InvokeAsync(() => SaveModel(xml, name));
         _modeler.DirtyChanged += dirty => Dispatcher.Invoke(() => ModelerTab.Header = dirty ? L.T("Modeler *") : L.T("Modeler"));
         _modeler.Status += (text, warn) => Dispatcher.Invoke(() =>
         {
@@ -79,7 +91,6 @@ public partial class OpcUaPlugin
             ModelerStatus.Text = message;
             PluginLog.Error("Modeler: " + message);
         });
-        await _modeler.InitAsync();
     }
 
     /// <summary>Tells what went wrong in the modeler's status line and the log.</summary>
@@ -156,7 +167,8 @@ public partial class OpcUaPlugin
         if (ModelerNamespaceBox.SelectedItem is not string uri || !MayReplaceModel()) return;
         try
         {
-            await EnsureModelerAsync();
+            // Not started: its status line says why, and nothing is opened.
+            if (!await EnsureModelerAsync()) return;
             var catalog = ModelerCatalog();
             var info = catalog.Find(uri);
             if (info == null)
@@ -186,7 +198,7 @@ public partial class OpcUaPlugin
             InitialDirectory = _settings.LastNodeSetFolder ?? "",
         };
         if (dialog.ShowDialog() != true) return;
-        await EnsureModelerAsync();
+        if (!await EnsureModelerAsync()) return;
         var info = NodeSetInfo.TryRead(dialog.FileName);
         if (info == null)
         {
@@ -238,7 +250,7 @@ public partial class OpcUaPlugin
         if (!MayReplaceModel()) return;
         try
         {
-            await EnsureModelerAsync();
+            if (!await EnsureModelerAsync()) return;
             _modeler!.NewModel(uri, Array.Empty<string>());
             _modelerNewUri = uri;
         }

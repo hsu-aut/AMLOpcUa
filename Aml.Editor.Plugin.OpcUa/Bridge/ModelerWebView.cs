@@ -41,7 +41,20 @@ public sealed class ModelerWebView : IDisposable
     public event Action<string, bool>? Status;
     public event Action<string>? Error;
 
-    public ModelerWebView(WebView2 view) => _view = view;
+    private readonly string _assets;
+
+    /// <param name="assets">The modeler's web build; the plugin's modeler-assets folder when null.</param>
+    public ModelerWebView(WebView2 view, string? assets = null)
+    {
+        _view = view;
+        _assets = assets ?? AssetsPath();
+    }
+
+    /// <summary>
+    /// Whether the modeler started and loads its page. False after a failure,
+    /// which <see cref="Error"/> told; the next <see cref="InitAsync"/> tries again.
+    /// </summary>
+    public bool Available { get; private set; }
 
     public bool IsDirty { get; private set; }
 
@@ -75,6 +88,13 @@ public sealed class ModelerWebView : IDisposable
 
     private async Task StartAsync()
     {
+        // Looked at first: without the page there is nothing to start WebView2 for.
+        if (!File.Exists(Path.Combine(_assets, "index.html")))
+        {
+            _started = false;
+            Error?.Invoke(L.T("The modeler is missing from the plugin folder ({0}).", _assets));
+            return;
+        }
         // WebView2 keeps its profile next to the executable unless told
         // otherwise; under Program Files that folder is not writable.
         _view.CreationProperties = new CoreWebView2CreationProperties
@@ -92,12 +112,7 @@ public sealed class ModelerWebView : IDisposable
         }
         if (_disposed) return;
 
-        var assets = AssetsPath();
-        if (!File.Exists(Path.Combine(assets, "index.html")))
-        {
-            Error?.Invoke(L.T("The modeler is missing from the plugin folder ({0}).", assets));
-            return;
-        }
+        var assets = _assets;
         var core = _view.CoreWebView2;
         // No white flash before the page has its theme.
         _view.DefaultBackgroundColor = Dark ? System.Drawing.Color.FromArgb(255, 0x1F, 0x1F, 0x1F) : System.Drawing.Color.White;
@@ -121,6 +136,7 @@ public sealed class ModelerWebView : IDisposable
             Error?.Invoke(L.T("The modeler stopped ({0}); reload it with the button above.", e.ProcessFailedKind));
         };
         core.Navigate($"https://{VirtualHost}/index.html");
+        Available = true;
     }
 
     public void Reload()

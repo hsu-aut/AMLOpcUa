@@ -616,7 +616,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 case NamespaceAction.Modeler:
                     if (!MayReplaceModel()) return;
                     Tabs.SelectedItem = ModelerTab;
-                    await EnsureModelerAsync();
+                    if (!await EnsureModelerAsync()) return;
                     if (NodeSetInfo.TryRead(files.Paths[0]) is { } info) OpenInModeler(info, ModelerCatalog(folder));
                     else SetStatus(L.T("The NodeSet of {0} could not be read back from {1}.", ns.Uri, files.Paths[0]));
                     break;
