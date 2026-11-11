@@ -241,6 +241,38 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task While_simulating_edited_texts_and_dates_are_served_at_once()
+    {
+        // The simulation moves numbers and booleans; a text or a date it does
+        // not move, so an edit of the Manufacturer has to reach the clients itself.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("SimText");
+        var manufacturer = ih.InternalElement.Append("Manufacturer").Attribute.Append("Value");
+        manufacturer.AttributeDataType = "xs:string";
+        manufacturer.Value = "Festo";
+        var built = ih.InternalElement.Append("Built").Attribute.Append("Value");
+        built.AttributeDataType = "xs:dateTime";
+        built.Value = "2020-01-01T00:00:00Z";
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server"), Simulate = true });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        UaNodeAddress Node(string name) => new("urn:amlopcua:document", UaIdType.String, "SimText/" + name);
+
+        manufacturer.Value = "Siemens";
+        built.Value = "2026-11-10T08:00:00Z";
+        var changed = host.RefreshValues();
+        await Task.Delay(700); // a simulation step, which must not undo the edit
+
+        var read = await client.ReadManyAsync(new[] { Node("Manufacturer"), Node("Built") });
+        Assert.Equal(2, changed);
+        Assert.Equal("Siemens", read[0].ValueText);
+        Assert.Equal("2026-11-10T08:00:00Z", read[1].ValueText);
+    }
+
+    [Fact]
     public async Task A_certificate_made_for_another_address_is_replaced()
     {
         // Served to the network first, the certificate names the computer; served
@@ -275,6 +307,73 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
 
         await lost.Task.WaitAsync(TimeSpan.FromSeconds(30));
         Assert.False(client.Reachable);
+    }
+
+    [Fact]
+    public async Task A_decimal_comma_is_served_as_text_not_as_a_thousands_separator()
+    {
+        // "3,5" typed in a German habit is not 35; it is no xs:double at all.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Comma");
+        void Add(string name, string type, string text)
+        {
+            var value = ih.InternalElement.Append(name).Attribute.Append("Value");
+            value.AttributeDataType = type;
+            value.Value = text;
+        }
+        Add("Pressure", "xs:double", "3,5");
+        Add("Flow", "xs:float", "1,250");
+        Add("Mass", "xs:decimal", "2,5");
+        Add("Exponent", "xs:double", "1.5E3");
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        UaNodeAddress Node(string name) => new("urn:amlopcua:document", UaIdType.String, "Comma/" + name);
+
+        var read = await client.ReadManyAsync(new[] { Node("Pressure"), Node("Flow"), Node("Mass"), Node("Exponent") });
+
+        Assert.Equal(new[] { "3,5", "1,250", "2,5", "1500" }, read.Select(r => r.ValueText));
+        Assert.Equal(new[] { "String", "String", "String", "Double" }, read.Select(r => r.DataType));
+    }
+
+    [Fact]
+    public async Task Stopping_with_a_client_connected_does_not_keep_the_caller_waiting()
+    {
+        // The stack waits its shutdown delay (5 s) while sessions exist, on the
+        // thread that stops it: the editor's, which froze.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Stop");
+        var pki = TempPki();
+        var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        await host.DisposeAsync();
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"stopping took {watch.Elapsed.TotalSeconds:F1} s");
+    }
+
+    [Fact]
+    public async Task A_second_server_on_the_same_port_is_refused_in_a_sentence()
+    {
+        // A second serve, or the editor serving while uaaml does: the stack's
+        // "Failed to establish tcp listener sockets" says nothing to a user.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Twice");
+        var port = FreePort();
+        await using var first = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") });
+
+        var ex = await Assert.ThrowsAsync<PortInUseException>(() =>
+            AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = port, PkiRoot = Path.Combine(TempPki(), "server") }));
+
+        Assert.Equal(port, ex.Port);
+        Assert.Equal($"Port {port} is in use (another server, a second serve or editor). Stop it or choose another port.", ex.Message);
     }
 
     [Fact]

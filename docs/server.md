@@ -47,6 +47,10 @@ server it was bound to ([export](export.md), D16).
 
 - **Connect** to an endpoint, anonymous or with user name and password. The
   client creates its own certificate under `%LOCALAPPDATA%\AMLOpcUa\pki`.
+  On the command line `--user <name>` logs in; the password comes from the
+  environment variable `AMLOPCUA_PASSWORD` or is asked for without echo,
+  never from the command line, where the process list and the shell history
+  would show it.
   - With security on (the default of the plugin and of `uaaml`), only a
     secured endpoint (Sign or SignAndEncrypt) is taken; a server that offers
     none is refused rather than used unsecured. `uaaml --insecure` and the
@@ -75,6 +79,10 @@ server it was bound to ([export](export.md), D16).
 - **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
   keep the document itself current, see "Keep document values live" below.
+  A node the server refuses to watch (it does not have it, BadNodeIdUnknown)
+  is reported once as a bad result with the server's status, instead of
+  staying silent. On the command line `uaaml watch <endpoint> <node>...`
+  prints each change with its time until Ctrl+C (or `--for <seconds>`).
 
 ## The server's types
 
@@ -141,13 +149,16 @@ file (`ServerNodeSetTests`).
   Bindings to another server (a different ServerInstanceUri or data source
   endpoint) are skipped. On the command line, `uaaml snapshot <doc.aml>`
   without an endpoint connects to every server the document names as a data
-  source, with the security its description asks for. Nothing is subscribed; the document records one
+  source, with the security its description asks for; one it describes as
+  unsecured only with `--insecure`, as an endpoint given on the command line. Nothing is subscribed; the document records one
   point in time.
 - **Keep document values live** (`LiveValues`): the same bindings, subscribed. Every
   change the server reports is written into the document (on the editor's UI
   thread, one monitored item per node however many elements are bound to it)
   until the button is pressed again, the client disconnects or the document
   is closed. The document is not saved; Ctrl+S keeps the last values.
+  Bindings whose node the server refuses are not counted as followed
+  (`Count`); they are counted in `NotOnServer` and named in `Problems`.
 
 ## Selecting what to mirror
 
@@ -184,7 +195,10 @@ When the hierarchy already holds a mirror of the server, the plugin asks:
 update it (found by NodeId: types and values read again, new nodes added)
 or mirror into a new hierarchy. Elements whose node the server no longer
 holds are reported, and as chosen in that dialog kept, marked with the
-attribute `NotOnServer` (the mark goes when the node is back) or removed. On the command line `uaaml mirror` updates (`--vanished
+attribute `NotOnServer` (the mark goes when the node is back) or removed.
+The result names them (`Vanished`) and holds them (`VanishedElements`): what
+this run found gone, not elements an earlier run of another selection marked,
+so removing them afterwards removes exactly these. On the command line `uaaml mirror` updates (`--vanished
 report|mark|remove`), `--copy` mirrors anew, `--preview` counts, and without nodes the kept selection is
 mirrored again. Elements of a mirrored selection never count as planned
 elements for the refBaseObj link, so a second copy does not link to the first.
@@ -210,13 +224,15 @@ With **simulate values** (`AmlServerOptions.Simulate`, `uaaml serve
 --simulate`) the served values move as a running plant's would: every half
 second each number swings on a slow sine (30 s) around the document's value,
 by a fifth of it (by 10 around zero), each variable in its own phase; booleans
-toggle every five seconds; texts stay. The document keeps its values; one
-edited there becomes the new middle. Clients, and the plugin's own live values,
+toggle every five seconds; texts and dates stay. The document keeps its
+values; a number edited there becomes the new middle, an edited text or date
+(a Manufacturer, say) is served at once. Clients, and the plugin's own live values,
 then have something to follow.
 
 Values are written as AML holds them: invariant culture, XML Schema lexical
 forms, arrays separated by spaces. A value its type cannot hold (3000000000
-as `xs:int`) is served as text.
+as `xs:int`, or "3,5" with a decimal comma as `xs:double`, which is not 35)
+is served as text.
 
 By default the server is for this computer only: it listens on 127.0.0.1,
 under a certificate made for the address it is served at (one made for
@@ -239,6 +255,27 @@ closed or another is opened. Nothing is writable and no method is offered;
 anonymous sessions stay allowed, so on the network the client certificate is
 the whole access control.
 
+The ApplicationUris of this build's servers name no computer
+(`urn:AMLOpcUa:DocumentServer`, `urn:AMLOpcUa:NodeSetServer`,
+`OwnApplicationUris`), so a document mirrored from one of them on one
+computer names the same server on the next: prepared in the office, shown on
+the booth laptop. Up to 0.2.0 the computer's name was part of them
+(`urn:OFFICE-PC:AMLOpcUa:DocumentServer`); such a URI in a document still
+names the same server (`OwnApplicationUris.Same`), when a mirror is updated
+and for snapshots and live values. A server certificate made for the old
+URI is made anew at start, and clients that trusted it are asked again. The
+client keeps the certificate it has, with the ApplicationUri it names, so
+servers that trust exactly that certificate go on doing so; a certificate
+it has to make anew names `urn:AMLOpcUa:Client`. Under 0.2.0 a client
+certificate made on another computer (the folder copied, the computer
+renamed) failed every connection, because its ApplicationUri named the other
+computer; now it is used as it is, and one the stack refuses is made anew.
+
+The stack makes these certificates for twelve months and never renews them.
+A server's or the client's own certificate that expires within 30 days is
+made anew when the server starts or the client connects; peers that trusted
+the old one are asked again.
+
 ## A NodeSet as a server
 
 Where the document server serves the structure of a document, **`uaaml serve
@@ -259,9 +296,14 @@ not exist yet, or a companion specification to try a client against.
   browsing, which is the other way of that dialog.
 - It listens on 4840, the port OPC UA is registered for, because it stands in
   for a real server of that model; the document server keeps 48400, so both
-  can run at once. `--port` says otherwise.
+  can run at once. `--port` says otherwise. A port another program holds
+  (another OPC UA server, a second `uaaml serve`, the editor serving a
+  document) is refused in a sentence that names it (`PortInUseException`),
+  for both servers.
 - `--simulate` moves the values as the document server does, and `--network`
-  and the security work the same way.
+  and the security work the same way. The NodeSet server keeps its
+  certificates and trust lists apart (`pki-nodeset-server`); `uaaml clients
+  --nodeset` lists, trusts and distrusts its clients.
 
 `examples/mps500` holds such a plant: the MPS 500 learning factory on DI, with
 stations, modules, devices and a state machine per station. Its README walks
@@ -272,7 +314,8 @@ instances.
 
 A mirrored document says where its servers are: the server element carries
 `EndpointUrl` and `ServerUri`, every NodeId below it a `ServerInstanceUri`
-(which usually holds the host name), and a server element after BPR 007 or
+(which usually holds the host name; not for this build's own servers since
+0.2.1), and a server element after BPR 007 or
 DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. **Remove server addresses…**
 (Server tab, band "This document as a server") and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
 them; the open document stays as it is. What a node is known by (NamespaceUri

@@ -14,4 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OpcUaAml.Core\OpcUaAml.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpcUaAml.Tests" />
+  </ItemGroup>
 </Project>

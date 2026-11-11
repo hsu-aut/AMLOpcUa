@@ -194,14 +194,20 @@ public sealed class UaClient : IAsyncDisposable
             ApplicationName = "AMLOpcUa",
             ApplicationType = ApplicationType.Client,
         };
-        var config = await app.Build("urn:" + System.Net.Dns.GetHostName() + ":AMLOpcUa", "uri:hsu-aut:AMLOpcUa")
+        // A certificate kept from earlier goes on with the ApplicationUri it names, an earlier
+        // build's with the computer's name included: servers may trust exactly that one.
+        // The stack refuses a certificate whose ApplicationUri differs from the configured one.
+        const string subject = "CN=AMLOpcUa, O=AMLOpcUa";
+        var uri = OwnApplicationUris.KeptClientUri(options.PkiRoot, subject) ?? OwnApplicationUris.Client;
+        var config = await app.Build(uri, "uri:hsu-aut:AMLOpcUa")
             .AsClient()
-            .AddSecurityConfiguration("CN=AMLOpcUa, O=AMLOpcUa", options.PkiRoot)
+            .AddSecurityConfiguration(subject, options.PkiRoot)
             .SetAutoAcceptUntrustedCertificates(options.AcceptUntrustedServerCertificates)
             .CreateAsync(ct).ConfigureAwait(false);
         config.ClientConfiguration.DefaultSessionTimeout = 60000;
         config.TransportQuotas.OperationTimeout = options.OperationTimeoutMs;
-        await app.CheckApplicationInstanceCertificatesAsync(false, null, ct).ConfigureAwait(false);
+        // One that does not fit is the client's own: a new one is made, with no computer's name.
+        await OwnCertificate.EnsureAsync(app, subject, options.PkiRoot, ct, OwnApplicationUris.Client).ConfigureAwait(false);
         return config;
     }
 
@@ -459,10 +465,27 @@ public sealed class UaClient : IAsyncDisposable
     /// <summary>
     /// Subscribes to value changes of the given variables. <paramref name="onChange"/>
     /// runs on a stack thread for each change; dispose the result to stop.
+    /// A node the server refuses to watch (it does not have it: BadNodeIdUnknown)
+    /// is reported once through <paramref name="onChange"/>, with Good false and
+    /// the server's status, before this returns.
     /// </summary>
     public async Task<IAsyncDisposable> WatchAsync(IReadOnlyList<UaNodeAddress> addresses, Action<UaReadResult> onChange,
         int publishingIntervalMs = 500, CancellationToken ct = default)
     {
+        var (watch, refused) = await WatchCoreAsync(addresses, onChange, publishingIntervalMs, ct).ConfigureAwait(false);
+        foreach (var r in refused) onChange(r);
+        return watch;
+    }
+
+    /// <summary>
+    /// <see cref="WatchAsync"/>, with the nodes the server refused handed back
+    /// instead of reported through <paramref name="onChange"/>.
+    /// </summary>
+    internal async Task<(IAsyncDisposable Watch, IReadOnlyList<UaReadResult> Refused)> WatchCoreAsync(IReadOnlyList<UaNodeAddress> addresses,
+        Action<UaReadResult> onChange, int publishingIntervalMs, CancellationToken ct)
+    {
+        var refused = new List<UaReadResult>();
+        var items = new List<(MonitoredItem Item, UaNodeAddress Address)>();
         var telemetry = _session.MessageContext.Telemetry;
         var subscription = new Subscription(telemetry, new SubscriptionOptions
         {
@@ -478,7 +501,7 @@ public sealed class UaClient : IAsyncDisposable
             try { nodeId = ToNodeId(address); }
             catch (FormatException ex)
             {
-                onChange(new UaReadResult(address, null, null, false, ex.Message));
+                refused.Add(new UaReadResult(address, null, null, false, ex.Message));
                 continue;
             }
             var item = new MonitoredItem(telemetry, new MonitoredItemOptions
@@ -499,6 +522,7 @@ public sealed class UaClient : IAsyncDisposable
                     StatusCode.IsGood(dv.StatusCode), StatusCode.LookupSymbolicId(dv.StatusCode.Code) ?? dv.StatusCode.ToString()));
             };
             subscription.AddItem(item);
+            items.Add((item, address));
         }
         _session.AddSubscription(subscription);
         try
@@ -511,7 +535,14 @@ public sealed class UaClient : IAsyncDisposable
             await new Watch(_session, subscription).DisposeAsync().ConfigureAwait(false);
             throw;
         }
-        return new Watch(_session, subscription);
+        // An item the server did not create sends nothing, ever.
+        foreach (var (item, address) in items)
+        {
+            if (item.Status.Error is not { } error || !ServiceResult.IsBad(error)) continue;
+            refused.Add(new UaReadResult(address, null, null, false,
+                StatusCode.LookupSymbolicId(error.StatusCode.Code) ?? error.StatusCode.ToString()));
+        }
+        return (new Watch(_session, subscription), refused);
     }
 
     private sealed class Watch(ISession session, Subscription subscription) : IAsyncDisposable

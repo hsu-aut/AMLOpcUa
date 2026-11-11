@@ -160,8 +160,12 @@ public static class ValueSnapshot
         _ => null,
     };
 
+    /// <summary>
+    /// A binding to another server; a server of this build named by an earlier
+    /// build, with a computer's name in its URI, is the same (<see cref="OwnApplicationUris.Same"/>).
+    /// </summary>
     private static bool OtherServer(string? serverUri, UaClient client) =>
-        serverUri != null && client.ServerUri != null && serverUri != client.ServerUri;
+        serverUri != null && client.ServerUri != null && !OwnApplicationUris.Same(serverUri, client.ServerUri);
 
     private static bool SameEndpoint(DataSource source, UaClient client) => source.Url == null || SameUrl(source.Url, client);
 

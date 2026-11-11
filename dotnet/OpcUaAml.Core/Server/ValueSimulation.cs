@@ -11,6 +11,16 @@ namespace OpcUaAml.Server;
 internal static class ValueSimulation
 {
     /// <summary>
+    /// Whether the simulation moves values of this DataType: booleans and
+    /// numbers. A text or a date stays as the model gives it, so an edit of
+    /// it is written by whoever serves it, not by the simulation.
+    /// </summary>
+    public static bool Moves(NodeId dataType) =>
+        dataType == DataTypeIds.Boolean || dataType == DataTypeIds.Double || dataType == DataTypeIds.Float
+        || dataType == DataTypeIds.Int16 || dataType == DataTypeIds.Int32 || dataType == DataTypeIds.Int64
+        || dataType == DataTypeIds.UInt16 || dataType == DataTypeIds.UInt32 || dataType == DataTypeIds.Byte;
+
+    /// <summary>
     /// The next value of a variable, or null when its type does not move.
     /// </summary>
     /// <param name="dataType">The variable's DataType.</param>

@@ -24,7 +24,7 @@ public sealed class NodeSetServerOptions
     /// The port OPC UA is registered for (IANA, opc.tcp). A server of a model
     /// stands in for a real one, so it listens where a real one does; the
     /// document server keeps 48400, and both can run at once. A port already
-    /// taken is named in the error the stack throws.
+    /// taken is refused with a <see cref="PortInUseException"/>.
     /// </summary>
     public int Port { get; init; } = 4840;
 
@@ -94,7 +94,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         var server = new PlantServer(files, options.PublishNodeSets, options.Simulate);
         try
         {
-            await app.StartAsync(server).ConfigureAwait(false);
+            await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
         }
         catch
         {

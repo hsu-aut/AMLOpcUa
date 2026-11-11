@@ -46,8 +46,8 @@ public sealed class AmlServerOptions
     /// <summary>
     /// Let the served values move, as a running plant's would: numbers swing
     /// around the document's value, booleans toggle every few seconds, texts
-    /// stay. The document itself is not changed; a value edited in it becomes
-    /// the new middle.
+    /// stay. The document itself is not changed; a number edited in it becomes
+    /// the new middle, an edited text or date is served as it is.
     /// </summary>
     public bool Simulate { get; init; }
 }
@@ -149,7 +149,7 @@ public sealed class AmlServerHost : IAsyncDisposable
         var server = new DocumentServer(model, options.Simulate);
         try
         {
-            await app.StartAsync(server).ConfigureAwait(false);
+            await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
         }
         catch
         {
@@ -282,9 +282,10 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     if (node.Source?.Attribute["Value"] is not { } attribute) continue;
                     var (_, value) = Typed(attribute.Value, attribute.AttributeDataType ?? node.DataType);
-                    if (Simulating)
+                    if (Simulating && ValueSimulation.Moves(state.DataType))
                     {
                         // An edit in the document moves the middle; the simulation writes the value.
+                        // A text or a date it does not move is written below, as without simulation.
                         _middle.TryGetValue(state, out var middle);
                         if (!Equals(middle, value)) { _middle[state] = value; changed++; }
                         continue;
@@ -369,8 +370,8 @@ public sealed class AmlServerHost : IAsyncDisposable
                 return xsType switch
                 {
                     "xs:boolean" => (DataTypeIds.Boolean, text == null ? null : text is "true" or "1"),
-                    "xs:double" or "xs:decimal" => (DataTypeIds.Double, text == null ? null : double.Parse(text, inv)),
-                    "xs:float" => (DataTypeIds.Float, text == null ? null : float.Parse(text, inv)),
+                    "xs:double" or "xs:decimal" => (DataTypeIds.Double, text == null ? null : XsDouble(text)),
+                    "xs:float" => (DataTypeIds.Float, text == null ? null : XsFloat(text)),
                     "xs:int" => (DataTypeIds.Int32, text == null ? null : int.Parse(text, inv)),
                     "xs:long" or "xs:integer" => (DataTypeIds.Int64, text == null ? null : long.Parse(text, inv)),
                     "xs:short" => (DataTypeIds.Int16, text == null ? null : short.Parse(text, inv)),
@@ -387,6 +388,26 @@ public sealed class AmlServerHost : IAsyncDisposable
                 return (DataTypeIds.String, text);
             }
         }
+
+        /// <summary>
+        /// The XML Schema lexical form of a double, and the "Infinity" ToAml
+        /// writes. No thousands separator: "3,5" is no number (a decimal comma),
+        /// not 35, so it is served as text.
+        /// </summary>
+        private static double XsDouble(string text) => text.Trim() switch
+        {
+            "INF" => double.PositiveInfinity,
+            "-INF" => double.NegativeInfinity,
+            var t => double.Parse(t, NumberStyles.Float, CultureInfo.InvariantCulture),
+        };
+
+        /// <summary>The same for a float (<see cref="XsDouble"/>).</summary>
+        private static float XsFloat(string text) => text.Trim() switch
+        {
+            "INF" => float.PositiveInfinity,
+            "-INF" => float.NegativeInfinity,
+            var t => float.Parse(t, NumberStyles.Float, CultureInfo.InvariantCulture),
+        };
     }
 }
 

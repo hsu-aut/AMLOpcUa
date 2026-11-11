@@ -146,6 +146,34 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
     }
 
     [Fact]
+    public async Task The_result_holds_the_elements_that_vanished_in_this_run_only()
+    {
+        // Whoever removes vanished elements afterwards (the plugin asks first)
+        // must remove these, not everything an earlier run marked.
+        await using var client = await UaClient.ConnectAsync(Options());
+        var ih = di.Hierarchy("VanishedNow");
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1"), MirrorScope.Subtree) } };
+        var first = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih);
+        var motor = first.Server.Descendants<InternalElementType>().Single(e => e.Name == "Motor");
+        var gone = motor.InternalElement.Append("Gearbox");
+        AnnexANodeId.Write(gone, Plant("Plant.Pump1.Motor.Gearbox"));
+        // Marked by an earlier run of another selection; this one does not look there.
+        var plant = first.Server.Descendants<InternalElementType>().Single(e => e.Name == "Plant");
+        var earlier = plant.InternalElement.Append("Tank");
+        AnnexANodeId.Write(earlier, Plant("Plant.Tank"));
+        var mark = earlier.Attribute.Append(MirrorOptions.NotOnServerAttribute);
+        mark.AttributeDataType = "xs:boolean";
+        mark.Value = "true";
+
+        var second = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih, new MirrorOptions { Vanished = VanishedNodes.Mark });
+
+        var vanished = Assert.Single(second.VanishedElements);
+        Assert.Equal(gone.ID, vanished.ID);
+        Assert.Equal(second.Vanished.Count, second.VanishedElements.Count);
+        Assert.Contains(second.Vanished, v => v.Contains("Motor/Gearbox", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_node_limit_is_the_callers()
     {
         await using var client = await UaClient.ConnectAsync(Options());

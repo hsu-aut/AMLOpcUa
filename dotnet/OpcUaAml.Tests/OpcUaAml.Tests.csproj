@@ -15,6 +15,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OpcUaAml.Core\OpcUaAml.Core.csproj" />
+    <!-- The command line, run in the test process (CliTests). -->
+    <ProjectReference Include="..\OpcUaAml.Tool\OpcUaAml.Tool.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />

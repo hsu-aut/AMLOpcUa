@@ -64,21 +64,29 @@ public static class Program
                                were. Not a standard. --namespace names the model when
                                the document holds several.
 
-        uaaml browse <endpoint> [<nsu=...;s=...>] [--insecure] [--accept]
+        uaaml browse <endpoint> [<nsu=...;s=...>] [--insecure] [--accept] [--user <name>]
             Children of a node of a running server (Objects when omitted).
             Connections to servers are secured; a server without a secured
             endpoint is refused unless --insecure. --accept trusts an unknown
-            server certificate for this run.
+            server certificate for this run. --user logs in as that user (every
+            command that connects takes it); the password comes from the
+            environment variable AMLOPCUA_PASSWORD or is asked for, never from
+            the command line, and never goes over an unsecured connection.
 
-        uaaml read <endpoint> <node>... [--insecure] [--accept]
+        uaaml read <endpoint> <node>... [--insecure] [--accept] [--user <name>]
             The current value of each node. A node is a NodeId, or a path of
             BrowseNames from the Objects folder when it starts with a slash
             ("/MPS500/ST30_Processing/ParameterSet/Ready").
 
+        uaaml watch <endpoint> <node>... [--for <seconds>] [--insecure] [--accept] [--user <name>]
+            Each value as it changes, one line with the time, until Ctrl+C or
+            Enter (or for the seconds given). A node the server does not have
+            is named once with its status.
+
         uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
                      [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
                      [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--max-nodes <n>]
-                     [--vanished report|mark|remove] [--insecure] [--accept] [-o <out.aml>]
+                     [--vanished report|mark|remove] [--insecure] [--accept] [--user <name>] [-o <out.aml>]
             Take the nodes into the document below an element for the server, each
             with the way to it from the Objects (or Views) folder, with NodeIds, UA
             types (where the document holds them) and current values. --scope says
@@ -95,23 +103,26 @@ public static class Program
             in --plan or anywhere) is linked to that planned element with
             refBaseObj, unless --no-link.
 
-        uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--insecure] [--accept]
+        uaaml nodeset <endpoint> [<namespace-uri>] [-o <out.xml>] [--into <doc.aml>] [--instances] [--browse] [--search <dir>]... [--insecure] [--accept] [--user <name>]
             The server's namespaces, or the NodeSet of one of them: the file the
             server publishes for it, else rebuilt by browsing its types (with
             --instances also its objects; --browse ignores a published file).
             -o writes it. --into imports it into a document (Annex A, saved to -o
-            or in place), with the models it requires that neither --search nor
-            the bundled NodeSets provide, fetched from the server too.
+            or in place; a CAEX 2.15 document is converted to CAEX 3.0 first),
+            with the models it requires that neither --search nor the bundled
+            NodeSets provide, fetched from the server too.
 
-        uaaml snapshot [<endpoint>] <doc.aml> [--insecure] [--accept] [-o <out.aml>]
+        uaaml snapshot [<endpoint>] <doc.aml> [--insecure] [--accept] [--user <name>] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
             an endpoint, from every server the document names as a data source
-            (--accept then needs an endpoint: the servers a document names are
-            not trusted blindly).
+            (--accept and --user then need an endpoint: the servers a document
+            names are not trusted blindly, nor sent a password). A server the
+            document describes as unsecured (MessageSecurityMode or
+            SecurityPolicy None) is connected to only with --insecure.
 
-        uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]...
-            Serve a NodeSet with its types as an OPC UA server until Enter, on
-            the port OPC UA is registered for (4840): the
+        uaaml serve --nodeset <file|model uri>... [--port <n>] [--network] [--simulate] [--no-publish] [--search <dir>]... [--for <seconds>]
+            Serve a NodeSet with its types as an OPC UA server until Ctrl+C or
+            Enter (or for the seconds given), on the port OPC UA is registered for (4840): the
             plant that does not exist yet, or a companion specification to try a
             client against. The models it requires are loaded first, from the
             bundled NodeSets and the folders searched. Each model is offered as
@@ -119,16 +130,19 @@ public static class Program
             the NodeSet from the server ('uaaml nodeset'); --no-publish leaves
             that out, and the client rebuilds it by browsing.
 
-        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate]
-            Serve the document's instance hierarchies as an OPC UA server until Enter,
-            to this computer only. --network offers it to other computers: secured
+        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate] [--for <seconds>]
+            Serve the document's instance hierarchies as an OPC UA server until
+            Ctrl+C or Enter (or for the seconds given), to this computer only. An
+            input at its end (a script, a scheduled task) does not stop it. --network offers it to other computers: secured
             endpoints only, and only to clients whose certificate is trusted.
             --simulate lets numbers swing around the document's values and
             booleans toggle, as in a running plant.
 
-        uaaml clients [--trust <thumbprint>] [--distrust <thumbprint>]
+        uaaml clients [--nodeset] [--trust <thumbprint>] [--distrust <thumbprint>]
             The client certificates the document server refused and those it
             trusts; --trust admits a refused one, --distrust removes a trusted one.
+            --nodeset: those of the NodeSet server ('serve --nodeset'), which
+            keeps its own.
 
         uaaml doc <doc.aml> [--namespace <uri>] -o <out.html>
             Documentation of an imported OPC UA model as one HTML file: its types with
@@ -227,6 +241,7 @@ public static class Program
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "read" => Run(ReadCommand(rest)),
+                "watch" => Run(WatchCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
                 "nodeset" => Run(NodeSetCommand(rest)),
@@ -255,6 +270,16 @@ public static class Program
                                    or OpcUaAml.NodeSets.CloudLibraryException or OpcUaAml.NodeSets.OpcFoundationNodeSetsException
                                    or OpcUaAml.Addressing.AddressingException or ModelCompilerException or InvalidDataException)
         {
+            return Fail(ex.Message);
+        }
+        catch (OpcUaAml.Server.PortInUseException ex)
+        {
+            // The core's sentence, with the option that chooses another port.
+            return Fail(ex.Message.TrimEnd('.') + " (--port).");
+        }
+        catch (Opc.Ua.ServiceResultException ex)
+        {
+            // What the OPC UA stack refuses (a certificate it cannot use, for one): its sentence, not a stack trace.
             return Fail(ex.Message);
         }
         catch (ArgumentException ex)
@@ -498,6 +523,22 @@ public static class Program
 
     private static int Run(Task<int> task) => task.GetAwaiter().GetResult();
 
+    /// <summary>
+    /// The folder below which the certificates and trust lists are kept; null
+    /// keeps the folders the plugin uses as well (%LOCALAPPDATA%\AMLOpcUa).
+    /// The tests set it, so they never touch the user's certificates.
+    /// </summary>
+    internal static string? PkiFolder { get; set; }
+
+    private static string ClientPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki") : new OpcUaAml.Server.UaConnectOptions { EndpointUrl = "" }.PkiRoot;
+
+    private static string DocumentServerPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki-server") : new OpcUaAml.Server.AmlServerOptions().PkiRoot;
+
+    private static string NodeSetServerPki =>
+        PkiFolder != null ? Path.Combine(PkiFolder, "pki-nodeset-server") : new OpcUaAml.Server.NodeSetServerOptions().PkiRoot;
+
     /// <summary>A line typed without echo.</summary>
     private static string ReadSecret(string prompt)
     {
@@ -513,16 +554,52 @@ public static class Program
         return text.ToString();
     }
 
-    private static OpcUaAml.Server.UaConnectOptions Connect(Options o, string endpoint) => new()
+    /// <summary>Where the password for --user comes from; never the command line, which the process list and the shell history show.</summary>
+    private const string PasswordVariable = "AMLOPCUA_PASSWORD";
+
+    private static OpcUaAml.Server.UaConnectOptions Connect(Options o, string endpoint)
     {
-        EndpointUrl = endpoint,
-        UseSecurity = !o.Has("--insecure"),
-        AcceptUntrustedServerCertificates = o.Has("--accept"),
+        var user = o.One("--user");
+        return new()
+        {
+            EndpointUrl = endpoint,
+            UseSecurity = !o.Has("--insecure"),
+            AcceptUntrustedServerCertificates = o.Has("--accept"),
+            PkiRoot = ClientPki,
+            UserName = user,
+            Password = user == null ? null : Environment.GetEnvironmentVariable(PasswordVariable) ?? ReadSecret($"Password for {user}: "),
+        };
+    }
+
+    /// <summary>
+    /// How to connect to a server a document names: secured unless its
+    /// description says None, and then only with --insecure, as for an
+    /// endpoint given on the command line. Checked before anything connects.
+    /// </summary>
+    private static OpcUaAml.Server.UaConnectOptions FromDocument(OpcUaAml.Addressing.DataSource source, Options o)
+    {
+        var options = WithClientPki(source.ToConnectOptions(o.Has("--accept")));
+        if (!options.UseSecurity && !o.Has("--insecure"))
+            throw new OpcUaAml.Server.UaConnectionException(
+                $"The document asks for an unsecured connection to '{source.Element.Name}' ({source.Url}). Give --insecure to allow it.");
+        return options;
+    }
+
+    /// <summary>Options made elsewhere (from a document's data source), with the client's certificate folder.</summary>
+    private static OpcUaAml.Server.UaConnectOptions WithClientPki(OpcUaAml.Server.UaConnectOptions options) => new()
+    {
+        EndpointUrl = options.EndpointUrl,
+        UseSecurity = options.UseSecurity,
+        UserName = options.UserName,
+        Password = options.Password,
+        AcceptUntrustedServerCertificates = options.AcceptUntrustedServerCertificates,
+        OperationTimeoutMs = options.OperationTimeoutMs,
+        PkiRoot = ClientPki,
     };
 
     private static async Task<int> ReadCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--insecure", "--accept" });
+        var o = Options.Parse(args, valued: new[] { "--user" }, flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count < 2) throw new ArgumentException("read needs an endpoint and at least one node.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         var wanted = o.Positional.Skip(1).ToList();
@@ -540,9 +617,44 @@ public static class Program
         return 0;
     }
 
+    /// <summary>The values of nodes as they change, one line each, until Ctrl+C, Enter or --for.</summary>
+    private static async Task<int> WatchCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--user", "--for" }, flags: new[] { "--secure", "--insecure", "--accept" });
+        if (o.Positional.Count < 2) throw new ArgumentException("watch needs an endpoint and at least one node.");
+        var limit = Seconds(o, "--for");
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var wanted = o.Positional.Skip(1).ToList();
+        var nodes = new List<OpcUaAml.Addressing.UaNodeAddress>();
+        var names = new Dictionary<OpcUaAml.Addressing.UaNodeAddress, string>();
+        foreach (var name in wanted)
+        {
+            var node = await client.ResolveAsync(name);
+            nodes.Add(node);
+            names.TryAdd(node, name);
+        }
+        var width = wanted.Max(w => w.Length);
+        var gate = new object();
+        // Changes arrive on threads of the stack; a node the server lacks once, as a bad status.
+        void Print(OpcUaAml.Server.UaReadResult r)
+        {
+            var line = $"{DateTime.Now:HH:mm:ss.fff}  {names.GetValueOrDefault(r.Address, r.Address.ToString()).PadRight(width)}  "
+                       + (r.Good ? r.ValueText : r.Status);
+            lock (gate) Console.WriteLine(line);
+        }
+        await using (await client.WatchAsync(nodes, Print))
+        {
+            Console.Error.WriteLine(limit != null
+                ? $"Watching {nodes.Count} node(s) for {limit.Value.TotalSeconds:0} s; Ctrl+C stops."
+                : $"Watching {nodes.Count} node(s); Ctrl+C stops.");
+            await UntilStoppedAsync(limit);
+        }
+        return 0;
+    }
+
     private static async Task<int> BrowseCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: Array.Empty<string>(), flags: new[] { "--secure", "--insecure", "--accept" });
+        var o = Options.Parse(args, valued: new[] { "--user" }, flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("browse needs an endpoint and optionally a node.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         var node = o.Positional.Count == 2 ? OpcUaAml.Addressing.UaNodeAddress.Parse(o.Positional[1], client.NamespaceTable) : null;
@@ -554,7 +666,7 @@ public static class Program
     private static async Task<int> MirrorCommand(List<string> args)
     {
         var o = Options.Parse(args,
-            valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude", "--max-nodes", "--vanished" },
+            valued: new[] { "--hierarchy", "--plan", "--depth", "-o", "--scope", "--instances-of", "--view", "--namespace", "--exclude", "--max-nodes", "--vanished", "--user" },
             flags: new[] { "--secure", "--insecure", "--accept", "--no-link", "--skip-properties", "--objects-only", "--show-server", "--copy", "--preview" });
         if (o.Positional.Count < 2) throw new ArgumentException("mirror needs an endpoint and a document, and the nodes to take.");
         var docPath = o.Positional[^1];
@@ -631,7 +743,7 @@ public static class Program
 
     private static async Task<int> NodeSetCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "-o", "--into", "--search" }, flags: new[] { "--secure", "--insecure", "--accept", "--instances", "--browse" });
+        var o = Options.Parse(args, valued: new[] { "-o", "--into", "--search", "--user" }, flags: new[] { "--secure", "--insecure", "--accept", "--instances", "--browse" });
         if (o.Positional.Count is < 1 or > 2) throw new ArgumentException("nodeset needs an endpoint and optionally a namespace URI.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         if (o.Positional.Count == 1)
@@ -665,6 +777,12 @@ public static class Program
                 Console.WriteLine($"{set.ModelUri}: {set.NodeCount} node(s) from the {(set.Source == OpcUaAml.Server.ServerNodeSetSource.NamespaceFile ? "published file" : "server's address space")}");
             }
             var doc = Documents.Load(into);
+            if (CaexUpgrade.IsNeeded(doc))
+            {
+                // As import --into does: the OPC UA libraries need CAEX 3.0.
+                Console.Error.WriteLine($"note: {into} is CAEX {doc.CAEXFile.SchemaVersion}; converted to CAEX 3.0 for the OPC UA libraries.");
+                doc = CaexUpgrade.ToCaex3(doc);
+            }
             var result = OpcUaImport.ImportInto(doc, files.Paths[0], catalog, new MergeOptions { DocumentFolder = FolderOf(into) });
             foreach (var w in result.Warnings) Console.Error.WriteLine($"warning: {w}");
             Documents.Save(doc, output ?? into);
@@ -682,7 +800,7 @@ public static class Program
 
     private static async Task<int> SnapshotCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "-o" }, flags: new[] { "--secure", "--insecure", "--accept" });
+        var o = Options.Parse(args, valued: new[] { "-o", "--user" }, flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count is not (1 or 2)) throw new ArgumentException("snapshot needs a document, optionally after an endpoint.");
         var docPath = o.Positional[^1];
         var doc = Documents.Load(docPath);
@@ -692,10 +810,12 @@ public static class Program
         // elsewhere may name any server, so none is trusted blindly.
         if (o.Positional.Count == 1 && o.Has("--accept"))
             throw new ArgumentException("--accept needs an endpoint: the servers a document names are not trusted blindly.");
+        if (o.Positional.Count == 1 && o.One("--user") != null)
+            throw new ArgumentException("--user needs an endpoint: a password goes to the server named, not to every server a document names.");
         var connections = o.Positional.Count == 2
             ? new List<OpcUaAml.Server.UaConnectOptions> { Connect(o, o.Positional[0]) }
             : OpcUaAml.Addressing.BprDataVariable.SourcesIn(doc).Where(s => s.Url != null)
-                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => g.First().ToConnectOptions(o.Has("--accept"))).ToList();
+                .GroupBy(s => s.Url!.TrimEnd('/').ToLowerInvariant()).Select(g => FromDocument(g.First(), o)).ToList();
         if (connections.Count == 0) throw new ArgumentException("The document names no server with an EndpointURL or DiscoveryURL; give an endpoint.");
 
         var failed = 0;
@@ -713,11 +833,16 @@ public static class Program
 
     private static async Task<int> ServeCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search" },
+        var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search", "--for" },
             flags: new[] { "--network", "--simulate", "--no-publish" });
         var network = o.Has("--network");
         var nodeSets = o.All("--nodeset");
-        var where = network ? " to the network, to trusted clients only (see 'uaaml clients')." : ", to this computer only.";
+        var where = !network ? ", to this computer only."
+            : nodeSets.Count > 0 ? " to the network, to trusted clients only (see 'uaaml clients --nodeset')."
+            : " to the network, to trusted clients only (see 'uaaml clients').";
+        var limit = Seconds(o, "--for");
+        var stop = limit != null ? $" Stops after {limit.Value.TotalSeconds:0} s, or with Ctrl+C."
+            : Console.IsInputRedirected ? " Press Ctrl+C to stop." : " Press Enter or Ctrl+C to stop.";
 
         if (nodeSets.Count > 0)
         {
@@ -731,39 +856,81 @@ public static class Program
                 Simulate = o.Has("--simulate"),
                 PublishNodeSets = !o.Has("--no-publish"),
                 Folders = o.All("--search"),
+                PkiRoot = NodeSetServerPki,
             };
             await using var plant = await OpcUaAml.Server.NodeSetServerHost.StartAsync(nodeSets, options);
             Console.WriteLine($"Serving {plant.Nodes} node(s) of {string.Join(", ", plant.Served)} at {plant.EndpointUrl}"
                               + where
                               + (options.PublishNodeSets ? " Each model is offered as its NamespaceFile." : "")
-                              + " Press Enter to stop.");
-            Console.ReadLine();
+                              + stop);
+            await UntilStoppedAsync(limit);
             return 0;
         }
 
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
-        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate") });
-        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + " Press Enter to stop.");
-        Console.ReadLine();
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki });
+        Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + stop);
+        await UntilStoppedAsync(limit);
         return 0;
+    }
+
+    /// <summary>A number of seconds given with an option, or null without it.</summary>
+    private static TimeSpan? Seconds(Options o, string option) => o.One(option) is not { } text ? null
+        : int.TryParse(text, out var s) && s > 0 ? TimeSpan.FromSeconds(s)
+        : throw new ArgumentException($"{option}: '{text}' is not a positive number of seconds.");
+
+    /// <summary>
+    /// Waits until the user stops: Ctrl+C, Enter, or the time given. An input
+    /// at its end, as a script, a scheduled task or another program leaves it,
+    /// stops nothing; it used to stop serve at once.
+    /// </summary>
+    private static async Task UntilStoppedAsync(TimeSpan? limit)
+    {
+        var stopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnCancel(object? sender, ConsoleCancelEventArgs e)
+        {
+            // Ctrl+C ends the wait, so the server is stopped and disposed, not the process killed.
+            e.Cancel = true;
+            stopped.TrySetResult();
+        }
+        Console.CancelKeyPress += OnCancel;
+        try
+        {
+            var input = Console.In;
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    if (input.ReadLine() != null) stopped.TrySetResult();
+                }
+                catch (Exception ex) when (ex is IOException or ObjectDisposedException) { /* no input to read */ }
+            });
+            await (limit is { } l ? Task.WhenAny(stopped.Task, Task.Delay(l)) : stopped.Task);
+        }
+        finally
+        {
+            Console.CancelKeyPress -= OnCancel;
+        }
     }
 
     private static int ClientsCommand(List<string> args)
     {
-        var o = Options.Parse(args, valued: new[] { "--trust", "--distrust" }, flags: Array.Empty<string>());
+        var o = Options.Parse(args, valued: new[] { "--trust", "--distrust" }, flags: new[] { "--nodeset" });
         static OpcUaAml.Server.ClientCertificate Find(IReadOnlyList<OpcUaAml.Server.ClientCertificate> list, string thumbprint)
         {
             var found = list.Where(c => c.Thumbprint.StartsWith(thumbprint, StringComparison.OrdinalIgnoreCase)).ToList();
             return found.Count == 1 ? found[0] : throw new ArgumentException($"No single certificate with thumbprint {thumbprint}.");
         }
+        // The NodeSet server keeps its certificates apart from the document server's.
+        var pki = o.Has("--nodeset") ? NodeSetServerPki : DocumentServerPki;
         if (o.One("--trust") is { } trust)
-            OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(), trust));
+            OpcUaAml.Server.AmlServerHost.TrustClient(Find(OpcUaAml.Server.AmlServerHost.RejectedClients(pki), trust), pki);
         if (o.One("--distrust") is { } distrust)
-            OpcUaAml.Server.AmlServerHost.DistrustClient(Find(OpcUaAml.Server.AmlServerHost.TrustedClients(), distrust));
-        foreach (var c in OpcUaAml.Server.AmlServerHost.RejectedClients())
+            OpcUaAml.Server.AmlServerHost.DistrustClient(Find(OpcUaAml.Server.AmlServerHost.TrustedClients(pki), distrust));
+        foreach (var c in OpcUaAml.Server.AmlServerHost.RejectedClients(pki))
             Console.WriteLine($"refused  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
-        foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients())
+        foreach (var c in OpcUaAml.Server.AmlServerHost.TrustedClients(pki))
             Console.WriteLine($"trusted  {c.Thumbprint}  {c.Subject}  (valid until {c.NotAfter:yyyy-MM-dd})");
         return 0;
     }

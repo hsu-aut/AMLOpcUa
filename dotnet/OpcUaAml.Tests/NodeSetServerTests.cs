@@ -70,6 +70,15 @@ public class NodeSetServerTests(NodeSetServerFixture fixture) : IClassFixture<No
     }
 
     [Fact]
+    public async Task Its_ApplicationUri_names_no_computer()
+    {
+        // A document mirrored from it in the office names the same server on the booth laptop.
+        await using var client = await ConnectAsync();
+
+        Assert.Equal(OwnApplicationUris.NodeSetServer, client.ServerUri);
+    }
+
+    [Fact]
     public async Task A_client_takes_the_NodeSet_from_the_server_unchanged()
     {
         // The whole point of the published file: what the client gets back is
@@ -133,6 +142,28 @@ public class NodeSetServerTests(NodeSetServerFixture fixture) : IClassFixture<No
         });
 
         Assert.Equal(new[] { Fixtures.DiUri, "http://hsu-hh.de/UA/MPS500/" }, host.Served);
+    }
+
+    [Fact]
+    public async Task A_port_in_use_is_named_in_a_sentence()
+    {
+        // 4840 is where real servers listen; one may run on the same computer.
+        var taken = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        taken.Start();
+        try
+        {
+            var port = ((System.Net.IPEndPoint)taken.LocalEndpoint).Port;
+
+            var ex = await Assert.ThrowsAsync<PortInUseException>(() => NodeSetServerHost.StartAsync(new[] { DiTestServer.DiPath },
+                new NodeSetServerOptions { Port = port, PkiRoot = Path.Combine(fixture.PkiRoot, "server-taken") }));
+
+            Assert.Equal(port, ex.Port);
+            Assert.StartsWith($"Port {port} is in use", ex.Message);
+        }
+        finally
+        {
+            taken.Stop();
+        }
     }
 
     [Fact]

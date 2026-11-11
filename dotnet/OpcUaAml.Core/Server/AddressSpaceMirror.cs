@@ -84,7 +84,17 @@ public sealed record SelectionMirrorResult(
     int Linked,
     bool Truncated,
     IReadOnlyList<string> Vanished,
-    IReadOnlyList<string> Notes);
+    IReadOnlyList<string> Notes)
+{
+    /// <summary>
+    /// The elements this run found gone from the server, in the order of
+    /// <see cref="Vanished"/>, which describes them. Removing vanished elements
+    /// afterwards means these: elements marked NotOnServer by an earlier run
+    /// (of another selection) are not among them. With <see cref="VanishedNodes.Remove"/>
+    /// they are already out of the document.
+    /// </summary>
+    public IReadOnlyList<InternalElementType> VanishedElements { get; init; } = Array.Empty<InternalElementType>();
+}
 
 public static class AddressSpaceMirror
 {
@@ -112,10 +122,12 @@ public static class AddressSpaceMirror
     /// <summary>
     /// The element of <paramref name="ih"/> that stands for the server, below
     /// which a selection was mirrored; null when the hierarchy holds no mirror of it.
+    /// A server of this build mirrored by an earlier one, with the computer's
+    /// name in its ServerUri, is the same server (<see cref="OwnApplicationUris.Same"/>).
     /// </summary>
     public static InternalElementType? MirroredServer(InstanceHierarchyType ih, UaClient client) =>
         ih.InternalElement.FirstOrDefault(e => e.Attribute[MirrorSelection.AttributeName] != null
-            && (client.ServerUri != null ? e.Attribute[ServerUriAttribute]?.Value == client.ServerUri
+            && (client.ServerUri != null ? OwnApplicationUris.Same(e.Attribute[ServerUriAttribute]?.Value, client.ServerUri)
                                          : e.Attribute[EndpointAttribute]?.Value == client.EndpointUrl));
 
     /// <summary>
@@ -143,7 +155,7 @@ public static class AddressSpaceMirror
         selection.WriteTo(server);
         if (options.ReadValues) await ReadValues(client, state, ct);
         return new SelectionMirrorResult(server, plan.Nodes, apply.Created, apply.Updated, state.Typed, state.Linked, plan.Truncated,
-            apply.Vanished, state.Notes);
+            apply.Vanished, state.Notes) { VanishedElements = apply.VanishedElements };
     }
 
     /// <summary>How many nodes a selection covers, without changing the document.</summary>
@@ -159,6 +171,7 @@ public static class AddressSpaceMirror
         public int Created;
         public int Updated;
         public List<string> Vanished { get; } = new();
+        public List<InternalElementType> VanishedElements { get; } = new();
 
         public void Node(MirrorPlanNode node, InternalElementType parent)
         {
@@ -188,6 +201,7 @@ public static class AddressSpaceMirror
             {
                 if (AddressOf(child) is not { } a || node.OnServer.Contains(a)) continue;
                 Vanished.Add($"{PathOf(child)} ({a})");
+                VanishedElements.Add(child);
                 switch (state.Options.Vanished)
                 {
                     case VanishedNodes.Mark when child.Attribute[MirrorOptions.NotOnServerAttribute] == null:
