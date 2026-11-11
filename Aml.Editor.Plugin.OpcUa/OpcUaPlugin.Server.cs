@@ -67,10 +67,36 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// <summary>Asks the editor to select an element in its tree (after mirroring or binding).</summary>
     public event EventHandler<SelectionEventArgs>? Selected;
 
+    /// <summary>
+    /// The endpoint offered before any was used: this computer by its address.
+    /// "localhost" tries ::1 first, and a server on 127.0.0.1 only then answers
+    /// after about two seconds, on every connection.
+    /// </summary>
+    internal const string DefaultEndpoint = "opc.tcp://127.0.0.1:4840";
+
+    /// <summary>The user answered the trust dialog with Cancel.</summary>
+    internal sealed class TrustDeclinedException : Exception;
+
+    /// <summary>The server is trusted now, and still refused: it does not accept this computer's certificate.</summary>
+    internal sealed class ClientRefusedException : Exception;
+
+    /// <summary>What to tell after connecting failed, and whether it is an error or the user's own choice.</summary>
+    internal static (string Text, bool IsError) DescribeConnectFailure(Exception ex, string url, string pkiRoot)
+    {
+        var own = Path.Combine(pkiRoot, "own", "certs");
+        if (ex is TrustDeclinedException) return (L.T("Not connected: the certificate of {0} was not trusted.", url), false);
+        var refused = ex is ClientRefusedException;
+        for (var inner = ex.InnerException; inner != null && !refused; inner = inner.InnerException)
+            refused = inner is Opc.Ua.ServiceResultException { StatusCode: var code } && code == Opc.Ua.StatusCodes.BadSecurityChecksFailed;
+        if (refused)
+            return (L.T("The server at {0} did not accept this computer's certificate. Its administrator has to trust it; it is in '{1}'.", url, own), true);
+        return (ex is UaConnectionException ? ex.Message : L.T("Connecting to {0} failed: {1}", url, ex.Message), true);
+    }
+
     private void InitServerTab()
     {
         EndpointBox.ItemsSource = _settings.RecentEndpoints;
-        EndpointBox.Text = _settings.LastEndpointUrl ?? "opc.tcp://localhost:4840";
+        EndpointBox.Text = _settings.LastEndpointUrl ?? DefaultEndpoint;
         SecurityToggle.IsChecked = _settings.UseSecurity;
         MirrorMaxNodesBox.Text = _settings.MirrorMaxNodes.ToString(System.Globalization.CultureInfo.InvariantCulture);
         InitSelection();
@@ -143,15 +169,13 @@ public partial class OpcUaPlugin : ISupportsSelection
             RememberEndpoint(url);
             await LoadRootAsync();
         }
-        catch (UaConnectionException ex)
-        {
-            PluginLog.Error(ex.Message);
-            SetStatus(ex.Message);
-        }
         catch (Exception ex)
         {
-            PluginLog.Error($"Connecting to {url} failed", ex);
-            SetStatus(L.T("Connecting to {0} failed: {1}", url, ex.Message));
+            var (text, isError) = DescribeConnectFailure(ex, url, new UaConnectOptions { EndpointUrl = url }.PkiRoot);
+            if (!isError) PluginLog.Info(text);
+            else if (ex is UaConnectionException or ClientRefusedException) PluginLog.Error(text);
+            else PluginLog.Error($"Connecting to {url} failed", ex);
+            SetStatus(text);
         }
         finally
         {
@@ -228,10 +252,19 @@ public partial class OpcUaPlugin : ISupportsSelection
                     (L.T("Valid"), Validity(certificate.NotBefore, certificate.NotAfter, DateTime.Now), false),
                     (L.T("SHA-256"), certificate.Sha256, true)),
                 risky: true);
-            if (!trust) throw;
+            if (!trust) throw new TrustDeclinedException();
             UaClient.TrustServer(certificate, options.PkiRoot);
             PluginLog.Info($"Trusted the certificate of {url}: {certificate.Subject}, SHA-256 {certificate.Sha256}.");
-            return await UaClient.ConnectAsync(options);
+            try
+            {
+                return await UaClient.ConnectAsync(options);
+            }
+            catch (UaConnectionException again) when (again.UntrustedCertificate != null)
+            {
+                // Its certificate is trusted now; what is refused is ours.
+                PluginLog.Error(again.Message);
+                throw new ClientRefusedException();
+            }
         }
     }
 
@@ -374,15 +407,26 @@ public partial class OpcUaPlugin : ISupportsSelection
 
     private async Task DisconnectAsync()
     {
-        await StopLiveAsync();
-        if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
-        _watchRows.Clear();
-        WatchList.Visibility = Visibility.Collapsed;
+        // The commands go first: ending the subscriptions of a server that is gone
+        // takes as long as the stack waits, and meanwhile nothing may use the session
+        // or start a second disconnect.
         var client = _client;
         _client = null;
         AddressTree.Items.Clear();
-        UpdateServerState();
-        if (client != null) await client.DisposeAsync();
+        SetBusy(true, L.T("Disconnecting …"));
+        try
+        {
+            await StopLiveAsync();
+            if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
+            _watchRows.Clear();
+            WatchList.Visibility = Visibility.Collapsed;
+            if (client != null) await client.DisposeAsync();
+        }
+        finally
+        {
+            SetBusy(false, null);
+            UpdateServerState();
+        }
         PluginLog.Info("Disconnected.");
         SetStatus(L.T("Disconnected."));
     }

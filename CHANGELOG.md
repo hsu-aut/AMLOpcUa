@@ -18,6 +18,15 @@ minor versions.
 
 ### Fixed
 
+- Cancel in "Trust this server?" was logged and told as an error; it says
+  "Not connected" now. A server that refuses this computer's certificate is
+  named as such, with the folder of the certificate its administrator has to
+  trust, instead of asking to trust the server again.
+- Disconnecting from a server that is gone showed nothing while the
+  subscriptions ended, and Disconnect could be clicked again; the plugin is
+  busy now until it is done.
+- The endpoint offered first is `opc.tcp://127.0.0.1:4840`: with `localhost`
+  every connection to a server on 127.0.0.1 waited about two seconds for ::1.
 - One error showed at the log link as many new warnings, one per line of its
   stack trace; it counts once now, and the link says "problem(s)".
 - A failed "Add missing Mandatory children" was reported half in English in
