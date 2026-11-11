@@ -414,8 +414,7 @@ public static class ServerNodeSets
         if (uris == null) { uris = new XElement(Ua + "NamespaceUris"); root.AddFirst(uris); }
         var fileTable = new NamespaceTable();
         foreach (var uri in uris.Elements(Ua + "Uri").Select(u => u.Value)) fileTable.Append(uri);
-        var aliases = root.Element(Ua + "Aliases")?.Elements(Ua + "Alias").ToDictionary(a => (string)a.Attribute("Alias")!, a => a.Value)
-            ?? new Dictionary<string, string>();
+        var aliases = NodeSetInfo.Aliases(root);
 
         NodeId Resolve(string text) => NodeId.Parse(aliases.TryGetValue(text.Trim(), out var a) ? a : text.Trim());
         NodeId? InFile(NodeId serverId)

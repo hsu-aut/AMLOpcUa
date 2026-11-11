@@ -3,6 +3,7 @@
 // folder of large NodeSets can be scanned without parsing any of their nodes.
 
 using System.Xml;
+using System.Xml.Linq;
 
 namespace OpcUaAml.NodeSets;
 
@@ -125,6 +126,19 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
         }
 
         return Done();
+    }
+
+    /// <summary>
+    /// The Aliases of a NodeSet, alias name to NodeId text. An alias declared
+    /// twice counts with its last value, as Opc2Aml reads it; one without a
+    /// name is left out.
+    /// </summary>
+    internal static Dictionary<string, string> Aliases(XElement root)
+    {
+        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var alias in root.Elements(root.Name.Namespace + "Aliases").Elements(root.Name.Namespace + "Alias"))
+            if ((string?)alias.Attribute("Alias") is { } name) aliases[name] = alias.Value.Trim();
+        return aliases;
     }
 
     private static ModelRef ReadRef(XmlReader reader)

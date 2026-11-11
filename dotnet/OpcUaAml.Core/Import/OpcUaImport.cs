@@ -87,9 +87,7 @@ public static class OpcUaImport
         var prefix = $"ns={index};";
 
         // An alias may be declared twice; the last one counts, as in Opc2Aml.
-        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var alias in nodeSet.Root.Element(ua + "Aliases")?.Elements(ua + "Alias") ?? [])
-            if ((string?)alias.Attribute("Alias") is { } name) aliases[name] = alias.Value.Trim();
+        var aliases = NodeSetInfo.Aliases(nodeSet.Root);
         string Resolve(string? text) => text is null ? "" : aliases.TryGetValue(text, out var id) ? id : text;
 
         // What holds a node: the references Annex A maps as a child, and the

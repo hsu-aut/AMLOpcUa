@@ -56,6 +56,38 @@ public class NodeSetCatalogTests
         finally { Directory.Delete(folder, recursive: true); }
     }
 
+    /// <summary>HasSubtype declared twice, the last one right; Opc2Aml reads the last.</summary>
+    private const string RepeatedAlias = """
+        <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+          <NamespaceUris><Uri>urn:test:alias</Uri></NamespaceUris>
+          <Aliases><Alias Alias="HasSubtype">i=47</Alias><Alias Alias="HasSubtype">i=45</Alias><Alias>i=1</Alias></Aliases>
+          <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:PumpType">
+            <DisplayName>PumpType</DisplayName>
+            <References><Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference></References>
+          </UAObjectType>
+        </UANodeSet>
+        """;
+
+    [Fact]
+    public void An_alias_declared_twice_counts_with_its_last_value()
+    {
+        // The server's NodeSet export and the round trip built the alias map
+        // with ToDictionary and threw on the second entry.
+        var aliases = NodeSetInfo.Aliases(System.Xml.Linq.XDocument.Parse(RepeatedAlias).Root!);
+
+        Assert.Equal("i=45", Assert.Single(aliases).Value);
+    }
+
+    [Fact]
+    public void The_round_trip_reads_a_NodeSet_that_repeats_an_alias()
+    {
+        var graph = OpcUaAml.Roundtrip.UaGraph.Load(System.Xml.Linq.XDocument.Parse(RepeatedAlias));
+
+        // The last value (i=45) counts; the first would make it HasComponent.
+        var pump = graph.Nodes.Values.Single(n => n.BrowseName == "PumpType");
+        Assert.Equal("HasSubtype", Assert.Single(pump.References).Type);
+    }
+
     [Fact]
     public void Rejects_files_that_are_not_NodeSets()
     {
