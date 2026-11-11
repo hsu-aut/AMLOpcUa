@@ -184,7 +184,10 @@ When the hierarchy already holds a mirror of the server, the plugin asks:
 update it (found by NodeId: types and values read again, new nodes added)
 or mirror into a new hierarchy. Elements whose node the server no longer
 holds are reported, and as chosen in that dialog kept, marked with the
-attribute `NotOnServer` (the mark goes when the node is back) or removed. On the command line `uaaml mirror` updates (`--vanished
+attribute `NotOnServer` (the mark goes when the node is back) or removed.
+The result names them (`Vanished`) and holds them (`VanishedElements`): what
+this run found gone, not elements an earlier run of another selection marked,
+so removing them afterwards removes exactly these. On the command line `uaaml mirror` updates (`--vanished
 report|mark|remove`), `--copy` mirrors anew, `--preview` counts, and without nodes the kept selection is
 mirrored again. Elements of a mirrored selection never count as planned
 elements for the refBaseObj link, so a second copy does not link to the first.
