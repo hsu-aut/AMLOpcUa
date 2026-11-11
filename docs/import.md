@@ -30,7 +30,9 @@ transitively, must be available as a file:
 3. the NodeSets shipped in `nodesets/` (UA base model 1.05.07, DI 1.05.0).
 
 A file in these folders that cannot be read (another program holds it, no
-read rights) is skipped with a warning of the catalog; the rest is used.
+read rights) is skipped with a warning of the catalog; the rest is used. A
+NodeSet without a `Models` element (allowed before 1.04) stands for the first
+of its `NamespaceUris` and requires the base model, as Opc2Aml reads it.
 
 Without an account the plugin fetches the NodeSets the OPC Foundation
 publishes on GitHub, [OPCFoundation/UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset),

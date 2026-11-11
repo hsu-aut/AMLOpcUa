@@ -424,6 +424,27 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
     }
 
     [Fact]
+    public void A_NodeSet_without_Models_is_converted()
+    {
+        // Valid in the 1.03 era; Opc2Aml takes the first namespace as its
+        // model. The import refused it as declaring no model.
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-legacy-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Legacy.NodeSet2.xml");
+            File.WriteAllText(file, NodeSetCatalogTests.LegacyNodeSet);
+
+            var result = NodeSetImporter.Convert(file, di.Catalog);
+
+            Assert.NotNull(result.Document.CAEXFile.SystemUnitClassLib["SUC_urn:test:legacy"]!.SystemUnitClass["PumpType"]);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+    }
+
+    [Fact]
     public void A_file_that_is_not_a_NodeSet_is_refused()
     {
         var file = Path.GetTempFileName();

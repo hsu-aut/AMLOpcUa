@@ -17,6 +17,45 @@ public class NodeSetCatalogTests
         Assert.Equal(Fixtures.UaUri, Assert.Single(model.RequiredModels).ModelUri);
     }
 
+    /// <summary>A NodeSet of the 1.03 era: valid without a Models element; its namespace is the first of NamespaceUris.</summary>
+    internal const string LegacyNodeSet = """
+        <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+          <NamespaceUris><Uri>urn:test:legacy</Uri><Uri>urn:test:other</Uri></NamespaceUris>
+          <Aliases><Alias Alias="HasSubtype">i=45</Alias></Aliases>
+          <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:PumpType">
+            <DisplayName>PumpType</DisplayName>
+            <References><Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference></References>
+          </UAObjectType>
+        </UANodeSet>
+        """;
+
+    [Fact]
+    public void A_NodeSet_without_Models_declares_its_first_namespace_as_Opc2Aml_reads_it()
+    {
+        var folder = Directory.CreateTempSubdirectory("catalog-legacy-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Legacy.NodeSet2.xml");
+            File.WriteAllText(file, LegacyNodeSet);
+            File.WriteAllText(Path.Combine(folder, "User.NodeSet2.xml"), """
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>urn:test:user</Uri><Uri>urn:test:legacy</Uri></NamespaceUris>
+                  <Models><Model ModelUri="urn:test:user"><RequiredModel ModelUri="urn:test:legacy" /></Model></Models>
+                </UANodeSet>
+                """);
+
+            var model = Assert.Single(NodeSetInfo.Read(file).Models);
+            Assert.Equal("urn:test:legacy", model.Model.ModelUri);
+            Assert.Null(model.Model.Version);
+            Assert.Equal(Fixtures.UaUri, Assert.Single(model.RequiredModels).ModelUri);
+
+            var catalog = NodeSetCatalog.Create(new[] { folder });
+            Assert.Equal(file, catalog.Find("urn:test:legacy")?.FilePath);
+            Assert.Empty(catalog.MissingDependencies(catalog.Find("urn:test:user")!));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
     [Fact]
     public void Rejects_files_that_are_not_NodeSets()
     {
