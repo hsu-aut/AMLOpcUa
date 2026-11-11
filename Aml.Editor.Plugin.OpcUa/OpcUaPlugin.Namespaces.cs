@@ -534,8 +534,8 @@ public partial class OpcUaPlugin
         }
     }
 
-    /// <summary>The missing models the OPC Foundation's repository has, downloaded; true when any arrived.</summary>
-    private async Task<bool> FetchMissingFromOpcFoundationAsync(IReadOnlyList<ModelRef> missing)
+    /// <summary>The missing models the OPC Foundation's repository has, downloaded; null when any arrived, else why none did.</summary>
+    private async Task<string?> FetchMissingFromOpcFoundationAsync(IReadOnlyList<ModelRef> missing)
     {
         SetBusy(true, L.T("Fetching the missing models from the OPC Foundation …"));
         try
@@ -548,13 +548,15 @@ public partial class OpcUaPlugin
             foreach (var note in source.Notes) PluginLog.Warn("OPC Foundation: " + note);
             if (notThere.Count > 0)
                 PluginLog.Warn("Not published by the OPC Foundation: " + string.Join(", ", notThere) + ". A NodeSet folder or the UA Cloud Library may have them.");
-            return files.Count > 0;
+            if (files.Count > 0) return null;
+            return notThere.Count > 0
+                ? L.T("The OPC Foundation does not publish {0}. A NodeSet folder or the UA Cloud Library may have it.", string.Join(", ", notThere))
+                : L.T("Nothing could be fetched from the OPC Foundation.");
         }
         catch (Exception ex)
         {
             PluginLog.Error("Fetching from the OPC Foundation failed", ex);
-            SetStatus(L.T("Fetching from the OPC Foundation failed: {0}", ex.Message));
-            return false;
+            return L.T("Fetching from the OPC Foundation failed: {0}", ex.Message);
         }
         finally
         {
@@ -563,24 +565,25 @@ public partial class OpcUaPlugin
     }
 
     /// <summary>
-    /// Asks what to do about models a NodeSet requires and no folder holds;
-    /// true when they may be there now and the import should try again.
+    /// Asks how to get the missing models and gets them. Retry: check again (after
+    /// a way that failed too, so the dialog comes back with <c>Problem</c>); else
+    /// the user cancelled.
     /// </summary>
-    private async Task<bool> ResolveMissingAsync(string file, IReadOnlyList<ModelRef> missing)
+    private async Task<(bool Retry, string? Problem)> ResolveMissingAsync(string file, IReadOnlyList<ModelRef> missing, string? problem)
     {
-        var window = new MissingModelsWindow(Path.GetFileName(file), missing) { Owner = Window.GetWindow(this) };
-        if (window.ShowDialog() != true) return false;
+        var window = new MissingModelsWindow(Path.GetFileName(file), missing, problem) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true) return (false, null);
         switch (window.Choice)
         {
             case MissingModelsWindow.Action.OpcFoundation:
-                return await FetchMissingFromOpcFoundationAsync(missing);
+                return (true, await FetchMissingFromOpcFoundationAsync(missing));
             case MissingModelsWindow.Action.AddFolder:
                 var dialog = new Microsoft.Win32.OpenFolderDialog { Title = L.T("Folder with the NodeSets {0} requires", Path.GetFileName(file)) };
-                if (dialog.ShowDialog() != true) return false;
+                if (dialog.ShowDialog() != true) return (false, null);
                 if (!_settings.NodeSetFolders.Contains(dialog.FolderName)) _settings.NodeSetFolders.Add(dialog.FolderName);
                 _settings.Save();
                 PluginLog.Info("NodeSet folder added: " + dialog.FolderName);
-                return true;
+                return (true, null);
             case MissingModelsWindow.Action.Cloud:
                 // One search per missing model; a download brings what it requires,
                 // so a later one may be there already. Cancelling stops the round.
@@ -592,9 +595,9 @@ public partial class OpcUaPlugin
                     if (await DownloadFromCloudAsync(ShortName(model.ModelUri)) == null) break;
                     any = true;
                 }
-                return any;
+                return (any, null);
             default:
-                return false;
+                return (false, null);
         }
     }
 
@@ -642,7 +645,17 @@ public sealed class MissingModelsWindow : Window
 
     public Action Choice { get; private set; }
 
-    public MissingModelsWindow(string file, IReadOnlyList<ModelRef> missing)
+    /// <summary>Why the last way chosen did not bring the models, in red; null when there is none.</summary>
+    private static TextBlock? Problem(string? problem)
+    {
+        if (problem == null) return null;
+        var message = DialogKit.Message();
+        DialogKit.ShowError(message, problem);
+        return message;
+    }
+
+    /// <param name="problem">Why the last way chosen did not bring the models; shown in red.</param>
+    public MissingModelsWindow(string file, IReadOnlyList<ModelRef> missing, string? problem = null)
     {
         Width = 760;
         Height = 400;
@@ -660,7 +673,7 @@ public sealed class MissingModelsWindow : Window
         }
         DialogKit.Frame(this, "", DialogKit.Verify, L.T("Models missing"),
             L.T("{0} requires models that neither its folder nor the NodeSet folders hold. Fetch them from the OPC Foundation's published NodeSets (no account needed), add a folder that holds them, or search the UA Cloud Library; the import then tries again.", file),
-            list, null,
+            list, Problem(problem),
             Choose(L.T("From the OPC Foundation"), Action.OpcFoundation, true),
             Choose(L.T("Add NodeSet folder…"), Action.AddFolder, false),
             Choose(L.T("Search the Cloud Library…"), Action.Cloud, false),

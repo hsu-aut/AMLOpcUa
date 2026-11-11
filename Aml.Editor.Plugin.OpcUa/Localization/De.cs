@@ -235,6 +235,8 @@ internal static class De
         ["Exporting …"] = "Wird exportiert …",
         ["Export…"] = "Exportieren…",
         ["Fetching from the OPC Foundation failed: {0}"] = "Abruf von der OPC Foundation fehlgeschlagen: {0}",
+        ["The OPC Foundation does not publish {0}. A NodeSet folder or the UA Cloud Library may have it."] = "Die OPC Foundation veröffentlicht {0} nicht. Ein NodeSet-Ordner oder die UA Cloud Library hat es vielleicht.",
+        ["Nothing could be fetched from the OPC Foundation."] = "Von der OPC Foundation ließ sich nichts abrufen.",
         ["Fetching the missing models from the OPC Foundation …"] = "Fehlende Modelle werden von der OPC Foundation abgerufen …",
         ["Filter types and instances by name; Enter draws the first"] = "Typen und Instanzen nach Namen filtern; Enter zeichnet den ersten Treffer",
         ["Finding"] = "Befund",

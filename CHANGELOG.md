@@ -49,6 +49,11 @@ minor versions.
   are reused, a failing file keeps its entry from before, and without a
   connection the list and files from before are used, which the dialog and the
   log say.
+- When fetching missing models from the OPC Foundation brought none (offline,
+  or a model it does not publish), the import ended with "cancelled: required
+  models are missing" although nobody cancelled, and the reason was gone. The
+  dialog of missing models comes back with the reason, so a folder or the
+  Cloud Library can be tried.
 - "Edit in the modeler" found a namespace's NodeSet only in the NodeSet
   folders; one imported from anywhere else ended in "No NodeSet of … found".
   The plugin keeps a copy of every NodeSet imported from another folder

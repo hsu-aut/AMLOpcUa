@@ -381,6 +381,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         Func<ConversionResult, AfterMerge?>? afterMerge)
     {
         List<string> folders;
+        // Why the last way of getting missing models failed; the dialog says so when it asks again.
+        string? problem = null;
         // Missing models are asked about before the conversion, which takes seconds;
         // after the user fixed them, the check runs again.
         while (true)
@@ -396,7 +398,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 var missing = await Task.Run(() => NodeSetCatalog.Create(folders).MissingDependencies(info));
                 if (missing.Count == 0) break;
                 PluginLog.Warn($"{Path.GetFileName(file)} requires models that are not available: {string.Join(", ", missing.Select(m => m.ModelUri))}.");
-                if (await ResolveMissingAsync(file, missing)) continue;
+                var (retry, failed) = await ResolveMissingAsync(file, missing, problem);
+                if (retry)
+                {
+                    problem = failed;
+                    continue;
+                }
                 SetStatus(L.T("Import of {0} cancelled: required models are missing.", Path.GetFileName(file)));
                 return false;
             }
