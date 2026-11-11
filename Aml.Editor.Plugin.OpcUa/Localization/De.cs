@@ -89,6 +89,7 @@ internal static class De
         ["at _most"] = "_höchstens",
         ["At most nodes"] = "Höchstzahl der Knoten",
         ["AutomationML (*.aml)|*.aml"] = "AutomationML (*.aml)|*.aml",
+        ["AutomationML container (*.amlx)|*.amlx"] = "AutomationML-Container (*.amlx)|*.amlx",
         ["Below '{0}'"] = "Unter '{0}'",
         ["Below the selected element"] = "Unter dem ausgewählten Element",
         ["Bind"] = "Binden",

@@ -15,6 +15,7 @@ using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
 using OpcUaAml.Addressing;
+using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Server;
 
@@ -815,6 +816,25 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// Saves a copy of the open document without the addresses of its servers,
     /// to pass it on; the open document stays as it is.
     /// </summary>
+    /// <summary>"plant.amlx" gives "plant-without-addresses.amlx", in the same folder and of the same kind.</summary>
+    internal static string CopyWithoutAddressesName(string documentPath) =>
+        Path.Combine(Path.GetDirectoryName(documentPath) ?? "",
+            Path.GetFileNameWithoutExtension(documentPath) + "-without-addresses" + Path.GetExtension(documentPath));
+
+    /// <summary>
+    /// Writes <paramref name="xml"/> (a copy of the document) without server addresses to
+    /// <paramref name="target"/>; into a copy of the container when both are .amlx.
+    /// </summary>
+    internal static StripReport SaveCopyWithoutAddresses(System.Xml.Linq.XDocument xml, string? documentPath, string target)
+    {
+        var report = ServerAddresses.Strip(xml);
+        if (documentPath != null && AmlContainers.IsContainerPath(documentPath) && AmlContainers.IsContainerPath(target) && File.Exists(documentPath))
+            AmlContainers.CopyWithRoot(documentPath, xml, target);
+        else
+            xml.Save(target);
+        return report;
+    }
+
     private void StripAddressesButton_Click(object sender, RoutedEventArgs e)
     {
         if (_document is not { } document)
@@ -822,20 +842,21 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(L.T("Open a document first."));
             return;
         }
-        var name = _documentPath != null ? Path.GetFileNameWithoutExtension(_documentPath) : "Document";
+        var suggested = CopyWithoutAddressesName(_documentPath ?? "Document.aml");
+        var container = AmlContainers.IsContainerPath(suggested);
         var dialog = new SaveFileDialog
         {
             Title = L.T("Save a copy without server addresses"),
-            Filter = L.T("AutomationML (*.aml)|*.aml"),
-            FileName = name + "-without-addresses.aml",
+            // A container is passed on as one, with its libraries and geometry.
+            Filter = container ? L.T("AutomationML container (*.amlx)|*.amlx") : L.T("AutomationML (*.aml)|*.aml"),
+            FileName = Path.GetFileName(suggested),
             InitialDirectory = _documentPath != null ? Path.GetDirectoryName(_documentPath) : null,
         };
         if (dialog.ShowDialog() != true) return;
+        var documentPath = _documentPath;
         Guard(L.T("Saving the copy without server addresses"), () =>
         {
-            var copy = new System.Xml.Linq.XDocument(document.CAEXFile.Node.Document!);
-            var report = ServerAddresses.Strip(copy);
-            copy.Save(dialog.FileName);
+            var report = SaveCopyWithoutAddresses(new System.Xml.Linq.XDocument(document.CAEXFile.Node.Document!), documentPath, dialog.FileName);
             PluginLog.Info($"Copy without server addresses: {dialog.FileName}: {report}");
             foreach (var place in report.Remaining) PluginLog.Warn($"A host name still appears in the copy: {place}");
             SetStatus(L.T("Saved {0}: {1}.", Path.GetFileName(dialog.FileName), report)

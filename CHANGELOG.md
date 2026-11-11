@@ -22,6 +22,9 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- "Remove server addresses…" saved an .amlx document as a plain .aml file,
+  without the libraries, geometry and other parts of the container; the copy of
+  a container is a container again, with every other part as it was.
 - "Types of the server…" with "Include the namespace's objects" ticked and
   Import types browsed the objects for nothing and reported them as not taken;
   an import fetches the types only.
