@@ -206,6 +206,20 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.NotNull(doc.CAEXFile.SystemUnitClassLib["SUC_" + Fixtures.DiUri]);
     }
 
+    [Fact]
+    public async Task Watch_prints_each_change_until_stopped()
+    {
+        using var uaaml = new Uaaml();
+        var missing = $"nsu={TestServer.Namespace};s=Plant.Nothing";
+
+        var run = await uaaml.RunAsync("watch", server.EndpointUrl, "/Plant/Counter", missing, "--insecure", "--accept", "--for", "2");
+
+        Assert.True(run.Exit == 0, run.Error);
+        var counts = run.Out.Split('\n').Where(l => l.Contains("/Plant/Counter", StringComparison.Ordinal)).ToList();
+        Assert.True(counts.Count >= 3, run.Out);
+        Assert.Contains(run.Out.Split('\n'), l => l.Contains(missing, StringComparison.Ordinal) && l.Contains("BadNodeIdUnknown", StringComparison.Ordinal));
+    }
+
     private const string PasswordVariable = "AMLOPCUA_PASSWORD";
 
     /// <summary>Runs with the password variable set as given, and puts it back afterwards.</summary>

@@ -81,7 +81,8 @@ server it was bound to ([export](export.md), D16).
   keep the document itself current, see "Keep document values live" below.
   A node the server refuses to watch (it does not have it, BadNodeIdUnknown)
   is reported once as a bad result with the server's status, instead of
-  staying silent.
+  staying silent. On the command line `uaaml watch <endpoint> <node>...`
+  prints each change with its time until Ctrl+C (or `--for <seconds>`).
 
 ## The server's types
 

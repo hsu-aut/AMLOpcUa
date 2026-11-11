@@ -78,6 +78,11 @@ public static class Program
             BrowseNames from the Objects folder when it starts with a slash
             ("/MPS500/ST30_Processing/ParameterSet/Ready").
 
+        uaaml watch <endpoint> <node>... [--for <seconds>] [--insecure] [--accept] [--user <name>]
+            Each value as it changes, one line with the time, until Ctrl+C or
+            Enter (or for the seconds given). A node the server does not have
+            is named once with its status.
+
         uaaml mirror <endpoint> [<node>...] <doc.aml> [--scope node|children|subtree] [--instances-of <type>] [--view <view>]
                      [--depth <n>] [--skip-properties] [--objects-only] [--namespace <uri>]... [--show-server] [--exclude <node>]...
                      [--hierarchy <name>] [--copy] [--preview] [--plan <hierarchy>] [--no-link] [--max-nodes <n>]
@@ -236,6 +241,7 @@ public static class Program
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "read" => Run(ReadCommand(rest)),
+                "watch" => Run(WatchCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
                 "nodeset" => Run(NodeSetCommand(rest)),
@@ -605,6 +611,41 @@ public static class Program
             var r = results[i];
             Console.WriteLine($"{wanted[i].PadRight(width)}  {(r.Good ? r.ValueText : r.Status)}"
                               + (r.Good && r.DataType is { } type ? $"  ({type})" : ""));
+        }
+        return 0;
+    }
+
+    /// <summary>The values of nodes as they change, one line each, until Ctrl+C, Enter or --for.</summary>
+    private static async Task<int> WatchCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--user", "--for" }, flags: new[] { "--secure", "--insecure", "--accept" });
+        if (o.Positional.Count < 2) throw new ArgumentException("watch needs an endpoint and at least one node.");
+        var limit = Seconds(o, "--for");
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var wanted = o.Positional.Skip(1).ToList();
+        var nodes = new List<OpcUaAml.Addressing.UaNodeAddress>();
+        var names = new Dictionary<OpcUaAml.Addressing.UaNodeAddress, string>();
+        foreach (var name in wanted)
+        {
+            var node = await client.ResolveAsync(name);
+            nodes.Add(node);
+            names.TryAdd(node, name);
+        }
+        var width = wanted.Max(w => w.Length);
+        var gate = new object();
+        // Changes arrive on threads of the stack; a node the server lacks once, as a bad status.
+        void Print(OpcUaAml.Server.UaReadResult r)
+        {
+            var line = $"{DateTime.Now:HH:mm:ss.fff}  {names.GetValueOrDefault(r.Address, r.Address.ToString()).PadRight(width)}  "
+                       + (r.Good ? r.ValueText : r.Status);
+            lock (gate) Console.WriteLine(line);
+        }
+        await using (await client.WatchAsync(nodes, Print))
+        {
+            Console.Error.WriteLine(limit != null
+                ? $"Watching {nodes.Count} node(s) for {limit.Value.TotalSeconds:0} s; Ctrl+C stops."
+                : $"Watching {nodes.Count} node(s); Ctrl+C stops.");
+            await UntilStoppedAsync(limit);
         }
         return 0;
     }
