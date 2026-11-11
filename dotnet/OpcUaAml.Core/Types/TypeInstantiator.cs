@@ -70,9 +70,6 @@ public static class TypeInstantiator
 {
     private static readonly string[] TypeOnlyAttributes = { "IsAbstract" };
 
-    /// <summary>How deep an inherited hierarchy is followed; real models stay far below.</summary>
-    private const int MaxMergeDepth = 12;
-
     /// <summary>
     /// Creates a detached instance of <paramref name="type"/> named
     /// <paramref name="name"/>. Insert it where it belongs, e.g.
@@ -97,7 +94,7 @@ public static class TypeInstantiator
         var removedInterfaceIds = new HashSet<string>(StringComparer.Ordinal);
 
         var run = new Run(options, included, omittedOptional, omittedPlaceholders, filled, placeholders, removedInterfaceIds);
-        MergeInherited(instance, UaTypes.Chain(type).Cast<SystemUnitClassType>().ToList());
+        MergeInherited(instance, UaTypes.Declarations(type));
         Prune(instance, "", run);
         RemoveLinksTo(instance, removedInterfaceIds);
 
@@ -128,29 +125,37 @@ public static class TypeInstantiator
     /// children are copied in, with the reference that holds them.
     /// </summary>
     /// <param name="target">The element to complete, an instance or a copy in one.</param>
-    /// <param name="declarations">What it stands for, the nearest declaration first.</param>
-    private static void MergeInherited(SystemUnitClassType target, IReadOnlyList<SystemUnitClassType> declarations, int depth = 0)
+    /// <param name="declarations">What applies to it, inherited declarations merged in (<see cref="UaTypes.Declarations"/>).</param>
+    private static void MergeInherited(SystemUnitClassType target, IReadOnlyList<ChildDeclaration> declarations)
     {
-        if (depth >= MaxMergeDepth) return;
-
-        var byName = new Dictionary<string, List<(SystemUnitClassType Owner, InternalElementType Element)>>(StringComparer.Ordinal);
-        foreach (var declaration in declarations)
+        foreach (var declared in declarations)
         {
-            foreach (var child in declaration.InternalElement)
-            {
-                var name = UaTypes.QualifiedName(child);
-                if (!byName.TryGetValue(name, out var declared)) byName[name] = declared = new();
-                declared.Add((declaration, child));
-            }
-        }
-
-        foreach (var declared in byName.Values)
-        {
-            var name = UaTypes.QualifiedName(declared[0].Element);
+            var name = UaTypes.QualifiedName(declared.Element);
             var own = target.InternalElement.FirstOrDefault(e => UaTypes.QualifiedName(e) == name)
-                      ?? CopyWithLinks(target, declared[0].Owner, declared[0].Element);
-            MergeInherited(own, declared.Select(d => (SystemUnitClassType)d.Element).ToList(), depth + 1);
+                      ?? CopyWithLinks(target, OwnerOf(declared), declared.Element);
+            MergeInherited(own, declared.Children);
         }
+    }
+
+    private static SystemUnitClassType OwnerOf(ChildDeclaration declared) =>
+        declared.Owner ?? (SystemUnitClassType)declared.Element.CAEXParent;
+
+    /// <summary>
+    /// Adds the child a declaration stands for to <paramref name="target"/>,
+    /// as a new instance would have it: linked the way the declaration is
+    /// linked to its owner, with what it inherits, Mandatory children only,
+    /// and without what only makes sense on a type.
+    /// </summary>
+    internal static InternalElementType AddDeclared(SystemUnitClassType target, ChildDeclaration declared)
+    {
+        var child = CopyWithLinks(target, OwnerOf(declared), declared.Element);
+        MergeInherited(child, declared.Children);
+        var removed = new HashSet<string>(StringComparer.Ordinal);
+        Prune(child, child.Name, new Run(new InstantiationOptions(), [], [], [], [], [], removed));
+        RemoveLinksTo(child, removed);
+        RemoveNodeIds(child);
+        RemoveModellingRules(child);
+        return child;
     }
 
     /// <summary>
@@ -287,6 +292,9 @@ public static class TypeInstantiator
             if (UaTypes.IsAbstract(fill.Type) && !run.Options.AllowAbstract)
                 throw new InstantiationException($"'{fill.Type.Name}' is abstract. OPC UA only instantiates concrete subtypes of it.");
             concrete = fill.Type.CreateClassInstance();
+            // As for the instance itself: what an overriding declaration of the
+            // subtype does not repeat is still inherited.
+            MergeInherited(concrete, UaTypes.Declarations(fill.Type));
             if (concrete.Attribute["IsAbstract"] is { } isAbstract) concrete.Attribute.RemoveElement(isAbstract);
             // An instance of a type has no end for the reference from its parent; it gets the placeholder's.
             foreach (var link in links)

@@ -1,3 +1,4 @@
+using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 
 namespace OpcUaAml.Tests;
@@ -14,6 +15,77 @@ public class NodeSetCatalogTests
         Assert.Equal("1.05.0", model.Model.Version);
         Assert.Equal(new DateTime(2025, 11, 15, 0, 0, 0, DateTimeKind.Utc), model.Model.PublicationDate);
         Assert.Equal(Fixtures.UaUri, Assert.Single(model.RequiredModels).ModelUri);
+    }
+
+    /// <summary>A NodeSet of the 1.03 era: valid without a Models element; its namespace is the first of NamespaceUris.</summary>
+    internal const string LegacyNodeSet = """
+        <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+          <NamespaceUris><Uri>urn:test:legacy</Uri><Uri>urn:test:other</Uri></NamespaceUris>
+          <Aliases><Alias Alias="HasSubtype">i=45</Alias></Aliases>
+          <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:PumpType">
+            <DisplayName>PumpType</DisplayName>
+            <References><Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference></References>
+          </UAObjectType>
+        </UANodeSet>
+        """;
+
+    [Fact]
+    public void A_NodeSet_without_Models_declares_its_first_namespace_as_Opc2Aml_reads_it()
+    {
+        var folder = Directory.CreateTempSubdirectory("catalog-legacy-").FullName;
+        try
+        {
+            var file = Path.Combine(folder, "Legacy.NodeSet2.xml");
+            File.WriteAllText(file, LegacyNodeSet);
+            File.WriteAllText(Path.Combine(folder, "User.NodeSet2.xml"), """
+                <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+                  <NamespaceUris><Uri>urn:test:user</Uri><Uri>urn:test:legacy</Uri></NamespaceUris>
+                  <Models><Model ModelUri="urn:test:user"><RequiredModel ModelUri="urn:test:legacy" /></Model></Models>
+                </UANodeSet>
+                """);
+
+            var model = Assert.Single(NodeSetInfo.Read(file).Models);
+            Assert.Equal("urn:test:legacy", model.Model.ModelUri);
+            Assert.Null(model.Model.Version);
+            Assert.Equal(Fixtures.UaUri, Assert.Single(model.RequiredModels).ModelUri);
+
+            var catalog = NodeSetCatalog.Create(new[] { folder });
+            Assert.Equal(file, catalog.Find("urn:test:legacy")?.FilePath);
+            Assert.Empty(catalog.MissingDependencies(catalog.Find("urn:test:user")!));
+        }
+        finally { Directory.Delete(folder, recursive: true); }
+    }
+
+    /// <summary>HasSubtype declared twice, the last one right; Opc2Aml reads the last.</summary>
+    private const string RepeatedAlias = """
+        <UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd">
+          <NamespaceUris><Uri>urn:test:alias</Uri></NamespaceUris>
+          <Aliases><Alias Alias="HasSubtype">i=47</Alias><Alias Alias="HasSubtype">i=45</Alias><Alias>i=1</Alias></Aliases>
+          <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:PumpType">
+            <DisplayName>PumpType</DisplayName>
+            <References><Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference></References>
+          </UAObjectType>
+        </UANodeSet>
+        """;
+
+    [Fact]
+    public void An_alias_declared_twice_counts_with_its_last_value()
+    {
+        // The server's NodeSet export and the round trip built the alias map
+        // with ToDictionary and threw on the second entry.
+        var aliases = NodeSetInfo.Aliases(System.Xml.Linq.XDocument.Parse(RepeatedAlias).Root!);
+
+        Assert.Equal("i=45", Assert.Single(aliases).Value);
+    }
+
+    [Fact]
+    public void The_round_trip_reads_a_NodeSet_that_repeats_an_alias()
+    {
+        var graph = OpcUaAml.Roundtrip.UaGraph.Load(System.Xml.Linq.XDocument.Parse(RepeatedAlias));
+
+        // The last value (i=45) counts; the first would make it HasComponent.
+        var pump = graph.Nodes.Values.Single(n => n.BrowseName == "PumpType");
+        Assert.Equal("HasSubtype", Assert.Single(pump.References).Type);
     }
 
     [Fact]
@@ -74,6 +146,32 @@ public class NodeSetCatalogTests
     {
         var catalog = NodeSetCatalog.Create(new[] { @"Z:\does\not\exist" });
         Assert.Contains(catalog.Warnings, w => w.Contains("does not exist"));
+    }
+
+    [Fact]
+    public void A_file_that_cannot_be_read_is_skipped_with_a_warning()
+    {
+        // A file another program holds open, or one without read rights, threw
+        // out of the folder scan: the whole catalog failed, the import with it.
+        var folder = Directory.CreateTempSubdirectory("catalog-locked-").FullName;
+        try
+        {
+            File.Copy(Fixtures.Path("uafx", "opc.ua.fx.data.nodeset2.xml"), Path.Combine(folder, "opc.ua.fx.data.nodeset2.xml"));
+            var locked = Path.Combine(folder, "locked.nodeset2.xml");
+            File.Copy(Fixtures.Path("uafx", "opc.ua.fx.ac.nodeset2.xml"), locked);
+            using (new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                var catalog = NodeSetCatalog.Create(new[] { folder });
+
+                Assert.NotNull(catalog.Find("http://opcfoundation.org/UA/FX/Data/"));
+                Assert.Null(catalog.Find("http://opcfoundation.org/UA/FX/AC/"));
+                Assert.Contains(catalog.Warnings, w => w.Contains("locked.nodeset2.xml") && w.Contains("could not be read"));
+                // Imported directly, the file is refused the way the import refuses files.
+                var ex = Assert.Throws<ImportException>(() => NodeSetImporter.Convert(locked, catalog));
+                Assert.Contains("could not be read", ex.Message);
+            }
+        }
+        finally { Directory.Delete(folder, recursive: true); }
     }
 
     [Fact]

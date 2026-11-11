@@ -29,6 +29,11 @@ transitively, must be available as a file:
 2. the folders given with `--search` or under "NodeSet folders",
 3. the NodeSets shipped in `nodesets/` (UA base model 1.05.07, DI 1.05.0).
 
+A file in these folders that cannot be read (another program holds it, no
+read rights) is skipped with a warning of the catalog; the rest is used. A
+NodeSet without a `Models` element (allowed before 1.04) stands for the first
+of its `NamespaceUris` and requires the base model, as Opc2Aml reads it.
+
 Without an account the plugin fetches the NodeSets the OPC Foundation
 publishes on GitHub, [OPCFoundation/UA-Nodeset](https://github.com/OPCFoundation/UA-Nodeset),
 branch `latest`: every released companion specification (**Companion
@@ -41,8 +46,14 @@ are allowed without login), and of each file only its beginning up to
 again at most once a day; then only files that changed are read (143 files in
 about seven seconds the first time). A chosen model is downloaded with every
 model it requires that the catalog lacks. When GitHub cannot be reached or the
-hourly limit is spent, the index on disk still serves. Tests run against a fake
-of the tree API and the raw files.
+hourly limit is spent, the index on disk still serves. A file that cannot be
+read during a refresh keeps what it declared before and is read again on the
+next refresh; the others are indexed. A downloaded file is kept under
+`files\` and used again while its git blob SHA is still the one the index
+lists, without asking GitHub; when GitHub cannot give a newer one, the copy
+from before is used. Each of these cases leaves a line in
+`OpcFoundationNodeSets.Notes`. Tests run against a fake of the tree API and
+the raw files.
 
 The plugin can also fetch NodeSets from the OPC Foundation's
 [UA Cloud Library](https://uacloudlibrary.opcfoundation.org) (**Cloud
@@ -117,8 +128,12 @@ search the Cloud Library, then tries again.
 VariableTypes (SUC_), DataTypes (ATL_, without the `ListOf` array types),
 ReferenceTypes (ICL_), the namespaces it builds on (any path of its libraries
 into another's) and the elements typed by it. `Remove` deletes its four
-libraries, and refuses while another namespace builds on it or an element
-uses its types. Checked with DI: 42, 2, 9 and 5, as its NodeSet declares.
+libraries, and refuses while another namespace builds on it, an element uses
+its types, any other path of the instance hierarchies leads into its
+libraries (an interface, an attribute, a role), or a library of no namespace,
+the user's own, refers to them. The metamodel libraries of Annex A
+(`…_OpcAmlMetaModel`) are such libraries and keep the base model. Checked
+with DI: 42, 2, 9 and 5, as its NodeSet declares.
 
 ## Verification
 

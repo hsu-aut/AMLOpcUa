@@ -50,8 +50,7 @@ public sealed class UaGraph
         XNamespace ns = root.Name.Namespace;
         var uris = new List<string> { Ua };
         uris.AddRange(root.Element(ns + "NamespaceUris")?.Elements(ns + "Uri").Select(u => u.Value.Trim()) ?? Enumerable.Empty<string>());
-        var aliases = root.Element(ns + "Aliases")?.Elements(ns + "Alias")
-            .ToDictionary(a => (string)a.Attribute("Alias")!, a => a.Value.Trim()) ?? new();
+        var aliases = NodeSets.NodeSetInfo.Aliases(root);
 
         var g = new UaGraph();
         g.Models.AddRange(root.Element(ns + "Models")?.Elements(ns + "Model").Select(m => (string?)m.Attribute("ModelUri") ?? "") ?? Enumerable.Empty<string>());

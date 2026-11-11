@@ -79,12 +79,12 @@ public static class DiagramBuilder
         ids[root] = rootNode.Id;
         foreach (var ei in root.ExternalInterface) interfaceOwner[ei.ID] = rootNode.Id;
 
-        // Inherited declarations are shown too: a type's picture is what an
-        // instance of it contains.
-        var children = isType
-            ? UaTypes.Declarations((SystemUnitFamilyType)root).Select(d => (SystemUnitClassType)d.Element).ToList()
-            : root.InternalElement.Cast<SystemUnitClassType>().ToList();
-        foreach (var child in children) Add(child, rootNode, 1);
+        // Inherited declarations are shown too, at every level: a type's
+        // picture is what an instance of it contains.
+        if (isType)
+            foreach (var declaration in UaTypes.Declarations((SystemUnitFamilyType)root)) AddDeclared(declaration, rootNode, 1);
+        else
+            foreach (var child in root.InternalElement) AddElement(child, rootNode, 1);
 
         // Non-hierarchical references: InternalLinks whose ends are not a
         // parent and its child.
@@ -101,10 +101,22 @@ public static class DiagramBuilder
         }
         return diagram;
 
-        void Add(SystemUnitClassType element, DiagramNode parent, int depth)
+        void AddDeclared(ChildDeclaration declaration, DiagramNode parent, int depth)
         {
-            if (depth > maxDepth) return;
-            if (diagram.Nodes.Count >= maxNodes) { diagram.Truncated = true; return; }
+            if (Add(declaration.Element, parent, depth) is not { } node) return;
+            foreach (var child in declaration.Children) AddDeclared(child, node, depth + 1);
+        }
+
+        void AddElement(SystemUnitClassType element, DiagramNode parent, int depth)
+        {
+            if (Add(element, parent, depth) is not { } node) return;
+            foreach (var child in element.InternalElement) AddElement(child, node, depth + 1);
+        }
+
+        DiagramNode? Add(SystemUnitClassType element, DiagramNode parent, int depth)
+        {
+            if (depth > maxDepth) return null;
+            if (diagram.Nodes.Count >= maxNodes) { diagram.Truncated = true; return null; }
             var rule = UaTypes.RuleOf(element);
             var node = new DiagramNode
             {
@@ -127,7 +139,7 @@ public static class DiagramBuilder
             ids[element] = node.Id;
             foreach (var ei in element.ExternalInterface) interfaceOwner[ei.ID] = node.Id;
             diagram.Edges.Add(new DiagramEdge(parent.Id, node.Id, HierarchicalReference(element), true));
-            foreach (var child in element.InternalElement) Add(child, node, depth + 1);
+            return node;
         }
     }
 

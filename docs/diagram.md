@@ -13,7 +13,9 @@ Ctrl + mouse wheel zoom.
 - the root: a type (a SystemUnitClass of an `SUC_` library, shown shaded with
   its supertype) or an instance (with its type after a colon);
 - for a type, its instance declarations including inherited ones, as an
-  instance of the type would contain them; for an instance, its children;
+  instance of the type would contain them, also below a declaration that
+  overrides another (`UaTypes.Declarations`, the tree `TypeInstantiator`
+  creates instances from); for an instance, its children;
 - per child: the node class from its type (a subtype of `BaseVariableType` is
   a Variable, an instance of `UaMethodNodeClass` a Method, anything else an
   Object), the ModellingRule (M, O, MP, OP, E) and the reference that attaches

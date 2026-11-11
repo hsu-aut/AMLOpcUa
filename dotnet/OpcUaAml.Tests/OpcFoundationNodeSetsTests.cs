@@ -18,14 +18,31 @@ public class OpcFoundationNodeSetsTests
             ["FX/AC/opc.ua.fx.ac.nodeset2.xml"] = Fixtures.Path("uafx", "opc.ua.fx.ac.nodeset2.xml"),
             ["FX/Data/opc.ua.fx.data.nodeset2.xml"] = Fixtures.Path("uafx", "opc.ua.fx.data.nodeset2.xml"),
         };
-        public readonly Dictionary<string, string> Shas = new() { ["FX/AC/opc.ua.fx.ac.nodeset2.xml"] = "a1", ["FX/Data/opc.ua.fx.data.nodeset2.xml"] = "d1" };
+        /// <summary>The git blob SHAs of the files, as the tree API gives them.</summary>
+        public readonly Dictionary<string, string> Shas;
         public List<string> Requests { get; } = new();
         public bool LimitSpent { get; set; }
+        /// <summary>No connection at all, as on a trade fair floor.</summary>
+        public bool Unreachable { get; set; }
+        /// <summary>Files whose raw requests fail.</summary>
+        public HashSet<string> Failing { get; } = new();
+
+        public FakeGitHub()
+        {
+            Shas = Files.ToDictionary(f => f.Key, f => BlobSha(File.ReadAllBytes(f.Value)));
+        }
+
+        public static string BlobSha(byte[] content) =>
+            Convert.ToHexString(System.Security.Cryptography.SHA1.HashData(
+                Encoding.ASCII.GetBytes($"blob {content.Length}\0").Concat(content).ToArray())).ToLowerInvariant();
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             var url = request.RequestUri!.ToString();
             Requests.Add(url);
+            if (Unreachable) throw new HttpRequestException("No such host is known.");
+            if (Failing.Any(f => Uri.UnescapeDataString(url).EndsWith(f, StringComparison.Ordinal)))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadGateway));
             if (LimitSpent)
             {
                 var spent = new HttpResponseMessage(HttpStatusCode.Forbidden);
@@ -117,5 +134,88 @@ public class OpcFoundationNodeSetsTests
         github.LimitSpent = true;
         var models = await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync(refresh: true);
         Assert.Contains(models, m => m.ModelUri == AcUri);
+    }
+
+    [Fact]
+    public async Task A_file_downloaded_before_is_used_again_while_it_is_current()
+    {
+        // Every download went to GitHub, even for a file in the cache that
+        // had not changed; without a connection the import then failed.
+        var github = new FakeGitHub();
+        var folder = Folder();
+        var models = await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync();
+        var data = models.Single(m => m.ModelUri == DataUri);
+        var first = await new OpcFoundationNodeSets(new HttpClient(github), folder).DownloadAsync(data);
+        github.Requests.Clear();
+        github.Unreachable = true;
+
+        var source = new OpcFoundationNodeSets(new HttpClient(github), folder);
+        var again = await source.DownloadAsync(data);
+
+        Assert.Equal(first, again);
+        Assert.Empty(github.Requests);
+        Assert.Empty(source.Notes);
+    }
+
+    [Fact]
+    public async Task A_changed_file_is_downloaded_again_and_without_a_connection_the_old_copy_serves()
+    {
+        var github = new FakeGitHub();
+        var folder = Folder();
+        var data = (await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync()).Single(m => m.ModelUri == DataUri);
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).DownloadAsync(data);
+        github.Shas["FX/Data/opc.ua.fx.data.nodeset2.xml"] = "d2";
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync(refresh: true);
+        github.Requests.Clear();
+
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).DownloadAsync(data);
+        Assert.Single(github.Requests, r => r.Contains("fx.data"));
+
+        github.Unreachable = true;
+        var offline = new OpcFoundationNodeSets(new HttpClient(github), folder);
+        var file = await offline.DownloadAsync(data);
+        Assert.True(File.Exists(file));
+        Assert.Contains(offline.Notes, n => n.Contains("FX/Data/opc.ua.fx.data.nodeset2.xml"));
+    }
+
+    [Fact]
+    public async Task A_file_that_fails_during_a_refresh_keeps_its_entry_and_the_rest_is_indexed()
+    {
+        // One failed range request failed the whole list.
+        var github = new FakeGitHub();
+        var folder = Folder();
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync();
+        github.Shas["FX/Data/opc.ua.fx.data.nodeset2.xml"] = "d2";
+        github.Shas["FX/AC/opc.ua.fx.ac.nodeset2.xml"] = "a2";
+        github.Failing.Add("FX/Data/opc.ua.fx.data.nodeset2.xml");
+
+        var source = new OpcFoundationNodeSets(new HttpClient(github), folder);
+        var models = await source.ModelsAsync(refresh: true);
+
+        Assert.Contains(models, m => m.ModelUri == AcUri);
+        Assert.Contains(models, m => m.ModelUri == DataUri);
+        Assert.Contains(source.Notes, n => n.Contains("FX/Data/opc.ua.fx.data.nodeset2.xml"));
+
+        // The failed file is read again on the next refresh, the other one not.
+        github.Failing.Clear();
+        github.Requests.Clear();
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync(refresh: true);
+        Assert.Equal(2, github.Requests.Count);
+        Assert.Contains(github.Requests, r => r.Contains("fx.data"));
+    }
+
+    [Fact]
+    public async Task Without_a_connection_the_list_from_before_serves_with_a_note()
+    {
+        var github = new FakeGitHub();
+        var folder = Folder();
+        await new OpcFoundationNodeSets(new HttpClient(github), folder).ModelsAsync();
+        github.Unreachable = true;
+
+        var source = new OpcFoundationNodeSets(new HttpClient(github), folder);
+        var models = await source.ModelsAsync(refresh: true);
+
+        Assert.Contains(models, m => m.ModelUri == AcUri);
+        Assert.Contains(source.Notes, n => n.Contains("cannot be reached"));
     }
 }

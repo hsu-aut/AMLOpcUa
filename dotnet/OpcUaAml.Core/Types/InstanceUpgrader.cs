@@ -21,7 +21,7 @@ public static class InstanceUpgrader
     public static IReadOnlyList<UpgradeChange> AddMissingMandatory(InternalElementType instance)
     {
         var changes = new List<UpgradeChange>();
-        Upgrade(instance, PathOf(instance), changes);
+        Upgrade(instance, PathOf(instance), null, changes);
         return changes;
     }
 
@@ -31,7 +31,7 @@ public static class InstanceUpgrader
         var changes = new List<UpgradeChange>();
         foreach (var ih in doc.CAEXFile.InstanceHierarchy)
             foreach (var top in ih.InternalElement)
-                Upgrade(top, ih.Name + "/" + top.Name, changes);
+                Upgrade(top, ih.Name + "/" + top.Name, null, changes);
         return changes;
     }
 
@@ -41,88 +41,39 @@ public static class InstanceUpgrader
         var changes = new List<UpgradeChange>();
         foreach (var ih in doc.CAEXFile.InstanceHierarchy)
             foreach (var top in ih.InternalElement)
-                Preview(top, ih.Name + "/" + top.Name, changes);
+                Preview(top, ih.Name + "/" + top.Name, null, changes);
         return changes;
     }
 
-    private static void Preview(InternalElementType element, string path, List<UpgradeChange> changes)
+    // Down the hierarchy, as AnnexAChecker goes: what a type declares below a
+    // child counts there, beside what the child's own type declares.
+    private static void Preview(InternalElementType element, string path, IReadOnlyList<ChildDeclaration>? declared, List<UpgradeChange> changes)
     {
-        changes.AddRange(Missing(element).Select(name => new UpgradeChange(path, name)));
+        var applying = UaTypes.Applying(element, declared);
+        changes.AddRange(Missing(element, applying).Select(d => new UpgradeChange(path, d.Name)));
         foreach (var child in element.InternalElement)
-            Preview(child, path + "/" + child.Name, changes);
+            Preview(child, path + "/" + child.Name, UaTypes.Below(applying, child), changes);
     }
 
-    /// <summary>The Mandatory children the element's UA type declares and the element lacks.</summary>
-    private static HashSet<string> Missing(InternalElementType element)
+    /// <summary>The Mandatory children the declarations that apply to the element require and the element lacks.</summary>
+    private static List<ChildDeclaration> Missing(InternalElementType element, IReadOnlyList<ChildDeclaration> applying)
     {
-        var type = UaTypes.IsUaLibraryPath(element.RefBaseSystemUnitPath) ? UaTypes.TypeOf(element) : null;
-        if (type == null) return new HashSet<string>();
         var present = element.InternalElement.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
-        return UaTypes.Declarations(type)
-            .Where(d => d.Rule == ModellingRule.Mandatory && !present.Contains(d.Name))
-            .Select(d => d.Name)
-            .ToHashSet(StringComparer.Ordinal);
+        return applying.Where(d => d.Rule == ModellingRule.Mandatory && !present.Contains(d.Name)).ToList();
     }
 
-    private static void Upgrade(InternalElementType element, string path, List<UpgradeChange> changes)
+    private static void Upgrade(InternalElementType element, string path, IReadOnlyList<ChildDeclaration>? declared, List<UpgradeChange> changes)
     {
-        var type = UaTypes.IsUaLibraryPath(element.RefBaseSystemUnitPath) ? UaTypes.TypeOf(element) : null;
-        if (type != null)
+        var applying = UaTypes.Applying(element, declared);
+        // Each child made from its declaration as a new instance would get
+        // it, linked to the element the way the declaration is linked.
+        foreach (var missing in Missing(element, applying))
         {
-            var missing = Missing(element);
-            if (missing.Count > 0)
-            {
-                // A fresh instance of the type provides the children exactly
-                // as a new instance would get them, links to the parent included.
-                var template = TypeInstantiator.Instantiate(type, element.Name, new InstantiationOptions { AllowAbstract = true }).Instance;
-                foreach (var name in missing)
-                {
-                    var child = template.InternalElement[name];
-                    if (child == null) continue;
-                    element.InternalElement.Insert(child, asFirst: false);
-                    changes.Add(new UpgradeChange(path, name));
-                }
-                RelinkToParent(element, template, missing);
-            }
+            TypeInstantiator.AddDeclared(element, missing);
+            changes.Add(new UpgradeChange(path, missing.Name));
         }
-        foreach (var child in element.InternalElement)
-            Upgrade(child, path + "/" + child.Name, changes);
-    }
-
-    /// <summary>
-    /// The template's links from its own reference interfaces to the added
-    /// children, redirected to the instance. Matched by child and interface
-    /// name: inserting a child that has a parent copies it with new IDs.
-    /// </summary>
-    private static void RelinkToParent(InternalElementType element, InternalElementType template, HashSet<string> added)
-    {
-        var templateOwn = template.ExternalInterface.ToDictionary(ei => ei.ID, ei => ei);
-        var templateChildSides = template.InternalElement.Where(c => added.Contains(c.Name))
-            .SelectMany(c => c.ExternalInterface.Select(ei => (ei.ID, Child: c.Name, Interface: ei.Name)))
-            .ToDictionary(x => x.ID, x => (x.Child, x.Interface));
-
-        foreach (var link in template.InternalLink)
-        {
-            ExternalInterfaceType? parentSide = null;
-            (string Child, string Interface) childSide = default;
-            if (templateOwn.TryGetValue(link.RefPartnerSideA, out var a) && templateChildSides.TryGetValue(link.RefPartnerSideB, out var b))
-                (parentSide, childSide) = (a, b);
-            else if (templateOwn.TryGetValue(link.RefPartnerSideB, out var a2) && templateChildSides.TryGetValue(link.RefPartnerSideA, out var b2))
-                (parentSide, childSide) = (a2, b2);
-            if (parentSide == null) continue;
-
-            var target = element.InternalElement[childSide.Child]?.ExternalInterface[childSide.Interface];
-            if (target == null) continue;
-            var own = element.ExternalInterface[parentSide.Name];
-            if (own == null)
-            {
-                own = element.ExternalInterface.Append(parentSide.Name);
-                own.RefBaseClassPath = parentSide.RefBaseClassPath;
-            }
-            var newLink = element.InternalLink.Append(link.Name);
-            newLink.RefPartnerSideA = own.ID;
-            newLink.RefPartnerSideB = target.ID;
-        }
+        foreach (var child in element.InternalElement.ToList())
+            Upgrade(child, path + "/" + child.Name, UaTypes.Below(applying, child), changes);
     }
 
     private static string PathOf(CAEXObject element)

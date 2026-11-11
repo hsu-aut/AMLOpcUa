@@ -3,6 +3,7 @@
 // folder of large NodeSets can be scanned without parsing any of their nodes.
 
 using System.Xml;
+using System.Xml.Linq;
 
 namespace OpcUaAml.NodeSets;
 
@@ -57,6 +58,19 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
         var models = new List<ModelDeclaration>();
         ModelRef? current = null;
         var required = new List<ModelRef>();
+        string? firstNamespace = null;
+        var hasModels = false;
+
+        // Without a Models element (valid before 1.04) the NodeSet's model is
+        // its first namespace and requires the base model, as Opc2Aml reads it
+        // (ModelManager.Read).
+        NodeSetInfo Done()
+        {
+            if (current != null) models.Add(new ModelDeclaration(current, required));
+            if (!hasModels && models.Count == 0 && firstNamespace != null)
+                models.Add(new ModelDeclaration(new ModelRef(firstNamespace, null, null), new[] { new ModelRef(UaNamespace, null, null) }));
+            return new NodeSetInfo(filePath, models);
+        }
 
         while (reader.Read())
         {
@@ -64,6 +78,16 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
             {
                 switch (reader.LocalName)
                 {
+                    case "NamespaceUris" when !reader.IsEmptyElement:
+                        using (var uris = reader.ReadSubtree())
+                        {
+                            if (uris.ReadToFollowing("Uri", NodeSetNamespace))
+                                firstNamespace = uris.ReadElementContentAsString().Trim() is { Length: > 0 } uri ? uri : null;
+                        }
+                        break;
+                    case "Models":
+                        hasModels = true;
+                        break;
                     case "Model":
                         if (current != null) models.Add(new ModelDeclaration(current, required));
                         current = ReadRef(reader);
@@ -87,8 +111,7 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
                     case "UAMethod":
                     case "UAView":
                         // Past the header; nothing more to learn.
-                        if (current != null) models.Add(new ModelDeclaration(current, required));
-                        return new NodeSetInfo(filePath, models);
+                        return Done();
                 }
             }
             else if (reader.NodeType == XmlNodeType.EndElement && reader.LocalName == "Model" && current != null)
@@ -102,8 +125,20 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
             }
         }
 
-        if (current != null) models.Add(new ModelDeclaration(current, required));
-        return new NodeSetInfo(filePath, models);
+        return Done();
+    }
+
+    /// <summary>
+    /// The Aliases of a NodeSet, alias name to NodeId text. An alias declared
+    /// twice counts with its last value, as Opc2Aml reads it; one without a
+    /// name is left out.
+    /// </summary>
+    internal static Dictionary<string, string> Aliases(XElement root)
+    {
+        var aliases = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var alias in root.Elements(root.Name.Namespace + "Aliases").Elements(root.Name.Namespace + "Alias"))
+            if ((string?)alias.Attribute("Alias") is { } name) aliases[name] = alias.Value.Trim();
+        return aliases;
     }
 
     private static ModelRef ReadRef(XmlReader reader)
