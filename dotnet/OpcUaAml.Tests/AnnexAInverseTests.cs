@@ -170,4 +170,59 @@ public class AnnexAInverseTests(BundledDiConversion di) : IClassFixture<BundledD
         // A whole second stays without a fraction.
         Assert.Equal("2026-09-18T12:34:56Z", ByBrowseName(nodeSet, "1:Stopped").Element(Ua + "Value")!.Element(types + "DateTime")!.Value);
     }
+
+    [Fact]
+    public void A_structure_value_writes_the_fields_of_its_base_structure_first()
+    {
+        // The XML encoding of MotorConfig : BaseConfig is Name (from BaseConfig), then Speed.
+        var nodeSet = Back("urn:test:motor", """
+            <UADataType NodeId="ns=1;i=3000" BrowseName="1:BaseConfig">
+              <DisplayName>BaseConfig</DisplayName>
+              <References><Reference ReferenceType="i=45" IsForward="false">i=22</Reference></References>
+              <Definition Name="1:BaseConfig"><Field Name="Name" DataType="i=12" /></Definition>
+            </UADataType>
+            <UADataType NodeId="ns=1;i=3001" BrowseName="1:MotorConfig">
+              <DisplayName>MotorConfig</DisplayName>
+              <References>
+                <Reference ReferenceType="i=45" IsForward="false">ns=1;i=3000</Reference>
+                <Reference ReferenceType="i=38">ns=1;i=5001</Reference>
+              </References>
+              <Definition Name="1:MotorConfig"><Field Name="Speed" DataType="i=11" /></Definition>
+            </UADataType>
+            <UAObject NodeId="ns=1;i=5001" BrowseName="Default XML" SymbolicName="DefaultXml">
+              <DisplayName>Default XML</DisplayName>
+              <References>
+                <Reference ReferenceType="i=38" IsForward="false">ns=1;i=3001</Reference>
+                <Reference ReferenceType="i=40">i=76</Reference>
+              </References>
+            </UAObject>
+            <UAObjectType NodeId="ns=1;i=1000" BrowseName="1:MotorType">
+              <DisplayName>MotorType</DisplayName>
+              <References>
+                <Reference ReferenceType="i=45" IsForward="false">i=58</Reference>
+                <Reference ReferenceType="i=46">ns=1;i=1001</Reference>
+              </References>
+            </UAObjectType>
+            <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Config" ParentNodeId="ns=1;i=1000" DataType="ns=1;i=3001">
+              <DisplayName>Config</DisplayName>
+              <References>
+                <Reference ReferenceType="i=46" IsForward="false">ns=1;i=1000</Reference>
+                <Reference ReferenceType="i=40">i=68</Reference>
+                <Reference ReferenceType="i=37">i=78</Reference>
+              </References>
+              <Value>
+                <ExtensionObject xmlns="http://opcfoundation.org/UA/2008/02/Types.xsd">
+                  <TypeId><Identifier>ns=1;i=5001</Identifier></TypeId>
+                  <Body><MotorConfig xmlns="urn:test:motor/Types.xsd"><Name>M1</Name><Speed>1500</Speed></MotorConfig></Body>
+                </ExtensionObject>
+              </Value>
+            </UAVariable>
+            """);
+
+        XNamespace types = NodeSetExporter.UaTypesNamespace;
+        var body = ByBrowseName(nodeSet, "1:Config").Element(Ua + "Value")?.Element(types + "ExtensionObject")?.Element(types + "Body")?.Elements().Single();
+        Assert.NotNull(body);
+        Assert.Equal(["Name", "Speed"], body.Elements().Select(f => f.Name.LocalName));
+        Assert.Equal(["M1", "1500"], body.Elements().Select(f => f.Value));
+    }
 }
