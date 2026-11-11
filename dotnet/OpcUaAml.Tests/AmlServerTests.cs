@@ -340,6 +340,26 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task Stopping_with_a_client_connected_does_not_keep_the_caller_waiting()
+    {
+        // The stack waits its shutdown delay (5 s) while sessions exist, on the
+        // thread that stops it: the editor's, which froze.
+        var doc = CAEXDocument.New_CAEXDocument();
+        doc.CAEXFile.InstanceHierarchy.Append("Stop");
+        var pki = TempPki();
+        var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        await host.DisposeAsync();
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"stopping took {watch.Elapsed.TotalSeconds:F1} s");
+    }
+
+    [Fact]
     public async Task A_second_server_on_the_same_port_is_refused_in_a_sentence()
     {
         // A second serve, or the editor serving while uaaml does: the stack's

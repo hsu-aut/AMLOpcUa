@@ -34,6 +34,10 @@ internal static class ServerStartup
             .AddSecurityConfiguration(subjectName, pkiRoot)
             .SetAutoAcceptUntrustedCertificates(!network)
             .CreateAsync(ct).ConfigureAwait(false);
+        // While sessions exist the stack waits this many seconds before it stops, on
+        // the thread that stops it (the editor's UI thread). Clients notice a stopped
+        // server through their keep-alive anyway.
+        app.ApplicationConfiguration.ServerConfiguration.ShutdownDelay = 0;
 
         bool usable;
         try
