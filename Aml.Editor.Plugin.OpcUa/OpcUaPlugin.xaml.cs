@@ -80,8 +80,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         InitNumberFields();
         InitTutorial();
         AccessibleNames.Give(this);
-        // Closed by the user, the view is gone; what it holds must not stay behind (the port above all).
-        PluginTerminated += (_, _) => ReleaseResources();
+        // Closed by the user (PlugIns › Terminate), the pane goes; what the plugin
+        // holds must not stay behind (the port above all). Activate shows this same
+        // view again, so it is left ready for that.
+        PluginTerminated += (_, _) =>
+        {
+            ReleaseResources();
+            ReadyForActivation();
+        };
+        PluginActivated += (_, _) => Revive();
         Tabs.SelectionChanged += (_, e) =>
         {
             if (e.Source != Tabs || Tabs.SelectedIndex != 0) return;
@@ -234,8 +241,59 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     public void ApplicationClose()
     {
         ReleaseResources();
+        PluginLog.OnLine -= AppendLog;
+        HelpButton.Opened -= OnHelpOpened;
+        HelpButton.LessonRequested -= OnLessonRequested;
+        try { StopFollowingThemeChanges(); }
+        catch { /* shutting down, or a host without a theme manager */ }
         try { PluginLog.Shutdown(); }
         catch { /* shutting down */ }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void StopFollowingThemeChanges()
+    {
+        if (_themeChanged != null) ControlzEx.Theming.ThemeManager.Current.ThemeChanged -= _themeChanged;
+    }
+
+    /// <summary>
+    /// After Terminate: the view as it is without a connection, with a modeler
+    /// view that can start (the old one is disposed with its browser), and no
+    /// document, which the view looks up again when it is shown.
+    /// </summary>
+    private void ReadyForActivation()
+    {
+        ReplaceModelerView();
+        ModelerTab.Header = L.T("Modeler");
+        AddressTree.Items.Clear();
+        _watchRows.Clear();
+        WatchList.Visibility = Visibility.Collapsed;
+        _document = null;
+        Watch(null);
+        UpdateState();
+        UpdateServerState();
+        SetStatus(L.T("Not connected"));
+        PluginLog.Info("Terminated.");
+    }
+
+    /// <summary>Activate after Terminate: the plugin works again.</summary>
+    private void Revive()
+    {
+        if (!_released) return;
+        _closing = new CancellationTokenSource();
+        _released = false;
+        PluginLog.Info("Activated again.");
+    }
+
+    private void ReplaceModelerView()
+    {
+        if (ModelerView.Parent is not System.Windows.Controls.Panel parent) return;
+        var index = parent.Children.IndexOf(ModelerView);
+        parent.Children.RemoveAt(index);
+        UnregisterName(nameof(ModelerView));
+        ModelerView = new Bridge.PageKeysWebView { Name = nameof(ModelerView) };
+        RegisterName(nameof(ModelerView), ModelerView);
+        parent.Children.Insert(index, ModelerView);
     }
 
     /// <summary>
@@ -259,13 +317,13 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>What a step after the merge did: a sentence for the status, and whether it took the model's instances.</summary>
     internal sealed record AfterMerge(string Text, bool InstancesTaken = false);
 
-    /// <summary>Cancelled when the plugin ends, which stops a conversion still running.</summary>
-    private readonly CancellationTokenSource _closing = new();
+    /// <summary>Cancelled when the plugin ends, which stops a conversion still running; new after Activate.</summary>
+    private CancellationTokenSource _closing = new();
 
     /// <summary>
     /// Ends what outlives the view otherwise: the session with its
-    /// subscriptions, the document server and its port, the modeler, the log
-    /// listener. When the editor ends, and when the plugin is closed.
+    /// subscriptions, the document server and its port, the practice plant, the
+    /// modeler's browser. When the editor ends, and when the plugin is closed.
     /// </summary>
     private void ReleaseResources()
     {
@@ -273,12 +331,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _released = true;
         try { _closing.Cancel(); }
         catch (ObjectDisposedException) { /* shutting down */ }
-        PluginLog.OnLine -= AppendLog;
-        HelpButton.Opened -= OnHelpOpened;
-        HelpButton.LessonRequested -= OnLessonRequested;
         _tourTimer?.Stop();
-        try { if (_themeChanged != null) ControlzEx.Theming.ThemeManager.Current.ThemeChanged -= _themeChanged; }
-        catch { /* shutting down */ }
         var live = _live;
         _live = null;
         try { live?.DisposeAsync().AsTask().Wait(2000); }
@@ -296,6 +349,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _plant = null;
         try { _modeler?.Dispose(); }
         catch { /* shutting down */ }
+        // Disposed, it threw whenever the view became visible again (the theme).
+        _modeler = null;
     }
 
     private void Attach(CAEXDocument document)

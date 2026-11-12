@@ -52,6 +52,13 @@ minor versions.
 
 ### Fixed
 
+- **PlugIns › AMLOpcUa › Terminate, then Activate, left the plugin dead and
+  the editor busy.** Activate shows the same plugin again; after Terminate it
+  no longer started the practice plant or connected, and its closed modeler
+  view threw on every layout pass, which kept the editor at full load.
+  Terminate now leaves the view ready for that: nothing connected, a new
+  modeler view, the document looked up again when shown. In a host without
+  MahApps, Terminate itself failed.
 - The German texts say "du" throughout; two said "Sie", among them the one
   shown when the practice plant starts.
 - Cancel in "Trust this server?" was logged and told as an error; it says
