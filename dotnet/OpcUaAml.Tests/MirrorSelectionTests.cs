@@ -94,6 +94,31 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         }
     }
 
+    /// <summary>
+    /// The editor follows every change of the XML of an open document (its trees
+    /// listen). Taking the MPS 500 (188 nodes) still took 26 s in the editor with
+    /// its services held, 4 s on the command line: each element and attribute was
+    /// a change of its own. New elements are built with what is below them first
+    /// and then put into the document whole.
+    /// </summary>
+    [Fact]
+    public async Task New_nodes_reach_the_document_as_a_few_changes()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Whole");
+        var changes = 0;
+        doc.CAEXFile.Node.Document!.Changed += (_, _) => changes++;
+        await using var client = await UaClient.ConnectAsync(Options());
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant"), MirrorScope.Subtree) } };
+
+        var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih, new MirrorOptions { ReadValues = false });
+
+        Assert.True(result.Created > 5, $"{result.Created} created");
+        Assert.True(changes < result.Created, $"{changes} change(s) of the document for {result.Created} new element(s)");
+        // What was built off the document is in it, with its NodeIds.
+        Assert.Equal(result.Created, result.Server.Descendants<InternalElementType>().Count(e => AnnexANodeId.Of(e) != null));
+    }
+
     [Fact]
     public async Task Mirror_and_snapshot_write_the_document_on_the_callers_thread_only()
     {

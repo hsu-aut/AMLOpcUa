@@ -61,10 +61,11 @@ minor versions.
   (the MPS 500 sends about a hundred every half second). Values are gathered,
   the newest per node, and written together.
 - **Taking nodes into the document was slow in the editor:** the MPS 500 (188
-  nodes) took 46 s there and 1.7 s on the command line, because the editor's
-  services followed each element and value written, its undo recording 1394
-  changes. "Take into document" and "Read values into document" write with
-  them held now, as an import does.
+  nodes) took 46 s there and 4 s on the command line, because the editor
+  followed each element and attribute written (thousands of changes), its undo
+  recording 1394 of them. New elements are built with all below them off the
+  document and put in whole, and "Take into document" and "Read values into
+  document" write with the editor's services held, as an import does.
 - **Removing vanished nodes removed more than it named.** "Take into document"
   with "remove them, after asking" removed every element marked NotOnServer
   below the server, also those an earlier run of another part had marked,

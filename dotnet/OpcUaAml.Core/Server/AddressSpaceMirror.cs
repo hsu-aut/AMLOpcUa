@@ -151,11 +151,19 @@ public static class AddressSpaceMirror
         // Element by element: in the editor its services would follow each one.
         var server = Import.EditorServices.Quietly(doc, () =>
         {
-            var server = MirroredServer(ih, client) ?? ih.InternalElement.Append(UniqueName(ih, ServerName(client)));
+            // A first mirror is built whole off the document and goes in as one change.
+            var existing = MirroredServer(ih, client);
+            var server = existing ?? apply.Bench(ih).InternalElement.Append(UniqueName(ih, ServerName(client)));
             SetText(server, ServerUriAttribute, "xs:anyURI", client.ServerUri);
             SetText(server, EndpointAttribute, "xs:anyURI", client.EndpointUrl);
-            foreach (var root in plan.Roots) apply.Node(root, server);
+            foreach (var root in plan.Roots) apply.Node(root, server, building: existing == null);
             selection.WriteTo(server);
+            if (existing == null)
+            {
+                server.Node.Remove();
+                // An InstanceHierarchy holds nothing after its InternalElements.
+                ih.Node.Add(server.Node);
+            }
             return server;
         });
         if (options.ReadValues) await ReadValues(client, state, ct);
@@ -178,13 +186,52 @@ public static class AddressSpaceMirror
         public List<string> Vanished { get; } = new();
         public List<InternalElementType> VanishedElements { get; } = new();
 
-        public void Node(MirrorPlanNode node, InternalElementType parent)
+        /// <summary>
+        /// Where a new element is built with everything below it before it goes into
+        /// the document whole. The editor follows every change of an open document's
+        /// XML: built in place, each element and attribute was one, and taking the
+        /// MPS 500 took 26 s there instead of 4.
+        /// </summary>
+        private InstanceHierarchyType? _workbench;
+
+        /// <summary>The workbench, for building the server's element of a first mirror.</summary>
+        public InstanceHierarchyType Bench(InstanceHierarchyType near) => Workbench(near.CAEXDocument);
+
+        private InstanceHierarchyType Workbench(InternalElementType near) => Workbench(near.CAEXDocument);
+
+        private InstanceHierarchyType Workbench(CAEXDocument near)
+        {
+            if (_workbench != null) return _workbench;
+            var bench = CAEXDocument.New_CAEXDocument(near.Schema);
+            // The editor's undo service would record the building there too.
+            Aml.Engine.Services.ServiceLocator.UndoRedoService?.Pause(bench);
+            return _workbench = bench.CAEXFile.InstanceHierarchy.Append("Workbench");
+        }
+
+        /// <summary>
+        /// Puts an element built on the workbench into <paramref name="parent"/>, the
+        /// element itself and not a copy (Aml.Engine's Insert copies an element of
+        /// another document), so the variables noted for their values stay the ones
+        /// in the document. Where CAEX wants it: before the role and link entries.
+        /// </summary>
+        private static void PutInto(InternalElementType parent, InternalElementType element)
+        {
+            element.Node.Remove();
+            var before = parent.Node.Elements().FirstOrDefault(e => e.Name.LocalName is "SupportedRoleClass" or "RoleRequirements" or "InternalLink" or "MappingObject");
+            if (before != null) before.AddBeforeSelf(element.Node);
+            else parent.Node.Add(element.Node);
+        }
+
+        /// <param name="building">The parent is new itself and still off the document.</param>
+        public void Node(MirrorPlanNode node, InternalElementType parent, bool building = false)
         {
             var address = node.Item.Address with { ServerUri = null };
-            var element = parent.InternalElement.FirstOrDefault(e => AddressOf(e) == address);
-            if (element == null)
+            var element = building ? null : parent.InternalElement.FirstOrDefault(e => AddressOf(e) == address);
+            var isNew = element == null;
+            if (isNew)
             {
-                element = Create(parent, node.Item, types, client, state);
+                var name = UniqueName(parent, node.Item.BrowseName);
+                element = Create(building ? parent : Workbench(parent), name, node.Item, types, client, state);
                 Created++;
             }
             else
@@ -200,8 +247,9 @@ public static class AddressSpaceMirror
                 }
                 if (node.Item.NodeClass == "Variable") state.Variables.Add((element, node.Item.Address));
             }
-            foreach (var child in node.Children) Node(child, element);
-            if (node.OnServer == null) return;
+            foreach (var child in node.Children) Node(child, element!, isNew);
+            if (isNew && !building) PutInto(parent, element!);
+            if (isNew || node.OnServer == null) return;
             foreach (var child in element.InternalElement.ToList())
             {
                 if (AddressOf(child) is not { } a || node.OnServer.Contains(a)) continue;
@@ -279,9 +327,14 @@ public static class AddressSpaceMirror
     }
 
     private static InternalElementType Create(IInternalElementContainer parent, UaBrowseItem node,
+        Dictionary<UaNodeAddress, string> types, UaClient client, State state) =>
+        Create(parent, UniqueName(parent, node.BrowseName), node, types, client, state);
+
+    /// <summary>An element for <paramref name="node"/>, named <paramref name="name"/>, in <paramref name="container"/>.</summary>
+    private static InternalElementType Create(IInternalElementContainer container, string name, UaBrowseItem node,
         Dictionary<UaNodeAddress, string> types, UaClient client, State state)
     {
-        var element = parent.InternalElement.Append(UniqueName(parent, node.BrowseName));
+        var element = container.InternalElement.Append(name);
         state.Nodes++;
         if (node.TypeDefinition != null && types.TryGetValue(node.TypeDefinition, out var path))
         {
