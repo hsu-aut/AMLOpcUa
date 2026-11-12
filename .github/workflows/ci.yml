@@ -99,6 +99,9 @@ jobs:
               $reader = New-Object System.IO.StreamReader($spec.Open())
               try { $nuspec = $reader.ReadToEnd() } finally { $reader.Dispose() }
               if ($nuspec -match '<dependency id="(Aml\.[^"]+|MahApps\.[^"]+|ControlzEx)"') { throw "$($package.Name) declares $($Matches[1]) as a dependency; the editor brings it." }
+              # The editor lists the packages on nuget.org by this tag (PlugIn Manager, PublicSource).
+              if ($nuspec -notmatch '<tags>[^<]*\bAMLEditorPlugin\.Net\b') { throw "$($package.Name) lacks the tag AMLEditorPlugin.Net; the AutomationML Editor would not list it." }
+              if ($names -notcontains 'README.md' -or $nuspec -notmatch '<readme>README\.md</readme>') { throw "$($package.Name) lacks its page for nuget.org (README.md)." }
               # Without it the converter does not start on a computer that has .NET 10 and no .NET 8.
               $reader = New-Object System.IO.StreamReader($zip.GetEntry("$root/converter/uaaml.runtimeconfig.json").Open())
               try { $runtime = $reader.ReadToEnd() } finally { $reader.Dispose() }
@@ -139,3 +142,45 @@ jobs:
           files: nupkg/*.nupkg
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+  nuget:
+    # Publishes to nuget.org, where the AutomationML Editor finds the plugin under
+    # PublicSource by its tag AMLEditorPlugin.Net. Trusted publishing: GitHub proves
+    # the workflow's identity (OIDC) and nuget.org hands out a short-lived key, so no
+    # API key is stored in the repository. A version on nuget.org cannot be replaced,
+    # so the environment can require an approval before this job runs.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    environment: nuget.org
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Aml.Editor.Plugin.OpcUa-nupkg
+          path: nupkg
+
+      - name: Check that the tag matches the package version
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          test -f "nupkg/Aml.Editor.Plugin.OpcUa.${version}.nupkg" || { ls nupkg; echo "no package for version ${version}"; exit 1; }
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Log in to nuget.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          # nuget.org account (profile name, not e-mail) that owns the trusted publishing policy.
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push the package
+        run: >
+          dotnet nuget push "nupkg/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

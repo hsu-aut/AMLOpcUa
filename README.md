@@ -68,8 +68,13 @@ The plugin package ends up in
 
 ## Plugin
 
-Add the package folder as a source in the PlugIn Manager of the AutomationML
-Editor and install the plugin from there. It opens as the tab "AMLOpcUa"; its first tab, "Namespaces", shows the OPC UA models of the document.
+The plugin is on nuget.org as `Aml.Editor.Plugin.OpcUa`, where the PlugIn
+Manager of the AutomationML Editor lists it under PublicSource. Install it
+there, restart the editor and switch it on once with PlugIns › AMLOpcUa ›
+Activate (details in the [user manual](docs/manual.md#installing)). A build of
+your own is installed by adding the package folder as a source. The plugin
+opens as the tab "AMLOpcUa"; its first tab, "Namespaces", shows the OPC UA
+models of the document.
 
 The plugin and its modeler speak English or German, as the display language of
 Windows says; the environment variable `AMLOPCUA_LANGUAGE` (`en` or `de`)

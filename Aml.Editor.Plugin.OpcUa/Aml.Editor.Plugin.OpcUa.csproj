@@ -7,11 +7,20 @@
     <UseWPF>true</UseWPF>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <Version>0.2.1</Version>
+    <!-- The AutomationML Editor lists the packages on nuget.org that carry the tag
+         AMLEditorPlugin.Net (PlugIn Manager, PublicSource); CI refuses a package without it. -->
+    <PackageId>Aml.Editor.Plugin.OpcUa</PackageId>
     <Title>AMLOpcUa</Title>
-    <Description>AutomationML Editor plugin for OPC UA: imports NodeSets as AML libraries according to OPC 10000-83 Annex A.</Description>
-    <PackageTags>AMLEditor; AMLEditorPlugin.Net; AutomationML; OPCUA; NodeSet; UAFX</PackageTags>
+    <Description>OPC UA for the AutomationML Editor. Imports OPC UA NodeSets as AML libraries according to OPC 10000-83 Annex A, creates and checks instances of UA types, and exports AML documents as NodeSets. Connects to OPC UA servers: imports their types, takes their nodes into the document and keeps values live; serves a document as an OPC UA server. Brings a practice plant (the MPS 500 learning factory, served on this computer), diagrams in OPC 10000-3 notation and the graphical modeler NodeSet.js. English and German.</Description>
+    <PackageTags>AMLEditor; AMLEditorPlugin.Net; AutomationML; OPCUA; OPC-UA; NodeSet; UAFX; Opc2Aml</PackageTags>
     <Authors>Hamied Nabizada</Authors>
+    <Copyright>Copyright (c) 2026 Hamied Nabizada and contributors</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hsu-aut/AMLOpcUa</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hsu-aut/AMLOpcUa</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!-- The page of the package on nuget.org; with absolute links, which the repository README lacks. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <!-- Anchored at this file so a build of the project alone lands in the same tree. -->
     <BaseOutputPath>$(MSBuildThisFileDirectory)..\build\Plugins\$(MSBuildProjectName)</BaseOutputPath>
@@ -122,6 +131,7 @@
     <!-- The practice plant: the MPS 500, served from the Server tab. -->
     <None Include="..\examples\mps500\MPS500.NodeSet2.xml" Link="examples\MPS500.NodeSet2.xml" CopyToOutputDirectory="PreserveNewest"
           Pack="true" PackagePath="lib\$(TargetFramework)\examples\" />
+    <None Update="README.md" Pack="true" PackagePath="\" />
     <None Include="..\LICENSE" Pack="true" PackagePath="" />
     <None Include="..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="" />
     <None Include="$(OutputPath)$(AssemblyName).deps.json" Pack="true" PackagePath="lib\$(TargetFramework)" />

@@ -93,18 +93,29 @@ and of Device Integration, DI (1.05.0).
 
 ### Installing a release
 
+The plugin is on nuget.org as `Aml.Editor.Plugin.OpcUa`; the PlugIn Manager
+lists it under its source PublicSource.
+
+1. Close every other window of the AutomationML Editor. An installation or
+   update while a second editor runs can remain incomplete.
+2. In the editor, open the PlugIn Manager, choose the source
+   **PublicSource**, select **AMLOpcUa** among the available plugins and
+   install it.
+3. Restart the editor and switch the plugin on once with **PlugIns** ›
+   **AMLOpcUa** › **Activate**. It opens as the tab AMLOpcUa. Its first tab,
+   **Namespaces**, shows the OPC UA models of the open document.
+
+Without a network (a booth or a plant network), install the same package
+from a folder:
+
 1. Download `Aml.Editor.Plugin.OpcUa.<version>.nupkg` from the releases of the
    repository, <https://github.com/hsu-aut/AMLOpcUa/releases>. Leave the file
    packed. Take 0.1.1 or later: the package of 0.1.0 lacks the modeler.
 2. Put the file into a folder of its own, for example `C:\AMLPlugins`.
-3. Close every other window of the AutomationML Editor. An installation or
-   update while a second editor runs can remain incomplete.
-4. In the editor, open the PlugIn Manager, add the folder as a package
-   source, select AMLOpcUa among the available plugins and install it. No
-   network is needed: the package asks for nothing the editor does not bring.
-5. Restart the editor and switch the plugin on once with **PlugIns** ›
-   **AMLOpcUa** › **Activate**. It opens as the tab AMLOpcUa. Its first tab,
-   **Namespaces**, shows the OPC UA models of the open document.
+3. In the PlugIn Manager, add the folder as a package source, select
+   AMLOpcUa among the available plugins and install it, then go on as above.
+   No network is needed: the package asks for nothing the editor does not
+   bring.
 
 When the editor shows no plugin at all after an installation, the PlugIn
 Manager lists a plugin whose folder is gone (an update left half done):

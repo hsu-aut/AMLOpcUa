@@ -9,6 +9,11 @@ minor versions.
 
 ### Added
 
+- **On nuget.org** as `Aml.Editor.Plugin.OpcUa`, so the AutomationML Editor
+  lists the plugin in its PlugIn Manager under PublicSource. A version tag
+  publishes the package there from CI (trusted publishing, no stored key);
+  CI refuses a package without the tag AMLEditorPlugin.Net, by which the
+  editor finds it, or without its page for nuget.org.
 - **Practice plant** beside Connect in the Server tab: starts the MPS 500
   learning factory, which the plugin now brings, as an OPC UA server on this
   computer with simulated values, and puts its address in the endpoint box.
