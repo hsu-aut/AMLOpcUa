@@ -117,7 +117,7 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
             EndpointUrl = host.EndpointUrl, UseSecurity = true, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(uaaml.Folder, "client"),
         };
         await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
-        var refused = Assert.Single(AmlServerHost.RejectedClients(serverPki));
+        var refused = Assert.Single(await AmlServerTests.RejectedClientsSoon(serverPki));
 
         var list = await uaaml.RunAsync("clients", "--nodeset");
         var trust = await uaaml.RunAsync("clients", "--nodeset", "--trust", refused.Thumbprint[..8]);

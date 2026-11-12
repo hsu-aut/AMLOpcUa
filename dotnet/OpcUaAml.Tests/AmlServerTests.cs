@@ -192,7 +192,7 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
             EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
         }));
         await Assert.ThrowsAsync<UaConnectionException>(() => UaClient.ConnectAsync(options));
-        var rejected = Assert.Single(AmlServerHost.RejectedClients(serverPki));
+        var rejected = Assert.Single(await RejectedClientsSoon(serverPki));
         Assert.Contains("AMLOpcUa", rejected.Subject);
 
         AmlServerHost.TrustClient(rejected, serverPki);
@@ -201,6 +201,22 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
         var read = await client.ReadAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Net/Speed"));
         Assert.Equal("3000000000", read.ValueText);
         Assert.Single(AmlServerHost.TrustedClients(serverPki));
+    }
+
+    /// <summary>
+    /// The refused clients of a server, once there are any. The server files a
+    /// refused certificate after the client has its answer: in a full test run
+    /// the list was once still empty right after the refusal.
+    /// </summary>
+    internal static async Task<IReadOnlyList<ClientCertificate>> RejectedClientsSoon(string serverPki)
+    {
+        var rejected = AmlServerHost.RejectedClients(serverPki);
+        for (var i = 0; i < 100 && rejected.Count == 0; i++)
+        {
+            await Task.Delay(100);
+            rejected = AmlServerHost.RejectedClients(serverPki);
+        }
+        return rejected;
     }
 
     [Fact]
