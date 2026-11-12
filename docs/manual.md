@@ -100,9 +100,15 @@ and of Device Integration, DI (1.05.0).
 3. Close every other window of the AutomationML Editor. An installation or
    update while a second editor runs can remain incomplete.
 4. In the editor, open the PlugIn Manager, add the folder as a package
-   source, select AMLOpcUa among the available plugins and install it.
-5. The plugin opens as the tab AMLOpcUa. Its first tab, **Namespaces**, shows
-   the OPC UA models of the open document.
+   source, select AMLOpcUa among the available plugins and install it. No
+   network is needed: the package asks for nothing the editor does not bring.
+5. Restart the editor and switch the plugin on once with **PlugIns** ›
+   **AMLOpcUa** › **Activate**. It opens as the tab AMLOpcUa. Its first tab,
+   **Namespaces**, shows the OPC UA models of the open document.
+
+When the editor shows no plugin at all after an installation, the PlugIn
+Manager lists a plugin whose folder is gone (an update left half done):
+uninstall that one in the PlugIn Manager and restart the editor.
 
 ### Installing a build of your own
 

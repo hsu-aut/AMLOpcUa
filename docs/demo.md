@@ -14,8 +14,12 @@ plugin brings, served with moving values by **Practice plant**.
 1. AutomationML Editor 6.4.3.8 (About shows the version). Do not accept the
    editor's offer to update during the fair.
 2. The plugin installed through the PlugIn Manager from the downloaded
-   `.nupkg`, with the network switched off, then the editor restarted.
+   `.nupkg` (a plugin source pointing to the folder that holds it; no network
+   needed), then the editor restarted and the plugin switched on once with
+   **PlugIns** › **AMLOpcUa** › **Activate**.
    `%LOCALAPPDATA%\AutomationML\AutomationMLEditor\ErrorLog.txt` stays empty.
+   When no plugin appears at all, the PlugIn Manager lists one whose folder is
+   gone; uninstall that one there.
 3. The language: the plugin follows the display language of Windows; to pick
    one, **Settings ▾** › **Language** in the Namespaces tab, then start the
    editor again. The steps below name the English buttons.
