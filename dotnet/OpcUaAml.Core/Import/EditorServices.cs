@@ -40,6 +40,11 @@ public static class EditorServices
             // before the rest was in: references into what came later were
             // missing from them.
             registry?.RemoveDocument(document);
+            // Rebuilt now, while automatic updates are still off. Rebuilt later,
+            // with them on, the service reports every reference it finds as
+            // updated, and the editor's tree searches itself once for each:
+            // 153751 reports after importing DI, minutes without an answer.
+            if (registry is LookupService lookup) lookup.AddDocument(document);
             if (held) autoUpdate!.IsAutoUpdateEnabled = true;
         }
     }

@@ -88,6 +88,39 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
         }
     }
 
+    /// <summary>
+    /// The lookup service builds its tables for a document again the next time it
+    /// is asked, and with automatic updates on, it reports every reference it finds
+    /// as updated. The editor's tree searches itself once for each report: after an
+    /// import or after taking the MPS 500 the editor did not answer for minutes.
+    /// </summary>
+    [Fact]
+    public void After_a_merge_the_editors_lookup_service_reports_no_reference_as_updated()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        var lookup = LookupService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(target, true);
+            lookup.AddDocument(target);
+            var reported = 0;
+            lookup.ReferenceUpdated += (_, _) => reported++;
+
+            LibraryMerger.Merge(target, di.Result.Document);
+            // The editor asks right after, for its trees and views.
+            _ = lookup.AllClassReferences(target, "[SUC_http://opcfoundation.org/UA/DI/]/[DeviceType]").ToList();
+
+            Assert.True(reported < 10, $"{reported} reference(s) reported as updated");
+            Assert.True(lookup.IsAutoUpdateEnabled);
+        }
+        finally
+        {
+            LookupService.UnRegister();
+        }
+    }
+
     private static readonly string[] GeneratedDiLibraries =
         ["SUC_OpcAmlMetaModel", "SUC_http://opcfoundation.org/UA/", "SUC_http://opcfoundation.org/UA/DI/"];
 }

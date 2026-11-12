@@ -56,6 +56,12 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- **After an import or after taking nodes the editor did not answer for
+  minutes.** The plugin let the editor's lookup service build its tables again
+  the next time it was asked, and with automatic updates on, the service
+  reported every reference it found as updated (153751 after importing DI);
+  the editor's tree searched itself once for each. The tables are built again
+  right away, while the updates are still off.
 - **Keeping values live made the editor hardly answer:** each value was a call
   of its own on the editor's UI thread and passed its services one by one
   (the MPS 500 sends about a hundred every half second). Values are gathered,
