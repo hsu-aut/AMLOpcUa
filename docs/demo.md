@@ -46,8 +46,10 @@ plugin brings, served with moving values by **Practice plant**.
    InternalElements: each with its OPC UA type as its class and its NodeId.
 5. **Keep document values live**. Click a drill's spindle speed in the
    editor's attributes: it moves.
-6. **Diagram** tab: `StationType`, the type as a diagram in the notation of
-   OPC 10000-3: its parameters, its modules and its state machine.
+6. **Diagram** tab: type `StationType` into the search box and press Enter.
+   The type appears as a diagram in the notation of OPC 10000-3: its
+   parameters, its modules and its state machine. The list holds every type
+   of the document, the UA base types too, so search rather than scroll.
 7. If there is time: **Modeler** tab, `http://hsu-hh.de/UA/MPS500/`, **Edit**:
    the same model, graphically, in NodeSet.js.
 
