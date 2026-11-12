@@ -78,7 +78,7 @@ public sealed class LiveValues : IAsyncDisposable
             }
             if (batch.Count == 0) return;
             var written = new List<(string What, string? Value, int Count)>();
-            Import.EditorServices.Quietly(doc, () =>
+            Import.EditorServices.WithoutUndo(doc, () =>
             {
                 foreach (var result in batch)
                 {

@@ -34,7 +34,7 @@ public static class ValueSnapshot
         {
             var results = await client.ReadManyAsync(targets.Select(t => t.Address).ToList(), ct);
             // One value after the other: in the editor its services would follow each one.
-            Import.EditorServices.Quietly(doc, () =>
+            Import.EditorServices.WithoutUndo(doc, () =>
             {
                 for (var i = 0; i < results.Count; i++)
                 {

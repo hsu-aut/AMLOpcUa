@@ -408,7 +408,7 @@ public static class AddressSpaceMirror
         if (state.Variables.Count == 0) return;
         var results = await client.ReadManyAsync(state.Variables.Select(v => v.Address).ToList(), ct);
         if (state.Variables.Count == 0) return;
-        Import.EditorServices.Quietly(state.Variables[0].Element.CAEXDocument, () =>
+        Import.EditorServices.WithoutUndo(state.Variables[0].Element.CAEXDocument, () =>
         {
             for (var i = 0; i < results.Count; i++)
             {

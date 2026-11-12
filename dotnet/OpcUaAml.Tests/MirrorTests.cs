@@ -153,8 +153,12 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         // With their values, so every variable has the attribute live values write.
         await AddressSpaceMirror.MirrorAsync(client, await PlantFolder(client), ih);
         var undo = Aml.Engine.Services.UndoRedoService.Register();
+        var lookup = Aml.Engine.Services.LookupService.Register();
         try
         {
+            lookup.IsAutoUpdateEnabled = true;
+            lookup.AddDocument(doc);
+            var tables = LookupTables(lookup, doc);
             var recorded = 0;
             undo.PropertyChanged += (_, _) => recorded++;
             // As Dispatcher.BeginInvoke: queued, and run a little later on the UI thread.
@@ -182,13 +186,25 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
                     Assert.True(live.Updates >= live.Count, $"{live.Updates} update(s)");
                     Assert.True(dispatched < live.Updates, $"{dispatched} call(s) on the UI thread for {live.Updates} value(s)");
                     Assert.True(recorded < live.Updates, $"{recorded} change(s) recorded for {live.Updates} value(s)");
+                    // Values change no reference: the lookup service keeps its tables.
+                    Assert.Same(tables, LookupTables(lookup, doc));
                 }
             }
         }
         finally
         {
+            Aml.Engine.Services.LookupService.UnRegister();
             Aml.Engine.Services.UndoRedoService.UnRegister();
         }
+    }
+
+    /// <summary>The lookup tables the service holds for a document (internal to Aml.Engine.Services).</summary>
+    private static object? LookupTables(Aml.Engine.Services.LookupService lookup, CAEXDocument document)
+    {
+        var dictionary = typeof(Aml.Engine.Services.LookupService).GetField("_caexElementDictionary", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(lookup)!;
+        var get = dictionary.GetType().GetMethods().First(m => m.Name == "GetOrLoadValue");
+        var args = get.GetParameters().Length == 2 ? new object[] { document.XDocument, true } : new object[] { document.XDocument };
+        return get.Invoke(dictionary, args);
     }
 
     [Fact]

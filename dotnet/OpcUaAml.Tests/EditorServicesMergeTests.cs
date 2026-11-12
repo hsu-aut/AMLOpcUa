@@ -121,6 +121,52 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
         }
     }
 
+    /// <summary>
+    /// Values change no reference. Written with the lookup service held, each
+    /// batch of live values made the service build its tables for the whole
+    /// document again: with the practice plant the editor wrote about twelve
+    /// values a second instead of twenty-four, and hardly answered.
+    /// </summary>
+    [Fact]
+    public void Writing_values_leaves_the_lookup_tables_as_they_are_and_records_no_undo()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var element = target.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Device");
+        var value = element.Attribute.Append("Value");
+        var lookup = LookupService.Register();
+        var undo = UndoRedoService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            lookup.AddDocument(target);
+            var recorded = 0;
+            undo.PropertyChanged += (_, _) => recorded++;
+            var tables = Tables(lookup, target);
+
+            for (var i = 0; i < 5; i++) EditorServices.WithoutUndo(target, () => value.Value = i.ToString());
+
+            Assert.Equal("4", value.Value);
+            Assert.Equal(0, recorded);
+            // The same tables: nothing was built again.
+            Assert.Same(tables, Tables(lookup, target));
+        }
+        finally
+        {
+            UndoRedoService.UnRegister();
+            LookupService.UnRegister();
+        }
+    }
+
+    /// <summary>The lookup tables the service holds for a document (internal to Aml.Engine.Services).</summary>
+    private static object? Tables(LookupService lookup, CAEXDocument document)
+    {
+        var dictionary = typeof(LookupService).GetField("_caexElementDictionary", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(lookup)!;
+        var get = dictionary.GetType().GetMethods().First(m => m.Name == "GetOrLoadValue");
+        var args = get.GetParameters().Length == 2 ? new object[] { document.XDocument, true } : new object[] { document.XDocument };
+        return get.Invoke(dictionary, args);
+    }
+
     private static readonly string[] GeneratedDiLibraries =
         ["SUC_OpcAmlMetaModel", "SUC_http://opcfoundation.org/UA/", "SUC_http://opcfoundation.org/UA/DI/"];
 }

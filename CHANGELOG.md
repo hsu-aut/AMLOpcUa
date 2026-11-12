@@ -64,14 +64,18 @@ minor versions.
   right away, while the updates are still off.
 - **Keeping values live made the editor hardly answer:** each value was a call
   of its own on the editor's UI thread and passed its services one by one
-  (the MPS 500 sends about a hundred every half second). Values are gathered,
-  the newest per node, and written together.
+  (taken from the practice plant, the MPS 500 binds 76 values, sampled once a
+  second). Values are gathered, the newest per node, and written together
+  with only the editor's undo paused. Held like a structural change, each batch had the lookup service
+  build its tables for the whole document again: with the practice plant the
+  editor wrote about twelve values a second and its UI thread hardly rested;
+  now about twenty-four, and it is idle between batches.
 - **Taking nodes into the document was slow in the editor:** the MPS 500 (188
   nodes) took 46 s there and 4 s on the command line, because the editor
   followed each element and attribute written (thousands of changes), its undo
   recording 1394 of them. New elements are built with all below them off the
-  document and put in whole, and "Take into document" and "Read values into
-  document" write with the editor's services held, as an import does.
+  document and put in whole, and "Take into document" writes with the
+  editor's services held, as an import does.
 - **Removing vanished nodes removed more than it named.** "Take into document"
   with "remove them, after asking" removed every element marked NotOnServer
   below the server, also those an earlier run of another part had marked,

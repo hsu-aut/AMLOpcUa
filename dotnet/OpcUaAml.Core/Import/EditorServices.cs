@@ -75,4 +75,24 @@ public static class EditorServices
 
     /// <inheritdoc cref="Quietly{T}(CAEXDocument, Func{T})"/>
     public static void Quietly(CAEXDocument document, Action change) => Quietly(document, () => { change(); return 0; });
+
+    /// <summary>
+    /// Runs <paramref name="change"/> with the editor's undo service paused for the
+    /// document, and nothing else held: for values, which change no reference.
+    /// Held like a structural change, every batch of live values made the lookup
+    /// service build its tables for the whole document again.
+    /// </summary>
+    public static void WithoutUndo(CAEXDocument document, Action change)
+    {
+        var undo = ServiceLocator.UndoRedoService;
+        undo?.Pause(document);
+        try
+        {
+            change();
+        }
+        finally
+        {
+            undo?.Resume(document);
+        }
+    }
 }
