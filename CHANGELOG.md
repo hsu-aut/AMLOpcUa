@@ -194,6 +194,10 @@ minor versions.
   most secure endpoint the server offers, which may be signed only. The texts
   say so now.
 
+- Beside the editor's trees, "Keep document values live" sat in the overflow
+  of the Server tab's tool bar, behind a small arrow. "Types of the server…",
+  "Take into document" and "Keep document values live" stay in view now; the
+  other commands go into the overflow first.
 - "Take into document" that failed (the server had stopped) left an empty
   InstanceHierarchy behind; one made for it goes again.
 - While the document was served, what "Take into document" or "New

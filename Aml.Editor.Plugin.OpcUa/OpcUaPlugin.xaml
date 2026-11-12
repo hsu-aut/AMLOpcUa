@@ -528,8 +528,9 @@
                     </Border>
 
                     <!-- Commands -->
+                    <!-- Types, Take and Keep live never go into the overflow: they are the run a booth shows, and the arrow to the overflow is easily missed. -->
                     <ToolBar Grid.Row="1">
-                        <Button x:Name="ServerTypesButton" Click="ServerTypesButton_Click"
+                        <Button x:Name="ServerTypesButton" ToolBar.OverflowMode="Never" Click="ServerTypesButton_Click"
                                 ToolTip="{l:T 'Import the types of one of the server\'s namespaces, open them in the modeler, or save them as a NodeSet.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8B5;" Foreground="{DynamicResource Exchange}"/>
@@ -537,7 +538,7 @@
                             </StackPanel>
                         </Button>
                         <Separator/>
-                        <Button x:Name="MirrorButton" Click="MirrorButton_Click"
+                        <Button x:Name="MirrorButton" ToolBar.OverflowMode="Never" Click="MirrorButton_Click"
                                 ToolTip="{l:T 'Create elements for the checked parts, or for the selected node with what is below it; taking a part again updates it.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE896;" Foreground="{DynamicResource Create}"/>
@@ -566,7 +567,7 @@
                                 <TextBlock Text="{l:T 'Read values into document'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="LiveButton" Click="LiveButton_Click"
+                        <Button x:Name="LiveButton" ToolBar.OverflowMode="Never" Click="LiveButton_Click"
                                 ToolTip="{l:T 'Write every change the server reports into the elements bound to it, until stopped.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="LiveGlyph" Style="{StaticResource IconText}" Text="&#xE9D9;" Foreground="{DynamicResource Exchange}"/>
