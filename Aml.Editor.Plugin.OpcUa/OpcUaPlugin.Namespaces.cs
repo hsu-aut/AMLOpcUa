@@ -494,7 +494,7 @@ public partial class OpcUaPlugin
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0. Save a CAEX 3.0 copy… on the Namespaces tab writes one to open.", document.CAEXFile.SchemaVersion));
             return;
         }
         var files = await DownloadFromOpcFoundationAsync("");

@@ -28,18 +28,18 @@ internal static class HelpTopics
         ["server.connection"] = new(
             L.T("Connecting"),
             L.T("The endpoint URL of a running server, such as opc.tcp://host:4840. With Secure ticked only secured endpoints are taken, the most secure the server offers: signed, and encrypted where offered. A server certificate this computer does not know is shown with its fingerprint before you trust it; trusted, exactly that one is kept. User and password are only sent over a secured connection; empty means anonymous. No server at hand? Practice plant starts the MPS 500 learning factory on this computer, with simulated values."),
-            new[] { "Endpoint", "Security mode", "Certificate" }, "server"),
+            new[] { "Endpoint", "Security mode", "Certificate" }, "plant"),
         ["server.commands"] = new(
             L.T("What to do with the server"),
-            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads once, Keep document values live writes every change into the document, Watch only shows values in the list below."),
-            new[] { "NodeId", "Address space" }, "server"),
+            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."),
+            new[] { "NodeId", "Binding", "Address space" }, "plant"),
         ["server.take"] = new(
             L.T("What to take"),
             L.T("Check nodes in the address space; right click for how much below each: the node only, with its children, or everything below. Depth limits the levels of 'everything below', at most limits the number of nodes, into names the InstanceHierarchy. The filters leave out properties, variables or other namespaces. Instances of a type checks every instance of a type below a node. What was taken keeps its selection; Load kept selection brings it back."),
-            new[] { "Address space", "Property", "View" }, "server"),
+            new[] { "Address space", "Property", "View" }, "plant"),
         ["server.serve"] = new(
             L.T("This document as a server"),
-            L.T("Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then other computers may, over secured connections and only with a certificate you trusted under Clients…. Remove server addresses saves a copy of the document without where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the log names every place a host name still appears."),
+            L.T("Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then other computers may, over secured connections and only with a certificate you trusted under Clients…. Copy without server addresses saves a copy of the document without where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the log names every place a host name still appears."),
             new[] { "Endpoint", "Certificate" }, "server"),
         ["diagram"] = new(
             L.T("Diagram"),
@@ -68,6 +68,7 @@ internal static class HelpTopics
         ["Security mode"] = (L.T("Security mode"), L.T("None sends everything plainly, Sign protects against tampering, SignAndEncrypt also keeps it secret. Secure in the plugin takes only the last two.")),
         ["Certificate"] = (L.T("Certificate"), L.T("The identity of a server or client. Trusting a server's certificate says: this is the server I mean. The plugin keeps exactly the one you trusted.")),
         ["NodeId"] = (L.T("NodeId"), L.T("The address of a node on a server: its namespace and an identifier (a number, a string, a GUID or bytes). In the document the attribute NodeId (Annex A) holds it.")),
+        ["Binding"] = (L.T("Binding"), L.T("An element of the document that points at a node of a server: its NodeId attribute holds the node's address (Annex A), and for a variable its Value attribute holds the value. Take into document makes such elements; Bind to element… makes one of your own elements one. Read values into document and Keep document values live fill in their values.")),
         ["Address space"] = (L.T("Address space"), L.T("All nodes a server offers, reached from its Objects folder along references.")),
         ["ReferenceType"] = (L.T("ReferenceType"), L.T("The kind of link between two nodes, such as HasComponent, HasProperty, Organizes or HasTypeDefinition.")),
         ["Property"] = (L.T("Property"), L.T("A small variable that describes its parent, held by HasProperty: engineering units, a range, a serial number.")),

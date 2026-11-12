@@ -468,7 +468,7 @@ public partial class OpcUaPlugin
             var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(),
                 progress: NodesFound((n, max) => L.T("Counting … {0} of at most {1} node(s) found.", n, max)));
             SetStatus("");
-            SelectionSummary.Text = truncated ? L.T("{0} element(s), stopped at the node limit.", nodes) : L.T("{0} element(s).", nodes);
+            SelectionSummary.Text = truncated ? L.T("{0} element(s); the node limit was reached. Raise 'at most' or check less.", nodes) : L.T("{0} element(s).", nodes);
         }
         catch (Exception ex)
         {
@@ -565,7 +565,7 @@ public partial class OpcUaPlugin
                     _ => L.T("{0} no longer on the server (kept, see log)", result.Vanished.Count),
                 };
             var message = result.Truncated
-                ? L.T("'{0}': {1}. Stopped at the node limit.", ih.Name, counts)
+                ? L.T("'{0}': {1}. The node limit was reached; raise 'at most' to take more.", ih.Name, counts)
                 : L.T("'{0}': {1}.", ih.Name, counts);
             PluginLog.Info(message);
             foreach (var gone in result.Vanished) PluginLog.Warn("Not on the server any more: " + gone);

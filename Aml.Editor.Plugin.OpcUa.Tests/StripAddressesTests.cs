@@ -6,7 +6,7 @@ using Aml.Editor.Plugin.OpcUa;
 namespace PluginTests;
 
 /// <summary>
-/// "Remove server addresses…" on an .amlx document: the copy was written as a
+/// "Copy without server addresses…" (before 0.3.1 "Remove server addresses…") on an .amlx document: the copy was written as a
 /// plain .aml file, so what else the container held was not passed on.
 /// </summary>
 public class StripAddressesTests

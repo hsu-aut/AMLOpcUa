@@ -33,9 +33,11 @@ public class LiveStatusTests
     }
 
     [Fact]
-    public void Nothing_bound_stays_nothing_bound()
+    public void Nothing_bound_says_how_to_bind()
     {
-        Assert.Equal("No element of this document is bound to this server.", Text(0, 0, 0));
+        // It said only that nothing is bound, and a first-time user did not know how to change that.
+        Assert.Equal("No element of this document is bound to this server. Take its nodes into the document (Take into document) "
+                     + "or bind an element of your own to a variable (Bind to element…).", Text(0, 0, 0));
     }
 
     [Fact]

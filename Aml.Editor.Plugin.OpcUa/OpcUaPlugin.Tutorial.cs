@@ -1,4 +1,4 @@
-// The tutorial: four short lessons on the real plugin, in a panel at its right
+// The tutorial: short lessons on the real plugin, in a panel at its right
 // edge. Each step says what to do and frames the control it is about; it is
 // done when the plugin's state shows it (a namespace imported, a server
 // served), not when the user clicks Next. Steps that need a file or a place
@@ -59,7 +59,7 @@ namespace Aml.Editor.Plugin.OpcUa
                         "NamespaceList", "NamespacesTab", () => (NamespaceList.SelectedItem as NamespaceRow)?.NamespaceUri == DiUri),
                     new TourStep(L.T("Draw a type: in the list of types on the right, double click DeviceType. The Diagram tab opens with it."),
                         "NamespaceDetailsPanel", "NamespacesTab", () => _diagram != null),
-                    new TourStep(L.T("Read the picture: the ? in the Diagram tab explains its shapes, lines and letters."),
+                    new TourStep(L.T("Click the ? in the Diagram tab: it explains the shapes, lines and letters of the picture."),
                         "DiagramHelp", "DiagramTab", () => _helpSeen.Contains("diagram")),
                 }),
             new TourLesson("instances", Lessons.Titles["instances"],
@@ -74,6 +74,29 @@ namespace Aml.Editor.Plugin.OpcUa
                         "CheckButton", "NamespacesTab", () => _checkRuns > 0),
                     new TourStep(L.T("Try what Check finds: delete one of the Mandatory children of your instance in the editor's tree and click Check again. Add missing Mandatory children then puts it back. Click Next when done."),
                         "UpgradeButton", "CheckTab", null),
+                }),
+            new TourLesson("plant", Lessons.Titles["plant"],
+                L.T("Start the plant the plugin brings, connect to it, take its stations into the document and follow their values live."),
+                new[]
+                {
+                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New), or save a practice document here and open it."),
+                        null, "ServerTab", () => IsUsable(_document), L.T("Save a practice document…"), SavePracticeDocument),
+                    new TourStep(L.T("Click Practice plant. The MPS 500 learning factory starts as an OPC UA server on this computer, with simulated values, and its address goes into the endpoint box."),
+                        "PracticePlantButton", "ServerTab", () => _plant != null),
+                    new TourStep(L.T("Click Connect. With Secure ticked the plugin shows the plant's certificate first; trust it, the plant runs on this computer."),
+                        "ConnectButton", "ServerTab", ConnectedToPlant),
+                    new TourStep(L.T("Bring the plant's types into the document: click Types of the server…, choose http://hsu-hh.de/UA/MPS500/ and click Import types. They become AML libraries, with the DI model they build on."),
+                        "ServerTypesButton", "ServerTab", () => HasNamespace(Mps500Uri)),
+                    new TourStep(L.T("In the address space, tick MPS500. A tick takes the node with everything below it, as deep as 'depth' says; right click it for less."),
+                        "AddressTree", "ServerTab", () => _items.Count > 0),
+                    new TourStep(L.T("Click Take into document. The plant's stations become elements in the hierarchy named in the box 'nodes into', each with the NodeId of its node, its UA type and its current value."),
+                        "MirrorButton", "ServerTab", () => TakenIndex().Count > 0),
+                    new TourStep(L.T("Click Keep document values live. Select a value that moves, such as a speed or a cycle time, in the editor's tree, and watch its Value attribute follow the plant."),
+                        "LiveButton", "ServerTab", () => _live != null),
+                    new TourStep(L.T("To look without writing into the document: select a variable in the address space and click Watch (view only). Its value appears in the list below the tree, with its status and when it arrived."),
+                        "WatchButton", "ServerTab", () => _watchRows.Count > 0),
+                    new TourStep(L.T("That is the plant: connect, take, follow. The document keeps what you took and the last values; Ctrl+S saves them. Click Stop practice plant to end the lesson."),
+                        "PracticePlantButton", "ServerTab", () => _plant == null),
                 }),
             new TourLesson("server", Lessons.Titles["server"],
                 L.T("Serve this document as an OPC UA server, connect to it, take a part of it back, keep its values live."),
@@ -102,7 +125,7 @@ namespace Aml.Editor.Plugin.OpcUa
                         null, "ModelerTab", () => Tabs.SelectedItem == ModelerTab),
                     new TourStep(L.T("Enter a namespace URI of your own, such as http://example.org/MyPlant/, and click New model."),
                         "ModelerNewButton", "ModelerTab", () => _modelerNewUri != null),
-                    new TourStep(L.T("In the modeler, click + next to ObjectTypes and name a type. Select it and add a variable from the shape's context pad."),
+                    new TourStep(L.T("In the modeler, click + next to ObjectTypes and name a type. Select it: small icons appear beside the shape; click Add a variable."),
                         "ModelerView", "ModelerTab", () => _modeler?.IsDirty == true),
                     new TourStep(L.T("Click Apply to document in the modeler's toolbar. The model is imported like any NodeSet and appears among the namespaces."),
                         "ModelerView", "ModelerTab", () => _modelerNewUri != null && HasNamespace(_modelerNewUri)),
@@ -110,6 +133,13 @@ namespace Aml.Editor.Plugin.OpcUa
         };
 
         private static bool IsUsable(CAEXDocument? doc) => doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
+
+        private const string Mps500Uri = "http://hsu-hh.de/UA/MPS500/";
+
+        /// <summary>Connected to the practice plant, not to some other server the user had open.</summary>
+        private bool ConnectedToPlant() =>
+            _client != null && _plant != null
+            && string.Equals(_client.EndpointUrl.TrimEnd('/'), _plant.EndpointUrl.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
 
         private bool HasNamespace(string uri) =>
             (NamespaceList.ItemsSource as IEnumerable<NamespaceRow>)?.Any(r => string.Equals(r.NamespaceUri, uri, StringComparison.Ordinal)) == true;
@@ -209,7 +239,7 @@ namespace Aml.Editor.Plugin.OpcUa
             if (_lesson == null)
             {
                 TourTitle.Text = L.T("Tutorial");
-                body.Children.Add(Paragraph(L.T("Four short lessons on the plugin, each a few minutes, in the open document. Steps tick themselves off when done; the control a step is about is framed in orange."), palette.Muted));
+                body.Children.Add(Paragraph(L.T("Short lessons on the plugin, each a few minutes, in the open document. Steps tick themselves off when done; the control a step is about is framed in orange."), palette.Muted));
                 foreach (var lesson in TourLessons())
                 {
                     var done = _settings.CompletedLessons.Contains(lesson.Id);
@@ -312,8 +342,9 @@ namespace Aml.Editor.Plugin.OpcUa.Guide
         {
             ["models"] = L.T("1  Models into the document"),
             ["instances"] = L.T("2  Instances and checks"),
-            ["server"] = L.T("3  A running server"),
-            ["modeler"] = L.T("4  A model of your own"),
+            ["plant"] = L.T("3  The practice plant"),
+            ["server"] = L.T("4  Your document as a server"),
+            ["modeler"] = L.T("5  A model of your own"),
         };
     }
 }

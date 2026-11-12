@@ -400,7 +400,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     internal static string LiveStartText(int count, int skipped, int notOnServer, string endpoint)
     {
         if (count == 0 && notOnServer > 0) return L.T("None of the {0} bound value(s) is on {1} (see log).", notOnServer, endpoint);
-        if (count == 0) return L.T("No element of this document is bound to this server.");
+        if (count == 0) return Summaries.NothingBound;
         var text = L.T("Following {0} bound value(s) of {1}", count, endpoint);
         if (skipped > 0) text += L.T("; {0} bound to another server left out", skipped);
         if (notOnServer > 0) text += L.T("; {0} not on this server (see log)", notOnServer);
@@ -721,12 +721,24 @@ public partial class OpcUaPlugin : ISupportsSelection
                 risky: true))
             return;
 
-        AnnexANodeId.Write(element, bound);
+        Bind(element, bound, node.NodeClass);
         var message = $"Bound {node.Address} to '{element.Name}'.";
         PluginLog.Info(message + (before != null && before != bound ? $" It was bound to {before}." : ""));
         SetStatus(L.T("Bound {0} to '{1}'.", node.Address, element.Name) + L.T(" Press Ctrl+S to save."));
         Selected?.Invoke(this, new SelectionEventArgs(element));
     });
+
+    /// <summary>
+    /// Gives <paramref name="element"/> the node's address as its NodeId attribute
+    /// (Annex A), and for a variable a Value attribute: reading and keeping values
+    /// live take only elements that have one, so a variable bound without it was
+    /// never read.
+    /// </summary>
+    internal static void Bind(InternalElementType element, UaNodeAddress bound, string nodeClass)
+    {
+        AnnexANodeId.Write(element, bound);
+        if (nodeClass == "Variable" && element.Attribute["Value"] == null) element.Attribute.Append("Value");
+    }
 
     private async void SnapshotButton_Click(object sender, RoutedEventArgs e)
     {
@@ -738,7 +750,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             var result = await ValueSnapshot.ApplyAsync(document, _client);
             foreach (var p in result.Problems) PluginLog.Warn(p);
             PluginLog.Info($"Snapshot from {_client.EndpointUrl}: {result}.");
-            SetStatus(L.T("Snapshot: {0}.", result) + (result.Read > 0 ? L.T(" Press Ctrl+S to save.") : ""));
+            SetStatus(Summaries.Snapshot(result, _client.EndpointUrl));
         }
         catch (Exception ex)
         {

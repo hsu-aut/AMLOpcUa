@@ -114,7 +114,7 @@ public sealed class CloudLibraryWindow : Window
             Remember();
             _results.ItemsSource = models.OrderBy(m => m.NamespaceUri)
                 .Select(m => DialogKit.Entry(m.Title ?? m.NamespaceUri, $"{m.NamespaceUri}   {m.Version} ({m.PublicationDate:yyyy-MM-dd})", m)).ToList();
-            DialogKit.ShowInfo(_info, models.Count == 0 ? L.T("No model matches.") : L.T("{0} model(s). Choose one and download it.", models.Count));
+            DialogKit.ShowInfo(_info, models.Count == 0 ? L.T("No model matches. Try a shorter or another search term.") : L.T("{0} model(s). Choose one and download it.", models.Count));
             if (models.Count > 0) import.IsDefault = true;
         }
         catch (CloudLibraryException ex)

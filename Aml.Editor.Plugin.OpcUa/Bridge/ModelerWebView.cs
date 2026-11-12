@@ -92,7 +92,7 @@ public sealed class ModelerWebView : IDisposable
         if (!File.Exists(Path.Combine(_assets, "index.html")))
         {
             _started = false;
-            Error?.Invoke(L.T("The modeler is missing from the plugin folder ({0}).", _assets));
+            Error?.Invoke(L.T("The modeler is missing from the plugin folder ({0}). Install the plugin again.", _assets));
             return;
         }
         // WebView2 keeps its profile next to the executable unless told
@@ -107,7 +107,7 @@ public sealed class ModelerWebView : IDisposable
         catch (Exception ex)
         {
             _started = false;
-            Error?.Invoke(L.T("The WebView2 runtime is missing or failed to start: {0}", ex.Message));
+            Error?.Invoke(L.T("The WebView2 runtime is missing or failed to start: {0} Install the Microsoft Edge WebView2 Runtime and restart the editor.", ex.Message));
             return;
         }
         if (_disposed) return;

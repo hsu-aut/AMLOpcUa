@@ -115,7 +115,7 @@
             </StatusBarItem>
             <!-- The log sits on the first tab; this reaches it from every tab and counts what it has not shown yet. -->
             <StatusBarItem DockPanel.Dock="Right">
-                <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="{l:T 'Four short lessons on the plugin'}"
+                <Button x:Name="TutorialLink" Click="TutorialButton_Click" Padding="6,0" ToolTip="{l:T 'Short lessons on the plugin, each a few minutes'}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE7BE;" FontSize="12" Foreground="{DynamicResource Exchange}"/>
@@ -308,7 +308,7 @@
                                     <StackPanel Margin="18,16">
                                         <TextBlock Text="{l:T 'Bring OPC UA into this document'}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                         <TextBlock Style="{StaticResource CardText}" Margin="0,0,0,14"
-                                                   Text="{l:T 'Types become AutomationML libraries by OPC 10000-83 Annex A; instances, values and links follow from there.'}"/>
+                                                   Text="{l:T 'Bring OPC UA models into the document as AutomationML libraries; then create instances, read values from servers and link processes.'}"/>
                                         <WrapPanel>
                                             <Button Style="{StaticResource Card}" Click="ImportButton_Click">
                                                 <StackPanel>
@@ -335,7 +335,7 @@
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE7BE;" Foreground="{DynamicResource Verify}"/>
                                                     <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Take the tutorial'}"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Four short lessons in this document: models, instances, a running server, a model of your own.'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Short lessons in this document: models, instances, the practice plant, your document as a server, a model of your own.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartModeler_Click">
@@ -430,7 +430,7 @@
                         <guide:HelpButton Topic="check"/>
                     </ToolBar>
                     <TextBlock x:Name="CheckSummary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="6,6,6,4"
-                               Text="{l:T 'Run Check to verify the instances against their UA types. Double click a finding to select its element.'}"/>
+                               Text="{l:T 'Click Check on the Namespaces tab, or Check again above, to verify the instances against their UA types. Double click a finding to select its element.'}"/>
                     <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick" KeyDown="FindingList_KeyDown" AutomationProperties.Name="{l:T 'Findings; Enter selects the element'}">
                         <ListView.View>
                             <GridView>
@@ -442,7 +442,7 @@
                                                 <TextBlock Text="{Binding Severity}" VerticalAlignment="Center"/>
                                             </StackPanel>
                                             <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding Severity}" Value="Error">
+                                                <DataTrigger Binding="{Binding IsError}" Value="True">
                                                     <Setter TargetName="Glyph" Property="Text" Value="&#xEA39;"/>
                                                     <Setter TargetName="Glyph" Property="Foreground" Value="#C03030"/>
                                                 </DataTrigger>
@@ -509,7 +509,8 @@
                                           ToolTip="{l:T 'Connect secured only: signed, and encrypted where the server offers it; a server without a secured endpoint is refused.'}"/>
                             </StackPanel>
                             <StackPanel x:Name="ConnectCommands" Grid.Column="2" Orientation="Horizontal">
-                                <Button x:Name="ConnectButton" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0">
+                                <Button x:Name="ConnectButton" MinWidth="110" Click="ConnectButton_Click" Margin="6,0,0,0"
+                                        ToolTip="{l:T 'Connect to the endpoint on the left; when connected, disconnect.'}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="ConnectGlyph" Style="{StaticResource IconText}" Text="&#xE703;" Foreground="{DynamicResource Exchange}"/>
                                         <TextBlock x:Name="ConnectText" Text="{l:T 'Connect'}" Style="{StaticResource Label}"/>
@@ -643,7 +644,8 @@
                                 </StackPanel>
                             </Button>
                             <Label Content="{l:T 'p_ort'}" Target="{Binding ElementName=ServePortBox}" Style="{StaticResource FieldLabel}" Margin="10,0,4,0"/>
-                            <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="{l:T 'Port of the document server'}"/>
+                            <TextBox x:Name="ServePortBox" Text="48400" Width="46" VerticalContentAlignment="Center" AutomationProperties.Name="{l:T 'Port of the document server'}"
+                                     ToolTip="{l:T 'Port at which this document is served (48400 unless you change it).'}"/>
                             <CheckBox x:Name="ServeSimulateBox" Content="{l:T 'simulate values'}" VerticalAlignment="Center" Margin="10,0,0,0"
                                       ToolTip="{l:T 'Numbers swing around the document\'s values and booleans toggle, as in a running plant; the document keeps its values.'}"/>
                             <CheckBox x:Name="ServeNetworkBox" Content="{l:T 'to the network'}" VerticalAlignment="Center" Margin="10,0,6,0"
@@ -656,7 +658,7 @@
                                     ToolTip="{l:T 'Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.'}">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Style="{StaticResource IconText}" Text="&#xE72E;" Foreground="{DynamicResource Plain}"/>
-                                    <TextBlock Text="{l:T 'Remove server addresses…'}" Style="{StaticResource Label}"/>
+                                    <TextBlock Text="{l:T 'Copy without server addresses…'}" Style="{StaticResource Label}"/>
                                 </StackPanel>
                             </Button>
                         </WrapPanel>
@@ -763,7 +765,8 @@
                         <ComboBox x:Name="DiagramSourceBox" Width="320" Margin="4,0" ToolTip="{l:T 'Type or instance to draw'}" SelectionChanged="DiagramSourceBox_SelectionChanged"/>
                         <TextBlock Text="{l:T 'depth'}" Style="{StaticResource Hint}" Margin="4,0,4,0"/>
                         <TextBox x:Name="DiagramDepthBox" AutomationProperties.Name="{l:T 'Diagram depth'}" Text="3" Width="28" VerticalContentAlignment="Center" ToolTip="{l:T 'Levels to draw'}"/>
-                        <Button x:Name="DiagramShowButton" Click="DiagramShowButton_Click" Margin="4,0,0,0">
+                        <Button x:Name="DiagramShowButton" Click="DiagramShowButton_Click" Margin="4,0,0,0"
+                                ToolTip="{l:T 'Draw the chosen type or instance with the levels set.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Create}"/>
                                 <TextBlock Text="{l:T 'Show'}" Style="{StaticResource Label}"/>

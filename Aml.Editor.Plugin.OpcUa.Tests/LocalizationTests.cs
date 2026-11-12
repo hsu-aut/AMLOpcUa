@@ -34,6 +34,8 @@ public class LocalizationTests
         }
         // The check's rule descriptions come from the core and are looked up by their English.
         foreach (var description in OpcUaAml.Checks.Rules.Descriptions.Values) keys.Add(description);
+        // So are the templates of the findings' messages.
+        foreach (var template in OpcUaAml.Checks.FindingTexts.All) keys.Add(template);
         return keys;
     }
 
@@ -59,6 +61,20 @@ public class LocalizationTests
             .Select(l => $"{l.File}: {l.Line}");
 
         Assert.Empty(bypassing);
+    }
+
+    [Fact]
+    public void No_result_of_the_core_is_shown_in_its_English_words()
+    {
+        // L.T("Snapshot: {0}.", result) translated the frame and showed the core's
+        // English summary inside it. Results go through Summaries instead.
+        var whole = Directory.EnumerateFiles(PluginFolder(), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"))
+            .SelectMany(f => File.ReadAllLines(f).Select(line => (File: Path.GetFileName(f), Line: line.Trim())))
+            .Where(l => Regex.IsMatch(l.Line, @"\bL\.T\(""(?:[^""\\]|\\.)*""(?:,[^,)]*)*,\s*(result|report|merge|snapshot|outcome)\s*[,)]"))
+            .Select(l => $"{l.File}: {l.Line}");
+
+        Assert.Empty(whole);
     }
 
     [Fact]

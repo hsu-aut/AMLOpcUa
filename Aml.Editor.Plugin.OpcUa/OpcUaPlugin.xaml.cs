@@ -379,7 +379,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0. Save a CAEX 3.0 copy… on the Namespaces tab writes one to open.", document.CAEXFile.SchemaVersion));
             PluginLog.Warn(StatusText.Text);
             return;
         }
@@ -405,7 +405,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// </summary>
     /// <summary>True when the NodeSet arrived in the document.</summary>
     /// <param name="afterMerge">Runs on the UI thread after the libraries are in and before the document is saved; what it returns is added to the status.</param>
-    private async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
+    internal async Task<bool> ImportFileAsync(CAEXDocument document, string file, IEnumerable<string> extraFolders,
         Func<ConversionResult, AfterMerge?>? afterMerge = null)
     {
         // One import at a time: each merges into the document and clears the busy state when done.
@@ -572,7 +572,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (document == null || _busy) return;
         if (document.CAEXFile.SchemaVersion != LibraryMerger.RequiredSchemaVersion)
         {
-            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0.", document.CAEXFile.SchemaVersion));
+            SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0. Save a CAEX 3.0 copy… on the Namespaces tab writes one to open.", document.CAEXFile.SchemaVersion));
             return;
         }
         var files = await DownloadFromCloudAsync("");
@@ -635,7 +635,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         try
         {
             var findings = AnnexAChecker.Check(document);
-            FindingList.ItemsSource = findings;
+            FindingList.ItemsSource = findings.Select(f => new FindingRow(f)).ToList();
             var errors = findings.Count(f => f.Severity == Severity.Error);
             CheckTab.Header = findings.Count == 0 ? L.T("Check") : L.T("Check ({0})", findings.Count);
             CheckSummary.Text = findings.Count == 0
@@ -791,7 +791,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>Selects the element of a finding in the editor.</summary>
     private void SelectFinding()
     {
-        if (FindingList.SelectedItem is not OpcUaAml.Checks.Finding { ElementId: { } id } || _document == null) return;
+        if (FindingList.SelectedItem is not FindingRow { Finding.ElementId: { } id } || _document == null) return;
         if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
     }
 

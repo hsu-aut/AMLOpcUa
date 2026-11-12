@@ -68,4 +68,42 @@ public class GuideTests
             if (topic.Lesson != null) Assert.True(Lessons.Titles.ContainsKey(topic.Lesson), $"{topic.Title}: no lesson {topic.Lesson}");
         }
     }
+
+    [Fact]
+    public void The_help_on_values_says_what_bound_means()
+    {
+        // Reading and keeping values live work on "bound" elements; only the manual said what that is.
+        var commands = HelpTopics.All["server.commands"];
+        Assert.Contains("Binding", commands.Terms);
+        var (_, text) = HelpTopics.Glossary["Binding"];
+        Assert.Contains("NodeId", text);
+        Assert.Contains("Value", text);
+    }
+
+    [Fact]
+    public void Connecting_to_a_server_leads_to_the_practice_plant_lesson()
+    {
+        Assert.Contains("plant", Lessons.Titles.Keys);
+        Assert.Equal("plant", HelpTopics.All["server.connection"].Lesson);
+        Assert.Equal("plant", HelpTopics.All["server.commands"].Lesson);
+        Assert.Equal("server", HelpTopics.All["server.serve"].Lesson);
+    }
+
+    [Fact]
+    public void Every_named_button_and_every_field_has_a_tooltip()
+    {
+        var silent = new List<string>();
+        WithPlugin(plugin =>
+        {
+            foreach (var c in Descendants<System.Windows.Controls.Control>(plugin))
+            {
+                if (c is not (System.Windows.Controls.Button or System.Windows.Controls.TextBox or System.Windows.Controls.ComboBox
+                    or System.Windows.Controls.PasswordBox or System.Windows.Controls.CheckBox)) continue;
+                if (c is System.Windows.Controls.Button && string.IsNullOrEmpty(c.Name)) continue;   // cards and dialog buttons carry their text
+                if (c is HelpButton) continue;   // takes its tooltip from its topic when loaded
+                if (c.ToolTip == null) silent.Add($"{c.GetType().Name} {c.Name}");
+            }
+        });
+        Assert.Empty(silent);
+    }
 }
