@@ -67,6 +67,19 @@ public class LocalizationTests
         Assert.DoesNotContain(De.Texts.Values, v => Regex.IsMatch(v, " [-–—] ") || v.Contains('—'));
     }
 
+    /// <summary>
+    /// The German says "du" throughout; two texts said "Sie", one of them the
+    /// first thing shown when the practice plant starts.
+    /// </summary>
+    [Fact]
+    public void The_German_addresses_the_reader_with_du_only()
+    {
+        // "Sie" for a feminine noun before it (die Übungsanlage) stays; the formal
+        // address is "Sie" after a verb or with "Ihr…".
+        var formal = new Regex(@"\b[A-ZÄÖÜ][a-zäöüß]+en Sie\b|\b(Ihnen|Ihr|Ihre|Ihren|Ihrem|Ihrer|Ihres)\b");
+        Assert.Empty(De.Texts.Values.Where(v => formal.IsMatch(v)));
+    }
+
     [Fact]
     public void The_language_is_Windows_and_not_what_the_host_process_sets()
     {

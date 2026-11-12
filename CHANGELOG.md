@@ -52,6 +52,8 @@ minor versions.
 
 ### Fixed
 
+- The German texts say "du" throughout; two said "Sie", among them the one
+  shown when the practice plant starts.
 - Cancel in "Trust this server?" was logged and told as an error; it says
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
