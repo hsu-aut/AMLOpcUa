@@ -139,6 +139,58 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         Assert.Contains(result.Problems, p => p.StartsWith("Lost", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// In the editor, keeping the MPS 500 live (about a hundred values every
+    /// half second) made it hardly answer: each value was a call of its own on
+    /// the UI thread and passed the editor's services one by one.
+    /// </summary>
+    [Fact]
+    public async Task Live_values_arrive_in_batches_with_the_editors_services_held()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("LiveBatch");
+        // With their values, so every variable has the attribute live values write.
+        await AddressSpaceMirror.MirrorAsync(client, await PlantFolder(client), ih);
+        var undo = Aml.Engine.Services.UndoRedoService.Register();
+        try
+        {
+            var recorded = 0;
+            undo.PropertyChanged += (_, _) => recorded++;
+            // As Dispatcher.BeginInvoke: queued, and run a little later on the UI thread.
+            var gate = new object();
+            var dispatched = 0;
+            var queue = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+            using var stop = new CancellationTokenSource();
+            var ui = Task.Run(async () =>
+            {
+                while (!stop.IsCancellationRequested)
+                {
+                    await Task.Delay(50);
+                    lock (gate) while (queue.TryDequeue(out var a)) a();
+                }
+            });
+            await using (var live = await LiveValues.FollowAsync(doc, client, write => { Interlocked.Increment(ref dispatched); queue.Enqueue(write); }, publishingIntervalMs: 100))
+            {
+                for (var i = 0; i < 50 && live.Updates < live.Count; i++) await Task.Delay(100);
+                stop.Cancel();
+                await ui;
+                lock (gate)
+                {
+                    // The first values of every bound node come together.
+                    Assert.True(live.Count >= 3, $"{live.Count} bound value(s)");
+                    Assert.True(live.Updates >= live.Count, $"{live.Updates} update(s)");
+                    Assert.True(dispatched < live.Updates, $"{dispatched} call(s) on the UI thread for {live.Updates} value(s)");
+                    Assert.True(recorded < live.Updates, $"{recorded} change(s) recorded for {live.Updates} value(s)");
+                }
+            }
+        }
+        finally
+        {
+            Aml.Engine.Services.UndoRedoService.UnRegister();
+        }
+    }
+
     [Fact]
     public async Task Live_values_follow_the_server()
     {

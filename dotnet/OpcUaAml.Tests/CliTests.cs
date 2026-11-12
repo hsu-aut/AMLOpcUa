@@ -212,7 +212,8 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         using var uaaml = new Uaaml();
         var missing = $"nsu={TestServer.Namespace};s=Plant.Nothing";
 
-        var run = await uaaml.RunAsync("watch", server.EndpointUrl, "/Plant/Counter", missing, "--insecure", "--accept", "--for", "2");
+        // Long enough for three changes on a slow or busy computer (on battery, two seconds were not).
+        var run = await uaaml.RunAsync("watch", server.EndpointUrl, "/Plant/Counter", missing, "--insecure", "--accept", "--for", "4");
 
         Assert.True(run.Exit == 0, run.Error);
         var counts = run.Out.Split('\n').Where(l => l.Contains("/Plant/Counter", StringComparison.Ordinal)).ToList();

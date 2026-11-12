@@ -61,15 +61,44 @@ public sealed class LiveValues : IAsyncDisposable
         // The first values arrive while the subscription is created, before this object exists.
         var counter = new Counter();
         if (byAddress.Count == 0) return new LiveValues(new Nothing(), counter, 0, skipped, 0, problems);
+        // A server sends many values at once (a hundred every half second for the
+        // MPS 500). Each one a call of its own on the editor's UI thread, through its
+        // services one by one, made the editor hardly answer. They are gathered, the
+        // newest per node, and written together in one call.
+        var pending = new Dictionary<Addressing.UaNodeAddress, UaReadResult>();
+        var flushQueued = 0;
+        void Flush()
+        {
+            Interlocked.Exchange(ref flushQueued, 0);
+            List<UaReadResult> batch;
+            lock (pending)
+            {
+                batch = pending.Values.ToList();
+                pending.Clear();
+            }
+            if (batch.Count == 0) return;
+            var written = new List<(string What, string? Value, int Count)>();
+            Import.EditorServices.Quietly(doc, () =>
+            {
+                foreach (var result in batch)
+                {
+                    var bound = byAddress[result.Address];
+                    foreach (var target in bound) target.Write(result);
+                    written.Add((bound[0].What, result.ValueText, bound.Count));
+                }
+            });
+            foreach (var (what, value, count) in written)
+            {
+                // Counted whether or not anyone listens.
+                var updates = Interlocked.Add(ref counter.Value, count);
+                changed?.Invoke(new LiveUpdate(what, value, updates));
+            }
+        }
         var (watch, refused) = await client.WatchCoreAsync(byAddress.Keys.ToList(), result =>
         {
-            if (!result.Good || !byAddress.TryGetValue(result.Address, out var bound)) return;
-            dispatch(() =>
-            {
-                foreach (var target in bound) target.Write(result);
-                var updates = Interlocked.Add(ref counter.Value, bound.Count);
-                changed?.Invoke(new LiveUpdate(bound[0].What, result.ValueText, updates));
-            });
+            if (!result.Good || !byAddress.ContainsKey(result.Address)) return;
+            lock (pending) pending[result.Address] = result;
+            if (Interlocked.Exchange(ref flushQueued, 1) == 0) dispatch(Flush);
         }, publishingIntervalMs, ct);
         // A node the server refused is never heard of again: named here, not counted as followed.
         var notOnServer = 0;

@@ -56,6 +56,10 @@ minor versions.
   "Not connected" now. A server that refuses this computer's certificate is
   named as such, with the folder of the certificate its administrator has to
   trust, instead of asking to trust the server again.
+- **Keeping values live made the editor hardly answer:** each value was a call
+  of its own on the editor's UI thread and passed its services one by one
+  (the MPS 500 sends about a hundred every half second). Values are gathered,
+  the newest per node, and written together.
 - **Taking nodes into the document was slow in the editor:** the MPS 500 (188
   nodes) took 46 s there and 1.7 s on the command line, because the editor's
   services followed each element and value written, its undo recording 1394
