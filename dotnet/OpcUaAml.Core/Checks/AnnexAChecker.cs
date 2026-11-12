@@ -12,7 +12,44 @@ public enum Severity { Error, Warning }
 
 public sealed record Finding(string Rule, Severity Severity, string ElementPath, string Message, string? ElementId)
 {
+    /// <summary>
+    /// The template of <see cref="Message"/> (one of <see cref="FindingTexts"/>), with
+    /// {0}, {1} … for <see cref="Args"/>: a report in another language translates the
+    /// template and puts the names back in.
+    /// </summary>
+    public string? Format { get; init; }
+
+    /// <summary>The names put into <see cref="Format"/>.</summary>
+    public IReadOnlyList<string> Args { get; init; } = Array.Empty<string>();
+
     public override string ToString() => $"{Severity.ToString().ToUpperInvariant(),-7} {Rule} {ElementPath}: {Message}";
+
+    internal static Finding Of(string rule, Severity severity, string path, string? elementId, string format, params string[] args) =>
+        new(rule, severity, path, string.Format(System.Globalization.CultureInfo.InvariantCulture, format, args), elementId)
+        {
+            Format = format,
+            Args = args,
+        };
+}
+
+/// <summary>The templates of the findings' messages, in English, as the command line shows them.</summary>
+public static class FindingTexts
+{
+    public const string BrokenVdi3682Link = "links to '{0}', which is not in the document.";
+    public const string PlaceholderInInstance = "placeholder declarations stand for any number of children; replace it by concrete ones or remove it.";
+    public const string UnknownType = "type '{0}' not found; import the NodeSet that defines it.";
+    public const string AbstractType = "'{0}' is abstract.";
+    public const string MissingMandatory = "Mandatory child '{0}' of '{1}' is missing.";
+    public const string MissingMandatoryPlaceholder = "'{0}' requires at least one child for '{1}'.";
+    public const string MissingMandatoryPlaceholderOfType = "'{0}' requires at least one child for '{1}' of type {2}.";
+    public const string DanglingLink = "side {0} ('{1}') does not resolve.";
+    public const string WrongLinkPair = "'{0}' may only connect to '{1}', but the other end is '{2}'.";
+
+    public static readonly IReadOnlyList<string> All = new[]
+    {
+        BrokenVdi3682Link, PlaceholderInInstance, UnknownType, AbstractType, MissingMandatory,
+        MissingMandatoryPlaceholder, MissingMandatoryPlaceholderOfType, DanglingLink, WrongLinkPair,
+    };
 }
 
 /// <summary>The rules, with the text a report shows for them.</summary>
@@ -56,8 +93,8 @@ public static class AnnexAChecker
             foreach (var top in ih.InternalElement)
                 Walk(top, null);
         foreach (var link in Links.Vdi3682Links.Links(doc).Where(l => l.Target == null))
-            findings.Add(new Finding(Rules.BrokenVdi3682Link, Severity.Warning, PathOf(link.Source),
-                $"links to '{link.TargetId}', which is not in the document.", link.Source.ID));
+            findings.Add(Finding.Of(Rules.BrokenVdi3682Link, Severity.Warning, PathOf(link.Source), link.Source.ID,
+                FindingTexts.BrokenVdi3682Link, link.TargetId));
         return findings;
 
         // Down the hierarchy, so that what a type declares below its children
@@ -78,8 +115,7 @@ public static class AnnexAChecker
     {
         var path = PathOf(ie);
         if (ie.Name.Length > 2 && ie.Name[0] == '<' && ie.Name[^1] == '>')
-            findings.Add(new Finding(Rules.PlaceholderInInstance, Severity.Warning, path,
-                "placeholder declarations stand for any number of children; replace it by concrete ones or remove it.", ie.ID));
+            findings.Add(Finding.Of(Rules.PlaceholderInInstance, Severity.Warning, path, ie.ID, FindingTexts.PlaceholderInInstance));
 
         SystemUnitFamilyType? type = null;
         IReadOnlyList<ChildDeclaration> own = Array.Empty<ChildDeclaration>();
@@ -88,13 +124,12 @@ public static class AnnexAChecker
             type = UaTypes.Resolve(doc, ie.RefBaseSystemUnitPath);
             if (type == null)
             {
-                findings.Add(new Finding(Rules.UnknownType, Severity.Error, path,
-                    $"type '{ie.RefBaseSystemUnitPath}' not found; import the NodeSet that defines it.", ie.ID));
+                findings.Add(Finding.Of(Rules.UnknownType, Severity.Error, path, ie.ID, FindingTexts.UnknownType, ie.RefBaseSystemUnitPath));
             }
             else
             {
                 if (UaTypes.IsAbstract(type))
-                    findings.Add(new Finding(Rules.AbstractType, Severity.Error, path, $"'{type.Name}' is abstract.", ie.ID));
+                    findings.Add(Finding.Of(Rules.AbstractType, Severity.Error, path, ie.ID, FindingTexts.AbstractType, type.Name));
                 if (!declarations.TryGetValue(ie.RefBaseSystemUnitPath, out own!))
                     declarations[ie.RefBaseSystemUnitPath] = own = UaTypes.Declarations(type);
             }
@@ -111,13 +146,12 @@ public static class AnnexAChecker
             switch (decl.Rule)
             {
                 case ModellingRule.Mandatory when children.All(c => c.Name != decl.Name):
-                    findings.Add(new Finding(Rules.MissingMandatory, Severity.Error, path,
-                        $"Mandatory child '{decl.Name}' of '{owner}' is missing.", ie.ID));
+                    findings.Add(Finding.Of(Rules.MissingMandatory, Severity.Error, path, ie.ID, FindingTexts.MissingMandatory, decl.Name, owner));
                     break;
                 case ModellingRule.MandatoryPlaceholder when !HasInstanceOf(doc, children, decl):
-                    findings.Add(new Finding(Rules.MissingMandatoryPlaceholder, Severity.Error, path,
-                        $"'{owner}' requires at least one child for '{decl.Name}'" +
-                        (decl.TypePath != null ? $" of type {Short(decl.TypePath)}" : "") + ".", ie.ID));
+                    findings.Add(decl.TypePath != null
+                        ? Finding.Of(Rules.MissingMandatoryPlaceholder, Severity.Error, path, ie.ID, FindingTexts.MissingMandatoryPlaceholderOfType, owner, decl.Name, Short(decl.TypePath))
+                        : Finding.Of(Rules.MissingMandatoryPlaceholder, Severity.Error, path, ie.ID, FindingTexts.MissingMandatoryPlaceholder, owner, decl.Name));
                     break;
             }
         }
@@ -154,8 +188,8 @@ public static class AnnexAChecker
             var path = PathOf(owner) + "/" + link.Name;
             if (a == null || b == null)
             {
-                findings.Add(new Finding(Rules.DanglingLink, Severity.Error, path,
-                    $"side {(a == null ? "A" : "B")} ('{(a == null ? link.RefPartnerSideA : link.RefPartnerSideB)}') does not resolve.", owner.ID));
+                findings.Add(Finding.Of(Rules.DanglingLink, Severity.Error, path, owner.ID, FindingTexts.DanglingLink,
+                    a == null ? "A" : "B", a == null ? link.RefPartnerSideA : link.RefPartnerSideB));
                 continue;
             }
 
@@ -169,9 +203,8 @@ public static class AnnexAChecker
             var okA = allowedFromA == null || IsClassOrSubclass(doc, b.RefBaseClassPath, allowedFromA);
             var okB = allowedFromB == null || IsClassOrSubclass(doc, a.RefBaseClassPath, allowedFromB);
             if (!okA || !okB)
-                findings.Add(new Finding(Rules.WrongLinkPair, Severity.Error, path,
-                    $"'{Short(a.RefBaseClassPath)}' may only connect to '{Short(allowedFromA ?? "?")}', " +
-                    $"but the other end is '{Short(b.RefBaseClassPath)}'.", owner.ID));
+                findings.Add(Finding.Of(Rules.WrongLinkPair, Severity.Error, path, owner.ID, FindingTexts.WrongLinkPair,
+                    Short(a.RefBaseClassPath), Short(allowedFromA ?? "?"), Short(b.RefBaseClassPath)));
         }
     }
 

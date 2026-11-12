@@ -279,6 +279,27 @@ public class InstanceTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public void A_finding_keeps_the_template_of_its_message_for_another_language()
+    {
+        // The plugin showed the English message in its German check list; it now
+        // translates the template and puts the names back in.
+        var ih = di.Hierarchy("Template");
+        ih.InternalElement.Insert(TypeInstantiator.Instantiate(di.Type("SoftwareVersionType"), "Firmware").Instance, asFirst: false);
+        var inserted = ih.InternalElement["Firmware"]!;
+        foreach (var link in inserted.InternalLink.Where(l => l.Name == "Manufacturer").ToList())
+            inserted.InternalLink.RemoveElement(link);
+        inserted.InternalElement.RemoveElement(inserted.InternalElement["Manufacturer"]!);
+
+        var finding = Assert.Single(di.FindingsIn(ih));
+
+        Assert.Equal(FindingTexts.MissingMandatory, finding.Format);
+        // The second name is the type that declares the child.
+        Assert.Equal(new[] { "Manufacturer", "SoftwareVersionType" }, finding.Args);
+        Assert.Equal("Mandatory child 'Manufacturer' of 'SoftwareVersionType' is missing.", finding.Message);
+        Assert.Contains(finding.Format, FindingTexts.All);
+    }
+
+    [Fact]
     public void A_mandatory_placeholder_needs_an_instance()
     {
         // NetworkType declares <ProfileIdentifier> as MandatoryPlaceholder.
