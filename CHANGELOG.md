@@ -7,6 +7,48 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **A lesson on the practice plant** in the tutorial, now five lessons: start
+  the plant, connect, import its types, take its stations into the document,
+  keep their values live, watch one value. Each step ticks itself off; a test
+  walks the whole lesson against the plant.
+- **Binding** in the glossary of the Server tab's **?**: what a bound element
+  is (a NodeId and, for a variable, a Value attribute) and which commands make
+  and fill such elements.
+
+### Changed
+
+- **The check list in the plugin's language.** Severity and finding were
+  English in the German plugin, on the tab lesson 2 leads to. The core keeps
+  each finding's template and names (`Finding.Format`, `Finding.Args`,
+  `FindingTexts`), so the plugin translates them; the command line prints the
+  same English as before.
+- **Read values into document** reports in the plugin's language ("Read 3
+  bound value(s) of … into the document"), names the values left out, not read
+  or not on the server, and with nothing bound says how to bind, as Keep
+  document values live now does too. In German it said "Momentaufnahme: 3
+  value(s) read, 0 failed, 0 skipped."
+- **Remove server addresses…** is now **Copy without server addresses…**: it
+  always saved a copy, and the old name sounded as if it changed the open
+  document.
+- Messages that ended without a next step now give it: the node limit (raise
+  'at most'), a CAEX 2.15 document (Save a CAEX 3.0 copy…), no model found,
+  the modeler or WebView2 missing, instances of an imported model not taken
+  (the modeler's Apply to document takes them).
+- German texts reviewed: the names of the buttons as they are ("Knoten in",
+  "Erneut prüfen", "Gemerkte Auswahl laden"), Kindelemente for AML elements,
+  Endpunkt and Platzhalter in the glossary, clearer texts on the document
+  server's clients, the start card and the steps of lessons 1, 2, 3 and 4.
+- Tooltips on Connect, the document server's port and Show on the Diagram
+  tab; a test keeps one on every named button and every field.
+
+### Fixed
+
+- **Bind to element…** to a variable gives the element a Value attribute.
+  Without one, Read values into document and Keep document values live passed
+  the element over without a word.
+
 ## [0.3.0] - 2026-11-12
 
 ### Added

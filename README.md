@@ -148,10 +148,10 @@ command line does.
   Annex C) and applies the result to the document as a NodeSet import; see
   [docs/modeler.md](docs/modeler.md).
 
-**Tutorial** (in the status bar, and a card on an empty document) opens four
+**Tutorial** (in the status bar, and a card on an empty document) opens five
 short lessons in a panel beside the tabs: models into the document, instances
-and checks, a running server (the document serves itself, so no plant is
-needed), a model of your own. Each step frames the control it is about and
+and checks, the practice plant (connect, take its stations, follow their
+values live), your document as a server, a model of your own. Each step frames the control it is about and
 ticks itself off when the plugin's state shows it done; a button takes over
 what needs a file or a place, such as opening the dialog in the folder of the
 bundled DI. For those who know their way, a **?** beside each part says in a

@@ -193,13 +193,15 @@ keeps everything (see [Reading the log](#reading-the-log)).
 ### Tutorial and help
 
 **Tutorial** in the status bar, or the card **Take the tutorial**, opens a
-panel at the right edge with four short lessons:
+panel at the right edge with five short lessons:
 
 1. Models into the document: import DI, look at what it brings, draw a type.
 2. Instances and checks: create an instance of a DI type and check it.
-3. A running server: serve the document, connect to it, take a part of it
-   back, keep its values live. No plant is needed.
-4. A model of your own: a small model in the modeler, applied to the document.
+3. The practice plant: start it, connect, import its types, take its
+   stations into the document, keep their values live, watch one value.
+4. Your document as a server: serve the document, connect to it, take a part
+   of it back, keep its values live. No plant is needed.
+5. A model of your own: a small model in the modeler, applied to the document.
 
 The lessons work in the open document, which should be a new, empty one; the
 first step offers **Save a practice document…** for that. Each step says what
@@ -716,7 +718,9 @@ To give an element of your own model the address of a server node:
 3. Search the element by name or path, select it and click **Bind**.
 
 The element gets the node's address as its `NodeId` attribute (Annex A), with
-the server's URI. When it is bound to another node already, the plugin shows
+the server's URI; bound to a variable, it also gets a `Value` attribute, which
+reading and keeping values live fill in (before 0.3.1 it did not, and such an
+element was never read). When it is bound to another node already, the plugin shows
 both addresses and asks before it replaces the binding. The editor then
 selects the element.
 
@@ -727,6 +731,11 @@ selects the element.
 | **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, and every AutomationML BPR 007 DataVariable. Elements bound to another server are skipped. |
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
 | **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
+
+When no element of the document is bound to the connected server, both say so
+and how to change it: take its nodes into the document, or bind an element.
+Values bound to another server are left out and counted; values the server
+cannot read or does not have are counted and named in the log.
 
 A NodeId given as a browse path or an alias is resolved by the connected
 server when values are read or kept live. How the conventions of addressing a
@@ -818,7 +827,7 @@ after BPR 007 or DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. Before you
 pass the document on:
 
 1. On the **Server** tab, in the band "This document as a server", click
-   **Remove server addresses…**. It needs no connection.
+   **Copy without server addresses…**. It needs no connection.
 2. Choose where to save the copy; the plugin proposes
    `<name>-without-addresses.aml` beside the document.
 
