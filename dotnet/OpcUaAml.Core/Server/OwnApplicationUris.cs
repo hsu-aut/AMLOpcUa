@@ -2,7 +2,7 @@
 // they named the computer ("urn:<host>:AMLOpcUa:DocumentServer"), and a
 // mirrored document keeps the server's ApplicationUri (ServerUri, and the
 // ServerInstanceUri of every NodeId): mirrored in the office, the same served
-// document was another server on the booth laptop. Since 0.2.1 they name no
+// document was another server on the booth laptop. Since 0.3.0 they name no
 // computer, and the earlier ones still name the same server.
 
 using System.Security.Cryptography.X509Certificates;
@@ -17,7 +17,7 @@ public static class OwnApplicationUris
     /// <summary>The NodeSet server (<see cref="NodeSetServerHost"/>).</summary>
     public const string NodeSetServer = "urn:AMLOpcUa:NodeSetServer";
 
-    /// <summary>The client (<see cref="UaClient"/>), for certificates made from 0.2.1 on.</summary>
+    /// <summary>The client (<see cref="UaClient"/>), for certificates made from 0.3.0 on.</summary>
     public const string Client = "urn:AMLOpcUa:Client";
 
     private const string Product = "AMLOpcUa";

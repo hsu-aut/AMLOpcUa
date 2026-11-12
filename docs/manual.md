@@ -900,7 +900,7 @@ to reload the modeler. The modeler's own toolbar holds **Apply to document**,
    it requires.
 
 When the file is not found, the status line says so. This only happens for a
-namespace imported before version 0.2.1 from a folder the plugin does not
+namespace imported before version 0.3.0 from a folder the plugin does not
 search: import it again, or open the file with **Open NodeSet file…** (see
 [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)). The UA
 base model is built into the modeler and is not edited there.

@@ -315,7 +315,7 @@ instances.
 A mirrored document says where its servers are: the server element carries
 `EndpointUrl` and `ServerUri`, every NodeId below it a `ServerInstanceUri`
 (which usually holds the host name; not for this build's own servers since
-0.2.1), and a server element after BPR 007 or
+0.3.0), and a server element after BPR 007 or
 DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. **Remove server addresses…**
 (Server tab, band "This document as a server") and `uaaml strip-addresses <doc> [-o <out>]` write a copy without
 them; the open document stays as it is. What a node is known by (NamespaceUri

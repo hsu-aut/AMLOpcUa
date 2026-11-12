@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-12
+
 ### Added
 
 - **On nuget.org** as `Aml.Editor.Plugin.OpcUa`, so the AutomationML Editor
@@ -38,7 +40,7 @@ minor versions.
 
 ### Changed
 
-- The Modeler tab brings NodeSet.js 0.2.1: it no longer breaks down when the
+- The Modeler tab brings NodeSet.js 0.3.0: it no longer breaks down when the
   open model is loaded again, keeps a panel's unapplied input with its node,
   fits a value to a changed DataType, refuses to delete a DataType in use,
   finds reference targets in every loaded model, lists instances below DeviceSet,

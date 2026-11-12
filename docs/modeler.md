@@ -40,7 +40,7 @@ through the document.
   requires) or `new`; the page answers `ready` when it listens, `dirty`,
   `status`, `apply` with the NodeSet and `save` with the NodeSet and a file
   name. The plugin answers `apply` with `applied` and `save` with `saved`
-  (`ok` and a text). From NodeSet.js 0.2.1 on, `apply` and `save` carry
+  (`ok` and a text). From NodeSet.js 0.3.0 on, `apply` and `save` carry
   `change`, the modeler's count of changes, and the answer carries the same
   count back: the modeler calls the model clean only when nothing changed
   since, so edits made while a large model is applied stay unsaved. A message

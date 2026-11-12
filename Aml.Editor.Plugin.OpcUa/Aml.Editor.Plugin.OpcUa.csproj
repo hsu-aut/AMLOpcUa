@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <!-- The AutomationML Editor lists the packages on nuget.org that carry the tag
          AMLEditorPlugin.Net (PlugIn Manager, PublicSource); CI refuses a package without it. -->
     <PackageId>Aml.Editor.Plugin.OpcUa</PackageId>

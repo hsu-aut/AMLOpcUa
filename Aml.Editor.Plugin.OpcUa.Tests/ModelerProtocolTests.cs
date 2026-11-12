@@ -4,7 +4,7 @@ using Aml.Editor.Plugin.OpcUa.Bridge;
 namespace PluginTests;
 
 /// <summary>
-/// The modeler (NodeSet.js 0.2.1 on) counts its changes and sends the count
+/// The modeler (NodeSet.js 0.3.0 on) counts its changes and sends the count
 /// with "apply" and "save"; the plugin answers with the same count, and the
 /// modeler calls the model clean only when nothing changed since. Before,
 /// edits made while a large model was applied were marked as saved, and a
