@@ -329,7 +329,7 @@
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartCloud_Click">
                                                 <StackPanel>
-                                                    <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/>
+                                                    <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE774;" Foreground="{DynamicResource Exchange}"/>
                                                     <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Get a companion specification'}"/>
                                                     <TextBlock Style="{StaticResource CardText}" Text="{l:T 'The NodeSets the OPC Foundation publishes, with the models they require, no account needed; or the UA Cloud Library.'}"/>
                                                 </StackPanel>
@@ -345,7 +345,7 @@
                                                 <StackPanel>
                                                     <TextBlock Style="{StaticResource CardGlyph}" Text="&#xE7BE;" Foreground="{DynamicResource Verify}"/>
                                                     <TextBlock Style="{StaticResource CardTitle}" Text="{l:T 'Take the tutorial'}"/>
-                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Short lessons in this document: models, instances, the practice plant, your document as a server, a model of your own.'}"/>
+                                                    <TextBlock Style="{StaticResource CardText}" Text="{l:T 'Short lessons in this document: models, instances, the practice plant, binding your own elements, your document as a server, a model of your own.'}"/>
                                                 </StackPanel>
                                             </Button>
                                             <Button Style="{StaticResource Card}" Click="StartModeler_Click">
