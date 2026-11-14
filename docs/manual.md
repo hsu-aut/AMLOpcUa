@@ -929,7 +929,7 @@ What is served:
 - each InstanceHierarchy is a folder below Objects;
 - an element whose class is a UA VariableType becomes a Variable, one whose
   class is a UA ObjectType an Object; an element without a UA class becomes a
-  Variable when it carries a `Value` and no children, an Object otherwise;
+  Variable when it carries a `Value`, with children or without, an Object otherwise;
 - every Object is a BaseObjectType and every Variable a BaseDataVariableType,
   held by HasComponent, also where the element has a UA type of a companion
   specification: the document server serves the plant, not its types. A

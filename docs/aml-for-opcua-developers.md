@@ -183,7 +183,7 @@ server whose address space is the document's instance hierarchies
 - **Each InternalElement** is a node held by HasComponent, properties
   included. It is a Variable of `BaseDataVariableType` when its class is a UA
   VariableType; when its class comes from no OPC UA library, it is one if it
-  has a `Value` attribute and no children. Otherwise it is an Object of
+  has a `Value` attribute, children or not. Otherwise it is an Object of
   **`BaseObjectType`**, whatever its class: a DI instance shows its children,
   but not its type. The server holds no types of the document. A client
   therefore sees no HasProperty and no PropertyType: DI's property

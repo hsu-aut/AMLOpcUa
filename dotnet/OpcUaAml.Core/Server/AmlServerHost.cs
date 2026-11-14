@@ -455,9 +455,11 @@ public sealed class AmlAddressSpace
 
         var children = ie.InternalElement.Select(c => Build(c, path, documentNamespace, used)).ToList();
         var type = UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath) ? UaTypes.TypeOf(ie) : null;
+        // Without a UA class, a Value makes a variable, children or not: a variable
+        // taken from a server whose type the document lacks keeps its EURange and value.
         var isVariable = type != null
             ? UaTypes.Chain(type).Any(t => t.Name == "BaseVariableType")
-            : ie.Attribute["Value"] != null && children.Count == 0;
+            : ie.Attribute["Value"] != null;
         var value = ie.Attribute["Value"];
         Count++;
         return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children) { Source = ie };

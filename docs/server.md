@@ -231,7 +231,7 @@ against the engineering model before the plant exists. Each instance
 hierarchy becomes a folder under Objects. An element whose class is a UA
 VariableType becomes a Variable, one whose class is a UA ObjectType an
 Object; an element without a UA class becomes a Variable when it carries a
-`Value` and no children, an Object otherwise. Every Variable is a
+`Value`, with children or without, an Object otherwise. Every Variable is a
 `BaseDataVariableType` and every Object a `BaseObjectType`, held by
 HasComponent, properties included. Elements with an Annex A NodeId keep it
 (the namespace is registered), the others get a string NodeId from their path

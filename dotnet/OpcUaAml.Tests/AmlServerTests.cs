@@ -326,6 +326,35 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
     }
 
     [Fact]
+    public async Task An_element_with_a_value_and_children_is_served_as_a_variable_without_its_type()
+    {
+        // A variable taken from a server whose type is not in the document (an
+        // AnalogItem with its EURange, say) has no UA class, a Value and children;
+        // it was served as an Object, and its value was lost.
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Untyped");
+        var level = ih.InternalElement.Append("Tank").InternalElement.Append("Level");
+        var value = level.Attribute.Append("Value");
+        value.AttributeDataType = "xs:double";
+        value.Value = "4.2";
+        level.InternalElement.Append("EURange").Attribute.Append("Value").Value = "0 10";
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl, UseSecurity = false, AcceptUntrustedServerCertificates = true, PkiRoot = Path.Combine(pki, "client"),
+        });
+        var tank = new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Untyped/Tank");
+
+        var below = await client.BrowseAsync(tank);
+        var read = await client.ReadAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Untyped/Tank/Level"));
+
+        Assert.Equal("Variable", below.Single(i => i.BrowseName == "Level").NodeClass);
+        Assert.Equal("4.2", read.ValueText);
+        Assert.Contains(await client.BrowseAsync(below.Single(i => i.BrowseName == "Level").Address), i => i.BrowseName == "EURange");
+    }
+
+    [Fact]
     public async Task A_decimal_comma_is_served_as_text_not_as_a_thousands_separator()
     {
         // "3,5" typed in a German habit is not 35; it is no xs:double at all.
