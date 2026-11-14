@@ -120,7 +120,7 @@ public class StateMachineTests(MachineDocument machine, ITestOutputHelper output
     {
         var html = OpcUaAml.Documentation.ModelDocumentation.Html(machine.Document, "http://example.org/Pump/");
 
-        Assert.Contains("State machine (OPC 10000-5 Annex B)", html);
+        Assert.Contains("State machine (OPC 10000-16)", html);
         Assert.Contains("<th>Transition</th>", html);
         Assert.Contains("<td>IdleToRunning</td>", html);
         Assert.Contains("<summary>State chart</summary>", html);

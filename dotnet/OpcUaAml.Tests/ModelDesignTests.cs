@@ -175,8 +175,8 @@ public class ModelDesignTests
     }
 
     /// <summary>
-    /// A finite state machine, the way the modeler writes one (OPC 10000-5
-    /// Annex B): its states and transitions are children with a type
+    /// A finite state machine, the way the modeler writes one (OPC
+    /// 10000-16): its states and transitions are children with a type
     /// definition, their numbers are properties of the UA namespace, and the
     /// ends of a transition are references between them. All of it has to
     /// arrive in the design, or the machine is gone after a compile.

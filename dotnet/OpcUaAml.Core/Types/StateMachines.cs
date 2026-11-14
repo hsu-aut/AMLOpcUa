@@ -1,4 +1,4 @@
-﻿// Finite state machines (OPC 10000-5 Annex B) as Annex A leaves them in a
+﻿// Finite state machines (OPC 10000-16) as Annex A leaves them in a
 // document: a type that derives from FiniteStateMachineType holds its states
 // and transitions as InternalElements of StateType and TransitionType, their
 // numbers as a StateNumber or TransitionNumber child, and the ends of a
@@ -38,7 +38,7 @@ public static class StateMachines
 {
     // The base types by NodeId, not by name: a model of its own may well hold
     // a type called StateType, and only the one of the UA namespace is meant
-    // (OPC 10000-5 Annex B).
+    // (OPC 10000-16).
     private const string UaNamespace = "http://opcfoundation.org/UA/";
     private const string MachineType = "nsu=" + UaNamespace + ";i=2771";
     private const string StateType = "nsu=" + UaNamespace + ";i=2307";
@@ -130,7 +130,7 @@ public static class StateMachines
 
     /// <summary>
     /// The machine a state holds of its own: a component of the machine type,
-    /// which the state names through HasSubStateMachine (OPC 10000-5 Annex B).
+    /// which the state names through HasSubStateMachine (OPC 10000-16).
     /// </summary>
     private static SubMachine? SubMachineOf(SystemUnitFamilyType type, string? machine) =>
         Node(type, machine) is InternalElementType element

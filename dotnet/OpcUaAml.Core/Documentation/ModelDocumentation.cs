@@ -152,7 +152,7 @@ public static class ModelDocumentation
     private static void Machine(StringBuilder html, StateMachine machine)
     {
         if (machine.IsEmpty) return;
-        html.Append("<p class=\"meta\">State machine (OPC 10000-5 Annex B)</p>");
+        html.Append("<p class=\"meta\">State machine (OPC 10000-16)</p>");
 
         if (machine.States.Count > 0)
         {

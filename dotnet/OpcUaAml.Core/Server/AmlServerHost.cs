@@ -463,7 +463,7 @@ public sealed class AmlAddressSpace
         return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children) { Source = ie };
     }
 
-    /// <summary>Two elements can carry the same NodeId (copied instances); the second gets a path id.</summary>
+    /// <summary>Two elements can carry the same NodeId (copied instances); each further one gets "#2", "#3" … after the identifier.</summary>
     private UaNodeAddress Unique(UaNodeAddress address, HashSet<UaNodeAddress> used)
     {
         var candidate = address;
