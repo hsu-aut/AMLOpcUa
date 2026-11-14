@@ -45,8 +45,8 @@ public sealed class AmlServerOptions
 
     /// <summary>
     /// Let the served values move, as a running plant's would: numbers swing
-    /// around the document's value, booleans toggle every few seconds, texts
-    /// stay. The document itself is not changed; a number edited in it becomes
+    /// around the document's value, counters count up from it, booleans toggle
+    /// every few seconds, texts stay. The document itself is not changed; a number edited in it becomes
     /// the new middle, an edited text or date is served as it is.
     /// </summary>
     public bool Simulate { get; init; }
@@ -251,7 +251,7 @@ public sealed class AmlServerHost : IAsyncDisposable
             _simulation = null;
         }
 
-        /// <summary>Numbers on a slow sine around their middle, each with its own phase; booleans toggle; texts stay.</summary>
+        /// <summary>Numbers on a slow sine around their middle, each with its own phase; counters up; booleans toggle; texts stay.</summary>
         private void Simulate()
         {
             var seconds = (DateTime.UtcNow - _started).TotalSeconds;
@@ -262,7 +262,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     var phase = i++ * 0.7;
                     _middle.TryGetValue(state, out var middle);
-                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase);
+                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name);
                     if (next == null || Equals(next, state.Value)) continue;
                     state.Value = next;
                     state.StatusCode = StatusCodes.Good;

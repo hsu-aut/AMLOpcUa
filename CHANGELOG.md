@@ -57,6 +57,12 @@ minor versions.
 
 ### Changed
 
+- **Counters count up in a simulated plant.** The practice plant and a server
+  with simulate values let every number swing on a sine, so CycleCount and
+  PartsProduced counted down half the time. Whole numbers whose name ends in
+  Count or Produced now count up from their value, by one about every five
+  seconds. DI's RevisionCounter, which counts revisions of a device, moves as
+  before.
 - **The check list in the plugin's language.** Severity and finding were
   English in the German plugin, on the tab lesson 2 leads to. The core keeps
   each finding's template and names (`Finding.Format`, `Finding.Args`,

@@ -223,8 +223,10 @@ mirrors it back: structure and values survive.
 With **simulate values** (`AmlServerOptions.Simulate`, `uaaml serve
 --simulate`) the served values move as a running plant's would: every half
 second each number swings on a slow sine (30 s) around the document's value,
-by a fifth of it (by 10 around zero), each variable in its own phase; booleans
-toggle every five seconds; texts and dates stay. The document keeps its
+by a fifth of it (by 10 around zero), each variable in its own phase; counters
+(whole numbers whose name ends in Count or Produced) count up from it by one
+about every five seconds; booleans toggle every five seconds; texts and dates
+stay. The document keeps its
 values; a number edited there becomes the new middle, an edited text or date
 (a Manufacturer, say) is served at once. Clients, and the plugin's own live values,
 then have something to follow.

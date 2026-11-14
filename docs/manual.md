@@ -887,9 +887,11 @@ restart; the plugin says so once.
 
 With **simulate values**, the served values move as a running plant's would:
 every half second each number swings on a slow sine (30 seconds) around the
-document's value, by a fifth of it (by 10 around zero); booleans toggle every
-five seconds; texts stay. The document keeps its values; a value edited there
-becomes the new middle.
+document's value, by a fifth of it (by 10 around zero); counters (whole
+numbers whose name ends in Count or Produced, such as CycleCount and
+PartsProduced) count up from it by one about every five seconds; booleans
+toggle every five seconds; texts stay. The document keeps its values; a value
+edited there becomes the new middle, or for a counter the new start.
 
 **This computer only (default).** The server listens on 127.0.0.1, offers the
 unsecured endpoint besides the secured ones and admits every client. Only

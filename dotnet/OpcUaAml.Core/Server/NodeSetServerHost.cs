@@ -326,7 +326,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
                 {
                     var phase = i++ * 0.7;
                     _middle.TryGetValue(state, out var middle);
-                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase);
+                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name);
                     if (next == null || Equals(next, state.Value)) continue;
                     state.Value = next;
                     state.StatusCode = StatusCodes.Good;
