@@ -27,8 +27,9 @@ einem CAEX-2.15-Dokument speichert **CAEX-3.0-Kopie speichern…** eine Kopie.
 
 **Tutorial** unten rechts in der Statusleiste öffnet sechs kurze Lektionen.
 Jeder Schritt rahmt den Knopf ein, um den es geht, und hakt sich selbst ab,
-sobald er erledigt ist. Nimm dafür ein neues, leeres Dokument; der erste
-Schritt bietet **Übungsdokument speichern…** an.
+sobald er erledigt ist. Nimm dafür ein neues, leeres Dokument und speichere
+es vor dem ersten Import; der erste Schritt bietet dafür auch
+**Übungsdokument speichern…** an.
 
 1. Modelle ins Dokument: DI importieren, ansehen, einen Typ zeichnen.
 2. Instanzen und Prüfen.
@@ -77,9 +78,16 @@ DeviceType ab.
 2. Reiter **Server**: Endpunkt eintragen, etwa `opc.tcp://sps:4840`,
    **Verbinden**, das Zertifikat des Servers prüfen und ihm vertrauen.
 3. Im Adressraum die Variable wählen, **An Element binden…**, dein Element
-   wählen. Das Element bekommt die Attribute NodeId und Value.
+   wählen. Das Element bekommt die Attribute NodeId und Value. Jeder Wert
+   braucht einen eigenen Dialog; viele auf einmal bindet das Plugin nicht.
 4. **Werte ins Dokument lesen** liest einmal, **Dokumentwerte live halten**
    folgt jeder Änderung. Strg+S speichert.
+
+Die Bindungen gelten für den Server, an den du gebunden hast: Die NodeId
+nennt ihn in `ServerInstanceUri`, und Elemente eines anderen Servers lässt
+das Lesen aus. In einer **Kopie ohne Serveradressen…** nennen sie keinen
+Server mehr und werden vom gerade verbundenen Server gelesen, sofern er
+dieselben Knoten hat.
 
 **Ins Dokument übernehmen** ist der andere Weg: Es legt eine Kopie der
 angehakten Knoten in der Hierarchie aus **Knoten in** an und lässt dein Modell

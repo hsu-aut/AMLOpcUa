@@ -112,8 +112,10 @@ of `NumericId`, `StringId`, `GuidId` or `OpaqueId`. A NodeId can also name its
 node indirectly, by a path of BrowseNames or by an alias; the connected server
 resolves such a NodeId when values are read
 ([servers](server.md#addressing-a-node-from-aml)). An instance created with
-**New instance…** has no NodeId: a NodeId names a node of one server, and only
-**Take into document** and **Bind to element…** give one.
+**New instance…** has no NodeId: a NodeId names a node, and a new instance
+has none yet. **Take into document** and **Bind to element…** give one, and
+the instances that the **Modeler**'s **Apply to document** takes from a
+NodeSet keep the NodeIds of that NodeSet.
 
 A **BrowseName** is a node's name together with its namespace, such as
 `Manufacturer` of `http://opcfoundation.org/UA/DI/`. The element's name is the
@@ -128,13 +130,16 @@ Four names occur, and they mean different things:
 | EndpointUrl | The URL a client connects to, `opc.tcp://host:port/path`, as entered in the connection box | Attribute of the element for the server that **Take into document** creates |
 | ServerUri | The server's ApplicationUri | Attribute of the same element |
 | ApplicationUri | The name an OPC UA program gives itself, unique and also written into its certificate. It often contains the computer's name (`urn:plc-17:…`). The plugin's document server calls itself `urn:AMLOpcUa:DocumentServer`. | No attribute of its own: ServerUri and ServerInstanceUri hold it |
-| ServerInstanceUri | The server a NodeId belongs to, as its ApplicationUri | Sub-attribute of every NodeId that **Take into document** or **Bind to element…** writes. **Read values into document** and **Keep document values live** leave out elements whose ServerInstanceUri names another server. |
+| ServerInstanceUri | The server a NodeId belongs to, as its ApplicationUri | Sub-attribute of every NodeId that **Take into document** or **Bind to element…** writes. **Read values into document** and **Keep document values live** leave out elements whose ServerInstanceUri names another server; a NodeId without it is read from the server connected. |
 
 A server element described after AutomationML BPR 007 or DIN SPEC 16592 (an
 element with the role OPCUA-Server) carries `EndpointURL` and `DiscoveryURL`
 instead. **Copy without server addresses…** removes all of these attributes,
 in every instance hierarchy of the copy
-([Passing a document on](manual.md#passing-a-document-on)).
+([Passing a document on](manual.md#passing-a-document-on)). In such a copy
+the bindings name no server, which is how bindings made against the practice
+plant move to a PLC that has the same nodes
+([Connect an existing plant model to a PLC](manual.md#connect-an-existing-plant-model-to-a-plc)).
 
 ## Types, ModellingRules and placeholders
 
@@ -152,7 +157,7 @@ attribute `ModellingRule` on the child's interface (`ComponentOf` or
 | Optional | there when you tick it in **New instance…** |
 | MandatoryPlaceholder | the children you name for it, at least one |
 | OptionalPlaceholder | the children you name for it, possibly none |
-| ExposesItsArray | none; how many there are is known only where the values are |
+| ExposesItsArray | none; the rule asks for one child per element of an array value, and a new instance has no values yet |
 
 A **placeholder** is a declaration whose name stands in angle brackets, such
 as `<CPIdentifier>` in DI's `DeviceType`. It stands for any number of children
@@ -237,7 +242,8 @@ name.
    the attribute `refBaseObj`; an element of the same name is not matched.
 2. **Bind to element…** gives one element of your model the NodeId of one
    node, and a `Value` attribute when the node is a variable. It binds one
-   element at a time.
+   element at a time, in a dialog per value; there is no bulk binding, and
+   the command line tool cannot bind.
 
 Then **Read values into document** or **Keep document values live** fill the
 `Value` attributes of every bound element: the copies and your own elements

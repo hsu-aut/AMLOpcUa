@@ -77,7 +77,9 @@ public static class Program
         uaaml read <endpoint> <node>... [--insecure] [--accept] [--user <name>]
             The current value of each node. A node is a NodeId, or a path of
             BrowseNames from the Objects folder when it starts with a slash
-            ("/MPS500/ST30_Processing/ParameterSet/Ready").
+            ("/MPS500/ST30_Processing/ParameterSet/Ready"). A step matches a
+            child's BrowseName without its namespace, or its DisplayName; when
+            several match, the first the server lists is taken.
 
         uaaml watch <endpoint> <node>... [--for <seconds>] [--insecure] [--accept] [--user <name>]
             Each value as it changes, one line with the time, until Ctrl+C or
@@ -108,10 +110,11 @@ public static class Program
             The server's namespaces, or the NodeSet of one of them: the file the
             server publishes for it, else rebuilt by browsing its types (with
             --instances also its objects; --browse ignores a published file).
-            -o writes it. --into imports it into a document (Annex A, saved to -o
-            or in place; a CAEX 2.15 document is converted to CAEX 3.0 first),
-            with the models it requires that neither --search nor the bundled
-            NodeSets provide, fetched from the server too.
+            -o writes it. --into imports its types into a document (Annex A,
+            saved to -o or in place; a CAEX 2.15 document is converted to CAEX
+            3.0 first), with the models it requires that neither --search nor
+            the bundled NodeSets provide, fetched from the server too. An import
+            takes no objects, also with --instances; 'mirror' takes them.
 
         uaaml snapshot [<endpoint>] <doc.aml> [--insecure] [--accept] [--user <name>] [-o <out.aml>]
             Read the current value of every bound element and DataVariable. Without
@@ -132,8 +135,9 @@ public static class Program
             that out, and the client rebuilds it by browsing.
 
         uaaml serve <doc.aml> [--port <n>] [--network] [--simulate] [--for <seconds>]
-            Serve the document's instance hierarchies as an OPC UA server until
-            Ctrl+C or Enter (or for the seconds given), to this computer only. An
+            Serve the document's instance hierarchies as an OPC UA server on port
+            48400 (or --port) until Ctrl+C or Enter (or for the seconds given),
+            to this computer only. An
             input at its end (a script, a scheduled task) does not stop it. --network offers it to other computers: secured
             endpoints only, and only to clients whose certificate is trusted.
             --simulate lets numbers swing around the document's values and
@@ -188,8 +192,8 @@ public static class Program
             from UACLOUD_API_KEY instead.
 
         uaaml design export <NodeSet.xml|doc.aml> -o <design.xml> [--namespace <uri>] [--name <n>] [--search <dir>]...
-        uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105]
-        uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]...
+        uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105] [--compiler <exe>]
+        uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]... [--keep] [--compiler <exe>]
             ModelDesign, the form the OPC Foundation's ModelCompiler reads and
             writes. export writes a model as a design (its types, declarations,
             fields and references, with the NodeIds kept): from a NodeSet, or
@@ -200,7 +204,8 @@ public static class Program
             import compiles it and puts the model into a document (Annex A) in one
             go. The ModelCompiler is not part of uaaml; install it with
             "dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool"
-            or name it with --compiler. compile leaves everything the compiler
+            or name it with --compiler or the environment variable
+            AMLOPCUA_MODELCOMPILER. compile leaves everything the compiler
             writes in the folder, its C# sources for the .NET stack included;
             uaaml itself uses only the NodeSet.
 

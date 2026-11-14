@@ -56,7 +56,7 @@ AMLPetriNet.
 | `Aml.Editor.Plugin.OpcUa.Tests/` | Tests of the plugin's code that needs no editor (the safety net for exceptions) |
 | `dotnet/OpcUaAml.Tests/` | Tests, including the comparison with the libraries the OPC Foundation publishes and with the unit tests of AML-UA-XSLT |
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
-| `nodesets/` | UA base model and DI, shipped with tool and plugin |
+| `nodesets/` | UA base model, DI and the two AML NodeSets that loading an export needs, shipped with tool and plugin |
 | `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
 | `docs/` | [user manual](docs/manual.md), [Kurzanleitung](docs/kurzanleitung.md), [OPC UA for AutomationML users](docs/opcua-for-aml-users.md), [AutomationML for OPC UA developers](docs/aml-for-opcua-developers.md), [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [ModelDesign](docs/modeldesign.md), [VDI 3682](docs/vdi3682.md), [demo](docs/demo.md) |
 
@@ -99,8 +99,9 @@ from the OPC UA stack, the conversion or the core library stay English, as the
 command line does.
 
 - **Import NodeSet…** converts a `NodeSet2.xml` and adds its libraries to the
-  open document: one `ATL_`, `ICL_`, `RCL_` and `SUC_` library per UA
-  namespace, for the NodeSet and every model it requires, together with the
+  open document: per UA namespace, for the NodeSet and every model it
+  requires, up to four libraries (`ATL_`, `ICL_`, `RCL_`, `SUC_`), one for
+  each kind of node the namespace defines, together with the
   `OpcAmlMetaModel` libraries.
 - **Settings ▾ › NodeSet folders…** lists folders searched for required
   NodeSets; **Forget fetched NodeSets…** empties the folders of NodeSets taken
@@ -204,6 +205,10 @@ The document must be CAEX 3.0 (AutomationML 2.10). Do not copy
 ignores the plugin without an error message if it finds a second copy.
 
 ## Command line
+
+`uaaml` is the program `converter\uaaml.exe` in the installed plugin's folder,
+which is not on the PATH ([where it is](docs/manual.md#the-command-line-tool-uaaml)),
+or in the repository `dotnet run --project dotnet/OpcUaAml.Tool --`.
 
 ```bash
 uaaml info    Opc.Ua.Machinery.NodeSet2.xml --search ./nodesets

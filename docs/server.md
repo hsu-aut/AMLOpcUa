@@ -75,7 +75,10 @@ server it was bound to ([export](export.md), D16).
   <node>...` prints them. A node is a NodeId, or a path of BrowseNames from
   the Objects folder when it starts with a slash
   (`/MPS500/ST30_Processing/ParameterSet/Ready`), because nobody knows a
-  server's NodeIds by heart. A NodeId is never split on its slashes.
+  server's NodeIds by heart. A step matches the name of a child's BrowseName,
+  without its namespace, or its DisplayName; where several children match,
+  the first one the server lists is taken (`UaClient.ResolveAsync`). A NodeId
+  is never split on its slashes.
 - **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
   keep the document itself current, see "Keep document values live" below.
@@ -101,7 +104,8 @@ so the libraries come from the same Annex A import as a NodeSet file:
    along HasSubtype from the roots of the four type hierarchies in every
    namespace, what they hold along hierarchical references (instance
    declarations of any depth) and their DataTypeEncodings. With "Include the
-   namespace's objects" (`--instances`) also what the Objects folder leads to.
+   namespace's objects" (`--instances`) also what the Objects folder leads to,
+   for the modeler or a file: an import takes the types only.
    The stack's NodeSet2 export writes attributes and references; values,
    DataType definitions (structures, unions, enumerations, OptionSets),
    ParentNodeId and MethodDeclarationId are read or derived here, because the
@@ -130,12 +134,22 @@ file (`ServerNodeSetTests`).
   Each carries its Annex A NodeId including the server's ApplicationUri, and
   its UA type as RefBaseSystemUnitPath when the document holds the type's
   library (matched by the NodeId every generated class carries). Variables get
-  a `Value` attribute with the current value and an XML Schema data type.
+  a `Value` attribute with the current value (`ValueFormatting.ToAml`) and,
+  when it has no data type yet, the XML Schema type of the value's built-in
+  type (`ValueSnapshot.XsdType`): LocalizedText and QualifiedName become
+  `xs:string` with their text or name only, an enumeration arrives as Int32
+  and becomes `xs:int`, an array is written space separated with the type of
+  one element, and a structure (ExtensionObject), NodeId or Guid is written
+  as the stack's text of it, without a data type.
   When the document already models a node, that is an element with the same
-  NodeId (the planned object), the mirrored element becomes an aspect of it:
-  a `refBaseObj` of the AutomationML object reference attribute types (Drath,
-  Nabizada, 1.1.1-beta) holds the planned element's ID. The planned model is
-  not changed, the library is added to the document if missing. Planned
+  NodeId (the planned object), the mirrored element becomes an aspect of it,
+  an element that describes the same object from another view and names it as
+  its base: a `refBaseObj` of the AutomationML object reference attribute
+  types (Drath, Nabizada, 1.1.1-beta) holds the planned element's ID. The
+  planned model is not changed, the library is added to the document if
+  missing. A planned element has a NodeId from **Bind to element**, from an
+  instance the modeler's Apply took from its NodeSet, or from a script
+  (`examples/mps500/plan.py`); **New instance** gives none. Planned
   elements are searched in a chosen InstanceHierarchy (`--plan` on the
   command line), or in the whole document outside the target, leaving out
   elements that are aspects themselves. A node claimed by several planned
@@ -147,8 +161,12 @@ file (`ServerNodeSetTests`).
   `Value` attribute, and every BPR DataVariable, gets the current value.
   The parent attribute of an `aml-opcua-variable` binding gets its value too.
   Bindings to another server (a different ServerInstanceUri or data source
-  endpoint) are skipped. On the command line, `uaaml snapshot <doc.aml>`
-  without an endpoint connects to every server the document names as a data
+  endpoint) are skipped; a NodeId without ServerInstanceUri, as in a copy
+  without server addresses, is read from the connected server. Bindings made
+  against one server therefore move to another only through such a copy, and
+  only where the other server has the same namespace URI and identifier;
+  otherwise each element is bound again. On the command line,
+  `uaaml snapshot <doc.aml>` without an endpoint connects to every server the document names as a data
   source, with the security its description asks for; one it describes as
   unsecured only with `--insecure`, as an endpoint given on the command line. Nothing is subscribed; the document records one
   point in time.
@@ -208,12 +226,18 @@ elements for the refBaseObj link, so a second copy does not link to the first.
 **Serve** in the band "This document as a server" (`AmlServerHost`) starts an OPC UA server whose
 address space is the document's instance hierarchies, so clients can be tested
 against the engineering model before the plant exists. Each instance
-hierarchy becomes a folder under Objects; elements become Objects, or
-Variables if their UA type is a VariableType or they carry a `Value` and no
-children. Elements with an Annex A NodeId keep it (the namespace is
-registered), the others get a string NodeId from their path in
-`urn:amlopcua:document`. Values come from the `Value` attributes, typed by
-their AttributeDataType. The nodes are those of the document at start; their
+hierarchy becomes a folder under Objects. An element whose class is a UA
+VariableType becomes a Variable, one whose class is a UA ObjectType an
+Object; an element without a UA class becomes a Variable when it carries a
+`Value` and no children, an Object otherwise. Every Variable is a
+`BaseDataVariableType` and every Object a `BaseObjectType`, held by
+HasComponent, properties included. Elements with an Annex A NodeId keep it
+(the namespace is registered), the others get a string NodeId from their path
+in `urn:amlopcua:document`. Two elements with the same NodeId (a planned
+element and its mirrored aspect, copied instances): the first in document
+order keeps it, each further one gets the string NodeId `<identifier>#2`,
+`#3` in the same namespace (`AmlAddressSpace.Unique`). Values come from the
+`Value` attributes, typed by their AttributeDataType. The nodes are those of the document at start; their
 values follow it: a change in the document reaches the served nodes after a
 short quiet time, and subscribed clients see it (`FollowDocument`,
 `RefreshValues`). Added or removed elements need a restart; the plugin says

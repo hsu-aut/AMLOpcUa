@@ -28,9 +28,12 @@ JavaScript, Python and TypeScript under `Constants`.
 dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool
 ```
 
-The command is then `Opc.Ua.ModelCompiler`. AMLOpcUa looks for it in
-`%USERPROFILE%\.dotnet\tools`, on the PATH, and wherever the environment
-variable `AMLOPCUA_MODELCOMPILER` or `--compiler` names it. Without it, the
+`dotnet tool` comes with the .NET SDK. The command is then
+`Opc.Ua.ModelCompiler` (`Opc.Ua.ModelCompiler.exe` on Windows). AMLOpcUa
+looks for that file wherever `--compiler`, `ModelCompilerPath` in the
+plugin's settings or the environment variable `AMLOPCUA_MODELCOMPILER` names
+it, then in `%USERPROFILE%\.dotnet\tools` and on the PATH
+(`ModelCompilerTool.Locate`). Without it, the
 export still works; only compiling needs it, and the message says how to get
 it.
 
@@ -123,7 +126,7 @@ properties, the two type dictionaries with their descriptions, and the JSON
 encodings, which this version of the compiler does not write.
 
 A model of the size a companion specification starts at comes back whole. A
-state machine written in the modeler (OPC 10000-5 Annex B: three states, three
+state machine written in the modeler (OPC 10000-16: three states, three
 transitions, their numbers, FromState, ToState and HasCause) goes out as a
 design and comes back as **16 of 16 nodes identical**, references included.
 The same model through AutomationML and back (Annex A in, its inverse out)

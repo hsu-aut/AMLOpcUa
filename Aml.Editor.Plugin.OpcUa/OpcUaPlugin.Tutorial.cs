@@ -51,7 +51,7 @@ namespace Aml.Editor.Plugin.OpcUa
                 L.T("Import a companion specification, see what it brings, draw one of its types."),
                 new[]
                 {
-                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New), or save a practice document here and open it."),
+                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New, then save it), or save a practice document here and open it."),
                         null, "NamespacesTab", () => IsUsable(_document), L.T("Save a practice document…"), SavePracticeDocument),
                     new TourStep(L.T("Import the Device Integration model (DI), which many companion specifications build on. Click Import NodeSet… and choose Opc.Ua.Di.NodeSet2.xml; the button below opens the dialog in the folder that holds it. The first conversion takes a little while."),
                         "ImportButton", "NamespacesTab", () => HasNamespace(DiUri), L.T("Open the dialog in that folder"),
@@ -80,7 +80,7 @@ namespace Aml.Editor.Plugin.OpcUa
                 L.T("Start the plant the plugin brings, connect to it, take its stations into the document and follow their values live."),
                 new[]
                 {
-                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New), or save a practice document here and open it."),
+                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New, then save it), or save a practice document here and open it."),
                         null, "ServerTab", () => IsUsable(_document), L.T("Save a practice document…"), SavePracticeDocument),
                     new TourStep(L.T("Click Practice plant. The MPS 500 learning factory starts as an OPC UA server on this computer, with simulated values, and its address goes into the endpoint box."),
                         "PracticePlantButton", "ServerTab", () => _plant != null),
@@ -103,7 +103,7 @@ namespace Aml.Editor.Plugin.OpcUa
                 L.T("Bind an element of your own plant model to a variable of the practice plant and read its value."),
                 new[]
                 {
-                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New), or save a practice document here and open it."),
+                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New, then save it), or save a practice document here and open it."),
                         null, "ServerTab", () => IsUsable(_document), L.T("Save a practice document…"), SavePracticeDocument),
                     new TourStep(L.T("Click Practice plant. The MPS 500 learning factory starts as an OPC UA server on this computer, with simulated values, and its address goes into the endpoint box."),
                         "PracticePlantButton", "ServerTab", () => _plant != null),

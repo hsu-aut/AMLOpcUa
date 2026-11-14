@@ -10,8 +10,9 @@ how the result enters a document.
 | UA | AML |
 |---|---|
 | DataType | AttributeType in `ATL_<namespace URI>` |
-| ObjectType, VariableType, Method | SystemUnitClass in `SUC_<namespace URI>` |
+| ObjectType, VariableType | SystemUnitClass in `SUC_<namespace URI>` |
 | InterfaceType | RoleClass in `RCL_<namespace URI>` and SystemUnitClass |
+| Method | InternalElement of `[SUC_OpcAmlMetaModel]/[UaMethodNodeClass]` inside the class that holds it, with `InputArguments` and `OutputArguments` |
 | ReferenceType | InterfaceClass in `ICL_<namespace URI>` (a pair for non-symmetric types) |
 | Reference between instance declarations | ExternalInterfaces and an InternalLink |
 | ModellingRule | Attribute `ModellingRule` on the target interface |
@@ -173,8 +174,7 @@ while the FX NodeSets of the tag define it in FX Data.
   does so on its own, the plugin offers "Save a CAEX 3.0 copy…" (the editor
   lets plugins not replace its open document).
 - **Duration.** Opc2Aml turns the whole UA base model into libraries on every
-  conversion: 11 to 15 seconds for a small NodeSet, in the background in the
-  plugin. Two changes took about 15 % off: while a conversion runs, Aml.Engine
+  conversion: about 10 to 25 seconds, in the background in the plugin. Two changes took about 15 % off: while a conversion runs, Aml.Engine
   gets an ID service that does not create a GUID for every copied Attribute and
   Value (`ConversionIds`), and patch 0005 compares IDs ordinally. Most of the
   rest is spent inside Aml.Engine (service lookups, path queries, class

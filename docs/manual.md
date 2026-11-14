@@ -21,7 +21,7 @@ Eine Kurzanleitung auf Deutsch steht in [kurzanleitung.md](kurzanleitung.md).
 
 The reference documents beside it explain the mappings and rules behind each
 step, and every chapter names the one that belongs to it. The manual
-describes version 0.3; the [changelog](../CHANGELOG.md) lists what changed
+describes version 0.3.1; the [changelog](../CHANGELOG.md) lists what changed
 between versions.
 
 ## Contents
@@ -98,8 +98,9 @@ between versions.
   files (see [ModelDesign files](#modeldesign-files)).
 
 The package brings everything else along: the conversion (Opc2Aml), the OPC UA
-stack, the graphical modeler, and the NodeSets of the UA base model (1.05.07)
-and of Device Integration, DI (1.05.0).
+stack, the graphical modeler, the NodeSets of the UA base model (1.05.07)
+and of Device Integration, DI (1.05.0), and the two AML NodeSets a tool needs
+to load an export (see [Exporting as a NodeSet](#exporting-as-a-nodeset)).
 
 ### Installing a release
 
@@ -217,8 +218,10 @@ panel at the right edge with six short lessons:
    of it back, keep its values live. No plant is needed.
 6. A model of your own: a small model in the modeler, applied to the document.
 
-The lessons work in the open document, which should be a new, empty one; the
-first step offers **Save a practice document…** for that. Each step says what
+The lessons work in the open document, which should be a new, empty one,
+saved before the first import (see
+[Documents that reference the AutomationML base libraries](#documents-that-reference-the-automationml-base-libraries));
+the first step offers **Save a practice document…** for that. Each step says what
 to do and frames the control it is about in orange. It ticks itself off when
 the plugin's state shows it done, for example when DI is among the
 namespaces. **Show me** frames the control again, **Skip step** (or **Next**
@@ -261,10 +264,12 @@ ReferenceTypes of its own, gets two):
 | `ATL_<namespace URI>` | DataTypes as AttributeTypes |
 | `ICL_<namespace URI>` | ReferenceTypes as InterfaceClasses |
 | `RCL_<namespace URI>` | InterfaceTypes as RoleClasses |
-| `SUC_<namespace URI>` | ObjectTypes, VariableTypes and Methods as SystemUnitClasses |
+| `SUC_<namespace URI>` | ObjectTypes (InterfaceTypes included) and VariableTypes as SystemUnitClasses |
 
-together with the `OpcAmlMetaModel` libraries. Every class keeps the NodeId
-of its UA node. An import takes the types only: objects and variables that a
+together with the `OpcAmlMetaModel` libraries. A method gets no class of its
+own: Annex A writes every Method as an InternalElement of its metamodel class
+`UaMethodNodeClass`, inside the class of the type that holds it, with its
+arguments as children. Every class keeps the NodeId of its UA node. An import takes the types only: objects and variables that a
 NodeSet holds as instances are not merged into the document. To bring a
 model's instances in, open it in the **Modeler** tab and apply it (see
 [Apply the model to the document](#apply-the-model-to-the-document)). The
@@ -277,8 +282,9 @@ mapping in detail: [import](import.md).
 3. Choose the `NodeSet2.xml` file. The dialog starts in the folder you used
    last.
 4. The conversion runs in the background; the progress bar shows it. The
-   first conversion of a NodeSet takes from about ten seconds to a minute.
-   The result is cached, so the same files take under a second the next time.
+   first conversion of a NodeSet takes about 10 to 25 seconds, because the
+   whole UA base model is converted with it. The result is cached, so the
+   same files take under a second the next time.
 5. The status line sums up, for instance "Imported
    http://opcfoundation.org/UA/Machinery/: 8 library(ies) added, 0 replaced,
    4 kept (14.2 s)." The log repeats the summary, lists every warning, and
@@ -379,22 +385,29 @@ before they become NodeSets. Choose one in **Import NodeSet…** or drop it on
 the plugin: the plugin recognises it, has the OPC Foundation's ModelCompiler
 turn it into a NodeSet, and imports that NodeSet like any other.
 
-The ModelCompiler is not part of the plugin. Install it with
+The ModelCompiler ([OPCFoundation/UA-ModelCompiler](https://github.com/OPCFoundation/UA-ModelCompiler))
+is not part of the plugin. Install it as a .NET tool, which needs the .NET
+SDK:
 
 ```bash
 dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool
 ```
 
-The plugin finds it in `%USERPROFILE%\.dotnet\tools`, on the PATH, or where
-the environment variable `AMLOPCUA_MODELCOMPILER` names it. Without it, the
+The plugin looks for its program `Opc.Ua.ModelCompiler.exe` in
+`%USERPROFILE%\.dotnet\tools`, where that command puts it, on the PATH, or
+where the environment variable `AMLOPCUA_MODELCOMPILER` names it. Without it, the
 status line says how to get it. The other direction, a model written as a
 ModelDesign, is **ModelDesign…** in the details of a namespace. Background:
 [ModelDesign](modeldesign.md).
 
 ### Documents that reference the AutomationML base libraries
 
-A document the AutomationML Editor creates gets the AutomationML base
-libraries through an ExternalReference (for instance
+The AutomationML base libraries are the standard libraries every AutomationML
+document builds on: the base roles, interfaces and attribute types of
+AutomationML e.V. (`AutomationMLBaseRoleClassLib`,
+`AutomationMLInterfaceClassLib` and others). A document the AutomationML
+Editor creates gets them through an ExternalReference, a reference to another
+file whose libraries the document uses (for instance
 `AutomationML_Base_Libraries_AMLEd2_2.11.0.aml`). The import keeps that
 reference: the imported classes point at the referenced library, and no second
 copy of the base libraries is added. This works when the referenced file can
@@ -517,6 +530,21 @@ children created for placeholders and the placeholders left empty.
 
 ![The dialog "New OPC UA instance" with DI's ConfigurableObjectType selected, the name Station1 and the instance hierarchy Plant, and the placeholder <ObjectIdentifier> filled with Gripper and Camera](manual/instance-dialog.png)
 
+**Dragging a class instead.** The editor also makes an element when a class
+of a `SUC_` library is dragged into an InstanceHierarchy. That element is a
+copy of what the class holds: every Optional child, the placeholders themselves
+(named in angle brackets), the `ModellingRule` attributes and the `NodeId`
+attributes of the type's instance declarations. **New instance…** leaves out
+the Optional children you do not tick, creates named children for the
+placeholders, adds what a child inherits from the declaration it overrides,
+and removes what belongs to the type only (see the next section). **Check**
+reports on a dragged copy each element named like a placeholder (UA007), each
+MandatoryPlaceholder that only the placeholder itself fills (UA004), and an
+abstract class (UA002). The NodeIds it keeps name nodes of the type, and the
+plugin takes them for addresses: **Read values into document** reads the
+type's declarations from the connected server, and the document server
+serves the elements under the type's NodeIds.
+
 ### What an instance contains
 
 | ModellingRule of a child declaration | In the instance |
@@ -524,7 +552,7 @@ children created for placeholders and the placeholders left empty.
 | Mandatory | always |
 | Optional | only if ticked |
 | MandatoryPlaceholder, OptionalPlaceholder | the children named for it, of the chosen type; none if no name is given |
-| ExposesItsArray | none: how many there are is known only where the values are |
+| ExposesItsArray | none: the rule asks for one child per element of an array value, and a new instance has no values yet |
 
 A child declared again in a subtype keeps what the supertype's declaration
 holds below it, as OPC UA asks. What only makes sense on a type is left out of
@@ -713,22 +741,37 @@ device alone gives 50 to 100 elements. So you choose what to take:
    counts the nodes found.
 
 The nodes arrive below an element for the server, which carries the server's
-`ServerUri` and `EndpointUrl`. The nodes on the way from the Objects (or a
+`ServerUri` and `EndpointUrl`. It is named after the last part of the
+server's ApplicationUri (`NodeSetServer` for the practice plant), or after the
+host of the endpoint when the server gives none, with `_2` appended when the
+hierarchy holds that name already. The nodes on the way from the Objects (or a
 View) folder down to each part become elements too. Every element carries its
 NodeId (OPC 10000-83 Annex A) including the server's ApplicationUri, and its UA
 type as class where the document holds the type's library. Variables get a
-`Value` attribute with the current value and an XML Schema data type. The
+`Value` attribute with the current value. When that attribute has no data type
+yet, it gets the XML Schema type of the value: `xs:double` for a Double,
+`xs:dateTime` for a DateTime, `xs:string` for a String, a LocalizedText (its
+text, without the locale) and a QualifiedName (its name, without the
+namespace). An enumeration arrives as its number (`xs:int`), as OPC UA sends
+it. An array is written as its elements separated by spaces, with the type of
+one element. A structure (ExtensionObject), a NodeId or a Guid is written as
+the text the OPC UA stack makes of it, without a data type. The
 editor then selects the server element, and the status line counts the nodes:
 added, updated, typed by an imported UA type, linked to a planned element.
 
 **Planned elements.** When the document already models a node, that is, an
 element outside the receiving hierarchy carries the same NodeId, the element
-taken from the server becomes an aspect of it: its attribute `refBaseObj`
+taken from the server refers to it: its attribute `refBaseObj`
 (AutomationML object reference attribute types) holds the ID of the planned
 element. The planned element does not change; the attribute library is added
 to the document if it is missing. A node that several planned elements claim
 is not linked, and a type that differs between server and plan is reported in
-the log.
+the log. Names are never compared. An element of yours carries a NodeId when
+**Bind to element…** gave it one, when it is an instance that **Apply to
+document** took from a model in the **Modeler** (such instances keep the
+NodeIds of their NodeSet), or when a script wrote one, as
+`examples/mps500/plan.py` in the repository does for the MPS 500 plant
+structure. **New instance…** gives none.
 
 ### Take the same part again
 
@@ -771,8 +814,13 @@ values. Two commands lead there; they differ in where the values land.
 | | **Take into document** | **Bind to element…** |
 |---|---|---|
 | Where the values land | In a copy of the server's nodes, below a server element in the hierarchy under **nodes into** | In your own elements, where they are |
-| How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId. Names are never compared. | You pick the element for each node |
+| How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId (see [Planned elements](#take-nodes-into-the-document)). Names are never compared. | You pick the element for each node |
 | Effort | One command for many nodes | One dialog per value |
+
+Binding has no bulk form: each value is one dialog, and the command line tool
+cannot bind. For hundreds of values, take the nodes into the document and read
+the values there, or give your elements their NodeIds by a script, so that
+the nodes taken link to them.
 
 For a model of your own, bind:
 
@@ -786,7 +834,18 @@ For a model of your own, bind:
 4. **Read values into document** reads them once; **Keep document values
    live** follows every change.
 5. Save. The bindings are attributes of the elements and work again in the
-   next session, with every server that has the same nodes.
+   next session, with the same server. Each `NodeId` names its server by the
+   `ServerInstanceUri` (the server's ApplicationUri), and reading and keeping
+   values live leave out elements whose `ServerInstanceUri` names another
+   server.
+
+**From the practice plant to the real PLC.** Bindings made against the
+practice plant name the practice plant. Where the PLC has the same nodes, the
+same namespace URI and identifier, save a copy with **Copy without server
+addresses…** (see [Passing a document on](#passing-a-document-on)), open it and
+connect to the PLC: a `NodeId` without `ServerInstanceUri` is read from
+whatever server is connected. Where the PLC's nodes differ, bind each element
+again; the plugin shows both addresses and asks before it replaces a binding.
 
 Tutorial lesson 4 walks through this with the practice plant. The plugin
 also reads two conventions it does not create: AutomationML BPR 007
@@ -803,7 +862,7 @@ dialog "Trust this server?".
 
 | Command | What it does |
 |---|---|
-| **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, every AutomationML BPR 007 DataVariable and every attribute with an `aml-opcua-variable` sub-attribute. Elements bound to another server are skipped. |
+| **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, every AutomationML BPR 007 DataVariable and every attribute with an `aml-opcua-variable` sub-attribute. Bindings to another server are skipped: a `NodeId` whose `ServerInstanceUri` names another server, and a DataVariable or `aml-opcua-variable` of another endpoint. A `NodeId` without `ServerInstanceUri` is read from the connected server. |
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
 | **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
 
@@ -836,10 +895,13 @@ stops it, and so does closing the editor.
    spindle speeds move in the document. Select one in the editor's tree and
    click its attribute `Value`; the attribute details show it change.
 
-No network and no command line is needed. The command line tool serves the
-same plant with `uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml
---simulate`. The document itself can serve as a plant too (next chapter); the
-tutorial's fifth lesson does that.
+No network and no command line is needed. The plant's NodeSet lies in the
+plugin's folder `examples` (see
+[Where the plugin keeps its files](#where-the-plugin-keeps-its-files)), in the
+repository in `examples/mps500`. The command line tool serves the same plant
+with `uaaml serve --nodeset <folder>\MPS500.NodeSet2.xml --simulate`. The
+document itself can serve as a plant too (next chapter); the tutorial's fifth
+lesson does that.
 
 ## Serving the document as an OPC UA server
 
@@ -865,14 +927,20 @@ plugin ends it too.
 What is served:
 
 - each InstanceHierarchy is a folder below Objects;
-- elements become Objects, or Variables when their UA type is a VariableType
-  or they carry a `Value` and no children;
+- an element whose class is a UA VariableType becomes a Variable, one whose
+  class is a UA ObjectType an Object; an element without a UA class becomes a
+  Variable when it carries a `Value` and no children, an Object otherwise;
 - every Object is a BaseObjectType and every Variable a BaseDataVariableType,
   held by HasComponent, also where the element has a UA type of a companion
-  specification: the document server serves the plant, not its types;
+  specification: the document server serves the plant, not its types. A
+  property is served the same way, so a client sees no HasProperty and no
+  PropertyType;
 - elements with an Annex A NodeId keep it, except NodeIds of the namespace of
   the UA base model; the others get a NodeId from their path in the namespace
-  `urn:amlopcua:document`;
+  `urn:amlopcua:document`. Where two elements carry the same NodeId, such as a
+  planned element and the element taken from the server that refers to it,
+  the first in the document keeps it and each further one gets the string
+  NodeId `<identifier>#2` (`#3` and so on) in the same namespace;
 - values come from attributes named `Value`, typed by their AttributeDataType;
   other attributes are not served. A plant model whose values sit in
   attributes of other names is served as a tree of objects without values;
@@ -942,8 +1010,10 @@ document on:
 The copy lacks these addresses, in every instance hierarchy; the open
 document stays as it is. What a node is known by (namespace URI and
 identifier), links to planned elements, how a server is secured, and the
-libraries all stay. A host name can also sit in a value or a description;
-the log names every place in the instance hierarchies where one still
+libraries all stay. Without `ServerInstanceUri` a binding names no server, so
+in the copy **Read values into document** and **Keep document values live**
+read every `NodeId` from whatever server is connected. A host name can also
+sit in a value or a description; the log names every place in the instance hierarchies where one still
 appears, names of elements included (a server element is often named after
 its host); these places are not changed. The libraries that **Types of the
 server…** brought are neither changed nor searched, and their namespace URIs
@@ -1118,9 +1188,13 @@ libraries (`Opc.Ua.AMLStandardLibraries.NodeSet2.xml`). Both lie in the folder
 
 The first mode exports every library of the document, also the OPC UA
 models an import put there, as AML classes. A document with the UA base model,
-DI and one instance came to about 220,000 nodes in 240 MB. To pass on a plant model alone, export a
-copy without those libraries; to get an imported model back as it was, use
-the second mode. What a server makes of the result, in OPC UA terms:
+DI and one instance came to about 220,000 nodes in 240 MB. The export has no
+option to leave libraries out, and **Remove…** refuses a namespace while
+elements use its types, so a plant model typed by UA classes always comes out
+with them. To get an imported model back as it was, use the second mode; to
+give a client the plant's structure and values, serve the document (see
+[Serving the document as an OPC UA server](#serving-the-document-as-an-opc-ua-server)).
+What a server makes of the result, in OPC UA terms:
 [AutomationML for OPC UA developers](aml-for-opcua-developers.md).
 
 Background: [export](export.md) for the rules and deviations,
@@ -1137,7 +1211,8 @@ available. **Export NodeSet…** works for CAEX 2.15 documents too.
 
 1. Click **Save a CAEX 3.0 copy…**.
 2. Choose where to save the copy; the plugin proposes `<name>_CAEX3.0.aml`.
-   The conversion is Aml.Engine's own.
+   The conversion is that of Aml.Engine, the AutomationML e.V. library for
+   CAEX documents that the editor is built on.
 3. Open the copy in the editor and import there.
 
 The editor does not let a plugin replace its open document, so the plugin
@@ -1177,8 +1252,17 @@ command line tool `uaaml`, for scripts and tests. Only in the plugin: binding
 a node to an element, keeping values live in a document, removing a
 namespace, and taking a NodeSet's instances with **Apply**. The plugin
 package brings the tool as its converter: `uaaml.exe` in the plugin's folder
-`converter`, which runs on .NET 8 or newer. In the repository it is built
-with the .NET SDK:
+`converter`, which runs on .NET 8 or newer. The folder's path holds the
+plugin's version, so it changes with every update, and it is not on the PATH.
+Call the tool by its full path, for instance in PowerShell:
+
+```powershell
+& "$env:APPDATA\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.0.3.1\lib\net8.0-windows7.0\converter\uaaml.exe" help
+```
+
+or add that folder to the PATH. `dotnet <folder>\uaaml.dll` runs the same
+tool. This manual and the other documents write `uaaml` for it. In the
+repository it is built with the .NET SDK:
 
 ```bash
 dotnet run --project dotnet/OpcUaAml.Tool -- help
@@ -1188,7 +1272,10 @@ dotnet run --project dotnet/OpcUaAml.Tool -- help
 secured by default; `--insecure` allows an unsecured endpoint and `--accept`
 trusts an unknown server certificate for one run. `--user <name>` logs in;
 the password comes from the environment variable `AMLOPCUA_PASSWORD` or is
-asked for, never given on the command line.
+asked for, never given on the command line. `cloud` logs in to the UA Cloud
+Library instead: its password comes from `UACLOUD_PASSWORD`, an API key from
+`UACLOUD_API_KEY`; with `--user` and neither of them set, the password is
+asked for.
 
 | Command | What it does | Background |
 |---|---|---|
@@ -1252,7 +1339,7 @@ plugin's language. In German, **Manual** in the status bar opens the
 
 | Folder or file | Holds |
 |---|---|
-| `%APPDATA%\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.<version>\lib\net8.0-windows7.0` | The plugin itself, as the PlugIn Manager installed it; its folder `nodesets` holds the bundled NodeSets (UA base model and DI), `converter` the conversion and `uaaml.exe` |
+| `%APPDATA%\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.<version>\lib\net8.0-windows7.0` | The plugin itself, as the PlugIn Manager installed it; its folder `nodesets` holds the bundled NodeSets (UA base model, DI, the AML base types and the AutomationML standard libraries), `converter` the conversion and `uaaml.exe`, `examples` the NodeSet of the practice plant (`MPS500.NodeSet2.xml`) |
 | `%APPDATA%\AMLOpcUa\settings.json` | The settings: NodeSet folders, the options of the Settings menu, recent endpoints, the Cloud Library user name, the node limit, the lessons done. Never a password. |
 | `%LOCALAPPDATA%\AMLOpcUa\conversions` | The cache of conversions (the last 40) |
 | `%LOCALAPPDATA%\AMLOpcUa\opcfoundation` | The list and the files of the OPC Foundation's published NodeSets |
@@ -1327,7 +1414,7 @@ message; later versions fix that (see the [changelog](../CHANGELOG.md)).
 ### Imports are slow
 
 The first conversion of a NodeSet converts the whole UA base model as well and
-takes from about ten seconds to half a minute; it runs in a process of its
+takes about 10 to 25 seconds; it runs in a process of its
 own (`converter\uaaml.exe` in the plugin folder), so the editor stays usable.
 The same files again come from the cache in under a second. Merging the
 result into the document takes a few seconds. The log line "Import took:
@@ -1371,8 +1458,10 @@ The status line below the modeler says why:
   reachable from this computer.
 - The certificate dialog appears again for a server you trusted: the server
   now shows another certificate. Compare the fingerprint before you trust it.
-- The server refuses the plugin: it may admit only clients whose certificate
-  its administrator trusted.
+- "The server at … did not accept this computer's certificate. Its
+  administrator has to trust it; it is in '…'.": the server admits only
+  clients whose certificate its administrator trusted. Hand over the file in
+  the folder named (see [Connect an existing plant model to a PLC](#connect-an-existing-plant-model-to-a-plc)).
 - "Connection lost": the server stopped answering. Disconnect, and connect
   again once it is back.
 

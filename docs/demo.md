@@ -44,8 +44,14 @@ plugin brings, served with moving values by **Practice plant**.
    OPC 10000-83 Annex A, the OPC Foundation's own rules, with DI beside it.
 4. Tick `MPS500`, **Take into document**. The plant arrives as
    InternalElements: each with its OPC UA type as its class and its NodeId.
-5. **Keep document values live**. Click a drill's spindle speed in the
-   editor's attributes: it moves.
+5. **Keep document values live**. In the editor's tree, open `OpcUaServer` ›
+   `NodeSetServer` › `MPS500` › `ST30_Processing` › `ParameterSet`, click
+   `CycleTime`, then its attribute `Value`: "Attribute details" show it move.
+   The attribute pane follows only a mouse click in the tree, and not a click
+   on the element already selected; click another element first if it stays
+   empty. The drives' speeds lie deeper
+   (`ST30_Processing/MD_Drilling_unit/DV_Drill_spindle/Speed`) than the
+   default **depth** 3 takes; set **depth** to 5 before step 4 to show them.
 6. **Diagram** tab: type `StationType` into the search box and press Enter.
    The type appears as a diagram in the notation of OPC 10000-3: its
    parameters, its modules and its state machine. The list holds every type
@@ -98,7 +104,7 @@ Standalone NodeSet.js (in a browser) has its own **New model…** dialog:
    Say what it writes: components of StateType and TransitionType, StateNumber
    and TransitionNumber as Mandatory properties of the UA namespace, FromState,
    ToState and HasCause in both directions, exactly as the base model writes
-   its own machines (OPC 10000-5 Annex B).
+   its own machines (OPC 10000-16).
 5. **Checks: 0 errors** in the toolbar. Open it once: 25 rules on the NodeSet
    itself, each finding with its rule and a sentence.
 6. **Save NodeSet** and open the file in an editor for three seconds. It is a
@@ -128,7 +134,9 @@ Standalone NodeSet.js (in a browser) has its own **New model…** dialog:
    certificate is trusted.
 3. Connect with UaExpert, or with
    `uaaml browse opc.tcp://127.0.0.1:48400/AMLOpcUa --accept` (the tool is the
-   plugin's `converter\uaaml.exe`), and walk to the pump.
+   plugin's `converter\uaaml.exe`, called by its full path:
+   [The command line tool uaaml](manual.md#the-command-line-tool-uaaml)), and
+   walk to the pump.
 
 *Fallback:* `uaaml serve plant.aml --simulate` in a terminal shows the same
 thing without the editor.
@@ -159,8 +167,9 @@ that matters: from here on nothing knows this is not a plant.
 3. **Take into document**: tick `MPS500`, or one station with everything below
    it. The elements arrive with their NodeId (the server's ApplicationUri
    included), their UA type as class, and the current values.
-4. **Keep document values live**: the drill spindle's speed and the cycle
-   times move in the document while the tree is open.
+4. **Keep document values live**: the cycle times and counters in each
+   station's `ParameterSet` move in the document; the drill spindle's speed
+   too when **depth** was 5 in step 3.
 5. Open `ST30_Processing/StationState` and show the state machine, then the
    same machine as a diagram. It came out of the server, through Annex A, into
    a picture.

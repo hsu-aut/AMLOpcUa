@@ -30,11 +30,38 @@ its licence options, at
 The plugin needs version 6.4 or later and installs through the editor's PlugIn
 Manager ([Installing a release](manual.md#installing-a-release)).
 
+## The editor in five steps
+
+What the manual expects you to know of the AutomationML Editor 6.4:
+
+1. **A document.** **File** › **New** starts one, **File** › **Open** ›
+   **Open AML File** opens one. Save a new document before the first import
+   ([Documents that reference the AutomationML base libraries](manual.md#documents-that-reference-the-automationml-base-libraries)).
+2. **The trees.** The editor shows the document as trees: the instance
+   hierarchies, which hold the plant, and the libraries of system unit
+   classes, role classes, interface classes and attribute types. The
+   libraries an import adds (`SUC_…`, `ATL_…` and so on) appear among them.
+3. **Elements.** An InstanceHierarchy and the InternalElements below it are
+   added and named in the tree of the instance hierarchies, or made by
+   dragging a class from a library onto it. **New instance…** of the plugin
+   does the same for a UA type, with OPC UA's ModellingRules
+   ([Create an instance](manual.md#create-an-instance)).
+4. **Attributes.** The attributes of the element selected in the tree are
+   listed in the attributes pane on the right; a click on one, such as
+   `Value`, shows it in "Attribute details" below. The pane follows a mouse
+   click in the tree, and a click on the element already selected does not
+   refresh it: click another element first. A value the plugin keeps live
+   changes in "Attribute details" while it is shown.
+5. **The plugin** opens as the tab AMLOpcUa once it is switched on with
+   **PlugIns** › **AMLOpcUa** › **Activate**. It writes into the document
+   directly, and Ctrl+Z in the editor does not take its changes back; save
+   with Ctrl+S.
+
 ## CAEX terms and their nearest OPC UA concept
 
 | CAEX term | What it is | Nearest in OPC UA |
 |---|---|---|
-| InstanceHierarchy | A top-level tree of one plant's objects | The instances below Objects |
+| InstanceHierarchy | A top-level tree of one plant's objects | A folder of objects below Objects; the document server serves each InstanceHierarchy as one |
 | InternalElement | An object in that tree, nested in its parent | An Object, or a Variable (see below) |
 | SystemUnitClass | A reusable class of elements, with the child elements every element of it starts with | An ObjectType or VariableType with its instance declarations |
 | `RefBaseSystemUnitPath` | The class an InternalElement was made from | HasTypeDefinition |
@@ -47,13 +74,16 @@ Manager ([Installing a release](manual.md#installing-a-release)).
 | Attribute | A named value with a data type, possibly a unit and nested attributes | A Variable or Property, but see below |
 | AttributeType | A reusable definition of an attribute | A DataType |
 | ID | A GUID per element and class | Loosely a NodeId; Annex A writes the NodeId into the IDs of what it imports |
+| ExternalReference | A reference from the document to another file, under an alias, whose libraries the document uses without holding them | Loosely a RequiredModel |
 
 The plugin imports a NodeSet by OPC 10000-83 Annex A. Each namespace becomes
 up to four libraries named after its URI, one per kind of node it defines: `ATL_<uri>` (attribute types, from the
 DataTypes), `ICL_<uri>` (interface classes, from the ReferenceTypes),
 `RCL_<uri>` (role classes, from the InterfaceTypes) and `SUC_<uri>` (system
-unit classes, from the ObjectTypes, VariableTypes, Methods and
-InterfaceTypes).
+unit classes, from the ObjectTypes, InterfaceTypes included, and the
+VariableTypes). A Method gets no class of its own: it is an InternalElement of
+the class `UaMethodNodeClass` inside the class of the type that holds it, with
+its arguments as children.
 Libraries ending in `OpcAmlMetaModel` hold the classes of Annex A itself. An
 import brings types only; objects that the NodeSet itself holds come in
 through the modeler's **Apply to document**
@@ -106,16 +136,20 @@ document in OPC UA, not the plant in its own OPC UA model. In OPC UA terms:
 - **Library and class BrowseNames** carry no namespace index, so they are in
   namespace 0.
 - **Variables.** Every attribute is a Variable of `AMLBaseVariableType` or of
-  the VariableType made from its AttributeType. The DataType follows a table
-  ([export](export.md#mapping)): `xs:date` gives DateTime, `xs:anyURI` gives
-  QualifiedName, and a type missing from the table, such as `xs:dateTime`,
-  gives **no DataType**. Values of DateTime, Guid, Duration, Decimal and the
-  like are written as String.
+  the VariableType made from its AttributeType. The DataType follows the
+  working group's table ([export](export.md#mapping)): `xs:date` gives
+  DateTime, and a type missing from the table, such as `xs:dateTime`, gives
+  **no DataType**. `xs:anyURI` gives QualifiedName, because the table lists it
+  for QualifiedName before UriString and the first match counts; the export
+  keeps this as the stylesheets have it, as an open question for the working
+  group ([export](export.md#deviations-from-aml-ua-xslt)). Values of DateTime,
+  Guid, Duration, Decimal and the like are written as String.
 - **Required models.** The file requires the UA base model 1.04.3 and the AML
-  base types 1.0.1 of 2019-09-09; the working group's base types NodeSet
-  (`Opc.Ua.AMLBaseTypes.NodeSet2.xml`), which every loader needs, declares
-  1.00 of 2016-02-22; the OPC Foundation's .NET stack loads the pair
-  nonetheless. A document that uses the AutomationML standard
+  base types 1.0.1 of 2019-09-09, as the stylesheets write. The base types
+  NodeSet of the working group (`Opc.Ua.AMLBaseTypes.NodeSet2.xml`), which
+  every loader needs, declares an older version, 1.00 of 2016-02-22. The
+  OPC Foundation's .NET stack loads the pair all the same, as the tests show.
+  A document that uses the AutomationML standard
   libraries without holding them, as a document of the AutomationML Editor
   does through an `ExternalReference`, also needs
   `Opc.Ua.AMLStandardLibraries.NodeSet2.xml`. Both ship in the folder
@@ -151,16 +185,25 @@ server whose address space is the document's instance hierarchies
   VariableType; when its class comes from no OPC UA library, it is one if it
   has a `Value` attribute and no children. Otherwise it is an Object of
   **`BaseObjectType`**, whatever its class: a DI instance shows its children,
-  but not its type. The server holds no types of the document.
+  but not its type. The server holds no types of the document. A client
+  therefore sees no HasProperty and no PropertyType: DI's property
+  `Manufacturer` is a `BaseDataVariableType` held by HasComponent.
 - **NodeIds.** An element with an Annex A NodeId keeps it, unless it lies in
   the UA base namespace; the others get a string NodeId from their path in
-  the namespace `urn:amlopcua:document`. BrowseNames are the element names.
+  the namespace `urn:amlopcua:document`. Two elements with the same NodeId,
+  such as a planned element and the element taken from a server that refers
+  to it: the first in document order keeps it, each further one gets the
+  string NodeId `<identifier>#2` (`#3` and so on) in the same namespace.
+  BrowseNames are the element names, in the namespace of the node's NodeId.
 - **Values** come from the attribute `Value` only, scalar and typed by its
   AttributeDataType: `xs:boolean`, `xs:dateTime`, `xs:double`, `xs:decimal`
   (as Double), `xs:float`, `xs:int`, `xs:long`, `xs:integer` (as Int64),
   `xs:short`, `xs:unsignedInt`, `xs:unsignedShort` and `xs:unsignedByte` give
   their OPC UA types; every other type, and every value that does not parse,
-  is served as String. Other attributes are not served.
+  is served as String. Other attributes are not served. The export maps two
+  of these differently, because it follows the working group's table:
+  `xs:integer` gives Int32 there, and `xs:dateTime` gets no DataType. The
+  document server has a table of its own, made for clients that read values.
 - **Read only.** Only the current value can be read; nothing is writable and
   no method is offered.
 - **Structure at start.** Values follow the document while it is served;
@@ -217,6 +260,9 @@ a running server's nodes and values in the plant model.
 
 `uaaml` does most of what the plugin does, for scripts and tests. It comes
 with the plugin, as `uaaml.exe` in the plugin's folder `converter`, and runs
-on .NET 8 or newer. `uaaml help` lists every command; the exit codes are in
+on .NET 8 or newer. That folder is not on the PATH, and its path holds the
+plugin's version; call the tool by its full path or add the folder to the
+PATH ([The command line tool uaaml](manual.md#the-command-line-tool-uaaml)
+gives the path). `uaaml help` lists every command; the exit codes are in
 the [README](../README.md#command-line) and in
 [The command line tool uaaml](manual.md#the-command-line-tool-uaaml).
