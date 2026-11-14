@@ -541,12 +541,12 @@ public partial class OpcUaPlugin
         try
         {
             // Removing asks first, with the count: the elements are marked, and removed once the user agrees.
-            var result = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
+            var result = await HeldUntilIdleAsync(() => AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih,
                 new MirrorOptions
                 {
                     MaxNodes = CurrentMaxNodes(), Vanished = vanished == VanishedNodes.Remove ? VanishedNodes.Mark : vanished,
                     Progress = NodesFound((n, max) => L.T("Reading the selection from the server … {0} of at most {1} node(s) found.", n, max)),
-                }, token);
+                }, token));
             EndCancellable();
             bool? removed = null;
             if (vanished == VanishedNodes.Remove && result.Vanished.Count > 0)

@@ -35,6 +35,32 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>A row of the namespace list.</summary>
     public sealed record NamespaceRow(string NamespaceUri, string ModelVersion, string Published, int LibraryCount);
 
+    /// <summary>
+    /// Runs a change to the document with the editor's automatic reference
+    /// updates off until the editor has caught up with it. The editor takes new
+    /// elements into its trees on the UI thread and asks its lookup service about
+    /// each; the service then built its tables for the document, and with updates
+    /// on it reported every reference as updated, each report answered by every
+    /// tree searching itself: about 300 000 reports and minutes without an answer
+    /// after taking the practice plant's 188 typed nodes.
+    /// </summary>
+    internal async Task<T> HeldUntilIdleAsync<T>(Func<Task<T>> change)
+    {
+        var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
+        var held = autoUpdate?.IsAutoUpdateEnabled == true;
+        if (held) autoUpdate!.IsAutoUpdateEnabled = false;
+        try
+        {
+            var result = await change();
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            return result;
+        }
+        finally
+        {
+            if (held) autoUpdate!.IsAutoUpdateEnabled = true;
+        }
+    }
+
     public OpcUaPlugin()
     {
         // The log first, so that a problem reading the settings is written down.
