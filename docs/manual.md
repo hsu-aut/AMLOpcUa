@@ -829,9 +829,12 @@ stops it, and so does closing the editor.
 1. Click **Practice plant**, then **Connect**, and trust its certificate.
 2. **Types of the server…**, choose `http://hsu-hh.de/UA/MPS500/`, **Import
    types**.
-3. Tick `MPS500` or one station, **Take into document**.
-4. **Keep document values live**: spindle speeds and cycle times move in the
-   document.
+3. Tick `MPS500` or one station, **Take into document**. The drives with
+   their speeds lie one level deeper than the default depth 3: set **depth**
+   to 5 first to have them too.
+4. **Keep document values live**: cycle times, counters and, with depth 5,
+   spindle speeds move in the document. Select one in the editor's tree and
+   click its attribute `Value`; the attribute details show it change.
 
 No network and no command line is needed. The command line tool serves the
 same plant with `uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml
