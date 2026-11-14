@@ -92,7 +92,7 @@ namespace Aml.Editor.Plugin.OpcUa
                         "AddressTree", "ServerTab", () => _items.Count > 0),
                     new TourStep(L.T("Click Take into document. The plant's stations become elements in the hierarchy named in the box 'nodes into', each with the NodeId of its node, its UA type and its current value."),
                         "MirrorButton", "ServerTab", () => TakenIndex().Count > 0),
-                    new TourStep(L.T("Click Keep document values live. Select a value that moves, such as a speed or a cycle time, in the editor's tree, and watch its Value attribute follow the plant."),
+                    new TourStep(L.T("Click Keep document values live. In the editor's tree, select a value that moves, such as the CycleTime in a station's ParameterSet, then click its attribute Value: the attribute details follow the plant."),
                         "LiveButton", "ServerTab", () => _live != null),
                     new TourStep(L.T("To look without writing into the document: select a variable in the address space and click Watch (view only). Its value appears in the list below the tree, with its status and when it arrived."),
                         "WatchButton", "ServerTab", () => _watchRows.Count > 0),
@@ -339,11 +339,17 @@ namespace Aml.Editor.Plugin.OpcUa
             new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = brush, Margin = new Thickness(0, 2, 0, 0) };
 
         /// <summary>Opens the step's tab and frames its control, once the tab has laid it out.</summary>
-        private void Highlight(TourStep step)
+        private void Highlight(TourStep step) => ShowMe(step.Target, step.Tab);
+
+        /// <summary>Opens <paramref name="tabName"/> and frames the control named <paramref name="targetName"/>.</summary>
+        internal void ShowMe(string? targetName, string? tabName)
         {
             ClearHighlight();
-            if (step.Tab != null && FindName(step.Tab) is TabItem tab) Tabs.SelectedItem = tab;
-            if (step.Target == null || FindName(step.Target) is not FrameworkElement target) return;
+            if (tabName != null && FindName(tabName) is TabItem tab) Tabs.SelectedItem = tab;
+            if (targetName == null || FindName(targetName) is not FrameworkElement target) return;
+            // A narrow plugin puts the last buttons of a toolbar into its overflow, where
+            // nothing shows them: open it, so the button can be seen and clicked.
+            if (ToolBar.GetIsOverflowItem(target) && OwningToolBar(target) is { } toolBar) toolBar.IsOverflowOpen = true;
             Dispatcher.BeginInvoke(() =>
             {
                 if (!target.IsVisible || System.Windows.Documents.AdornerLayer.GetAdornerLayer(target) is not { } layer) return;
@@ -352,6 +358,13 @@ namespace Aml.Editor.Plugin.OpcUa
                 layer.Add(adorner);
                 _highlight = (target, adorner);
             }, DispatcherPriority.Loaded);
+        }
+
+        private static ToolBar? OwningToolBar(DependencyObject element)
+        {
+            for (var d = LogicalTreeHelper.GetParent(element); d != null; d = LogicalTreeHelper.GetParent(d))
+                if (d is ToolBar toolBar) return toolBar;
+            return null;
         }
 
         private void ClearHighlight()
