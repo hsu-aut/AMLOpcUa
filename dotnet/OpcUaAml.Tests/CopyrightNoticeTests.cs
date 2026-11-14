@@ -45,10 +45,22 @@ public class CopyrightNoticeTests(BundledDiConversion di) : IClassFixture<Bundle
     [Fact]
     public void A_NodeSet_without_a_notice_keeps_what_Opc2Aml_writes()
     {
+        // Its comment at the top describes the model; it names no copyright or licence.
+        var result = NodeSetImporter.Convert(Fixtures.Path("modeldesign", "Mini.NodeSet2.xml"), di.Catalog);
+
+        Assert.Equal("© OPC Foundation", CopyrightOf(result.Document.CAEXFile.SystemUnitClassLib["SUC_http://example.org/Mini/"]!));
+    }
+
+    [Fact]
+    public void The_practice_plant_carries_the_notice_of_the_university()
+    {
         var plant = Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml");
         var result = NodeSetImporter.Convert(plant, di.Catalog);
 
-        Assert.Equal("© OPC Foundation", CopyrightOf(result.Document.CAEXFile.SystemUnitClassLib["SUC_http://hsu-hh.de/UA/MPS500/"]!));
+        var notice = CopyrightOf(result.Document.CAEXFile.SystemUnitClassLib["SUC_http://hsu-hh.de/UA/MPS500/"]!);
+        Assert.NotNull(notice);
+        Assert.Contains("Helmut Schmidt University", notice);
+        Assert.Contains("SPDX-License-Identifier: MIT", notice);
         Assert.Contains("Copyright (c) 2005-2024 The OPC Foundation", CopyrightOf(result.Document.CAEXFile.SystemUnitClassLib["SUC_http://opcfoundation.org/UA/DI/"]!));
     }
 
