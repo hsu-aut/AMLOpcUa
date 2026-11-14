@@ -49,7 +49,7 @@ Manager ([Installing a release](manual.md#installing-a-release)).
 | ID | A GUID per element and class | Loosely a NodeId; Annex A writes the NodeId into the IDs of what it imports |
 
 The plugin imports a NodeSet by OPC 10000-83 Annex A. Each namespace becomes
-four libraries named after its URI: `ATL_<uri>` (attribute types, from the
+up to four libraries named after its URI, one per kind of node it defines: `ATL_<uri>` (attribute types, from the
 DataTypes), `ICL_<uri>` (interface classes, from the ReferenceTypes),
 `RCL_<uri>` (role classes, from the InterfaceTypes) and `SUC_<uri>` (system
 unit classes, from the ObjectTypes, VariableTypes, Methods and
@@ -199,10 +199,14 @@ saves a NodeSet or applies it to the document. It generates **no code** of
 its own. For C# code, write the model with **ModelDesign…** (or `uaaml design
 export`) and run the OPC Foundation's ModelCompiler on the design
 ([ModelDesign](modeldesign.md)). `uaaml design compile <design.xml> -o
-<folder>` does that run: the compiler writes all its output into the folder,
-by its own documentation the C# source files besides the NodeSet, and `uaaml`
-lists every file written. `uaaml` itself uses only the NodeSet; the
-generated code was not tried with this project.
+<folder>` does that run and lists every file the compiler wrote. With
+ModelCompiler 2.8.15 these were, for a model named Mini, besides
+`Mini.NodeSet2.xml`: the C# sources `Mini.Classes.cs`, `Mini.Constants.cs`,
+`Mini.DataTypes.cs` and `Mini.PredefinedNodes.cs` for the OPC Foundation's
+.NET stack, `Mini.NodeIds.csv`, `Mini.Types.xsd` and `Mini.Types.bsd`, and
+constants for C#, JavaScript, Python and TypeScript under `Constants`.
+`uaaml` itself uses only the NodeSet; building a server from the C# sources
+is the stack's business and was not tried here.
 
 What neither tool does and the plugin does: OPC UA models as AutomationML
 libraries, instances of UA types in an AutomationML document and their check

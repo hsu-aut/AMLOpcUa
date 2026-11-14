@@ -14,8 +14,13 @@ AMLOpcUa works with NodeSets. The two directions here connect it to that world:
 - **in**: a design compiled into a NodeSet, and from there through Annex A
   into the document, so a model that exists only as a design can be used here.
 
-Nothing of the compiler's code generation is used, and the compiler is not
-shipped: it is an external tool, looked for where its installer puts it.
+The project uses only the NodeSet the compiler writes, and the compiler is not
+shipped: it is an external tool, looked for where its installer puts it. Its
+code generation still lands where `uaaml design compile -o <folder>` points
+it: with ModelCompiler 2.8.15 a design `Mini` gave `Mini.Classes.cs`,
+`Mini.Constants.cs`, `Mini.DataTypes.cs` and `Mini.PredefinedNodes.cs` for the
+OPC Foundation's .NET stack beside `Mini.NodeSet2.xml`, and constants for C#,
+JavaScript, Python and TypeScript under `Constants`.
 
 ## Installing the compiler
 

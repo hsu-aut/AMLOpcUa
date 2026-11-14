@@ -83,6 +83,17 @@ minor versions.
 
 - The help and the tutorial name the box **nodes into** as the Server tab
   labels it; they said 'into'.
+- The start card "Get a companion specification" has the globe of
+  **Companion specs…**, not the cloud of the Cloud Library, and the card "Take
+  the tutorial" names the lesson on binding.
+- The pictures of the manual taken anew in the editor 6.4.3.8: start,
+  tutorial, namespaces, server-browse, serve.
+- `uaaml help` and `docs/modeldesign.md` say what `design compile` leaves in
+  its folder: with ModelCompiler 2.8.15 the C# sources for the .NET stack
+  besides the NodeSet, and constants for C#, JavaScript, Python and
+  TypeScript. They said nothing of the code generation was used.
+- The manual and the new pages say a namespace gets up to four libraries;
+  Machinery gets two.
 - The glossary's **Security mode** says what the security policy is.
 
 ### Fixed

@@ -200,7 +200,9 @@ public static class Program
             import compiles it and puts the model into a document (Annex A) in one
             go. The ModelCompiler is not part of uaaml; install it with
             "dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool"
-            or name it with --compiler. Nothing of its code generation is used.
+            or name it with --compiler. compile leaves everything the compiler
+            writes in the folder, its C# sources for the .NET stack included;
+            uaaml itself uses only the NodeSet.
 
         uaaml roundtrip <file>... [--search <dir>]... [--inverse] [-o <report.md>]
             Run each file through both mappings and back and report what survives:

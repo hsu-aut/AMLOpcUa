@@ -52,7 +52,8 @@ Begriffen zum Anklicken und Verweisen auf Lektion und Handbuch.
 - **NodeSet importieren…** nimmt eine NodeSet-Datei von der Platte. Fehlen
   Modelle, die sie braucht, bietet das Plugin an, sie zu holen.
 
-Jeder Namespace wird zu vier Bibliotheken: `ATL_`, `ICL_`, `RCL_` und `SUC_`.
+Jeder Namespace wird zu bis zu vier Bibliotheken: `ATL_`, `ICL_`, `RCL_` und
+`SUC_`, je nachdem, welche Arten von Knoten er festlegt.
 Ein zweiter Import desselben Namespace aktualisiert sie.
 
 ## Eine Instanz anlegen und prüfen

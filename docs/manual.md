@@ -252,7 +252,9 @@ instance…**.
 
 An import converts a NodeSet by OPC 10000-83 Annex A, with Opc2Aml, the OPC
 Foundation's reference implementation. For each UA namespace, of the NodeSet
-and of every model it requires, the document gets four libraries:
+and of every model it requires, the document gets up to four libraries, one
+for each kind of node the namespace defines (Machinery, without DataTypes and
+ReferenceTypes of its own, gets two):
 
 | Library | Holds |
 |---|---|
@@ -453,7 +455,7 @@ before it is listed.
 
 ### Removing a namespace
 
-**Remove…** in the details of a namespace removes its four libraries. It is
+**Remove…** in the details of a namespace removes its libraries. It is
 available only when no other namespace builds on it and no element uses its
 types; otherwise its tooltip names what still needs it. The plugin asks
 before it removes. Ctrl+Z does not bring the libraries back; importing the
