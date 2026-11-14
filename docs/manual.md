@@ -7,12 +7,22 @@ servers and take their nodes and values into the document, serve a document
 as an OPC UA server, draw and edit models, and write a document or a model
 back out as a NodeSet.
 
-This manual says what to do in the plugin, step by step. It is written for
-engineers who know AutomationML and, roughly, OPC UA; it does not explain how
-the plugin is built. The reference documents beside it explain the mappings
-and rules behind each step, and every chapter names the one that belongs to
-it. The manual describes version 0.2.0; the [changelog](../CHANGELOG.md) lists
-what changed between versions.
+This manual says what to do in the plugin, step by step; it does not explain
+how the plugin is built. It is written for engineers who know AutomationML or
+OPC UA. Two short pages explain the other side:
+
+- [OPC UA for AutomationML users](opcua-for-aml-users.md): nodes, NodeIds,
+  types and servers, and what each becomes in the document.
+- [AutomationML for OPC UA developers](aml-for-opcua-developers.md): CAEX
+  terms with their nearest OPC UA concept, and what an export and the
+  document server give you in OPC UA terms.
+
+Eine Kurzanleitung auf Deutsch steht in [kurzanleitung.md](kurzanleitung.md).
+
+The reference documents beside it explain the mappings and rules behind each
+step, and every chapter names the one that belongs to it. The manual
+describes version 0.3; the [changelog](../CHANGELOG.md) lists what changed
+between versions.
 
 ## Contents
 
@@ -98,9 +108,9 @@ lists it under its source PublicSource.
 
 1. Close every other window of the AutomationML Editor. An installation or
    update while a second editor runs can remain incomplete.
-2. In the editor, open the PlugIn Manager, choose the source
-   **PublicSource**, select **AMLOpcUa** among the available plugins and
-   install it.
+2. In the editor, open the PlugIn Manager (**PlugIns** › **PlugIn Manager**),
+   choose the source **PublicSource**, select **AMLOpcUa** among the available
+   plugins and install it. The editor's About dialog shows its version.
 3. Restart the editor and switch the plugin on once with **PlugIns** ›
    **AMLOpcUa** › **Activate**. It opens as the tab AMLOpcUa. Its first tab,
    **Namespaces**, shows the OPC UA models of the open document.
@@ -181,7 +191,9 @@ Below all tabs runs one status bar:
 - **Log**, which shows the log. When warnings or errors arrived that you have
   not seen, it reads "Log (n new problem(s))" with a warning sign; an error
   counts once, with its stack trace;
-- **Tutorial**, which opens the lessons.
+- **Tutorial**, which opens the lessons;
+- **Manual**, which opens this manual in the browser (in German: the
+  Kurzanleitung, which leads here).
 
 The log fills the lower part of the **Namespaces** tab. Every line has its
 time, its level (INFO, WARN, ERROR, and DEBUG when the debug log is on) in
@@ -193,15 +205,17 @@ keeps everything (see [Reading the log](#reading-the-log)).
 ### Tutorial and help
 
 **Tutorial** in the status bar, or the card **Take the tutorial**, opens a
-panel at the right edge with five short lessons:
+panel at the right edge with six short lessons:
 
 1. Models into the document: import DI, look at what it brings, draw a type.
 2. Instances and checks: create an instance of a DI type and check it.
 3. The practice plant: start it, connect, import its types, take its
    stations into the document, keep their values live, watch one value.
-4. Your document as a server: serve the document, connect to it, take a part
+4. Binding your own elements: add an element of your own, bind it to a
+   variable of the practice plant and read its value.
+5. Your document as a server: serve the document, connect to it, take a part
    of it back, keep its values live. No plant is needed.
-5. A model of your own: a small model in the modeler, applied to the document.
+6. A model of your own: a small model in the modeler, applied to the document.
 
 The lessons work in the open document, which should be a new, empty one; the
 first step offers **Save a practice document…** for that. Each step says what
@@ -217,8 +231,10 @@ A **?** sits beside each part of the plugin: the namespace commands, the
 namespace list, the **Check** tab, the connection, the server commands, "What
 to take", "This document as a server", the **Diagram** tab and the **Modeler**
 tab. It opens a short note on what the part does, with its terms to click for
-an explanation, and a link "Show me in the tutorial" to the lesson that walks
-through it.
+an explanation, a link "Show me in the tutorial" to the lesson that walks
+through it, and a link "More in the user manual" to its section here. The
+terms cover both sides: OPC UA terms such as NodeId and Endpoint, and CAEX
+terms such as InstanceHierarchy and InternalElement.
 
 ### Undo and saving
 
@@ -326,7 +342,10 @@ without an account:
 1. Click **Companion specs…** (or the card **Get a companion specification**).
 2. The dialog **Companion specifications** reads the list. It asks GitHub at
    most once a day and keeps the list on disk; **Refresh list** asks now.
-3. Type a name or a namespace, for example Machinery or Robotics.
+3. Type a name or a namespace, for example Machinery or Robotics. The name a
+   specification is published under works as well as the short name of its
+   folder: "Device Integration" finds DI, "PROFINET Remote IO" finds PNRIO.
+   The list shows the published name beside the folder.
 4. Select a model and click **Download and import** (or double click it). The
    plugin downloads it with every model it requires that is not yet
    available, and imports it.
@@ -514,6 +533,15 @@ An instance of an abstract type is created when you ask for one, with a note
 in the dialog and the log; OPC UA itself instantiates only concrete subtypes,
 and **Check** reports such an instance (UA002).
 
+**Which type to take for a device.** DI's DeviceType and ComponentType are
+abstract, and DI itself brings no concrete device type: its only concrete type
+of that kind is SoftwareType. DI is meant to be built on. Take the concrete
+type of a companion specification for your kind of device instead, for
+example MotionDeviceType or ControllerType from Robotics, or derive a type of
+your own from DeviceType in the **Modeler** (see
+[Start a new model](#start-a-new-model)) and instantiate that. An instance of
+DeviceType itself is what `check.png` below shows: an error UA002.
+
 ### After a newer version of the types
 
 When a newer version of a companion specification is imported, its types may
@@ -525,13 +553,18 @@ declare Mandatory children that older instances lack.
 3. Click **Add**. The children are added as a new instance would get them;
    nothing that exists changes. The check then runs again.
 
+The same command puts back a Mandatory child that was deleted by hand, which
+**Check** reports as UA003; tutorial lesson 2 shows it.
+
 Ctrl+Z does not take the added children back.
 
 ## Checking instances
 
 **Check** on the **Namespaces** toolbar, or **Check again** on the **Check**
 tab, compares every element of the instance hierarchies with its UA type. The
-generated libraries are not checked.
+generated libraries are not checked. Check looks at structure only: which
+children an instance has and how they are linked. Values are not checked; an
+empty Value is no finding.
 
 The **Check** tab opens with the result. Its header shows the number of
 findings, for instance "Check (3)". The line above the list counts errors and
@@ -589,7 +622,8 @@ server is back.
 
 The plugin creates its own client certificate. A server that admits only
 known clients may need its administrator to trust that certificate before
-the connection succeeds.
+the connection succeeds; which file to hand over is said in
+[Connect an existing plant model to a PLC](#connect-an-existing-plant-model-to-a-plc).
 
 ### Browse the address space
 
@@ -620,7 +654,9 @@ The filters in the band "What to take" apply to the tree as well:
 ### Import the server's types
 
 A node taken into the document gets its UA type as class only when the
-document holds that type's library. Import the server's types first:
+document holds that type's library. Taking nodes and binding work without the
+types; importing them adds the server's libraries to the document. To have
+the classes, import the server's types before you take nodes:
 
 1. Click **Types of the server…**.
 2. The dialog "Types of the server" lists the server's namespaces with
@@ -722,13 +758,50 @@ the server's URI; bound to a variable, it also gets a `Value` attribute, which
 reading and keeping values live fill in (before 0.3.1 it did not, and such an
 element was never read). When it is bound to another node already, the plugin shows
 both addresses and asks before it replaces the binding. The editor then
-selects the element.
+selects the element. To remove a binding, delete the element's `NodeId`
+attribute in the editor; its `Value` keeps the last value read.
+
+### Connect an existing plant model to a PLC
+
+Your plant model exists, and a PLC or another OPC UA server delivers the
+values. Two commands lead there; they differ in where the values land.
+
+| | **Take into document** | **Bind to element…** |
+|---|---|---|
+| Where the values land | In a copy of the server's nodes, below a server element in the hierarchy under **nodes into** | In your own elements, where they are |
+| How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId. Names are never compared. | You pick the element for each node |
+| Effort | One command for many nodes | One dialog per value |
+
+For a model of your own, bind:
+
+1. Model each value as an element of its own, not as an attribute: a child
+   InternalElement, for instance `Motor1/Speed`. An OPC UA variable is a node,
+   and the plugin binds elements; an attribute `Speed` of `Motor1` cannot be
+   bound. Binding gives the element its `NodeId` and `Value` attributes.
+2. Connect to the server. Its types are not needed for binding.
+3. For each value: select the variable in the address space, click **Bind to
+   element…** and pick the element.
+4. **Read values into document** reads them once; **Keep document values
+   live** follows every change.
+5. Save. The bindings are attributes of the elements and work again in the
+   next session, with every server that has the same nodes.
+
+Tutorial lesson 4 walks through this with the practice plant. The plugin
+also reads two conventions it does not create: AutomationML BPR 007
+DataVariables and the sub-attribute `aml-opcua-variable` on an attribute
+(see [servers](server.md#addressing-a-node-from-aml)).
+
+**A server that admits known clients only.** Give its administrator the
+plugin's client certificate, the file
+`%LOCALAPPDATA%\AMLOpcUa\pki\own\certs\AMLOpcUa [<thumbprint>].der`, and ask
+for the SHA-256 fingerprint of the server's certificate, to compare it in the
+dialog "Trust this server?".
 
 ### Read, keep and watch values
 
 | Command | What it does |
 |---|---|
-| **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, and every AutomationML BPR 007 DataVariable. Elements bound to another server are skipped. |
+| **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, every AutomationML BPR 007 DataVariable and every attribute with an `aml-opcua-variable` sub-attribute. Elements bound to another server are skipped. |
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
 | **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
 
@@ -761,7 +834,7 @@ stops it, and so does closing the editor.
 No network and no command line is needed. The command line tool serves the
 same plant with `uaaml serve --nodeset examples/mps500/MPS500.NodeSet2.xml
 --simulate`. The document itself can serve as a plant too (next chapter); the
-tutorial's third lesson does that.
+tutorial's fifth lesson does that.
 
 ## Serving the document as an OPC UA server
 
@@ -789,10 +862,21 @@ What is served:
 - each InstanceHierarchy is a folder below Objects;
 - elements become Objects, or Variables when their UA type is a VariableType
   or they carry a `Value` and no children;
-- elements with an Annex A NodeId keep it; the others get a NodeId from their
-  path in the namespace `urn:amlopcua:document`;
-- values come from the `Value` attributes, typed by their AttributeDataType;
+- every Object is a BaseObjectType and every Variable a BaseDataVariableType,
+  held by HasComponent, also where the element has a UA type of a companion
+  specification: the document server serves the plant, not its types;
+- elements with an Annex A NodeId keep it, except NodeIds of the namespace of
+  the UA base model; the others get a NodeId from their path in the namespace
+  `urn:amlopcua:document`;
+- values come from attributes named `Value`, typed by their AttributeDataType;
+  other attributes are not served. A plant model whose values sit in
+  attributes of other names is served as a tree of objects without values;
 - nothing is writable and no method is offered.
+
+To serve a model with its types, export it as a NodeSet (see
+[Exporting as a NodeSet](#exporting-as-a-nodeset)) and serve that file with
+`uaaml serve --nodeset`. In OPC UA terms, what you get is described in
+[AutomationML for OPC UA developers](aml-for-opcua-developers.md).
 
 The nodes are those of the document when serving starts. Their values follow
 the document: a value changed in the editor reaches the served node after a
@@ -818,24 +902,46 @@ allowed, so the client certificate is the whole access control. The tick
 **to the network** is not kept: every editor session starts with the server
 for this computer only.
 
+**A client on another computer, UaExpert for example:**
+
+1. Tick **to the network** and click **Serve**. The status line names the
+   endpoint, `opc.tcp://<computer name>:48400/AMLOpcUa`. The first time the
+   server is offered to the network it makes itself a new certificate for
+   that name; the log says so.
+2. Windows may ask whether the AutomationML Editor may accept connections.
+   Allow it for the network you mean. Without that prompt, an administrator
+   opens TCP port 48400 in the Windows firewall.
+3. In the client, add the server by that endpoint. When the other computer
+   cannot resolve the computer name, use its IP address in the URL. Choose a
+   secured endpoint (Sign or SignAndEncrypt, Basic256Sha256) and trust the
+   server's certificate in the client.
+4. The first connection is refused: the server does not know the client yet.
+   Click **Clients…**, tick the refused client, and connect again.
+
 ## Passing a document on
 
 A document with nodes taken from a server says where the server is: the
-server element carries `EndpointUrl` and `ServerUri`, every NodeId below it a
+server element carries `EndpointUrl` and `ServerUri`, every NodeId a
 `ServerInstanceUri` (which usually holds the host name), and a server element
-after BPR 007 or DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. Before you
-pass the document on:
+after BPR 007 or DIN SPEC 16592 `EndpointURL` and `DiscoveryURL`. Elements
+you bound by hand carry the `ServerInstanceUri` too. Before you pass the
+document on:
 
 1. On the **Server** tab, in the band "This document as a server", click
    **Copy without server addresses…**. It needs no connection.
 2. Choose where to save the copy; the plugin proposes
    `<name>-without-addresses.aml` beside the document.
 
-The copy lacks these addresses; the open document stays as it is. What a node
-is known by (namespace URI and identifier), links to planned elements, how a
-server is secured, and the libraries all stay. A host name can also sit in a
-value or a description; the log names every place where one still appears.
-The plugin never writes credentials into a document.
+The copy lacks these addresses, in every instance hierarchy; the open
+document stays as it is. What a node is known by (namespace URI and
+identifier), links to planned elements, how a server is secured, and the
+libraries all stay. A host name can also sit in a value or a description;
+the log names every place in the instance hierarchies where one still
+appears, names of elements included (a server element is often named after
+its host); these places are not changed. The libraries that **Types of the
+server…** brought are neither changed nor searched, and their namespace URIs
+can hold a host name. Look at both before you pass the copy on. The plugin
+never writes credentials into a document.
 
 ## Diagrams
 
@@ -894,7 +1000,10 @@ The modeler starts the first time the tab is shown. The plugin's toolbar
 above it holds the list of the document's namespaces with **Edit**, a field
 for a namespace URI with **New model**, **Open NodeSet file…** and a button
 to reload the modeler. The modeler's own toolbar holds **Apply to document**,
-**Save NodeSet**, **Undo**, **Redo**, **Model** and **Checks**.
+**Save NodeSet**, **Undo**, **Redo**, while a diagram is shown **Reset
+layout** and **Export SVG**, then **Model** and **Checks**; at its right end
+the tick **Types of required models** lists the types of the models the
+model builds on as well.
 
 ![The Modeler tab with the MPS 500 model opened: its ObjectTypes on the left, StationType drawn on the canvas with its ParameterSet and state machine, the node editor on the right, and the toolbar with Apply to document and Save NodeSet](manual/modeler.png)
 
@@ -993,10 +1102,19 @@ works for CAEX 2.15 and CAEX 3.0 documents.
 
 ![The dialog "Export as OPC UA NodeSet" with the second mode selected and the namespace http://opcfoundation.org/UA/Machinery/ chosen in the list](manual/export.png)
 
-A tool that loads a NodeSet of the first mode needs two further NodeSets: the
-AML base types (`Opc.Ua.AMLBaseTypes.NodeSet2.xml`) and the AutomationML
-standard libraries (`Opc.Ua.AMLStandardLibraries.NodeSet2.xml`). Both lie in
-the folder `nodesets` of the installed plugin.
+A tool that loads a NodeSet of the first mode needs the AML base types
+(`Opc.Ua.AMLBaseTypes.NodeSet2.xml`), and, when the document uses the
+AutomationML base libraries without holding them, the AutomationML standard
+libraries (`Opc.Ua.AMLStandardLibraries.NodeSet2.xml`). Both lie in the folder
+`nodesets` of the installed plugin (see
+[Where the plugin keeps its files](#where-the-plugin-keeps-its-files)).
+
+The first mode exports every library of the document, also the OPC UA
+models an import put there, as AML classes. A document with the UA base model,
+DI and one instance came to about 220,000 nodes in 240 MB. To pass on a plant model alone, export a
+copy without those libraries; to get an imported model back as it was, use
+the second mode. What a server makes of the result, in OPC UA terms:
+[AutomationML for OPC UA developers](aml-for-opcua-developers.md).
 
 Background: [export](export.md) for the rules and deviations,
 [round trip](roundtrip.md) for what survives the way out and back. Options
@@ -1093,9 +1211,15 @@ asked for, never given on the command line.
 | `roundtrip` | Sends models through both mappings and back and reports what survives | [round trip](roundtrip.md) |
 | `compare` | Compares the class libraries of two documents, or two NodeSets as graphs | [round trip](roundtrip.md) |
 
-`info` exits with 1 when a required model cannot be found, `check` when there
-are errors, `compare` when the documents differ, `roundtrip` when a chain
-breaks off.
+Exit codes, also listed at the end of `uaaml help`: 0 when the command is
+done; lines starting with `note:` on the error output are notes, not
+failures, so `import` and `export` exit with 0 when they warn. 1 on an error,
+and when what the command looks for is found: `info` a required model it
+cannot find, `check` an error in an instance, `compare` a difference,
+`roundtrip` a chain that broke off. 2 when no command is given. A NodeSet sent
+through `roundtrip` without `--inverse` goes back by the AML-UA-XSLT rules,
+which keep no Methods, DataTypes or ReferenceTypes; `roundtrip` says so in a
+note.
 
 ## Language
 
@@ -1111,22 +1235,26 @@ languages: NodeSet, NodeId, InstanceHierarchy, SystemUnitClass, ModellingRule.
 
 Some texts stay English whatever the language: messages that come from the
 OPC UA stack or from the conversion, the texts of the plugin's core (such as
-the text of a finding on the **Check** tab and the warnings of an import),
-most lines of the log, and the command line tool. The status line, the
-dialogs and the import summary follow the plugin's language.
+the warnings of an import), most lines of the log, the command line tool and
+the [manual](manual.md). The status line, the dialogs, the import summary,
+the findings on the **Check** tab and the help behind each **?** follow the
+plugin's language. In German, **Manual** in the status bar opens the
+[Kurzanleitung](kurzanleitung.md), which leads into this manual.
 
 ## Where the plugin keeps its files
 
 | Folder or file | Holds |
 |---|---|
+| `%APPDATA%\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.<version>\lib\net8.0-windows7.0` | The plugin itself, as the PlugIn Manager installed it; its folder `nodesets` holds the bundled NodeSets (UA base model and DI), `converter` the conversion and `uaaml.exe` |
 | `%APPDATA%\AMLOpcUa\settings.json` | The settings: NodeSet folders, the options of the Settings menu, recent endpoints, the Cloud Library user name, the node limit, the lessons done. Never a password. |
 | `%LOCALAPPDATA%\AMLOpcUa\conversions` | The cache of conversions (the last 40) |
 | `%LOCALAPPDATA%\AMLOpcUa\opcfoundation` | The list and the files of the OPC Foundation's published NodeSets |
 | `%LOCALAPPDATA%\AMLOpcUa\cloudlibrary` | Models downloaded from the UA Cloud Library |
 | `%LOCALAPPDATA%\AMLOpcUa\server-nodesets\<server>` | NodeSets taken from servers |
 | `%LOCALAPPDATA%\AMLOpcUa\models` | Models applied from the modeler |
-| `%LOCALAPPDATA%\AMLOpcUa\pki` | The plugin's client certificate and the server certificates you trusted |
+| `%LOCALAPPDATA%\AMLOpcUa\pki` | The plugin's client certificate (`own\certs\AMLOpcUa [<thumbprint>].der`, the file a server's administrator needs) and the server certificates you trusted |
 | `%LOCALAPPDATA%\AMLOpcUa\pki-server` | The certificate of the document server and the clients it trusts or refused |
+| `%LOCALAPPDATA%\AMLOpcUa\pki-nodeset-server` | The same for the NodeSet server of `uaaml serve --nodeset` |
 | `%LOCALAPPDATA%\AMLOpcUa\WebView2` | The modeler's browser profile |
 | `%TEMP%\opcua-plugin` | The log files |
 

@@ -71,4 +71,5 @@ before New model drops changes, that a failed import reaches the page as a
 warning with the model still marked changed, and that navigation away is
 refused. The guards of the page on its own (asking before Open, before
 leaving a draft, before leaving the page) were checked in Edge with
-Playwright. Not yet tried inside the AutomationML Editor itself.
+Playwright. Since then it has been used inside the AutomationML Editor
+6.4.3.8 in the editor rounds before each release.

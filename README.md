@@ -31,6 +31,19 @@ The counterparts for the Formalised Process Description (VDI/VDE 3682) and for
 Petri nets are [AMLFPB.js](https://github.com/hsu-aut/AMLFPB.js) and
 AMLPetriNet.
 
+## Start here
+
+- Install: in the AutomationML Editor 6.4 or later, **PlugIns › PlugIn
+  Manager**, source PublicSource, AMLOpcUa ([details](docs/manual.md#installing)).
+  No build is needed.
+- [User manual](docs/manual.md), step by step. The plugin's **Tutorial** has
+  six short lessons; **Manual** in its status bar opens the manual.
+- New to OPC UA: [OPC UA for AutomationML users](docs/opcua-for-aml-users.md).
+  New to AutomationML: [AutomationML for OPC UA developers](docs/aml-for-opcua-developers.md).
+- Auf Deutsch: [Kurzanleitung](docs/kurzanleitung.md).
+- Free and open source under the [MIT License](LICENSE); third-party parts in
+  [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Repository
 
 | Path | Content |
@@ -43,7 +56,7 @@ AMLPetriNet.
 | `third_party/Opc2Aml/` | Opc2Aml source, with the patches in `third_party/patches/` |
 | `nodesets/` | UA base model and DI, shipped with tool and plugin |
 | `libraries/` | AutomationML object reference attribute types (embedded, for VDI 3682 links) |
-| `docs/` | [user manual](docs/manual.md), [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [ModelDesign](docs/modeldesign.md), [VDI 3682](docs/vdi3682.md), [demo](docs/demo.md) |
+| `docs/` | [user manual](docs/manual.md), [Kurzanleitung](docs/kurzanleitung.md), [OPC UA for AutomationML users](docs/opcua-for-aml-users.md), [AutomationML for OPC UA developers](docs/aml-for-opcua-developers.md), [import](docs/import.md), [instances and checks](docs/instances.md), [export](docs/export.md), [round trip](docs/roundtrip.md), [servers](docs/server.md), [diagram](docs/diagram.md), [modeler](docs/modeler.md), [ModelDesign](docs/modeldesign.md), [VDI 3682](docs/vdi3682.md), [demo](docs/demo.md) |
 
 ## Build
 
@@ -111,7 +124,9 @@ command line does.
   GitHub (OPCFoundation/UA-Nodeset), every released companion specification,
   and imports one with the models it requires, without an account. The list
   comes from GitHub at most once a day; the UA Cloud Library, which needs an
-  account or an API key, is one click away. On the command line: `uaaml opcf`.
+  account or an API key, is one click away. A search finds a specification by
+  the name it is published under ("Device Integration") as well as by its
+  folder ("DI"). On the command line: `uaaml opcf`.
 - A ModelDesign file imported or dropped on the plugin is compiled into a
   NodeSet first, by the ModelCompiler where it is installed; without it, the
   status line says how to get it.
@@ -148,16 +163,21 @@ command line does.
   Annex C) and applies the result to the document as a NodeSet import; see
   [docs/modeler.md](docs/modeler.md).
 
-**Tutorial** (in the status bar, and a card on an empty document) opens five
+**Tutorial** (in the status bar, and a card on an empty document) opens six
 short lessons in a panel beside the tabs: models into the document, instances
 and checks, the practice plant (connect, take its stations, follow their
-values live), your document as a server, a model of your own. Each step frames the control it is about and
+values live), binding your own elements, your document as a server, a model
+of your own. Each step frames the control it is about and
 ticks itself off when the plugin's state shows it done; a button takes over
 what needs a file or a place, such as opening the dialog in the folder of the
 bundled DI. For those who know their way, a **?** beside each part says in a
-few sentences what it does, explains its terms on a click and leads to the
-lesson that shows it. A test checks that every lesson step and every **?**
-names a control and a topic that exist.
+few sentences what it does, explains its terms on a click (OPC UA terms for
+AutomationML engineers, CAEX terms for OPC UA developers), leads to the
+lesson that shows it and to its section of the manual. **Manual** in the
+status bar opens the manual; in German, the Kurzanleitung. Tests check that
+every lesson step and every **?** names a control, a topic and a section of
+the manual that exist, and walk the lessons on the practice plant to their
+end.
 
 Every tab has a toolbar in the style of the other plugins of this family
 (icons of the editor's font, colour by kind of command); messages and
@@ -210,7 +230,10 @@ uaaml design export plant.aml -o Plant.xml              # the same, from a docum
 uaaml design import DI.xml --into plant.aml             # a design, compiled and imported (needs the ModelCompiler)
 ```
 
-`info` exits with 1 when a required model cannot be found, `compare` when the
-documents differ, `check` when there are errors, `roundtrip` when a chain
-breaks off ([round trip](docs/roundtrip.md)). Given two NodeSets, `compare`
-compares them as graphs.
+Exit codes (also at the end of `uaaml help`): 0 done, `note:` lines on the
+error output included; 1 on an error, and when `info` cannot find a required
+model, `compare` finds a difference, `check` finds an error, `roundtrip` breaks
+off ([round trip](docs/roundtrip.md)); 2 without a command. Given two
+NodeSets, `compare` compares them as graphs. `roundtrip` of a NodeSet without
+`--inverse` keeps no Methods, DataTypes or ReferenceTypes, by the nature of
+the AML-UA-XSLT rules, and says so.

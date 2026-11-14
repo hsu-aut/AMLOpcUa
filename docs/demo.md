@@ -99,7 +99,7 @@ Standalone NodeSet.js (in a browser) has its own **New model…** dialog:
    and TransitionNumber as Mandatory properties of the UA namespace, FromState,
    ToState and HasCause in both directions, exactly as the base model writes
    its own machines (OPC 10000-5 Annex B).
-5. **Checks: 0 errors** in the toolbar. Open it once: 21 rules on the NodeSet
+5. **Checks: 0 errors** in the toolbar. Open it once: 25 rules on the NodeSet
    itself, each finding with its rule and a sentence.
 6. **Save NodeSet** and open the file in an editor for three seconds. It is a
    plain NodeSet2 file, and the layout sits in `Extensions`, where other tools
@@ -221,5 +221,5 @@ numbers itself.
 - No code generation. The ModelCompiler does that, and we only hand it a design.
 - Not certified. The OPC Foundation certifies products; this is a tool that
   writes files their tools read.
-- The AML → UA direction follows the working group's AML-UA-XSLT rules with 17
-  documented deviations (`docs/export.md`), not a published standard.
+- The AML → UA direction follows the working group's AML-UA-XSLT rules with 20
+  documented deviations (D1 to D20 in `docs/export.md`), not a published standard.

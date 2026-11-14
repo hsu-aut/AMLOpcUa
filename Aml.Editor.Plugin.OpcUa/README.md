@@ -36,7 +36,11 @@ does not bring.
 
 ## More
 
-- [User manual](https://github.com/hsu-aut/AMLOpcUa/blob/main/docs/manual.md)
+- [User manual](https://github.com/hsu-aut/AMLOpcUa/blob/main/docs/manual.md);
+  in the plugin, **Manual** in the status bar opens it
+- New to OPC UA: [OPC UA for AutomationML users](https://github.com/hsu-aut/AMLOpcUa/blob/main/docs/opcua-for-aml-users.md);
+  new to AutomationML: [AutomationML for OPC UA developers](https://github.com/hsu-aut/AMLOpcUa/blob/main/docs/aml-for-opcua-developers.md)
+- Auf Deutsch: [Kurzanleitung](https://github.com/hsu-aut/AMLOpcUa/blob/main/docs/kurzanleitung.md)
 - [Changes](https://github.com/hsu-aut/AMLOpcUa/blob/main/CHANGELOG.md)
 - [Source](https://github.com/hsu-aut/AMLOpcUa), MIT license;
   [third-party notices](https://github.com/hsu-aut/AMLOpcUa/blob/main/THIRD-PARTY-NOTICES.md)

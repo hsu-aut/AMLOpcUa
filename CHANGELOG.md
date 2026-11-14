@@ -9,13 +9,51 @@ minor versions.
 
 ### Added
 
-- **A lesson on the practice plant** in the tutorial, now five lessons: start
-  the plant, connect, import its types, take its stations into the document,
-  keep their values live, watch one value. Each step ticks itself off; a test
-  walks the whole lesson against the plant.
+- **A lesson on the practice plant** in the tutorial (lesson 3): start the
+  plant, connect, import its types, take its stations into the document, keep
+  their values live, watch one value. Each step ticks itself off; a test walks
+  the whole lesson against the plant.
+- **A lesson on binding your own elements** (lesson 4): add an element of
+  your own, bind it to PartsProduced of the practice plant, read its value.
+  The case the tutorial left out: a plant model that exists, and a PLC. The
+  tutorial now has six lessons; the document server and the modeler are
+  lessons 5 and 6. A test walks it against the plant, and a lesson done
+  before in the same document (an instance, nodes taken) does not tick its
+  steps off.
+- **The manual from the plugin.** **Manual** in the status bar opens the user
+  manual on GitHub, in German the new Kurzanleitung; every **?** ends with
+  "More in the user manual" at its section. Who installs from the PlugIn
+  Manager never saw the repository. A test checks that every section named
+  exists in `docs/manual.md`.
+- **CAEX terms in the glossary** of the **?** buttons, for OPC UA developers:
+  CAEX, InstanceHierarchy, InternalElement, Attribute, SystemUnitClass,
+  RoleClass, InterfaceClass, AttributeType, ExternalInterface, InternalLink,
+  each with what an import makes of OPC UA and its nearest OPC UA concept; and
+  Node for AutomationML engineers. The glossary explained OPC UA to people
+  who know it and AutomationML to nobody.
 - **Binding** in the glossary of the Server tab's **?**: what a bound element
   is (a NodeId and, for a variable, a Value attribute) and which commands make
   and fill such elements.
+- **Companion specs… finds specifications by their published names.**
+  "Device Integration" finds DI, "PROFINET Remote IO" finds PNRIO,
+  "Plastics and Rubber" the plastics models; the list shows the name beside
+  the folder (`PublishedModel.Title`, `uaaml opcf search` too). Before, only
+  the folder and the namespace URI were searched, so the written-out name
+  found nothing.
+- `uaaml help` lists the **exit codes**; `roundtrip` of a NodeSet without
+  `--inverse` says in a note that this chain keeps no Methods, DataTypes or
+  ReferenceTypes, and the help says it too.
+- **Documentation for newcomers:** [OPC UA for AutomationML
+  users](docs/opcua-for-aml-users.md) and [AutomationML for OPC UA
+  developers](docs/aml-for-opcua-developers.md), each term with what becomes
+  of it on the other side, what an export and the document server give in
+  OPC UA terms, and how the plugin relates to UaExpert and UaModeler; a
+  German [Kurzanleitung](docs/kurzanleitung.md). In the manual: "Connect an
+  existing plant model to a PLC" (take or bind, matching by NodeId only, a
+  value as an element of its own, the certificate file for the PLC's
+  administrator), a client such as UaExpert on another computer (firewall,
+  endpoint, trust on both sides), which device type to take from DI, where
+  the plugin and its bundled NodeSets are installed.
 
 ### Changed
 
@@ -39,15 +77,30 @@ minor versions.
 - German texts reviewed: the names of the buttons as they are ("Knoten in",
   "Erneut prüfen", "Gemerkte Auswahl laden"), Kindelemente for AML elements,
   Endpunkt and Platzhalter in the glossary, clearer texts on the document
-  server's clients, the start card and the steps of lessons 1, 2, 3 and 4.
+  server's clients, the start card and the steps of the lessons.
 - Tooltips on Connect, the document server's port and Show on the Diagram
   tab; a test keeps one on every named button and every field.
+
+- The help and the tutorial name the box **nodes into** as the Server tab
+  labels it; they said 'into'.
+- The glossary's **Security mode** says what the security policy is.
 
 ### Fixed
 
 - **Bind to element…** to a variable gives the element a Value attribute.
   Without one, Read values into document and Keep document values live passed
   the element over without a word.
+- The manual against the code: the document server serves every object as
+  BaseObjectType and only attributes named Value, which it did not say; the
+  copy without server addresses strips NodeIds in every instance hierarchy,
+  not only below the server element, reports element names and does not
+  search libraries; the second export NodeSet is needed only where the
+  document uses the AutomationML base libraries without holding them, and an
+  export carries every imported library (about 220,000 nodes with UA and
+  DI); Check does not check values; the findings follow the plugin's
+  language; the manual describes 0.3, not 0.2.0. `docs/modeler.md` no longer
+  says the modeler was never tried in the editor; `docs/demo.md` counts 20
+  deviations and 25 modeler rules.
 
 ## [0.3.0] - 2026-11-12
 
