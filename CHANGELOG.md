@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-14
+
 ### Added
 
 - **A lesson on the practice plant** in the tutorial (lesson 3): start the
