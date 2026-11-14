@@ -141,7 +141,9 @@ public static class ValueSnapshot
     private static void SetAttribute(AttributeType attribute, UaReadResult result)
     {
         attribute.Value = result.ValueText;
-        if (string.IsNullOrEmpty(attribute.AttributeDataType) && XsdType(result.DataType) is { } xs)
+        // An array's text ("1 2 3") is no value of its elements' type; it gets none.
+        var array = result.Value is Array and not byte[];
+        if (!array && string.IsNullOrEmpty(attribute.AttributeDataType) && XsdType(result.DataType) is { } xs)
             attribute.AttributeDataType = xs;
     }
 

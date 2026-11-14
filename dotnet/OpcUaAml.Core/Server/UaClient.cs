@@ -465,7 +465,7 @@ public sealed class UaClient : IAsyncDisposable
             {
                 var dv = response.Results[k];
                 var i = map[k];
-                results[i] = new UaReadResult(addresses[i], dv.Value, dv.WrappedValue.TypeInfo?.BuiltInType.ToString(),
+                results[i] = new UaReadResult(addresses[i], Portable(dv.Value, _session.NamespaceUris), dv.WrappedValue.TypeInfo?.BuiltInType.ToString(),
                     StatusCode.IsGood(dv.StatusCode), StatusCode.LookupSymbolicId(dv.StatusCode.Code) ?? dv.StatusCode.ToString());
             }
         }
@@ -528,7 +528,7 @@ public sealed class UaClient : IAsyncDisposable
             {
                 if (e.NotificationValue is not MonitoredItemNotification n) return;
                 var dv = n.Value;
-                onChange(new UaReadResult(captured, dv.Value, dv.WrappedValue.TypeInfo?.BuiltInType.ToString(),
+                onChange(new UaReadResult(captured, Portable(dv.Value, _session.NamespaceUris), dv.WrappedValue.TypeInfo?.BuiltInType.ToString(),
                     StatusCode.IsGood(dv.StatusCode), StatusCode.LookupSymbolicId(dv.StatusCode.Code) ?? dv.StatusCode.ToString()));
             };
             subscription.AddItem(item);
@@ -649,10 +649,26 @@ public sealed class UaClient : IAsyncDisposable
     private NodeId ToNodeId(UaNodeAddress address) =>
         NodeId.Parse(address.ToNodeIdString(NamespaceTable));
 
-    private UaNodeAddress FromExpanded(ExpandedNodeId id)
+    private UaNodeAddress FromExpanded(ExpandedNodeId id) => Address(id, _session.NamespaceUris);
+
+    /// <summary>
+    /// A value as it can leave the session: a NodeId (and an array of them)
+    /// with its namespace URI, since its index holds only for this session.
+    /// Other values pass unchanged.
+    /// </summary>
+    internal static object? Portable(object? value, NamespaceTable table) => value switch
     {
-        var nodeId = ExpandedNodeId.ToNodeId(id, _session.NamespaceUris);
-        var uri = _session.NamespaceUris.GetString(nodeId.NamespaceIndex) ?? "";
+        NodeId id => Address(id, table),
+        ExpandedNodeId id => id.ServerIndex == 0 ? Address(id, table) : id,
+        NodeId[] ids => ids.Select(i => Address(i, table)).ToArray(),
+        ExpandedNodeId[] ids => ids.Select(i => i.ServerIndex == 0 ? (object)Address(i, table) : i).ToArray(),
+        _ => value,
+    };
+
+    private static UaNodeAddress Address(ExpandedNodeId id, NamespaceTable table)
+    {
+        var nodeId = ExpandedNodeId.ToNodeId(id, table);
+        var uri = table.GetString(nodeId.NamespaceIndex) ?? "";
         var (type, identifier) = nodeId.IdType switch
         {
             IdType.Numeric => (UaIdType.Numeric, Convert.ToString(nodeId.Identifier, System.Globalization.CultureInfo.InvariantCulture)!),

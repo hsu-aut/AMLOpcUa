@@ -753,9 +753,11 @@ yet, it gets the XML Schema type of the value: `xs:double` for a Double,
 `xs:dateTime` for a DateTime, `xs:string` for a String, a LocalizedText (its
 text, without the locale) and a QualifiedName (its name, without the
 namespace). An enumeration arrives as its number (`xs:int`), as OPC UA sends
-it. An array is written as its elements separated by spaces, with the type of
-one element. A structure (ExtensionObject), a NodeId or a Guid is written as
-the text the OPC UA stack makes of it, without a data type. The
+it. An array is written as its elements separated by spaces, without a data
+type. A NodeId is written with its namespace URI (`nsu=…;i=…`), since the
+index a server gives a namespace holds for one session only. A structure
+(ExtensionObject) or a Guid is written as the text the OPC UA stack makes of
+it, without a data type. The
 editor then selects the server element, and the status line counts the nodes:
 added, updated, typed by an imported UA type, linked to a planned element.
 

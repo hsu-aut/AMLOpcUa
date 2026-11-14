@@ -140,9 +140,11 @@ file (`ServerNodeSetTests`).
   when it has no data type yet, the XML Schema type of the value's built-in
   type (`ValueSnapshot.XsdType`): LocalizedText and QualifiedName become
   `xs:string` with their text or name only, an enumeration arrives as Int32
-  and becomes `xs:int`, an array is written space separated with the type of
-  one element, and a structure (ExtensionObject), NodeId or Guid is written
-  as the stack's text of it, without a data type.
+  and becomes `xs:int`, an array is written space separated without a data
+  type (its text is no value of its elements' type), a NodeId with its
+  namespace URI (`nsu=…;i=…`, since a namespace index holds for one session
+  only), and a structure (ExtensionObject) or Guid as the stack's text of it,
+  without a data type.
   When the document already models a node, that is an element with the same
   NodeId (the planned object), the mirrored element becomes an aspect of it,
   an element that describes the same object from another view and names it as
