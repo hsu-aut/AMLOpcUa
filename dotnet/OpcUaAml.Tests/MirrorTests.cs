@@ -219,8 +219,9 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
         // Writes happen under one lock, as the plugin runs them on one thread.
         var gate = new object();
         var seen = new List<string?>();
+        UaNodeAddress? heardAt = null;
         await using (var live = await LiveValues.FollowAsync(di.Document, client, write => { lock (gate) write(); },
-            u => { if (u.What == "Counter") seen.Add(u.Value); }, publishingIntervalMs: 100))
+            u => { if (u.What == "Counter") { seen.Add(u.Value); heardAt = u.Address; } }, publishingIntervalMs: 100))
         {
             Assert.True(live.Count >= 1);
             for (var i = 0; i < 50 && seen.Distinct().Count() < 3; i++) await Task.Delay(100);
@@ -232,6 +233,8 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
             Assert.True(seen.Distinct().Count() >= 3, string.Join(",", seen));
             Assert.Equal(seen[^1], counter.Attribute["Value"]!.Value);
             Assert.NotEqual("-1", counter.Attribute["Value"]!.Value);
+            // Which node changed, so a view of that node can follow too.
+            Assert.Equal(new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Counter"), heardAt! with { ServerUri = null });
         }
     }
 

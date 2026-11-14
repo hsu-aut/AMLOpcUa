@@ -11,7 +11,11 @@ using Aml.Engine.CAEX;
 namespace OpcUaAml.Server;
 
 /// <summary>What a live update changed, for a status line.</summary>
-public sealed record LiveUpdate(string What, string? Value, int Updates);
+public sealed record LiveUpdate(string What, string? Value, int Updates)
+{
+    /// <summary>The node whose value changed, so a view of that node can follow it too.</summary>
+    public Addressing.UaNodeAddress? Address { get; init; }
+}
 
 public sealed class LiveValues : IAsyncDisposable
 {
@@ -77,21 +81,21 @@ public sealed class LiveValues : IAsyncDisposable
                 pending.Clear();
             }
             if (batch.Count == 0) return;
-            var written = new List<(string What, string? Value, int Count)>();
+            var written = new List<(string What, string? Value, int Count, Addressing.UaNodeAddress Address)>();
             Import.EditorServices.WithoutUndo(doc, () =>
             {
                 foreach (var result in batch)
                 {
                     var bound = byAddress[result.Address];
                     foreach (var target in bound) target.Write(result);
-                    written.Add((bound[0].What, result.ValueText, bound.Count));
+                    written.Add((bound[0].What, result.ValueText, bound.Count, result.Address));
                 }
             });
-            foreach (var (what, value, count) in written)
+            foreach (var (what, value, count, address) in written)
             {
                 // Counted whether or not anyone listens.
                 var updates = Interlocked.Add(ref counter.Value, count);
-                changed?.Invoke(new LiveUpdate(what, value, updates));
+                changed?.Invoke(new LiveUpdate(what, value, updates) { Address = address });
             }
         }
         var (watch, refused) = await client.WatchCoreAsync(byAddress.Keys.ToList(), result =>

@@ -496,6 +496,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         var version = ++_detailsVersion;
         NodeDetails.Children.Clear();
         NodeDetails.RowDefinitions.Clear();
+        _shownValue = null;
         var node = SelectedNode;
         var client = _client;
         if (node == null || client == null) return;
@@ -507,6 +508,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (node.ReferenceType.Length > 0) DetailRow(L.T("Held by"), node.ReferenceType);
         var typeRow = node.TypeDefinition != null ? DetailRow(L.T("Type"), node.TypeDefinition.ToString(), mono: true) : null;
         var valueRow = node.NodeClass == "Variable" ? DetailRow(L.T("Value"), "…", mono: true) : null;
+        if (valueRow != null) _shownValue = (node.Address, valueRow);
         var element = MirroredElement(node.Address);
         if (element != null) DetailRow(L.T("In document"), ElementPath(element), select: element);
 
@@ -536,6 +538,22 @@ public partial class OpcUaPlugin : ISupportsSelection
             }
             catch (Exception ex) { valueRow.Text = ex.Message; }
         }
+    }
+
+    /// <summary>The variable whose value the node details show, and where; null for none.</summary>
+    private (UaNodeAddress Address, TextBlock Text)? _shownValue;
+
+    /// <summary>
+    /// A live value of the variable the node details show: the same number as
+    /// in the document, not the one read when it was selected. Live updates
+    /// arrive on the UI thread.
+    /// </summary>
+    private void ShowLiveValue(LiveUpdate update)
+    {
+        if (_shownValue is not { } shown || update.Address is not { } changed) return;
+        if (changed with { ServerUri = null } != shown.Address with { ServerUri = null }) return;
+        shown.Text.Text = update.Value ?? "";
+        shown.Text.ClearValue(TextBlock.ForegroundProperty);
     }
 
     /// <summary>Adds a label and a value to the node details; returns the value's text block to fill in later.</summary>
@@ -786,6 +804,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 write => Dispatcher.BeginInvoke(() => { if (ReferenceEquals(_document, document) && ReferenceEquals(_liveToken, token)) write(); }),
                 update =>
                 {
+                    ShowLiveValue(update);
                     if ((DateTime.Now - _liveStatusShown).TotalSeconds < 1) return;
                     _liveStatusShown = DateTime.Now;
                     SetStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
