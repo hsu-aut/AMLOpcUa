@@ -221,7 +221,9 @@ namespace Aml.Editor.Plugin.OpcUa
             _lesson = TourLessons().FirstOrDefault(l => l.Id == id);
             _step = 0;
             TourPanel.Visibility = Visibility.Visible;
-            _tourTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, __) => CheckStep(), Dispatcher);
+            // Normal, not Background: after Take into document the editor keeps the dispatcher busy
+            // for half a minute and more, and a Background check ticked the step off that much later.
+            _tourTimer ??= new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Normal, (_, __) => CheckStep(), Dispatcher);
             _tourTimer.Start();
             ShowTour();
         }
