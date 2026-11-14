@@ -13,6 +13,11 @@ minor versions.
   the Value beside the address space showed the value read when the node was
   selected, while the document followed the plant. It now changes with the
   document. `LiveUpdate` names the node it comes from (`Address`).
+- The "?" beside the server commands offers lesson 4 (binding your own
+  elements) beside lesson 3; no "?" led to it before. `HelpTopic.AlsoLesson`.
+- A step of a path (`uaaml read`, `UaClient.ResolveAsync`) may carry the
+  namespace index of its BrowseName (`/2:Plant/2:Pump1`); it then matches
+  that BrowseName only, for children that share a name.
 
 ### Changed
 
@@ -50,6 +55,18 @@ minor versions.
   says to set depth 5 for the speeds.
 - The model documentation cited OPC 10000-5 Annex B for state machines;
   since OPC UA 1.04 they are OPC 10000-16.
+- **The practice plant's libraries said "© OPC Foundation".** The MPS 500
+  model carries the notice of the Helmut Schmidt University now (SPDX, MIT),
+  and its libraries with it.
+- **A variable taken without its type lost its value when served.** An
+  element without a UA class that has a Value and children (an AnalogItem
+  with its EURange, its type not in the document) was served as an Object.
+  A Value makes it a Variable now, children or not.
+- **Values read from a server:** a NodeId was written with the session's
+  namespace index (`ns=2;i=1143`), which holds for that session only; it is
+  written with its namespace URI now (`nsu=…;i=1143`). An array got the type
+  of its elements (`xs:double` for "1 2 3"), which its text is not; it gets
+  none now.
 - **The log's line after an import** said "(only its types are imported)",
   the command line's words, where the status line said more; it now says what
   the status line says.
