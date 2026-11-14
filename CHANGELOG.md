@@ -94,10 +94,17 @@ minor versions.
   TypeScript. They said nothing of the code generation was used.
 - The manual and the new pages say a namespace gets up to four libraries;
   Machinery gets two.
+- An animated picture of lesson 3 at the top of the README and of the
+  package page (`docs/practice-plant.gif`, 59 s, 0.4 MB).
 - The glossary's **Security mode** says what the security policy is.
 
 ### Fixed
 
+- **The tutorial lagged behind in the editor.** After Take into document with
+  typed nodes the editor keeps the dispatcher busy for half a minute and more;
+  the tutorial checked its steps at Background priority and ticked "Take into
+  document" off up to a minute late. It checks at Normal priority now; a test
+  keeps the dispatcher busy and expects the step to tick off.
 - **Bind to element…** to a variable gives the element a Value attribute.
   Without one, Read values into document and Keep document values live passed
   the element over without a word.
