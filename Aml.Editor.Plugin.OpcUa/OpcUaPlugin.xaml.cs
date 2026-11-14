@@ -522,7 +522,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             var more = afterMerge?.Invoke(conversion);
             // Instances taken after the merge (the modeler's Apply) are no longer "not taken".
             if (more?.InstancesTaken == true) result = result with { InstancesNotTaken = 0 };
-            PluginLog.Info(result.Summary);
+            // The status line's words: the core's summary is the command line's ("only its types are imported").
+            PluginLog.Info(Summaries.Import(result));
 
             var before = clock.Elapsed;
             var saved = SaveAfterImport && EditorSaver.TrySaveActiveDocument();
