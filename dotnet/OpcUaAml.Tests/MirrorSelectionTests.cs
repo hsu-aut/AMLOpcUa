@@ -182,6 +182,40 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         return heard;
     }
 
+    /// <summary>
+    /// A first take builds its elements in a document of its own and hangs them
+    /// in at the end; the values were then written through the elements of
+    /// that workbench. Each change named the workbench, the editor's lookup
+    /// service built tables for it with every reference reported as updated,
+    /// and the editor's trees searched themselves for elements they never held:
+    /// 310 000 reports for the practice plant's 188 nodes, minutes of work.
+    /// </summary>
+    [Fact]
+    public async Task The_values_of_a_take_are_written_into_the_document_not_its_workbench()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Values");
+        var selection = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1"), MirrorScope.Subtree) } };
+        var named = new ConcurrentBag<System.Xml.Linq.XDocument?>();
+        // The values' changes: an attribute Value added, or its value set. The
+        // elements themselves are built on the workbench on purpose, held.
+        static bool OfValue(System.Xml.Linq.XElement? e) =>
+            e != null && e.Name.LocalName == "Attribute" && (string?)e.Attribute("Name") == "Value";
+        void Heard(object? sender, Aml.Engine.CAEX.Commands.CAEXElementChangeEventArgs e)
+        {
+            if (OfValue(e.CAEXElement) || OfValue(e.CAEXElement?.Parent)) named.Add(e.CAEXDocument?.XDocument);
+        }
+        Aml.Engine.CAEX.Commands.CaexCommand.CAEXElementChangedEvent += Heard;
+        SelectionMirrorResult taken;
+        try { taken = await AddressSpaceMirror.MirrorSelectionAsync(client, selection, ih); }
+        finally { Aml.Engine.CAEX.Commands.CaexCommand.CAEXElementChangedEvent -= Heard; }
+
+        Assert.Contains(taken.Server.Descendants<InternalElementType>(), e => !string.IsNullOrEmpty(e.Attribute["Value"]?.Value));
+        Assert.NotEmpty(named);
+        Assert.All(named, d => Assert.Same(doc.XDocument, d));
+    }
+
     [Fact]
     public async Task Taking_nodes_tells_the_editors_trees_what_was_added()
     {

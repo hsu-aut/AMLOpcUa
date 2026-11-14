@@ -78,9 +78,13 @@ public static class EditorServices
 
     /// <summary>
     /// Runs <paramref name="change"/> with the editor's undo service paused for the
-    /// document, and nothing else held: for values, which change no reference.
-    /// Held like a structural change, every batch of live values made the lookup
-    /// service build its tables for the whole document again.
+    /// document and automatic reference updates off: for values, which change no
+    /// reference. Held like a structural change, every batch of live values made
+    /// the lookup service build its tables for the whole document again. A first
+    /// value adds a Value attribute; when the service held no tables for the
+    /// document then, it built them, and with updates on it reported every
+    /// reference as updated (153 751 for the UA base model and DI), each answered
+    /// by the editor's trees searching themselves: minutes after taking nodes.
     /// </summary>
     public static void WithoutUndo(CAEXDocument document, Action change)
     {
@@ -88,13 +92,17 @@ public static class EditorServices
         // still on their way have nowhere to go, and the undo service throws for it.
         if (!IsLoaded(document)) return;
         var undo = ServiceLocator.UndoRedoService;
+        var autoUpdate = ServiceLocator.AutoUpdateService;
+        var held = autoUpdate?.IsAutoUpdateEnabled == true;
         undo?.Pause(document);
+        if (held) autoUpdate!.IsAutoUpdateEnabled = false;
         try
         {
             change();
         }
         finally
         {
+            if (held) autoUpdate!.IsAutoUpdateEnabled = true;
             undo?.Resume(document);
         }
     }

@@ -212,6 +212,41 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
     }
 
     /// <summary>
+    /// A value written for a variable that has no Value attribute yet adds one.
+    /// When the lookup service holds no tables for the document at that moment,
+    /// it builds them, and with automatic updates on it reported every reference
+    /// of the document as updated: 310 000 reports in the editor while the
+    /// values of the practice plant's 188 taken nodes were written.
+    /// </summary>
+    [Fact]
+    public void Writing_a_first_value_reports_no_reference_as_updated()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var element = target.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Speed");
+        var lookup = LookupService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(target, true);
+            // The editor's service without tables for the document, as seen after taking nodes.
+            lookup.RemoveDocument(target);
+            var reported = 0;
+            lookup.ReferenceUpdated += (_, _) => reported++;
+
+            EditorServices.WithoutUndo(target, () => element.Attribute.Append("Value").Value = "12.5");
+
+            Assert.True(reported < 10, $"{reported} reference(s) reported as updated");
+            Assert.True(lookup.IsAutoUpdateEnabled);
+        }
+        finally
+        {
+            LookupService.UnRegister();
+        }
+    }
+
+    /// <summary>
     /// Values change no reference. Written with the lookup service held, each
     /// batch of live values made the service build its tables for the whole
     /// document again: with the practice plant the editor wrote about twelve
