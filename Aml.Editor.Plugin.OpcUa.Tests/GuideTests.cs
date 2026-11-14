@@ -82,6 +82,14 @@ public class GuideTests
     }
 
     [Fact]
+    public void The_help_on_the_server_commands_offers_the_lesson_on_binding_too()
+    {
+        // Lesson 4 (binding your own elements) was reachable from no "?", only from the lesson list.
+        Assert.Equal(new[] { "plant", "bind" }, HelpButton.LessonsOf(HelpTopics.All["server.commands"]));
+        Assert.Equal(new[] { "server" }, HelpButton.LessonsOf(HelpTopics.All["server.serve"]));
+    }
+
+    [Fact]
     public void Connecting_to_a_server_leads_to_the_practice_plant_lesson()
     {
         Assert.Contains("plant", Lessons.Titles.Keys);

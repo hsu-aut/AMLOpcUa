@@ -10,7 +10,8 @@ using Aml.Editor.Plugin.OpcUa.Localization;
 namespace Aml.Editor.Plugin.OpcUa.Guide;
 
 /// <param name="Manual">The section of the user manual, as the anchor GitHub gives its heading.</param>
-internal sealed record HelpTopic(string Title, string Text, string[] Terms, string? Lesson = null, string? Manual = null);
+/// <param name="AlsoLesson">A second lesson the topic offers, after <paramref name="Lesson"/>.</param>
+internal sealed record HelpTopic(string Title, string Text, string[] Terms, string? Lesson = null, string? Manual = null, string? AlsoLesson = null);
 
 internal static class HelpTopics
 {
@@ -40,7 +41,7 @@ internal static class HelpTopics
             L.T("What to do with the server"),
             L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."),
             new[] { "Node", "Variable", "NodeId", "Binding", "Subscription", "Address space", "InternalElement", "Attribute" },
-            "plant", "working-with-a-running-server"),
+            "plant", "working-with-a-running-server", AlsoLesson: "bind"),
         ["server.take"] = new(
             L.T("What to take"),
             L.T("Check nodes in the address space; right click for how much below each: the node only, with its children, or everything below. Depth limits the levels of 'everything below', at most limits the number of nodes, nodes into names the InstanceHierarchy. The filters leave out properties, variables or other namespaces. Instances of a type checks every instance of a type below a node. What was taken keeps its selection; Load kept selection brings it back."),

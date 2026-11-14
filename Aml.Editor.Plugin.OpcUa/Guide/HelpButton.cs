@@ -64,6 +64,10 @@ public sealed class HelpButton : Button
         Click += (_, __) => Show();
     }
 
+    /// <summary>The lessons a topic offers, in order: its lesson, then a second one.</summary>
+    internal static IReadOnlyList<string> LessonsOf(HelpTopic topic) =>
+        new[] { topic.Lesson, topic.AlsoLesson }.OfType<string>().Where(Lessons.Titles.ContainsKey).ToList();
+
     private void Show()
     {
         if (!HelpTopics.All.TryGetValue(Topic, out var topic)) return;
@@ -93,15 +97,16 @@ public sealed class HelpButton : Button
         body.Children.Add(explanation);
 
         var popup = new Popup { PlacementTarget = this, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true };
-        if (topic.Lesson != null && Lessons.Titles.TryGetValue(topic.Lesson, out var lesson))
+        var lessons = LessonsOf(topic);
+        foreach (var id in lessons)
         {
-            var start = new Hyperlink(new Run(L.T("Show me in the tutorial: {0}", lesson))) { Foreground = palette.Exchange };
+            var start = new Hyperlink(new Run(L.T("Show me in the tutorial: {0}", Lessons.Titles[id]))) { Foreground = palette.Exchange };
             start.Click += (_, __) =>
             {
                 popup.IsOpen = false;
-                LessonRequested?.Invoke(this, topic.Lesson);
+                LessonRequested?.Invoke(this, id);
             };
-            body.Children.Add(new TextBlock(start) { Margin = new Thickness(0, 10, 0, 0) });
+            body.Children.Add(new TextBlock(start) { Margin = new Thickness(0, id == lessons[0] ? 10 : 4, 0, 0) });
         }
         if (topic.Manual is { } section)
         {
@@ -111,7 +116,7 @@ public sealed class HelpButton : Button
                 popup.IsOpen = false;
                 Manual.Open(Manual.At(section));
             };
-            body.Children.Add(new TextBlock(more) { Margin = new Thickness(0, topic.Lesson != null ? 4 : 10, 0, 0) });
+            body.Children.Add(new TextBlock(more) { Margin = new Thickness(0, lessons.Count > 0 ? 4 : 10, 0, 0) });
         }
 
         var frame = new Border
