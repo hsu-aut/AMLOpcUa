@@ -141,7 +141,8 @@ public static class Program
 
         uaaml clients [--nodeset] [--trust <thumbprint>] [--distrust <thumbprint>]
             The client certificates the document server refused and those it
-            trusts; --trust admits a refused one, --distrust removes a trusted one.
+            trusts; --trust admits a refused one, --distrust removes a trusted one
+            (the first characters of the thumbprint are enough when they name one).
             --nodeset: those of the NodeSet server ('serve --nodeset'), which
             keeps its own.
 
