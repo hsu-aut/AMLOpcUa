@@ -2,7 +2,7 @@
 
 OPC UA information models in AutomationML.
 
-![Tutorial lesson 3 in the AutomationML Editor: the practice plant starts, the plugin connects to it, MPS500 is ticked and taken into the document as typed elements, values are kept live, and a cycle time is selected with its value and its place in the document](docs/practice-plant.gif)
+![A tour in the AutomationML Editor: a companion specification imported as AutomationML libraries, a UA type drawn, an instance created and checked, the MPS 500 practice plant connected, its nodes taken into the instance hierarchy and their values kept live](docs/tour.gif)
 
 - Plugin for the AutomationML Editor that imports OPC UA NodeSets as AML
   libraries according to OPC 10000-83 (UAFX Offline Engineering), Annex A

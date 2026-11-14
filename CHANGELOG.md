@@ -94,8 +94,10 @@ minor versions.
   TypeScript. They said nothing of the code generation was used.
 - The manual and the new pages say a namespace gets up to four libraries;
   Machinery gets two.
-- An animated picture of lesson 3 at the top of the README and of the
-  package page (`docs/practice-plant.gif`, 59 s, 0.4 MB).
+- An animated tour at the top of the README and of the package page
+  (`docs/tour.gif`, 88 s, 0.9 MB, with captions): a companion specification
+  imported, a type drawn, an instance created and checked, the practice plant
+  connected, its nodes taken into the document, values kept live.
 - The glossary's **Security mode** says what the security policy is.
 
 ### Fixed

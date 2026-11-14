@@ -2,7 +2,7 @@
 
 OPC UA for the [AutomationML Editor](https://www.automationml.org/).
 
-![Tutorial lesson 3 in the AutomationML Editor: the practice plant starts, the plugin connects to it, MPS500 is taken into the document, values are kept live](https://raw.githubusercontent.com/hsu-aut/AMLOpcUa/main/docs/practice-plant.gif)
+![A tour in the AutomationML Editor: a companion specification imported, a UA type drawn, an instance created and checked, the practice plant connected, its nodes taken into the document and their values kept live](https://raw.githubusercontent.com/hsu-aut/AMLOpcUa/main/docs/tour.gif)
 
 - **Import:** OPC UA NodeSets become AML libraries according to OPC 10000-83
   (UAFX Offline Engineering), Annex A. Companion specifications come from the
