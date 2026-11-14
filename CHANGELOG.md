@@ -101,9 +101,10 @@ minor versions.
 - The manual and the new pages say a namespace gets up to four libraries;
   Machinery gets two.
 - An animated tour at the top of the README and of the package page
-  (`docs/tour.gif`, 88 s, 0.9 MB, with captions): a companion specification
-  imported, a type drawn, an instance created and checked, the practice plant
-  connected, its nodes taken into the document, values kept live.
+  (`docs/tour.gif`, 89 s, 3 MB, with captions): a companion specification
+  imported, a type as a diagram, the modeler, an instance created and checked,
+  the practice plant connected, its nodes taken into the document, and the
+  speed of a drill spindle kept live in the editor's attribute details.
 - The glossary's **Security mode** says what the security policy is.
 
 ### Fixed
