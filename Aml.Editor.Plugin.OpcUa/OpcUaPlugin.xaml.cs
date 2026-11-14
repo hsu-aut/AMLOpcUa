@@ -503,14 +503,31 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             // Each phase is timed and logged: inside the editor an import has
             // taken minutes that the command line needs seconds for (PF-AML-19).
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            // The same report as the command line's: what Annex A leaves behind included.
-            var result = OpcUaImport.MergeConverted(document, conversion, file, options);
+            ImportResult result;
+            TimeSpan merged, shown;
+            // After the merge the editor rebuilds its trees and asks its lookup
+            // service about every element; the service then builds its tables for
+            // the document. With automatic updates on it reported every reference
+            // as updated, and every tree searched itself once for each report:
+            // 120 to 150 s after Machinery beside the practice plant's nodes.
+            // Off until the editor has caught up.
+            var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
+            var heldUpdates = autoUpdate?.IsAutoUpdateEnabled == true;
+            if (heldUpdates) autoUpdate!.IsAutoUpdateEnabled = false;
+            try
+            {
+                // The same report as the command line's: what Annex A leaves behind included.
+                result = OpcUaImport.MergeConverted(document, conversion, file, options);
+                merged = clock.Elapsed;
+                // Waiting until the editor is idle measures how long its updates take.
+                await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                shown = clock.Elapsed - merged;
+            }
+            finally
+            {
+                if (heldUpdates) autoUpdate!.IsAutoUpdateEnabled = true;
+            }
             var merge = result.Merge;
-            var merged = clock.Elapsed;
-            // The editor updates its trees and lookups after the change; waiting
-            // until it is idle measures how long that takes.
-            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-            var shown = clock.Elapsed - merged;
 
             foreach (var c in merge.Changes)
             {

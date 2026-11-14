@@ -124,6 +124,45 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
     }
 
     /// <summary>
+    /// The same with instances in the document that use the classes of its
+    /// libraries: Machinery imported after taking the practice plant's 188
+    /// typed nodes kept the editor busy for 142 s, its tree searching itself
+    /// once for each reference the lookup service reported.
+    /// </summary>
+    [Fact]
+    public void A_merge_beside_typed_instances_reports_no_reference_as_updated()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var path = target.CAEXFile.SystemUnitClassLib["SUC_http://opcfoundation.org/UA/DI/"].SystemUnitClass["DeviceType"].CAEXPath();
+        var plant = target.CAEXFile.InstanceHierarchy.Append("Plant");
+        for (var i = 0; i < 50; i++) plant.InternalElement.Append($"Device{i}").RefBaseSystemUnitPath = path;
+        var model = NodeSetImporter.Convert(Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml"), di.Catalog);
+        var lookup = LookupService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(target, true);
+            lookup.AddDocument(target);
+            var reported = 0;
+            lookup.ReferenceUpdated += (_, _) => reported++;
+
+            LibraryMerger.Merge(target, model.Document);
+            // The editor asks right after, for its trees and views.
+            _ = lookup.AllClassReferences(target, path).ToList();
+
+            Assert.True(reported < 10, $"{reported} reference(s) reported as updated");
+            // The 50 instances and the MPS 500's StationType, a DeviceType; none twice.
+            Assert.Equal(51, lookup.ElementsWithCAEXPathReference(target.CAEXFile, path).Count());
+        }
+        finally
+        {
+            LookupService.UnRegister();
+        }
+    }
+
+    /// <summary>
     /// Taking nodes hangs typed elements into the document and then tells the
     /// editor's trees of them (Announce). With automatic updates on, the lookup
     /// service took each announcement as news and reported every reference of
