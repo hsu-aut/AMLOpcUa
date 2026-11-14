@@ -1,5 +1,6 @@
 // The "?" next to a part of the plugin: a popup with what the part does, its
-// terms to click open, and the lesson that walks through it. The popup closes
+// terms to click open, the lesson that walks through it and the section of the
+// manual that tells the rest. The popup closes
 // when the user clicks elsewhere; it never blocks the plugin.
 
 using System.Windows;
@@ -101,6 +102,16 @@ public sealed class HelpButton : Button
                 LessonRequested?.Invoke(this, topic.Lesson);
             };
             body.Children.Add(new TextBlock(start) { Margin = new Thickness(0, 10, 0, 0) });
+        }
+        if (topic.Manual is { } section)
+        {
+            var more = new Hyperlink(new Run(L.T("More in the user manual (English)"))) { Foreground = palette.Exchange, ToolTip = Manual.At(section) };
+            more.Click += (_, __) =>
+            {
+                popup.IsOpen = false;
+                Manual.Open(Manual.At(section));
+            };
+            body.Children.Add(new TextBlock(more) { Margin = new Thickness(0, topic.Lesson != null ? 4 : 10, 0, 0) });
         }
 
         var frame = new Border

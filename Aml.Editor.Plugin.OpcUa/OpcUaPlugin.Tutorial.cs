@@ -20,6 +20,7 @@ using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
+using OpcUaAml.Server;
 using OpcUaAml.Types;
 
 namespace Aml.Editor.Plugin.OpcUa
@@ -98,6 +99,27 @@ namespace Aml.Editor.Plugin.OpcUa
                     new TourStep(L.T("That is the plant: connect, take, follow. The document keeps what you took and the last values; Ctrl+S saves them. Click Stop practice plant to end the lesson."),
                         "PracticePlantButton", "ServerTab", () => _plant == null),
                 }),
+            new TourLesson("bind", Lessons.Titles["bind"],
+                L.T("Bind an element of your own plant model to a variable of the practice plant and read its value."),
+                new[]
+                {
+                    new TourStep(L.T("The lessons change the open document. Open a new, empty CAEX 3.0 document in the editor first (File, New), or save a practice document here and open it."),
+                        null, "ServerTab", () => IsUsable(_document), L.T("Save a practice document…"), SavePracticeDocument),
+                    new TourStep(L.T("Click Practice plant. The MPS 500 learning factory starts as an OPC UA server on this computer, with simulated values, and its address goes into the endpoint box."),
+                        "PracticePlantButton", "ServerTab", () => _plant != null),
+                    new TourStep(L.T("Click Connect. With Secure ticked the plugin shows the plant's certificate first; trust it, the plant runs on this computer."),
+                        "ConnectButton", "ServerTab", ConnectedToPlant),
+                    new TourStep(L.T("Model a value the way the plugin reads it: in the editor's tree, add an InternalElement to an instance hierarchy and name it PartsProduced. A value of a server belongs to an element of its own, not to an attribute; binding gives the element its NodeId and Value attributes."),
+                        null, "ServerTab", () => OwnElements().Any(e => e.Attribute["NodeId"] == null)),
+                    new TourStep(L.T("In the address space, expand MPS500, then ST30_Processing and its ParameterSet, and select the variable PartsProduced."),
+                        "AddressTree", "ServerTab", () => SelectedNode?.NodeClass == "Variable"),
+                    new TourStep(L.T("Click Bind to element… and choose your element PartsProduced. It gets the node's address as its NodeId attribute (Annex A) and a Value attribute; nothing else in the document changes."),
+                        "BindButton", "ServerTab", () => OwnElements().Any(e => e.Attribute["NodeId"] != null)),
+                    new TourStep(L.T("Click Read values into document. The value of every bound element is read once; select PartsProduced in the editor's tree and look at its Value. Keep document values live would follow every change."),
+                        "SnapshotButton", "ServerTab", () => OwnElements().Any(e => e.Attribute["NodeId"] != null && !string.IsNullOrEmpty(e.Attribute["Value"]?.Value))),
+                    new TourStep(L.T("That is how a model of your own meets a running plant: bind each element once, then read or follow its values. Ctrl+S keeps the bindings. Click Stop practice plant to end the lesson."),
+                        "PracticePlantButton", "ServerTab", () => _plant == null),
+                }),
             new TourLesson("server", Lessons.Titles["server"],
                 L.T("Serve this document as an OPC UA server, connect to it, take a part of it back, keep its values live."),
                 new[]
@@ -110,9 +132,9 @@ namespace Aml.Editor.Plugin.OpcUa
                         "ConnectButton", "ServerTab", () => _client != null),
                     new TourStep(L.T("Expand the address space down to your instance and tick its box. Right click it to choose how much below it to take."),
                         "AddressTree", "ServerTab", () => _items.Count > 0),
-                    new TourStep(L.T("Click Take into document. The checked part becomes elements in the hierarchy named under 'into', each with the NodeId of its node."),
+                    new TourStep(L.T("Click Take into document. The checked part becomes elements in the hierarchy named under 'nodes into', each with the NodeId of its node."),
                         "MirrorButton", "ServerTab", () => TakenIndex().Count > 0),
-                    new TourStep(L.T("Click Keep document values live: every change the server reports is written into the elements taken. Change the value you gave in the editor, and the copy under 'into' follows within a second."),
+                    new TourStep(L.T("Click Keep document values live: every change the server reports is written into the elements taken. Change the value you gave in the editor, and the copy under 'nodes into' follows within a second."),
                         "LiveButton", "ServerTab", () => _live != null),
                     new TourStep(L.T("That is the round: model, serve, connect, take, follow. Click Stop serving to end the lesson."),
                         "ServeButton", "ServerTab", () => _host == null),
@@ -147,6 +169,22 @@ namespace Aml.Editor.Plugin.OpcUa
         private bool HasUaInstance() =>
             _document?.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>())
                 .Any(ie => UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath)) == true;
+
+        /// <summary>
+        /// The elements of the user's own model: neither part of an instance of a
+        /// UA type nor below a server element that Take into document made.
+        /// </summary>
+        private IEnumerable<InternalElementType> OwnElements()
+        {
+            static bool Own(InternalElementType element)
+            {
+                for (var e = element; e != null; e = e.CAEXParent as InternalElementType)
+                    if (UaTypes.IsUaLibraryPath(e.RefBaseSystemUnitPath) || e.Attribute[AddressSpaceMirror.EndpointAttribute] != null) return false;
+                return true;
+            }
+            return _document?.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()).Where(Own)
+                   ?? Enumerable.Empty<InternalElementType>();
+        }
 
         /// <summary>A variable of a UA instance with a value, which the document server can serve and live values follow.</summary>
         private bool HasValuedUaChild() =>
@@ -189,6 +227,8 @@ namespace Aml.Editor.Plugin.OpcUa
         }
 
         private void TourClose_Click(object sender, RoutedEventArgs e) => CloseTour();
+
+        private void ManualLink_Click(object sender, RoutedEventArgs e) => Manual.Open(Manual.Start(L.German));
 
         private void CloseTour()
         {
@@ -343,8 +383,9 @@ namespace Aml.Editor.Plugin.OpcUa.Guide
             ["models"] = L.T("1  Models into the document"),
             ["instances"] = L.T("2  Instances and checks"),
             ["plant"] = L.T("3  The practice plant"),
-            ["server"] = L.T("4  Your document as a server"),
-            ["modeler"] = L.T("5  A model of your own"),
+            ["bind"] = L.T("4  Binding your own elements"),
+            ["server"] = L.T("5  Your document as a server"),
+            ["modeler"] = L.T("6  A model of your own"),
         };
     }
 }

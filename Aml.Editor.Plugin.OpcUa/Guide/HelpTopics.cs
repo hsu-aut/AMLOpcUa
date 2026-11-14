@@ -1,13 +1,16 @@
 // What the "?" buttons say: a few sentences per part of the plugin, the terms
-// they use, and the lesson of the tutorial that walks through it. For people
-// who know OPC UA and the plugin and are unsure about one thing; the tutorial
-// is for those who start.
+// they use, the lesson of the tutorial that walks through it and the section
+// of the manual that tells the rest. For people who know OPC UA and the plugin
+// and are unsure about one thing; the tutorial is for those who start. The
+// glossary explains OPC UA terms to AutomationML engineers and AutomationML
+// terms to OPC UA developers.
 
 using Aml.Editor.Plugin.OpcUa.Localization;
 
 namespace Aml.Editor.Plugin.OpcUa.Guide;
 
-internal sealed record HelpTopic(string Title, string Text, string[] Terms, string? Lesson = null);
+/// <param name="Manual">The section of the user manual, as the anchor GitHub gives its heading.</param>
+internal sealed record HelpTopic(string Title, string Text, string[] Terms, string? Lesson = null, string? Manual = null);
 
 internal static class HelpTopics
 {
@@ -16,39 +19,48 @@ internal static class HelpTopics
         ["namespaces"] = new(
             L.T("Namespaces in this document"),
             L.T("Each OPC UA model imported into the document, with its version and publication date. An import turns a NodeSet into AutomationML libraries by Annex A: attribute types (ATL_), interface classes (ICL_), role classes (RCL_) and system unit classes (SUC_) per namespace, together with the models it requires. Select a namespace to see what it brings, what it builds on and which elements use its types; Documentation… writes all of it as one HTML page with diagrams."),
-            new[] { "NodeSet", "Namespace", "Annex A", "Companion specification" }, "models"),
+            new[] { "NodeSet", "Namespace", "Annex A", "Companion specification", "SystemUnitClass", "RoleClass", "InterfaceClass", "AttributeType" },
+            "models", "bringing-opc-ua-models-into-a-document"),
         ["namespaces.commands"] = new(
             L.T("Import, export and more"),
             L.T("Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before."),
-            new[] { "Annex A", "AML-UA-XSLT", "Cloud Library", "VDI 3682" }, "models"),
+            new[] { "Annex A", "AML-UA-XSLT", "Cloud Library", "VDI 3682", "CAEX", "InstanceHierarchy" },
+            "models", "the-tabs"),
         ["check"] = new(
             L.T("Check"),
             L.T("Compares each instance in the instance hierarchies with its UA type: every Mandatory child present, every MandatoryPlaceholder filled, types known and not abstract, reference links only between the interfaces Annex A allows. Double click or Enter selects the element of a finding. Add missing Mandatory children brings instances up to date after a newer version of their types was imported; it shows what it adds first."),
-            new[] { "ModellingRule", "Placeholder", "Abstract type" }, "instances"),
+            new[] { "ModellingRule", "Placeholder", "Abstract type", "InstanceHierarchy", "ExternalInterface", "InternalLink" },
+            "instances", "checking-instances"),
         ["server.connection"] = new(
             L.T("Connecting"),
             L.T("The endpoint URL of a running server, such as opc.tcp://host:4840. With Secure ticked only secured endpoints are taken, the most secure the server offers: signed, and encrypted where offered. A server certificate this computer does not know is shown with its fingerprint before you trust it; trusted, exactly that one is kept. User and password are only sent over a secured connection; empty means anonymous. No server at hand? Practice plant starts the MPS 500 learning factory on this computer, with simulated values."),
-            new[] { "Endpoint", "Security mode", "Certificate" }, "plant"),
+            new[] { "Endpoint", "Security mode", "Certificate" },
+            "plant", "connect"),
         ["server.commands"] = new(
             L.T("What to do with the server"),
             L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."),
-            new[] { "NodeId", "Binding", "Address space" }, "plant"),
+            new[] { "Node", "NodeId", "Binding", "Address space", "InternalElement", "Attribute" },
+            "plant", "working-with-a-running-server"),
         ["server.take"] = new(
             L.T("What to take"),
-            L.T("Check nodes in the address space; right click for how much below each: the node only, with its children, or everything below. Depth limits the levels of 'everything below', at most limits the number of nodes, into names the InstanceHierarchy. The filters leave out properties, variables or other namespaces. Instances of a type checks every instance of a type below a node. What was taken keeps its selection; Load kept selection brings it back."),
-            new[] { "Address space", "Property", "View" }, "plant"),
+            L.T("Check nodes in the address space; right click for how much below each: the node only, with its children, or everything below. Depth limits the levels of 'everything below', at most limits the number of nodes, nodes into names the InstanceHierarchy. The filters leave out properties, variables or other namespaces. Instances of a type checks every instance of a type below a node. What was taken keeps its selection; Load kept selection brings it back."),
+            new[] { "Node", "Address space", "Property", "View", "InstanceHierarchy" },
+            "plant", "take-nodes-into-the-document"),
         ["server.serve"] = new(
             L.T("This document as a server"),
             L.T("Serves the document's instance hierarchies as an OPC UA server, to try clients before the plant exists. Values follow the document; added elements need a restart. With 'simulate values' numbers swing around the document's values and booleans toggle, as in a running plant. Only this computer can connect, unless 'to the network' is ticked: then other computers may, over secured connections and only with a certificate you trusted under Clients…. Copy without server addresses saves a copy of the document without where its servers are reached (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on; the log names every place a host name still appears."),
-            new[] { "Endpoint", "Certificate" }, "server"),
+            new[] { "Endpoint", "Certificate", "InstanceHierarchy" },
+            "server", "serving-the-document-as-an-opc-ua-server"),
         ["diagram"] = new(
             L.T("Diagram"),
             L.T("A UA type or instance in the notation of OPC 10000-3. Shapes: rectangle Object, rounded rectangle Variable, ellipse Method; types are shaded. Lines: one stroke HasComponent, two strokes HasProperty, two filled heads HasTypeDefinition, two hollow heads HasSubtype, an open head other hierarchical references, a filled head the others. Letters give the ModellingRule: M Mandatory, O Optional, MP and OP placeholders, E ExposesItsArray."),
-            new[] { "ReferenceType", "ModellingRule", "Placeholder" }, "models"),
+            new[] { "ReferenceType", "ModellingRule", "Placeholder" },
+            "models", "diagrams"),
         ["modeler"] = new(
             L.T("Modeler"),
             L.T("Edits NodeSets, not the document. Edit opens the NodeSet a namespace was imported from, New model starts an empty one, Open NodeSet file any other. The modeler's Apply to document imports the result like any NodeSet; its Save NodeSet writes the file. 'Modeler *' on the tab means changes neither applied nor saved; the plugin asks before it drops them."),
-            new[] { "NodeSet", "Namespace", "ModellingRule" }, "modeler"),
+            new[] { "NodeSet", "Namespace", "ModellingRule" },
+            "modeler", "the-modeler-tab"),
     };
 
     /// <summary>Term (as topics name it) to the name shown and its explanation.</summary>
@@ -65,13 +77,24 @@ internal static class HelpTopics
         ["Placeholder"] = (L.T("Placeholder"), L.T("A child declaration in angle brackets, such as <DeviceName>: it stands for any number of children of its type. A MandatoryPlaceholder needs at least one.")),
         ["Abstract type"] = (L.T("Abstract type"), L.T("A type meant only to be derived from. OPC UA creates no instances of it; pick a concrete subtype.")),
         ["Endpoint"] = (L.T("Endpoint"), L.T("Where and how a server is reached: URL, security mode and security policy. A server usually offers several.")),
-        ["Security mode"] = (L.T("Security mode"), L.T("None sends everything plainly, Sign protects against tampering, SignAndEncrypt also keeps it secret. Secure in the plugin takes only the last two.")),
+        ["Security mode"] = (L.T("Security mode"), L.T("None sends everything plainly, Sign protects against tampering, SignAndEncrypt also keeps it secret; the security policy names the algorithms for it. Secure in the plugin takes only Sign and SignAndEncrypt.")),
         ["Certificate"] = (L.T("Certificate"), L.T("The identity of a server or client. Trusting a server's certificate says: this is the server I mean. The plugin keeps exactly the one you trusted.")),
+        ["Node"] = (L.T("Node"), L.T("Everything a server offers is a node: an object, a variable, a method, a type. Each has a NodeId and is joined to other nodes by references. In the document a node becomes an element or a class.")),
         ["NodeId"] = (L.T("NodeId"), L.T("The address of a node on a server: its namespace and an identifier (a number, a string, a GUID or bytes). In the document the attribute NodeId (Annex A) holds it.")),
         ["Binding"] = (L.T("Binding"), L.T("An element of the document that points at a node of a server: its NodeId attribute holds the node's address (Annex A), and for a variable its Value attribute holds the value. Take into document makes such elements; Bind to element… makes one of your own elements one. Read values into document and Keep document values live fill in their values.")),
         ["Address space"] = (L.T("Address space"), L.T("All nodes a server offers, reached from its Objects folder along references.")),
         ["ReferenceType"] = (L.T("ReferenceType"), L.T("The kind of link between two nodes, such as HasComponent, HasProperty, Organizes or HasTypeDefinition.")),
         ["Property"] = (L.T("Property"), L.T("A small variable that describes its parent, held by HasProperty: engineering units, a range, a serial number.")),
         ["View"] = (L.T("View"), L.T("A part of the address space a server defines for a purpose, browsed on its own.")),
+        ["CAEX"] = (L.T("CAEX"), L.T("The XML format of AutomationML (IEC 62424). A document holds instance hierarchies, which describe the plant, and libraries of classes: system units, roles, interfaces and attribute types.")),
+        ["InstanceHierarchy"] = (L.T("InstanceHierarchy"), L.T("The top of a plant in an AutomationML document: a tree of InternalElements. New instances, nodes taken from a server and the document server all live in instance hierarchies. Nearest in OPC UA: the Objects folder.")),
+        ["InternalElement"] = (L.T("InternalElement"), L.T("An element of the plant in an AutomationML document, with attributes and children. Annex A makes every object, variable and method an InternalElement; a variable keeps its value in the element's attribute Value. Nearest in OPC UA: a node.")),
+        ["Attribute"] = (L.T("Attribute"), L.T("A named value of an element, with a data type. The NodeId, the Value and the ModellingRule of a node are attributes of its element; a UA variable itself is an element, not an attribute.")),
+        ["SystemUnitClass"] = (L.T("SystemUnitClass"), L.T("A class in a library that InternalElements are made from. An import makes every ObjectType, VariableType and Method a SystemUnitClass in the library SUC_ of its namespace. Nearest in OPC UA: a type.")),
+        ["RoleClass"] = (L.T("RoleClass"), L.T("Says what an element is, apart from how it is built. An import makes every InterfaceType a RoleClass in the library RCL_ of its namespace.")),
+        ["InterfaceClass"] = (L.T("InterfaceClass"), L.T("A kind of connection point between elements. An import makes every ReferenceType an InterfaceClass in the library ICL_ of its namespace, a pair for a reference that is not symmetric.")),
+        ["AttributeType"] = (L.T("AttributeType"), L.T("A data type in a library. An import makes every DataType an AttributeType in the library ATL_ of its namespace.")),
+        ["ExternalInterface"] = (L.T("ExternalInterface"), L.T("A connection point of an element, of an InterfaceClass. Two of them joined by an InternalLink stand for a reference between two nodes.")),
+        ["InternalLink"] = (L.T("InternalLink"), L.T("Joins two ExternalInterfaces. Annex A writes a reference between the children of a type this way; Check makes sure only the pairs Annex A allows are joined. Nearest in OPC UA: a reference.")),
     };
 }

@@ -123,6 +123,16 @@
                     </StackPanel>
                 </Button>
             </StatusBarItem>
+            <!-- The manual lives on GitHub; who installs from the PlugIn Manager would not find it otherwise. -->
+            <StatusBarItem DockPanel.Dock="Right">
+                <Button x:Name="ManualLink" Click="ManualLink_Click" Padding="6,0" ToolTip="{l:T 'The user manual on GitHub: every part of the plugin, step by step'}"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource IconText}" Text="&#xE82D;" FontSize="12" Foreground="{DynamicResource Exchange}"/>
+                        <TextBlock Text="{l:T 'Manual'}" TextDecorations="Underline" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StatusBarItem>
             <StatusBarItem DockPanel.Dock="Right">
                 <Button x:Name="LogLink" Click="LogLink_Click" Padding="6,0" ToolTip="{l:T 'Show the log'}"
                         Background="Transparent" BorderThickness="0" Cursor="Hand">

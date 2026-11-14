@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using Aml.Editor.Plugin.OpcUa;
@@ -87,6 +88,67 @@ public class GuideTests
         Assert.Equal("plant", HelpTopics.All["server.connection"].Lesson);
         Assert.Equal("plant", HelpTopics.All["server.commands"].Lesson);
         Assert.Equal("server", HelpTopics.All["server.serve"].Lesson);
+    }
+
+    [Fact]
+    public void The_AutomationML_terms_an_OPC_UA_developer_meets_are_explained()
+    {
+        // The glossary explained OPC UA to people who know it and AutomationML to nobody.
+        foreach (var term in new[] { "CAEX", "InstanceHierarchy", "InternalElement", "SystemUnitClass", "RoleClass", "InterfaceClass",
+                                     "ExternalInterface", "InternalLink", "Attribute", "AttributeType", "Node" })
+            Assert.True(HelpTopics.Glossary.ContainsKey(term), $"no explanation of {term}");
+        // The one fact an AutomationML engineer cannot guess: a value of a server is an element with an
+        // attribute Value, not an attribute. Language-neutral: the glossary is built in the language of the machine.
+        Assert.Contains("InternalElement", HelpTopics.Glossary["InternalElement"].Text);
+        Assert.Contains("Value", HelpTopics.Glossary["InternalElement"].Text);
+        Assert.Contains("Value", HelpTopics.Glossary["Attribute"].Text);
+        Assert.Contains("UA", HelpTopics.Glossary["Attribute"].Text);
+    }
+
+    [Fact]
+    public void Every_explained_term_is_offered_by_a_topic()
+    {
+        var offered = HelpTopics.All.Values.SelectMany(t => t.Terms).ToHashSet();
+        Assert.All(HelpTopics.Glossary.Keys, k => Assert.True(offered.Contains(k), $"{k} is explained, but no '?' offers it"));
+    }
+
+    /// <summary>The anchors GitHub gives the headings of docs/manual.md.</summary>
+    private static HashSet<string> ManualAnchors()
+    {
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository != null && !File.Exists(Path.Combine(repository.FullName, "AMLOpcUa.sln"))) repository = repository.Parent;
+        var manual = File.ReadAllLines(Path.Combine(repository!.FullName, "docs", "manual.md"));
+        return manual.Where(l => l.StartsWith('#'))
+            .Select(l => l.TrimStart('#').Trim().ToLowerInvariant())
+            .Select(h => new string(h.Where(c => char.IsLetterOrDigit(c) || c is ' ' or '-' or '_').ToArray()).Replace(' ', '-'))
+            .ToHashSet();
+    }
+
+    [Fact]
+    public void Every_help_topic_leads_to_its_section_of_the_manual()
+    {
+        // Who installs from the PlugIn Manager never sees the repository; the "?" is where they look.
+        var anchors = ManualAnchors();
+        foreach (var (key, topic) in HelpTopics.All)
+        {
+            Assert.False(string.IsNullOrEmpty(topic.Manual), $"{key}: no section of the manual");
+            Assert.True(anchors.Contains(topic.Manual!), $"{key}: the manual has no section #{topic.Manual}");
+        }
+        Assert.EndsWith("docs/manual.md", Manual.Url);
+        Assert.Equal(Manual.Url + "#connect", Manual.At("connect"));
+    }
+
+    [Fact]
+    public void The_manual_is_one_click_away_on_every_tab()
+    {
+        WithPlugin(plugin =>
+        {
+            var link = Assert.IsType<System.Windows.Controls.Button>(plugin.FindName("ManualLink"));
+            Assert.IsType<System.Windows.Controls.Primitives.StatusBarItem>(LogicalTreeHelper.GetParent(link));
+        });
+        // German readers start with the short guide in German, which leads into the manual.
+        Assert.EndsWith("docs/manual.md", Manual.Start(german: false));
+        Assert.EndsWith("docs/kurzanleitung.md", Manual.Start(german: true));
     }
 
     [Fact]
