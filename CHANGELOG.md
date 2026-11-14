@@ -100,6 +100,19 @@ minor versions.
 
 ### Fixed
 
+- **Nodes taken into the document did not show in the editor's tree.** Since
+  0.3.0 a first Take into document builds the server's element off the
+  document and hangs it in at once by XLinq, and later takes hang new nodes
+  under existing ones the same way. The editor's trees follow Aml.Engine's
+  change events, not the XML, so the receiving hierarchy looked empty there
+  until something else made the editor load it. The core now announces each
+  element it hangs in (`EditorServices.Announce`), as Aml.Engine announces an
+  appended one; the AutomationML object reference library added for links to
+  planned elements too. Checked in the editor 6.4.3.8.
+- **Closing the editor while values were kept live** logged an
+  ArgumentNullException: the editor unloads the document before the plugin
+  hears of it, and a batch of values on its way met the unloaded document
+  in the undo service. Values for an unloaded document are now dropped.
 - **The tutorial lagged behind in the editor.** After Take into document with
   typed nodes the editor keeps the dispatcher busy for half a minute and more;
   the tutorial checked its steps at Background priority and ticked "Take into

@@ -27,6 +27,9 @@ public static class ObjectReferences
         var lib = XDocument.Parse(ReadEmbedded(LibFile)).Root!
             .Elements().First(e => e.Name.LocalName == "AttributeTypeLib" && (string?)e.Attribute("Name") == Lib);
         caex.Node.Add(Renamespace(lib, ns));
+        // Hung in by XLinq: the editor's library tree hears of it only this way.
+        if (caex.CAEXDocument is { } document && caex.AttributeTypeLib[Lib] is { } added)
+            Import.EditorServices.Announce(document, new CAEXBasicObject[] { added });
     }
 
     /// <summary>Marks <paramref name="aspect"/> as an aspect of <paramref name="baseObject"/>, replacing an earlier refBaseObj.</summary>

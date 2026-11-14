@@ -149,10 +149,12 @@ public static class AddressSpaceMirror
         var state = new State(options) { Planned = options.LinkToPlanned ? PlannedIndex(doc, ih, options.PlannedIn) : new() };
         var apply = new Apply(client, types, state);
         // Element by element: in the editor its services would follow each one.
+        var first = false;
         var server = Import.EditorServices.Quietly(doc, () =>
         {
             // A first mirror is built whole off the document and goes in as one change.
             var existing = MirroredServer(ih, client);
+            first = existing == null;
             var server = existing ?? apply.Bench(ih).InternalElement.Append(UniqueName(ih, ServerName(client)));
             SetText(server, ServerUriAttribute, "xs:anyURI", client.ServerUri);
             SetText(server, EndpointAttribute, "xs:anyURI", client.EndpointUrl);
@@ -166,6 +168,8 @@ public static class AddressSpaceMirror
             }
             return server;
         });
+        // After the services are back: the editor's trees take the new elements in.
+        Import.EditorServices.Announce(doc, first ? apply.HungIn.Prepend(server) : apply.HungIn);
         if (options.ReadValues) await ReadValues(client, state, ct);
         return new SelectionMirrorResult(server, plan.Nodes, apply.Created, apply.Updated, state.Typed, state.Linked, plan.Truncated,
             apply.Vanished, state.Notes) { VanishedElements = apply.VanishedElements };
@@ -185,6 +189,9 @@ public static class AddressSpaceMirror
         public int Updated;
         public List<string> Vanished { get; } = new();
         public List<InternalElementType> VanishedElements { get; } = new();
+
+        /// <summary>New elements hung under elements already in the document, by XLinq: to be announced to the editor.</summary>
+        public List<InternalElementType> HungIn { get; } = new();
 
         /// <summary>
         /// Where a new element is built with everything below it before it goes into
@@ -248,7 +255,11 @@ public static class AddressSpaceMirror
                 if (node.Item.NodeClass == "Variable") state.Variables.Add((element, node.Item.Address));
             }
             foreach (var child in node.Children) Node(child, element!, isNew);
-            if (isNew && !building) PutInto(parent, element!);
+            if (isNew && !building)
+            {
+                PutInto(parent, element!);
+                HungIn.Add(element!);
+            }
             if (isNew || node.OnServer == null) return;
             foreach (var child in element.InternalElement.ToList())
             {

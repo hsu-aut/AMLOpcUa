@@ -163,6 +163,48 @@ public class MirrorSelectionTests(TestServer server, DiDocument di) : IClassFixt
         Assert.Equal((2, false), preview); // Objects and Plant, the way to the selected node
     }
 
+    /// <summary>
+    /// The editor's trees follow Aml.Engine's change events, not the XML. Taking nodes
+    /// hangs whole subtrees in by XLinq, which raises none: the editor showed the
+    /// receiving hierarchy as empty, though the nodes were in the document.
+    /// </summary>
+    private static List<System.Xml.Linq.XElement> HeardAdded(CAEXDocument doc, Action run)
+    {
+        var heard = new List<System.Xml.Linq.XElement>();
+        void Heard(object? sender, Aml.Engine.CAEX.Commands.CAEXElementChangeEventArgs e)
+        {
+            if (e.ChangeMode.HasFlag(Aml.Engine.CAEX.Commands.CAEXElementChangeMode.Added) && e.CAEXElement?.Document == doc.XDocument)
+                lock (heard) heard.Add(e.CAEXElement);
+        }
+        Aml.Engine.CAEX.Commands.CaexCommand.CAEXElementChangedEvent += Heard;
+        try { run(); }
+        finally { Aml.Engine.CAEX.Commands.CaexCommand.CAEXElementChangedEvent -= Heard; }
+        return heard;
+    }
+
+    [Fact]
+    public async Task Taking_nodes_tells_the_editors_trees_what_was_added()
+    {
+        await using var client = await UaClient.ConnectAsync(Options());
+        var doc = CAEXDocument.New_CAEXDocument();
+        var ih = doc.CAEXFile.InstanceHierarchy.Append("Announced");
+        var first = new MirrorSelection { Items = { new MirrorItem(Plant("Plant.Pump1"), MirrorScope.Subtree) } };
+        SelectionMirrorResult? taken = null;
+
+        var heard = HeardAdded(doc, () => taken = AddressSpaceMirror.MirrorSelectionAsync(client, first, ih).GetAwaiter().GetResult());
+
+        Assert.Contains(taken!.Server.Node, heard);
+
+        // Taken again with more: the new elements under elements that were there are announced too.
+        var before = taken.Server.Descendants<InternalElementType>().Select(e => e.Node).ToHashSet();
+        var more = new MirrorSelection { Items = { new MirrorItem(Plant("Plant"), MirrorScope.Subtree) } };
+        var heardAgain = HeardAdded(doc, () => AddressSpaceMirror.MirrorSelectionAsync(client, more, ih).GetAwaiter().GetResult());
+        var newTops = taken.Server.Descendants<InternalElementType>()
+            .Where(e => !before.Contains(e.Node) && e.Node.Parent is { } p && before.Contains(p)).Select(e => e.Node).ToList();
+        Assert.NotEmpty(newTops);
+        Assert.All(newTops, n => Assert.Contains(n, heardAgain));
+    }
+
     [Fact]
     public async Task Mirroring_again_updates_and_reports_what_vanished()
     {

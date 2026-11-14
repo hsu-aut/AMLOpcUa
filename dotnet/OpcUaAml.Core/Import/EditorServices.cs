@@ -99,6 +99,23 @@ public static class EditorServices
         }
     }
 
+    /// <summary>
+    /// Tells the editor of elements hung into <paramref name="document"/> by XLinq,
+    /// as Aml.Engine tells it of an element appended through its API. The editor's
+    /// trees follow these events, not the XML: without them a hierarchy that
+    /// received a whole subtree at once looked empty there.
+    /// </summary>
+    public static void Announce(CAEXDocument document, IEnumerable<CAEXBasicObject> added)
+    {
+        if (!IsLoaded(document)) return;
+        foreach (var element in added)
+        {
+            if (element.Node.Parent is not { } parent || element.Node.Document != document.XDocument) continue;
+            Aml.Engine.CAEX.Commands.CaexCommand.OnCAEXElementChangedEvent(document.XDocument,
+                new Aml.Engine.CAEX.Commands.CAEXElementChangeEventArgs(element.Node, parent, document, Aml.Engine.CAEX.Commands.CAEXElementChangeMode.Added));
+        }
+    }
+
     /// <summary>Whether <paramref name="document"/> still has its XML; an unloaded one has none.</summary>
     public static bool IsLoaded(CAEXDocument document) => document.XDocument != null;
 }
