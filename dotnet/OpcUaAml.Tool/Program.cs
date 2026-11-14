@@ -79,7 +79,8 @@ public static class Program
             BrowseNames from the Objects folder when it starts with a slash
             ("/MPS500/ST30_Processing/ParameterSet/Ready"). A step matches a
             child's BrowseName without its namespace, or its DisplayName; when
-            several match, the first the server lists is taken.
+            several match, the first the server lists is taken. A step with the
+            namespace index of its BrowseName ("2:Pump1") matches that one only.
 
         uaaml watch <endpoint> <node>... [--for <seconds>] [--insecure] [--accept] [--user <name>]
             Each value as it changes, one line with the time, until Ctrl+C or

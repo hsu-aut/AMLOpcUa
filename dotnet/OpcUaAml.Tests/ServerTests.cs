@@ -33,6 +33,18 @@ public class ServerTests(TestServer server) : IClassFixture<TestServer>
     }
 
     [Fact]
+    public async Task A_step_of_a_path_may_name_the_namespace_index_of_its_BrowseName()
+    {
+        // "2:Pump1" is how a BrowseName is written with its namespace; a step written so was never found.
+        await using var client = await UaClient.ConnectAsync(Options());
+        var ns = client.NamespaceTable.ToList().IndexOf(TestServer.Namespace);
+
+        Assert.Equal(Plant("Plant.Pump1.Speed"), await client.ResolveAsync($"/{ns}:Plant/{ns}:Pump1/{ns}:Speed"));
+        // Another namespace's index does not match the name.
+        await Assert.ThrowsAsync<ArgumentException>(() => client.ResolveAsync($"/{ns + 1}:Plant"));
+    }
+
+    [Fact]
     public async Task A_path_that_leads_nowhere_says_which_step_failed()
     {
         await using var client = await UaClient.ConnectAsync(Options());

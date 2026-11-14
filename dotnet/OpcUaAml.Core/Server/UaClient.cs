@@ -69,7 +69,11 @@ public sealed record UaBrowseItem(
     string DisplayName,
     string NodeClass,
     UaNodeAddress? TypeDefinition,
-    string ReferenceType);
+    string ReferenceType)
+{
+    /// <summary>The namespace index of the BrowseName in the session's table.</summary>
+    public ushort BrowseNameIndex { get; init; }
+}
 
 /// <summary>The value of a variable as read, with its status.</summary>
 public sealed record UaReadResult(UaNodeAddress Address, object? Value, string? DataType, bool Good, string Status)
@@ -398,7 +402,7 @@ public sealed class UaClient : IAsyncDisposable
                     r.DisplayName.Text,
                     r.NodeClass.ToString(),
                     r.TypeDefinition != null && !NodeId.IsNull(r.TypeDefinition) ? FromExpanded(r.TypeDefinition) : null,
-                    ReferenceName(r.ReferenceTypeId)));
+                    ReferenceName(r.ReferenceTypeId)) { BrowseNameIndex = r.BrowseName.NamespaceIndex });
             }
         }
     }
@@ -408,8 +412,11 @@ public sealed class UaClient : IAsyncDisposable
     /// when it starts with a slash ("/Plant/Pump1/Motor/Temperature"),
     /// otherwise a NodeId as the server writes it. A step of a path matches a
     /// BrowseName or a DisplayName, so nobody has to know the NodeIds of a
-    /// server to read one of its values. A NodeId is never split, because both
-    /// its namespace and its identifier may hold slashes.
+    /// server to read one of its values; written with the namespace index of
+    /// its BrowseName ("2:Pump1"), it matches that BrowseName only, for when
+    /// two children share a name. The first child the server lists wins. A
+    /// NodeId is never split, because both its namespace and its identifier
+    /// may hold slashes.
     /// </summary>
     public async Task<UaNodeAddress> ResolveAsync(string text, CancellationToken ct = default)
     {
@@ -419,8 +426,11 @@ public sealed class UaClient : IAsyncDisposable
         foreach (var step in text.Split('/', StringSplitOptions.RemoveEmptyEntries))
         {
             var children = await BrowseAsync(node, ct).ConfigureAwait(false);
+            var colon = step.IndexOf(':');
+            var qualified = colon > 0 && ushort.TryParse(step.AsSpan(0, colon), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var index)
+                ? (Index: index, Name: step[(colon + 1)..]) : ((ushort Index, string Name)?)null;
             var hit = children.FirstOrDefault(c => c.BrowseName == step || c.DisplayName == step)
-                      ?? children.FirstOrDefault(c => c.BrowseName.EndsWith(":" + step, StringComparison.Ordinal));
+                      ?? (qualified is { } q ? children.FirstOrDefault(c => c.BrowseNameIndex == q.Index && c.BrowseName == q.Name) : null);
             node = hit?.Address ?? throw new ArgumentException(
                 $"'{step}' is not below {(node == null ? "the Objects folder" : node.ToString())}.", nameof(text));
         }

@@ -77,8 +77,10 @@ server it was bound to ([export](export.md), D16).
   (`/MPS500/ST30_Processing/ParameterSet/Ready`), because nobody knows a
   server's NodeIds by heart. A step matches the name of a child's BrowseName,
   without its namespace, or its DisplayName; where several children match,
-  the first one the server lists is taken (`UaClient.ResolveAsync`). A NodeId
-  is never split on its slashes.
+  the first one the server lists is taken (`UaClient.ResolveAsync`). A step
+  written with the namespace index of its BrowseName (`/2:Plant/2:Pump1`)
+  matches that BrowseName only, for children that share a name. A NodeId is
+  never split on its slashes.
 - **Watch (view only)** values through a subscription (`WatchAsync`); the plugin shows
   them in a live list under the address space. That list is for looking; to
   keep the document itself current, see "Keep document values live" below.
