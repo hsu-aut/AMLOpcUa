@@ -172,7 +172,7 @@ public static class Program
         uaaml opcf search <keywords...> [--refresh]
         uaaml opcf download <model-uri> [-o <folder>]
             The NodeSets the OPC Foundation publishes on GitHub (OPCFoundation/UA-Nodeset),
-            without an account: search by name or namespace, or download a model with
+            without an account: search by name ("Device Integration" or "DI") or namespace, or download a model with
             the models it requires. The list is kept in %LOCALAPPDATA%\AMLOpcUa\opcfoundation
             and asked of GitHub at most once a day.
 
@@ -206,7 +206,9 @@ public static class Program
             a NodeSet (.xml) UA -> AML (Annex A) -> UA (AML-UA-XSLT rules),
             an AML document (.aml) AML -> UA (AML-UA-XSLT rules) -> AML (Annex A).
             --inverse  a NodeSet goes back through the inverse of Annex A instead,
-                       compared node by node with the original
+                       compared node by node with the original. Without it no
+                       Methods, DataTypes or ReferenceTypes survive: the two
+                       standards do not form a pair (docs/roundtrip.md).
 
         uaaml compare <left.aml|amlx> <right.aml|amlx> [--skeleton] [--limit <n>]
             Structural difference of the class libraries of two documents.
@@ -216,6 +218,13 @@ public static class Program
 
         The UA base model and DI ship with uaaml; --search adds folders with
         further NodeSets, which win over the bundled ones when newer.
+
+        Exit codes
+            0   done; lines starting with "note:" on the error output are notes, not failures
+            1   an error, or what the command looks for was found: info a required
+                model it cannot find, check an error in an instance, compare a
+                difference, roundtrip a chain that broke off
+            2   no command given
         """;
 
     public static int Main(string[] args)
@@ -1035,7 +1044,7 @@ public static class Program
         {
             case "search":
                 foreach (var m in OpcFoundationNodeSets.Search(models, o.Positional.Skip(1)))
-                    Console.WriteLine($"{m.ModelUri,-60} {m.Version,-10} {m.PublicationDate:yyyy-MM-dd}  {m.Path}");
+                    Console.WriteLine($"{m.ModelUri,-60} {m.Version,-10} {m.PublicationDate:yyyy-MM-dd}  {m.Path}" + (m.Title is { } title ? $"  ({title})" : ""));
                 return 0;
             case "download" when o.Positional.Count == 2:
                 var model = OpcFoundationNodeSets.Find(models, o.Positional[1])
@@ -1217,6 +1226,10 @@ public static class Program
         var report = new System.Text.StringBuilder();
         report.AppendLine("# Round trip report").AppendLine();
         var failed = 0;
+        if (!o.Has("--inverse") && o.Positional.Any(f => Path.GetExtension(f).Equals(".xml", StringComparison.OrdinalIgnoreCase)))
+            // What chain A keeps is a finding about the two standards, not about the model: without this, its 0/23 Methods read like a broken file.
+            Console.Error.WriteLine("note: a NodeSet goes back by the AML-UA-XSLT rules, which keep no Methods, DataTypes or ReferenceTypes; "
+                                    + "--inverse goes back by the inverse of Annex A and compares node by node.");
         foreach (var file in o.Positional)
         {
             var catalog = NodeSetCatalog.Create(o.All("--search"));

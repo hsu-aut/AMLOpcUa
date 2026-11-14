@@ -259,4 +259,34 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.Contains("Password for operator: ", run.Error);
         Assert.Contains("clear text", run.Error);
     }
+
+    [Fact]
+    public async Task The_help_says_what_each_exit_code_means()
+    {
+        // A build script needs to know which failures stop it; only the README said so.
+        using var uaaml = new Uaaml();
+
+        var run = await uaaml.RunAsync("help");
+
+        Assert.Equal(0, run.Exit);
+        Assert.Contains("Exit codes", run.Out);
+        foreach (var command in new[] { "info", "check", "compare", "roundtrip" })
+            Assert.Matches($@"(?s)Exit codes.*\b{command}\b", run.Out);
+        Assert.Matches(@"(?m)^\s+2\s", run.Out);
+    }
+
+    [Fact]
+    public async Task A_NodeSet_sent_round_without_inverse_is_told_what_that_chain_keeps()
+    {
+        // Chain A keeps no Methods, DataTypes or ReferenceTypes (docs/roundtrip.md); the run alone did not say so.
+        using var uaaml = new Uaaml();
+        var nodeSet = Fixtures.Path("modeldesign", "Mini.NodeSet2.xml");
+
+        var plain = await uaaml.RunAsync("roundtrip", nodeSet);
+        var inverse = await uaaml.RunAsync("roundtrip", nodeSet, "--inverse");
+
+        Assert.Contains("note:", plain.Error);
+        Assert.Contains("--inverse", plain.Error);
+        Assert.DoesNotContain("--inverse", inverse.Error);
+    }
 }
