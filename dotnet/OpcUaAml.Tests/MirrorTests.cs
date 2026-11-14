@@ -236,6 +236,41 @@ public class MirrorTests(TestServer server, DiDocument di) : IClassFixture<TestS
     }
 
     [Fact]
+    public async Task Live_values_for_a_document_the_editor_unloaded_are_dropped_without_an_error()
+    {
+        // Closing the editor unloads the document before the plugin hears of it; a batch
+        // of values on its way then met the unloaded document and threw (ArgumentNullException 'key').
+        await using var client = await UaClient.ConnectAsync(Options());
+        var doc = CAEXDocument.New_CAEXDocument();
+        var counter = doc.CAEXFile.InstanceHierarchy.Append("Closing").InternalElement.Append("Counter");
+        AnnexANodeId.Write(counter, new UaNodeAddress(TestServer.Namespace, UaIdType.String, "Plant.Counter"));
+        counter.Attribute.Append("Value");
+        Aml.Engine.Services.UndoRedoService.Register();
+        try
+        {
+            var held = new System.Collections.Concurrent.ConcurrentQueue<Action>();
+            var errors = new List<Exception>();
+            await using (var live = await LiveValues.FollowAsync(doc, client, write => held.Enqueue(write), publishingIntervalMs: 100))
+            {
+                for (var i = 0; i < 50 && held.IsEmpty; i++) await Task.Delay(100);
+                Assert.False(held.IsEmpty, "no values arrived");
+
+                doc.Unload();
+                while (held.TryDequeue(out var write))
+                {
+                    try { write(); }
+                    catch (Exception ex) { errors.Add(ex); }
+                }
+            }
+            Assert.Empty(errors);
+        }
+        finally
+        {
+            Aml.Engine.Services.UndoRedoService.UnRegister();
+        }
+    }
+
+    [Fact]
     public async Task Live_values_count_and_name_bindings_the_server_lacks()
     {
         // A document made for another installation, or a server not (yet) complete:

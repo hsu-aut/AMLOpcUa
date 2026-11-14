@@ -84,6 +84,9 @@ public static class EditorServices
     /// </summary>
     public static void WithoutUndo(CAEXDocument document, Action change)
     {
+        // Closing, the editor unloads the document before the plugin hears of it; values
+        // still on their way have nowhere to go, and the undo service throws for it.
+        if (!IsLoaded(document)) return;
         var undo = ServiceLocator.UndoRedoService;
         undo?.Pause(document);
         try
@@ -95,4 +98,7 @@ public static class EditorServices
             undo?.Resume(document);
         }
     }
+
+    /// <summary>Whether <paramref name="document"/> still has its XML; an unloaded one has none.</summary>
+    public static bool IsLoaded(CAEXDocument document) => document.XDocument != null;
 }
