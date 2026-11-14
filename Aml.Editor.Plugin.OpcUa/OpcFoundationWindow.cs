@@ -102,7 +102,7 @@ public sealed class OpcFoundationWindow : Window
     private void Filter()
     {
         var found = OpcFoundationNodeSets.Search(_models, _search.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries));
-        _results.ItemsSource = found.Select(m => DialogKit.Entry(m.Folder.Length > 0 ? m.Folder : System.IO.Path.GetFileName(m.Path),
+        _results.ItemsSource = found.Select(m => DialogKit.Entry((m.Folder.Length > 0 ? m.Folder : System.IO.Path.GetFileName(m.Path)) + (m.Title is { } title ? $" · {title}" : ""),
             $"{m.ModelUri}   {m.Version}" + (m.PublicationDate is { } d ? $" ({d:yyyy-MM-dd})" : ""), m)).ToList();
         if (_models.Count > 0)
             DialogKit.ShowInfo(_info, found.Count == 0 ? L.T("No model matches. Try a shorter or another search term.") : L.T("{0} of {1} model(s).", found.Count, _models.Count));

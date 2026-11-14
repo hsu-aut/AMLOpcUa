@@ -218,4 +218,32 @@ public class OpcFoundationNodeSetsTests
         Assert.Contains(models, m => m.ModelUri == AcUri);
         Assert.Contains(source.Notes, n => n.Contains("cannot be reached"));
     }
+
+    private static PublishedModel Model(string uri, string path) => new(uri, "1.00", new DateTime(2024, 1, 1), path, Array.Empty<string>());
+
+    private static readonly PublishedModel[] Published =
+    {
+        Model("http://opcfoundation.org/UA/DI/", "DI/Opc.Ua.Di.NodeSet2.xml"),
+        Model("http://opcfoundation.org/UA/PROFINET/", "PROFINET/Opc.Ua.Pn.NodeSet2.xml"),
+        Model("http://opcfoundation.org/UA/PNRIO/", "PNRIO/Opc.Ua.PnRio.Nodeset2.xml"),
+        Model("http://opcfoundation.org/UA/PlasticsRubber/GeneralTypes/", "PlasticsRubber/GeneralTypes/1.03/Opc.Ua.PlasticsRubber.GeneralTypes.NodeSet2.xml"),
+        Model("http://opcfoundation.org/UA/Machinery/", "Machinery/Opc.Ua.Machinery.NodeSet2.xml"),
+    };
+
+    [Fact]
+    public void A_specification_is_found_by_the_name_it_is_published_under()
+    {
+        // The repository's folders abbreviate: nobody who types "Device Integration" thinks of "DI".
+        Assert.Equal(new[] { "http://opcfoundation.org/UA/DI/" }, OpcFoundationNodeSets.Search(Published, new[] { "Device", "Integration" }).Select(m => m.ModelUri));
+        Assert.Equal(new[] { "http://opcfoundation.org/UA/PNRIO/" }, OpcFoundationNodeSets.Search(Published, new[] { "PROFINET", "Remote", "IO" }).Select(m => m.ModelUri));
+        Assert.Equal("Devices (Device Integration)", Published[0].Title);
+        Assert.Null(Published[4].Title);
+    }
+
+    [Fact]
+    public void Small_words_of_a_name_do_not_keep_it_from_being_found()
+    {
+        Assert.Equal(new[] { "http://opcfoundation.org/UA/PlasticsRubber/GeneralTypes/" },
+            OpcFoundationNodeSets.Search(Published, new[] { "plastics", "and", "rubber" }).Select(m => m.ModelUri));
+    }
 }

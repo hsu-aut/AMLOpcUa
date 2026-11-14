@@ -22,6 +22,9 @@ public sealed record PublishedModel(string ModelUri, string? Version, DateTime? 
 {
     /// <summary>The folder of the file, which names the specification in most cases ("Machinery", "IJT/Tightening").</summary>
     public string Folder => System.IO.Path.GetDirectoryName(Path)?.Replace('\\', '/') ?? "";
+
+    /// <summary>The name the specification is published under, where the folder abbreviates it ("DI": "Devices (Device Integration)"); null otherwise.</summary>
+    public string? Title => SpecificationTitles.Of(Folder);
 }
 
 public sealed class OpcFoundationNodeSetsException : Exception
@@ -118,12 +121,16 @@ public sealed class OpcFoundationNodeSets
         return index.Models();
     }
 
-    /// <summary>Models whose URI, folder or file name contains every keyword, newest publication first.</summary>
+    /// <summary>Words of a name that tell nothing apart ("Plastics and Rubber").</summary>
+    private static readonly HashSet<string> SmallWords = new(StringComparer.OrdinalIgnoreCase) { "and", "&", "for", "of", "the" };
+
+    /// <summary>Models whose URI, folder, file name or published name contains every keyword, newest publication first.</summary>
     public static IReadOnlyList<PublishedModel> Search(IEnumerable<PublishedModel> models, IEnumerable<string> keywords)
     {
-        var words = keywords.Where(k => !string.IsNullOrWhiteSpace(k) && k != "*").Select(k => k.Trim()).ToList();
+        var words = keywords.Where(k => !string.IsNullOrWhiteSpace(k) && k != "*").Select(k => k.Trim()).Where(k => !SmallWords.Contains(k)).ToList();
         return models
-            .Where(m => words.All(w => m.ModelUri.Contains(w, StringComparison.OrdinalIgnoreCase) || m.Path.Contains(w, StringComparison.OrdinalIgnoreCase)))
+            .Where(m => words.All(w => m.ModelUri.Contains(w, StringComparison.OrdinalIgnoreCase) || m.Path.Contains(w, StringComparison.OrdinalIgnoreCase)
+                                       || (m.Title?.Contains(w, StringComparison.OrdinalIgnoreCase) ?? false)))
             .OrderBy(m => m.Folder, StringComparer.OrdinalIgnoreCase)
             .ThenByDescending(m => m.PublicationDate)
             .ToList();
