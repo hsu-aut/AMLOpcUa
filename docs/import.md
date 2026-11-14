@@ -83,7 +83,11 @@ added. A generated library (`ATL_`, `ICL_`, `RCL_`, `SUC_` prefix) the document
 already has is replaced at the same position, unless
 
 - the document's copy was generated from a newer publication of the model
-  (it is kept, with a note), or
+  (it is kept, with a note),
+- the import's copy says the same as the document's, its IDs aside (it is
+  kept, the document does not change): every model that requires the UA base
+  model and DI brings them along, converted anew with new IDs, and replacing
+  them made the editor work for minutes when instances used their classes, or
 - "Replace existing libraries" is off (menu Settings) / `--keep` says to keep
   existing libraries.
 

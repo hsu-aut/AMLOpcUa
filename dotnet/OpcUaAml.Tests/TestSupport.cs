@@ -31,6 +31,33 @@ internal static class Fixtures
     public const string DiUri = "http://opcfoundation.org/UA/DI/";
 }
 
+/// <summary>Variants of a conversion, for imports that meet libraries already in a document.</summary>
+internal static class Conversions
+{
+    /// <summary>A copy whose generated libraries say something else: a later import that differs.</summary>
+    public static Aml.Engine.CAEX.CAEXDocument Changed(Aml.Engine.CAEX.CAEXDocument source)
+    {
+        var copy = Aml.Engine.CAEX.CAEXDocument.LoadFromString(source.XDocument.ToString());
+        foreach (var lib in copy.CAEXFile.SystemUnitClassLib.Cast<Aml.Engine.CAEX.CAEXObject>()
+                     .Concat(copy.CAEXFile.RoleClassLib).Concat(copy.CAEXFile.InterfaceClassLib).Concat(copy.CAEXFile.AttributeTypeLib)
+                     .Where(l => LibraryMerger.IsGeneratedLibrary(l.Name)))
+            lib.Description += " (changed)";
+        return copy;
+    }
+
+    /// <summary>
+    /// A copy with a new ID on every element: a second conversion of the same
+    /// NodeSets, which hands out IDs anew (ConversionIds).
+    /// </summary>
+    public static Aml.Engine.CAEX.CAEXDocument Reconverted(Aml.Engine.CAEX.CAEXDocument source)
+    {
+        var copy = Aml.Engine.CAEX.CAEXDocument.LoadFromString(source.XDocument.ToString());
+        foreach (var element in copy.XDocument.Descendants().Where(e => e.Attribute("ID") != null).ToList())
+            element.SetAttributeValue("ID", Guid.NewGuid().ToString());
+        return copy;
+    }
+}
+
 /// <summary>
 /// The bundled DI (1.05.0) converted once for all tests that only read the
 /// result. A conversion reads the whole UA base model and takes seconds.

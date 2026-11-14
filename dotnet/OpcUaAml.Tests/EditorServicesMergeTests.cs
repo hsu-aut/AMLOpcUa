@@ -58,6 +58,8 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
     {
         var target = CAEXDocument.New_CAEXDocument();
         LibraryMerger.Merge(target, di.Result.Document);
+        // Made before the services: its own changes are not the merge's.
+        var changed = Conversions.Changed(di.Result.Document);
 
         // The services the editor registers for the whole process.
         var lookup = LookupService.Register();
@@ -72,7 +74,7 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
             var recorded = 0;
             undo.PropertyChanged += (_, _) => recorded++;
 
-            var report = LibraryMerger.Merge(target, di.Result.Document);
+            var report = LibraryMerger.Merge(target, changed);
 
             // The editor answers each recorded change on its UI thread. Removing
             // and inserting a library are a few; rewriting every reference into

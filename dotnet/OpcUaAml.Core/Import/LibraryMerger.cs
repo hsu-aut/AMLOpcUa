@@ -185,6 +185,15 @@ public static class LibraryMerger
                 // jump to the end of the tree the user is looking at.
                 var index = present.IndexOf(existing);
                 var replacement = elsewhere.Rewrite(Detached(lib));
+                // A library that did not change stays as it is. Each conversion
+                // hands out new IDs, so the UA base model and DI came anew with
+                // every import that requires them; replacing them made the editor
+                // work for minutes when instances used their classes.
+                if (SameContent(existing.Node, replacement.Node))
+                {
+                    changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Kept, info?.ModelVersion));
+                    continue;
+                }
                 steps.Add(new Step(order, index, () => existing.Remove(), () => InsertAsIs(into, index, replacement)));
                 changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Replaced, incoming?.ModelVersion,
                     info != null && incoming != null && !Equals(info, incoming)
@@ -197,6 +206,31 @@ public static class LibraryMerger
             changes.Add(new LibraryChange(kind, lib.Name, LibraryAction.Added, incoming?.ModelVersion, note));
         }
         return steps;
+    }
+
+    /// <summary>
+    /// Two libraries alike but for the IDs of their elements: names, other
+    /// attributes, children in order and texts. Classes are found by path, and
+    /// links name their sides by reference and NodeId, so the IDs carry nothing.
+    /// </summary>
+    internal static bool SameContent(System.Xml.Linq.XElement a, System.Xml.Linq.XElement b)
+    {
+        if (a.Name != b.Name) return false;
+        static List<System.Xml.Linq.XAttribute> Attributes(System.Xml.Linq.XElement e) =>
+            e.Attributes().Where(x => !x.IsNamespaceDeclaration && x.Name.LocalName != "ID")
+                .OrderBy(x => x.Name.ToString(), StringComparer.Ordinal).ToList();
+        var aa = Attributes(a);
+        var ba = Attributes(b);
+        if (aa.Count != ba.Count) return false;
+        for (var i = 0; i < aa.Count; i++)
+            if (aa[i].Name != ba[i].Name || aa[i].Value != ba[i].Value) return false;
+        var ac = a.Elements().ToList();
+        var bc = b.Elements().ToList();
+        if (ac.Count != bc.Count) return false;
+        if (ac.Count == 0) return a.Value == b.Value;
+        for (var i = 0; i < ac.Count; i++)
+            if (!SameContent(ac[i], bc[i])) return false;
+        return true;
     }
 
     private static bool IsNewer(OpcUaLibraryInfo? present, OpcUaLibraryInfo? incoming) =>

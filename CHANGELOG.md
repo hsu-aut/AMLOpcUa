@@ -46,6 +46,14 @@ minor versions.
 
 ### Fixed
 
+- **An import made the editor work for minutes after taking nodes.** Every
+  model that requires DI brings the UA base model and DI along, converted
+  anew with new IDs, and with Replace existing libraries on (the default)
+  they replaced the document's copies although nothing in them had changed.
+  With instances using their classes, the editor then needed 43 s (Machinery
+  after the screenshots) to 107 s (Machinery after taking 188 nodes of the
+  practice plant) before it answered again. A library that says the same as
+  the document's, its IDs aside, is kept now (`LibraryMerger.SameContent`).
 - **Show me found no button in a toolbar's overflow.** With the plugin
   narrow, the last buttons of a toolbar go into its overflow, and Show me
   framed nothing: lesson 3, step 8 (Watch). It now opens the overflow.

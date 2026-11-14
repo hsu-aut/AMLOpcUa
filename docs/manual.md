@@ -481,7 +481,7 @@ NodeSet again does.
 | Entry | What it does |
 |---|---|
 | **NodeSet folders…** | The folders searched for required models. |
-| **Replace existing libraries** | Replace OPC UA libraries the document already has on a new import (on by default). An older model never replaces a newer one. |
+| **Replace existing libraries** | Replace OPC UA libraries the document already has on a new import (on by default). An older model never replaces a newer one, and a library that did not change stays as it is. |
 | **Save after import** | Trigger the editor's save command after an import and after **New instance…** (off by default). |
 | **Debug log** | Write detailed lines (DEBUG) to the log. |
 | **Language** | The plugin's language: as Windows, English or Deutsch; from the next start of the editor. |

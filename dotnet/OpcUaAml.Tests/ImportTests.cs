@@ -152,12 +152,50 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
         LibraryMerger.Merge(target, di.Result.Document);
         var countAfterFirst = LibraryNames(target).Count();
 
-        var second = LibraryMerger.Merge(target, di.Result.Document);
+        var second = LibraryMerger.Merge(target, Conversions.Changed(di.Result.Document));
 
         Assert.Equal(countAfterFirst, LibraryNames(target).Count());
         Assert.Equal(GeneratedDiLibraries.Length, second.Replaced);
         Assert.Equal(0, second.Added);
         Assert.All(LibraryNames(target).GroupBy(n => n), g => Assert.Single(g));
+    }
+
+    /// <summary>
+    /// Every import of a model that requires DI brings the UA base model and DI
+    /// along, converted anew with new IDs. Replacing them although nothing in
+    /// them changed made the editor work for 43 to 107 s when instances in the
+    /// document used their classes (Machinery after taking the practice plant).
+    /// </summary>
+    [Fact]
+    public void Libraries_that_did_not_change_are_kept_as_they_are()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var before = target.CAEXFile.SystemUnitClassLib["SUC_http://opcfoundation.org/UA/DI/"]!.Node;
+
+        var second = LibraryMerger.Merge(target, Conversions.Reconverted(di.Result.Document));
+
+        Assert.Equal(0, second.Replaced);
+        Assert.Equal(0, second.Added);
+        Assert.All(second.Changes.Where(c => LibraryMerger.IsGeneratedLibrary(c.Name)), c => Assert.Equal(LibraryAction.Kept, c.Action));
+        // Not a word of warning: nothing was left out.
+        Assert.All(second.Changes, c => Assert.Null(c.Note));
+        Assert.Same(before, target.CAEXFile.SystemUnitClassLib["SUC_http://opcfoundation.org/UA/DI/"]!.Node);
+    }
+
+    [Fact]
+    public void A_model_that_requires_DI_keeps_the_DI_already_in_the_document()
+    {
+        // Two conversions of their own: DI alone, then the MPS 500, which brings DI along.
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var plant = NodeSetImporter.Convert(Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml"), di.Catalog);
+
+        var report = LibraryMerger.Merge(target, plant.Document);
+
+        Assert.All(report.Changes.Where(c => c.Name.EndsWith("http://opcfoundation.org/UA/DI/") || c.Name.EndsWith("http://opcfoundation.org/UA/")),
+            c => Assert.Equal(LibraryAction.Kept, c.Action));
+        Assert.Contains(report.Changes, c => c.Name == "SUC_http://hsu-hh.de/UA/MPS500/" && c.Action == LibraryAction.Added);
     }
 
     [Fact]
@@ -191,7 +229,7 @@ public class ImportTests(BundledDiConversion di) : IClassFixture<BundledDiConver
         LibraryMerger.Merge(target, di.Result.Document);
         var before = target.CAEXFile.SystemUnitClassLib.Select(l => l.Name).ToList();
 
-        LibraryMerger.Merge(target, di.Result.Document);
+        LibraryMerger.Merge(target, Conversions.Changed(di.Result.Document));
 
         Assert.Equal(before, target.CAEXFile.SystemUnitClassLib.Select(l => l.Name).ToList());
     }
