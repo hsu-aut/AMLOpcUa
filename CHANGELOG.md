@@ -7,6 +7,53 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **The node details follow live values.** With document values kept live,
+  the Value beside the address space showed the value read when the node was
+  selected, while the document followed the plant. It now changes with the
+  document. `LiveUpdate` names the node it comes from (`Address`).
+
+### Changed
+
+- **Libraries carry the notice of their NodeSet.** The NodeSets of the OPC
+  Foundation hold their copyright and licence (MIT) in a comment at the top;
+  Opc2Aml left it behind and wrote "© OPC Foundation" into every library,
+  whoever published the model. Each library of a model now carries the
+  notice of its NodeSet in CAEX's Copyright, from a new conversion or the
+  cache. A NodeSet without a notice keeps Opc2Aml's text; the libraries of
+  Annex A's meta model are not touched. `NodeSetInfo.ReadNotice` reads it.
+- **The documentation answers a second round of test readers** (an
+  AutomationML engineer new to OPC UA, an OPC UA developer new to
+  AutomationML), each statement checked against the code: bindings and
+  another server (they move only through Copy without server addresses…),
+  no bulk binding, what a class dragged from the library gives compared with
+  New instance…, how a planned element gets its NodeId, where `uaaml` lies
+  and how to call it, what the document server does with a NodeId used
+  twice, what a client sees of properties, how values of other types are
+  written, methods as InternalElements of `UaMethodNodeClass` (not
+  SystemUnitClasses), the ModelCompiler package, the editor in five steps
+  for OPC UA developers, one statement of the first conversion time, a new
+  document saved before the first import (also in the lessons). The
+  in-plugin glossary has Server, Client, Security policy, Object, Variable,
+  Method, BrowseName and Subscription. The usage text gives the default port
+  of `serve` and `--compiler` in the synopsis of `design`.
+
+### Fixed
+
+- **Show me found no button in a toolbar's overflow.** With the plugin
+  narrow, the last buttons of a toolbar go into its overflow, and Show me
+  framed nothing: lesson 3, step 8 (Watch). It now opens the overflow.
+- **Lesson 3 pointed at a speed the document does not hold.** The drives'
+  speeds lie one level below the default depth 3. The lesson and the manual
+  point at a cycle time now, say to click its attribute Value, and the manual
+  says to set depth 5 for the speeds.
+- The model documentation cited OPC 10000-5 Annex B for state machines;
+  since OPC UA 1.04 they are OPC 10000-16.
+- **The log's line after an import** said "(only its types are imported)",
+  the command line's words, where the status line said more; it now says what
+  the status line says.
+
 ## [0.3.1] - 2026-11-14
 
 ### Added
