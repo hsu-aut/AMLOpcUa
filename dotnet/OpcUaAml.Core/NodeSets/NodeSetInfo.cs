@@ -41,6 +41,47 @@ public sealed record NodeSetInfo(string FilePath, IReadOnlyList<ModelDeclaration
         }
     }
 
+    /// <summary>
+    /// The copyright and licence notice of a NodeSet: the comments before its
+    /// root element that name a copyright, a licence or an SPDX tag, without
+    /// the comment's frame (" * " at the start of a line). Null when there is
+    /// none or the file cannot be read.
+    /// </summary>
+    public static string? ReadNotice(string filePath)
+    {
+        try
+        {
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit };
+            using var reader = XmlReader.Create(filePath, settings);
+            var notices = new List<string>();
+            while (reader.Read() && reader.NodeType != XmlNodeType.Element)
+            {
+                if (reader.NodeType != XmlNodeType.Comment) continue;
+                var text = reader.Value;
+                if (text.Contains("Copyright", StringComparison.OrdinalIgnoreCase) || text.Contains("License", StringComparison.OrdinalIgnoreCase)
+                    || text.Contains("SPDX", StringComparison.Ordinal))
+                    notices.Add(Unframed(text));
+            }
+            return notices.Count == 0 ? null : string.Join("\n\n", notices);
+        }
+        catch (Exception ex) when (ex is XmlException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>A comment's lines without the frame " * ", without blank lines at the ends.</summary>
+    private static string Unframed(string comment)
+    {
+        var lines = comment.Replace("\r\n", "\n").Split('\n')
+            .Select(l => l.Trim())
+            .Select(l => l.StartsWith('*') ? l[1..].Trim() : l)
+            .ToList();
+        while (lines.Count > 0 && lines[0].Length == 0) lines.RemoveAt(0);
+        while (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+        return string.Join("\n", lines);
+    }
+
     /// <summary>Reads the Models section of a NodeSet file.</summary>
     public static NodeSetInfo Read(string filePath)
     {

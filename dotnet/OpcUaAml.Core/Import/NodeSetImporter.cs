@@ -84,7 +84,9 @@ public static class NodeSetImporter
         {
             try
             {
-                return new ConversionResult(ReadDocument(hit.File), info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
+                var cached = ReadDocument(hit.File);
+                LibraryNotices.Add(cached, info, catalog);
+                return new ConversionResult(cached, info, hit.LoadedModels, hit.Warnings, DateTime.UtcNow - started, FromCache: true);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -126,7 +128,9 @@ public static class NodeSetImporter
 
             var document = ReadDocument(baseName + ".aml");
             var warnings = converter.Warnings.ToList();
+            // The cache keeps Opc2Aml's own result; the notices are added to every copy read.
             cache?.Store(key!, baseName + ".aml", loaded, warnings);
+            LibraryNotices.Add(document, info, catalog);
             return new ConversionResult(document, info, loaded, warnings, DateTime.UtcNow - started);
         }
         finally
