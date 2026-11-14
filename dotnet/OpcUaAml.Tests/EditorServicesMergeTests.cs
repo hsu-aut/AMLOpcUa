@@ -124,6 +124,55 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
     }
 
     /// <summary>
+    /// Taking nodes hangs typed elements into the document and then tells the
+    /// editor's trees of them (Announce). With automatic updates on, the lookup
+    /// service took each announcement as news and reported every reference of
+    /// the new elements as updated; the editor's tree searched itself once for
+    /// each. After taking the practice plant's 188 typed nodes the editor did
+    /// not answer for minutes. The service's tables are complete by then.
+    /// </summary>
+    [Fact]
+    public void Announcing_taken_elements_reports_no_reference_as_updated()
+    {
+        var target = CAEXDocument.New_CAEXDocument();
+        LibraryMerger.Merge(target, di.Result.Document);
+        var path = target.CAEXFile.SystemUnitClassLib["SUC_http://opcfoundation.org/UA/DI/"].SystemUnitClass["DeviceType"].CAEXPath();
+        var plant = target.CAEXFile.InstanceHierarchy.Append("Plant");
+        var lookup = LookupService.Register();
+        try
+        {
+            lookup.IsAutoUpdateEnabled = true;
+            typeof(CAEXDocument).GetProperty("SupportsAutoUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .SetValue(target, true);
+            lookup.AddDocument(target);
+            var reported = 0;
+            lookup.ReferenceUpdated += (_, _) => reported++;
+            var added = new List<CAEXBasicObject>();
+            // As AddressSpaceMirror does it: built quietly, then announced.
+            EditorServices.Quietly(target, () =>
+            {
+                for (var i = 0; i < 50; i++)
+                {
+                    var device = plant.InternalElement.Append($"Device{i}");
+                    device.RefBaseSystemUnitPath = path;
+                    added.Add(device);
+                }
+            });
+
+            EditorServices.Announce(target, added);
+
+            Assert.True(reported < 10, $"{reported} reference(s) reported as updated");
+            // The service still knows the new references, and updates stay on.
+            Assert.Equal(50, lookup.ElementsWithCAEXPathReference(target.CAEXFile, path).Count());
+            Assert.True(lookup.IsAutoUpdateEnabled);
+        }
+        finally
+        {
+            LookupService.UnRegister();
+        }
+    }
+
+    /// <summary>
     /// Values change no reference. Written with the lookup service held, each
     /// batch of live values made the service build its tables for the whole
     /// document again: with the practice plant the editor wrote about twelve

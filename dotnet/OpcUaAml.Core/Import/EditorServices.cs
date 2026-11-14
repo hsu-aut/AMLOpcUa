@@ -108,12 +108,21 @@ public static class EditorServices
     public static void Announce(CAEXDocument document, IEnumerable<CAEXBasicObject> added)
     {
         if (!IsLoaded(document)) return;
-        foreach (var element in added)
+        // Held like a merge: the lookup service hears these events too. With
+        // automatic updates on it reported every reference of the new elements
+        // as updated, and the editor's tree searched itself once for each:
+        // minutes after taking the practice plant's 188 typed nodes. Updates off
+        // and the document in its registry, it entered each reference a second
+        // time. Held, it builds its tables once when the events are through.
+        Hold(document, () =>
         {
-            if (element.Node.Parent is not { } parent || element.Node.Document != document.XDocument) continue;
-            Aml.Engine.CAEX.Commands.CaexCommand.OnCAEXElementChangedEvent(document.XDocument,
-                new Aml.Engine.CAEX.Commands.CAEXElementChangeEventArgs(element.Node, parent, document, Aml.Engine.CAEX.Commands.CAEXElementChangeMode.Added));
-        }
+            foreach (var element in added)
+            {
+                if (element.Node.Parent is not { } parent || element.Node.Document != document.XDocument) continue;
+                Aml.Engine.CAEX.Commands.CaexCommand.OnCAEXElementChangedEvent(document.XDocument,
+                    new Aml.Engine.CAEX.Commands.CAEXElementChangeEventArgs(element.Node, parent, document, Aml.Engine.CAEX.Commands.CAEXElementChangeMode.Added));
+            }
+        });
     }
 
     /// <summary>Whether <paramref name="document"/> still has its XML; an unloaded one has none.</summary>
