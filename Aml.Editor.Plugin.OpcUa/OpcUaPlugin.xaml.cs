@@ -61,6 +61,25 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
     }
 
+    /// <summary>
+    /// <see cref="HeldUntilIdleAsync{T}"/> for a change made at once: updates off
+    /// for the change, back on when the editor has taken it in.
+    /// </summary>
+    internal void HoldUntilIdle(Action change)
+    {
+        var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
+        var held = autoUpdate?.IsAutoUpdateEnabled == true;
+        if (held) autoUpdate!.IsAutoUpdateEnabled = false;
+        try
+        {
+            change();
+        }
+        finally
+        {
+            if (held) Dispatcher.InvokeAsync(() => autoUpdate!.IsAutoUpdateEnabled = true, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
+    }
+
     public OpcUaPlugin()
     {
         // The log first, so that a problem reading the settings is written down.
@@ -641,10 +660,15 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 FillPlaceholder = p => window.Fills.TryGetValue(p, out var fills) ? fills : Array.Empty<PlaceholderFill>(),
                 AllowAbstract = true,
             });
-            var ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
+            InstanceHierarchyType ih = null!;
+            InternalElementType created = null!;
+            HoldUntilIdle(() =>
+            {
+                ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
                      ?? document.CAEXFile.InstanceHierarchy.Append(window.HierarchyName);
-            ih.InternalElement.Insert(result.Instance, asFirst: false);
-            var created = ih.InternalElement.Last();
+                ih.InternalElement.Insert(result.Instance, asFirst: false);
+                created = ih.InternalElement.Last();
+            });
 
             var message = L.T("Created '{0}' ({1}) in '{2}' with {3} children.", result.Instance.Name, window.SelectedType.Name, ih.Name, result.Included.Count);
             PluginLog.Info(message);
@@ -715,7 +739,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                     L.T("Add"), DialogKit.Facts((L.T("Adds"), list, false))))
                 return;
         }
-        var changes = InstanceUpgrader.UpgradeDocument(document);
+        IReadOnlyList<UpgradeChange> changes = Array.Empty<UpgradeChange>();
+        HoldUntilIdle(() => changes = InstanceUpgrader.UpgradeDocument(document));
         foreach (var c in changes) PluginLog.Info($"Added '{c.Added}' to {c.ElementPath}.");
         var message = changes.Count == 0
             ? L.T("All instances already have the Mandatory children of their types.")

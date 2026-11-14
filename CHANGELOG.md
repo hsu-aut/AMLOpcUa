@@ -55,9 +55,10 @@ minor versions.
   `dotnet-stack` and a counter in the editor); every tree of the editor
   searched itself once for each report. Automatic updates are now off while
   values are written (`EditorServices.WithoutUndo`), while taken elements are
-  announced (`EditorServices.Announce`), and after taking nodes or importing
-  until the editor has caught up. The same run leaves the editor 0.0 s of
-  work after the import.
+  announced (`EditorServices.Announce`), and after taking nodes, importing,
+  New instance…, Add missing Mandatory children and Bind to element… until
+  the editor has caught up. The same run leaves the editor 0.0 s of work
+  after the import.
 - **Libraries that did not change are kept.** Every model that requires DI
   brings the UA base model and DI along, converted anew with new IDs, and
   with Replace existing libraries on (the default) they replaced the

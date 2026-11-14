@@ -54,6 +54,43 @@ public class ImportCatchUpTests
     }
 
     /// <summary>
+    /// New instance…, Add missing Mandatory children and Bind to element… change
+    /// the document in one go, synchronously; the editor takes the change in
+    /// afterwards, on the UI thread, with updates still off until it is idle.
+    /// </summary>
+    [Fact]
+    public void A_change_made_at_once_keeps_updates_off_until_the_editor_is_idle()
+    {
+        var during = new List<bool>();
+        bool? after = null;
+        var lookup = LookupService.Register();
+        try
+        {
+            OnUiThread(async () =>
+            {
+                lookup.IsAutoUpdateEnabled = true;
+                var plugin = new OpcUaPlugin();
+                var ui = Dispatcher.CurrentDispatcher;
+                plugin.HoldUntilIdle(() =>
+                {
+                    // What the editor's trees do with a change: answer it later.
+                    for (var i = 0; i < 3; i++) ui.BeginInvoke(() => during.Add(lookup.IsAutoUpdateEnabled), DispatcherPriority.Background);
+                });
+                await ui.InvokeAsync(() => { }, DispatcherPriority.SystemIdle);
+                after = lookup.IsAutoUpdateEnabled;
+            });
+        }
+        finally
+        {
+            LookupService.UnRegister();
+        }
+
+        Assert.Equal(3, during.Count);
+        Assert.All(during, on => Assert.False(on));
+        Assert.True(after);
+    }
+
+    /// <summary>
     /// The same for taking nodes: while the editor took in the new elements, it
     /// expanded its trees, asked IsMaster for each child, and the lookup service
     /// built its tables with updates on: 309 000 reports for the practice plant.
