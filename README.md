@@ -24,6 +24,10 @@ OPC UA information models in AutomationML.
   ModelCompiler reads, and a design compiled and imported ([docs/modeldesign.md](docs/modeldesign.md))
 - Command line tool `uaaml` with most of these functions, for scripts and CI
 - Structural comparison of AML class libraries and of NodeSets, used as test oracles
+- A graphical modeler ([NodeSet.js](https://github.com/HamiedNabizada/NodeSet.js))
+  for OPC UA types of your own, applied to the document as AML libraries
+
+![Modeling in the AutomationML Editor: a new model with a namespace URI of its own, an ObjectType ConveyorType with the children Speed, Running and Motor, each Mandatory, applied to the document as AutomationML libraries, and an instance Conveyor created with every Mandatory child](docs/modeler.gif)
 
 The conversion itself is done by [Opc2Aml](https://github.com/OPCF-Members/Opc2Aml),
 the OPC Foundation's reference implementation of Annex A, included as source

@@ -583,6 +583,8 @@ declare Mandatory children that older instances lack.
 3. Click **Add**. The children are added as a new instance would get them;
    nothing that exists changes. The check then runs again.
 
+![A newer version of a type: Temperature added to ConveyorType in the modeler and applied, Check reports that the instance Conveyor lacks the Mandatory child Temperature (UA003), Add missing Mandatory children asks and adds it, and the instance hierarchy shows Temperature below Conveyor](manual/upgrade.gif)
+
 The same command puts back a Mandatory child that was deleted by hand, which
 **Check** reports as UA003; tutorial lesson 2 shows it.
 
@@ -810,6 +812,8 @@ both addresses and asks before it replaces the binding. The editor then
 selects the element. To remove a binding, delete the element's `NodeId`
 attribute in the editor; its `Value` keeps the last value read.
 
+![A plant model of one's own without any OPC UA in it, ProcessingStation with Drill, SpindleSpeed, PartsCounter and Turntable: connected to the practice plant, the drill spindle's Speed is bound to SpindleSpeed and PartsProduced to PartsCounter; SpindleSpeed gets the attributes NodeId and Value, and with document values kept live its Value follows the plant in the attribute details](manual/bind.gif)
+
 ### Connect an existing plant model to a PLC
 
 Your plant model exists, and a PLC or another OPC UA server delivers the
@@ -927,6 +931,8 @@ serving** ends it; closing the document, opening another or closing the
 plugin ends it too.
 
 ![The Server tab while the document is served with simulated values: the button reads Stop serving, port and options are locked, the two stations taken into the document carry a check mark in the address space, and the status line says "Serving 112 node(s) of this document at opc.tcp://127.0.0.1:48400/AMLOpcUa, to this computer only"](manual/serve.png)
+
+![A plant model with values served with simulated values: the plugin connects to its own document server and watches SpindleSpeed, Running, Temperature and PartsProduced as they swing, toggle and count; the details of SpindleSpeed show the unit min⁻¹ the CAEX Unit gave it](manual/serve.gif)
 
 What is served:
 

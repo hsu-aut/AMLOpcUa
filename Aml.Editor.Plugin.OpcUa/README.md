@@ -23,6 +23,8 @@ OPC UA for the [AutomationML Editor](https://www.automationml.org/).
   in a tab of its own.
 - English and German.
 
+![Modeling in the AutomationML Editor: a new model with an ObjectType ConveyorType and its Mandatory children, applied to the document as AutomationML libraries, and an instance created with every Mandatory child](https://raw.githubusercontent.com/hsu-aut/AMLOpcUa/main/docs/modeler.gif)
+
 ## Installing
 
 1. In the AutomationML Editor (6.4 or later), open the PlugIn Manager (**PlugIns** › **PlugIn Manager**), choose

@@ -13,6 +13,12 @@ minor versions.
   the Value beside the address space showed the value read when the node was
   selected, while the document followed the plant. It now changes with the
   document. `LiveUpdate` names the node it comes from (`Address`).
+- **Short videos.** The README and the package page show modeling a type of
+  your own up to an instance (`docs/modeler.gif`); the manual shows Add
+  missing Mandatory children after a newer type (`manual/upgrade.gif`),
+  binding a plant model of your own (`manual/bind.gif`) and serving the
+  document with units (`manual/serve.gif`); the ModelDesign page goes from
+  the model to C# code (`manual/modeldesign.gif`).
 - **Units.** A `Value` whose attribute has a CAEX Unit is served with the
   property EngineeringUnits (EUInformation, OPC 10000-8), so a client knows
   that 1450 are revolutions per minute. The unit is looked up in the OPC

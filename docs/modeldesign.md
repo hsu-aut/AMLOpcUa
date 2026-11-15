@@ -63,6 +63,8 @@ the selected model as a design with its identifier file beside it. The model
 comes out of the document itself (the inverse of Annex A), so the design holds
 what the document holds now, including what was changed in the modeler.
 
+![From the model to code: the MPS 500 types in the document, DriveType drawn with its Mandatory Speed, ModelDesign… writes MPS500.xml and MPS500.csv; then uaaml design compile with the OPC Foundation's ModelCompiler writes the NodeSet, C# sources and constants, and DriveType has become the class DriveState with a property Speed of type BaseDataVariableState<double>](manual/modeldesign.gif)
+
 The other way round needs no button: a ModelDesign chosen for import or
 dropped on the plugin is recognised by its namespace, compiled, and the NodeSet
 that comes out is imported as any other. Where the compiler is not installed,
