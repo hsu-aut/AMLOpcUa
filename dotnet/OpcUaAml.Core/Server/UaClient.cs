@@ -440,6 +440,25 @@ public sealed class UaClient : IAsyncDisposable
     public async Task<UaReadResult> ReadAsync(UaNodeAddress address, CancellationToken ct = default) =>
         (await ReadManyAsync(new[] { address }, ct).ConfigureAwait(false))[0];
 
+    /// <summary>
+    /// The unit of a variable as its server states it: the property
+    /// EngineeringUnits below it (OPC 10000-8). Null where it has none or the
+    /// property holds no EUInformation.
+    /// </summary>
+    public async Task<EngineeringUnit?> ReadEngineeringUnitsAsync(UaNodeAddress variable, CancellationToken ct = default)
+    {
+        var property = (await BrowseAsync(variable, ct).ConfigureAwait(false)).FirstOrDefault(i => i.BrowseName == BrowseNames.EngineeringUnits);
+        if (property == null) return null;
+        var read = await ReadAsync(property.Address, ct).ConfigureAwait(false);
+        var eu = read.Value switch
+        {
+            EUInformation e => e,
+            ExtensionObject { Body: EUInformation e } => e,
+            _ => null,
+        };
+        return read.Good && eu != null ? EngineeringUnit.Of(eu.NamespaceUri, eu.UnitId, eu.DisplayName?.Text, eu.Description?.Text) : null;
+    }
+
     /// <summary>Reads the Value attribute of several variables in one request.</summary>
     public async Task<IReadOnlyList<UaReadResult>> ReadManyAsync(IReadOnlyList<UaNodeAddress> addresses, CancellationToken ct = default)
     {

@@ -540,6 +540,18 @@ public partial class OpcUaPlugin : ISupportsSelection
                 if (r.Good && r.DataType != null) DetailRow(L.T("DataType"), r.DataType);
             }
             catch (Exception ex) { valueRow.Text = ex.Message; }
+            // The unit, where the server states one (EngineeringUnits, OPC 10000-8).
+            try
+            {
+                var unit = await client.ReadEngineeringUnitsAsync(node.Address);
+                if (version != _detailsVersion) return;
+                if (unit != null)
+                {
+                    var unitRow = DetailRow(L.T("Unit"), unit.DisplayName);
+                    if (unit.Description.Length > 0) unitRow.ToolTip = unit.Description;
+                }
+            }
+            catch (Exception ex) { PluginLog.Info($"No unit read for {node.Address}: {ex.Message}"); }
         }
     }
 

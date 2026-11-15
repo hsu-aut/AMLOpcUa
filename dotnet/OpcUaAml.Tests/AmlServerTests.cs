@@ -110,6 +110,59 @@ public class AmlServerTests(DiDocument di) : IClassFixture<DiDocument>
         Assert.True(host.StructureChanged);
     }
 
+    /// <summary>
+    /// The unit CAEX gives a value (the Unit of its attribute) reaches a client
+    /// as the variable's EngineeringUnits property, as OPC 10000-8 states units;
+    /// a value without a unit has none.
+    /// </summary>
+    [Fact]
+    public async Task A_value_with_a_unit_is_served_with_its_engineering_units()
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var drill = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Drill");
+        var speed = drill.InternalElement.Append("SpindleSpeed").Attribute.Append("Value");
+        speed.AttributeDataType = "xs:double";
+        speed.Value = "1450";
+        speed.Unit = "1/min";
+        var count = drill.InternalElement.Append("Holes").Attribute.Append("Value");
+        count.AttributeDataType = "xs:int";
+        count.Value = "3";
+
+        var pki = TempPki();
+        await using var host = await AmlServerHost.StartAsync(doc, new AmlServerOptions { Port = FreePort(), PkiRoot = Path.Combine(pki, "server") });
+        await using var client = await UaClient.ConnectAsync(new UaConnectOptions
+        {
+            EndpointUrl = host.EndpointUrl,
+            UseSecurity = false,
+            AcceptUntrustedServerCertificates = true,
+            PkiRoot = Path.Combine(pki, "client"),
+        });
+        var units = (await client.BrowseAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Plant/Drill/SpindleSpeed")))
+            .Single(i => i.BrowseName == "EngineeringUnits");
+        var read = await client.ReadAsync(units.Address);
+        var eu = read.Value switch
+        {
+            Opc.Ua.EUInformation e => e,
+            Opc.Ua.ExtensionObject { Body: Opc.Ua.EUInformation e } => e,
+            _ => null,
+        };
+
+        Assert.Equal("Variable", units.NodeClass);
+        Assert.NotNull(eu);
+        Assert.Equal(4405556, eu!.UnitId);
+        Assert.Equal("min⁻¹", eu.DisplayName.Text);
+        Assert.Equal("reciprocal minute", eu.Description.Text);
+        Assert.Equal("http://www.opcfoundation.org/UA/units/un/cefact", eu.NamespaceUri);
+        Assert.DoesNotContain(await client.BrowseAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Plant/Drill/Holes")),
+            i => i.BrowseName == "EngineeringUnits");
+
+        // What a client makes of it: the unit, or nothing where a variable has none.
+        var unit = await client.ReadEngineeringUnitsAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Plant/Drill/SpindleSpeed"));
+        Assert.Equal("min⁻¹", unit?.DisplayName);
+        Assert.Equal("C94", unit?.Code);
+        Assert.Null(await client.ReadEngineeringUnitsAsync(new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Plant/Drill/Holes")));
+    }
+
     [Fact]
     public async Task Its_certificate_names_this_build_not_the_OPC_Foundation()
     {

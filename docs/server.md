@@ -241,7 +241,14 @@ in `urn:amlopcua:document`. Two elements with the same NodeId (a planned
 element and its mirrored aspect, copied instances): the first in document
 order keeps it, each further one gets the string NodeId `<identifier>#2`,
 `#3` in the same namespace (`AmlAddressSpace.Unique`). Values come from the
-`Value` attributes, typed by their AttributeDataType. The nodes are those of the document at start; their
+`Value` attributes, typed by their AttributeDataType. A `Value` with a CAEX
+`Unit` gives its variable the property `EngineeringUnits` (EUInformation, OPC
+10000-8): the unit is looked up in the OPC Foundation's UNECE table
+(`EngineeringUnit.From`) by its symbol (`°C`, `mm`; case matters), a plain-text
+spelling (`1/min`, `rpm`, `m2`, `Nm`), its common code (`CEL`) or its name
+(`degree Celsius`); any other text is served as it is, with UnitId -1 and no
+namespace. `UaClient.ReadEngineeringUnitsAsync` reads it back from any server.
+The nodes are those of the document at start; their
 values follow it: a change in the document reaches the served nodes after a
 short quiet time, and subscribed clients see it (`FollowDocument`,
 `RefreshValues`). Added or removed elements need a restart; the plugin says

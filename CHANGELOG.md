@@ -13,6 +13,14 @@ minor versions.
   the Value beside the address space showed the value read when the node was
   selected, while the document followed the plant. It now changes with the
   document. `LiveUpdate` names the node it comes from (`Address`).
+- **Units.** A `Value` whose attribute has a CAEX Unit is served with the
+  property EngineeringUnits (EUInformation, OPC 10000-8), so a client knows
+  that 1450 are revolutions per minute. The unit is looked up in the OPC
+  Foundation's UNECE table (`units/UNECE_to_OPCUA.csv`, embedded): by symbol
+  (`°C`, `mm`), a plain-text spelling (`1/min`, `rpm`, `m2`, `Nm`), code or
+  name; any other unit is served as written, with UnitId -1. The Node details
+  show a variable's unit where its server states one
+  (`UaClient.ReadEngineeringUnitsAsync`, `EngineeringUnit`).
 - The "?" beside the server commands offers lesson 4 (binding your own
   elements) beside lesson 3; no "?" led to it before. `HelpTopic.AlsoLesson`.
 - A step of a path (`uaaml read`, `UaClient.ResolveAsync`) may carry the

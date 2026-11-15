@@ -32,6 +32,9 @@
          links carry their attribute types inside the document. -->
     <EmbeddedResource Include="..\..\libraries\AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml"
                       Link="libraries\AutomationML_ObjectReferences_AttributeTypeLib_AMLEd2_1.1.1-beta.aml" />
+    <!-- The OPC Foundation's table of UNECE units (EngineeringUnits), unchanged. -->
+    <EmbeddedResource Include="..\..\units\UNECE_to_OPCUA.csv" Link="units\UNECE_to_OPCUA.csv"
+                      LogicalName="OpcUaAml.units.UNECE_to_OPCUA.csv" />
   </ItemGroup>
 
 </Project>

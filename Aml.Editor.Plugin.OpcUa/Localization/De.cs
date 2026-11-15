@@ -751,6 +751,7 @@ internal static class De
         ["Types only"] = "Nur Typen",
         ["UA Cloud Library"] = "UA Cloud Library",
         ["UA Cloud Library…"] = "UA Cloud Library…",
+        ["Unit"] = "Einheit",
         ["Update it"] = "Aktualisieren",
         ["Used by"] = "Verwendet von",
         ["User"] = "Benutzer",

@@ -669,8 +669,10 @@ the tree.
 Selecting a node shows its details under **Node**: name, node class, NodeId
 (with a button to copy it), BrowseName, the reference that holds it, its type
 ("not imported" when the document lacks the type's library), and for a
-variable its current value and DataType. When the node is already in the
-document, **Select** selects its element in the editor.
+variable its current value, its DataType and, where the server states one
+(the property EngineeringUnits), its **Unit**; its name is the tooltip. When
+the node is already in the document, **Select** selects its element in the
+editor.
 
 The filters in the band "What to take" apply to the tree as well:
 
@@ -946,6 +948,12 @@ What is served:
 - values come from attributes named `Value`, typed by their AttributeDataType;
   other attributes are not served. A plant model whose values sit in
   attributes of other names is served as a tree of objects without values;
+- a `Value` with a unit (the **Unit** of the attribute in the editor's
+  attribute details) gives its variable the property `EngineeringUnits`, as
+  OPC UA states units. Units of the UNECE list are recognised by their
+  symbol (`°C`, `mm`, `min⁻¹`; upper and lower case matter), by a plain-text
+  spelling (`1/min`, `rpm`, `m2`, `Nm`, `%`), by their code (`CEL`) or by
+  their name (`degree Celsius`); any other unit is served as written;
 - nothing is writable and no method is offered.
 
 To serve a model with its types, export it as a NodeSet (see

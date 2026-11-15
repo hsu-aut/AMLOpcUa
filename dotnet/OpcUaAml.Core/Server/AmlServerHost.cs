@@ -348,6 +348,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                     Timestamp = DateTime.UtcNow,
                 };
                 _variables.Add(((BaseDataVariableState)state, node));
+                if (node.Unit != null) AddEngineeringUnits(state, node.Unit, nodeId);
             }
             else
             {
@@ -360,6 +361,46 @@ public sealed class AmlServerHost : IAsyncDisposable
             parent?.AddChild(state);
             foreach (var child in node.Children) Create(child, state);
             return state;
+        }
+
+        /// <summary>
+        /// The unit of a variable as OPC UA states it: a property EngineeringUnits
+        /// (EUInformation, OPC 10000-8) below it, its NodeId the variable's with
+        /// "/EngineeringUnits" for a string NodeId, otherwise one of the namespace's own.
+        /// </summary>
+        private void AddEngineeringUnits(BaseInstanceState variable, string unit, NodeId variableId)
+        {
+            var eu = EngineeringUnit.From(unit);
+            var property = new PropertyState<EUInformation>(variable)
+            {
+                TypeDefinitionId = VariableTypeIds.PropertyType,
+                ReferenceTypeId = ReferenceTypeIds.HasProperty,
+                DataType = DataTypeIds.EUInformation,
+                ValueRank = ValueRanks.Scalar,
+                AccessLevel = AccessLevels.CurrentRead,
+                UserAccessLevel = AccessLevels.CurrentRead,
+                BrowseName = BrowseNames.EngineeringUnits,
+                DisplayName = BrowseNames.EngineeringUnits,
+                Value = new EUInformation
+                {
+                    NamespaceUri = eu.NamespaceUri,
+                    UnitId = eu.UnitId,
+                    DisplayName = new LocalizedText(eu.DisplayName),
+                    Description = new LocalizedText(eu.Description),
+                },
+                StatusCode = StatusCodes.Good,
+                Timestamp = DateTime.UtcNow,
+            };
+            // The same at every start: from the variable's identifier, in its namespace.
+            var of = variableId.IdType switch
+            {
+                IdType.String => (string)variableId.Identifier,
+                IdType.Opaque => "b=" + Convert.ToBase64String((byte[])variableId.Identifier),
+                IdType.Guid => "g=" + variableId.Identifier,
+                _ => "i=" + Convert.ToString(variableId.Identifier, CultureInfo.InvariantCulture),
+            };
+            property.NodeId = new NodeId(of + "/" + BrowseNames.EngineeringUnits, variableId.NamespaceIndex);
+            variable.AddChild(property);
         }
 
         private static (NodeId DataType, object? Value) Typed(string? text, string? xsType)
@@ -417,6 +458,9 @@ public sealed record AmlNode(string Name, UaNodeAddress Address, bool IsFolder, 
 {
     /// <summary>The element the node was made from; its Value is read again on a refresh.</summary>
     public InternalElementType? Source { get; init; }
+
+    /// <summary>The unit CAEX gives the value (the Unit of its attribute), served as EngineeringUnits.</summary>
+    public string? Unit { get; init; }
 }
 
 public sealed class AmlAddressSpace
@@ -462,7 +506,12 @@ public sealed class AmlAddressSpace
             : ie.Attribute["Value"] != null;
         var value = ie.Attribute["Value"];
         Count++;
-        return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children) { Source = ie };
+        return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children)
+        {
+            Source = ie,
+            // Not where the element models EngineeringUnits as a child of its own.
+            Unit = isVariable && !string.IsNullOrWhiteSpace(value?.Unit) && children.All(c => c.Name != "EngineeringUnits") ? value!.Unit : null,
+        };
     }
 
     /// <summary>Two elements can carry the same NodeId (copied instances); each further one gets "#2", "#3" … after the identifier.</summary>
