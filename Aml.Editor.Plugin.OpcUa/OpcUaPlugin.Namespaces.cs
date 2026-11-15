@@ -272,8 +272,10 @@ public partial class OpcUaPlugin
         SetBusy(true, L.T("Compiling {0} with the ModelCompiler …", Path.GetFileName(design)));
         try
         {
+            // The models the design requires come from the folders an import searches.
+            var catalog = NodeSetCatalog.Create(KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder));
             var result = await ModelCompilerTool.CompileAsync(design, folder,
-                new CompileOptions { Executable = _settings.ModelCompilerPath });
+                new CompileOptions { Executable = _settings.ModelCompilerPath, Catalog = catalog });
             PluginLog.Info($"ModelCompiler turned {design} into {result.NodeSetPath}.");
             return result.NodeSetPath;
         }

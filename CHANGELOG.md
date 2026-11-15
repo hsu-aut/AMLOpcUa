@@ -7,6 +7,17 @@ minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A design of a model that builds on another did not compile** without
+  that model's NodeSet given with `--include`: the ModelCompiler stopped with a
+  stack trace on the first type of the other model (MPS 500 on DI, for
+  instance). `design compile`, `design import` and the plugin now give the
+  compiler the NodeSets of the models the design requires, from the bundled
+  models and the folders searched (`--search`), each after the models it
+  builds on; a model none of them holds is named before the compiler runs
+  (`ModelCompilerTool.Includes`, `CompileOptions.Catalog`).
+
 ## [0.4.0] - 2026-11-15
 
 ### Added

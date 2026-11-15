@@ -123,6 +123,77 @@ public class ModelDesignTests
         Assert.Contains("NodeSet", ex.Message);
     }
 
+    /// <summary>
+    /// A design of a model that builds on DI did not compile without DI's
+    /// NodeSet given with --include: the compiler stopped with a stack trace.
+    /// The NodeSets of the models a design requires are given to it now, from
+    /// the catalog (the bundled models, folders searched).
+    /// </summary>
+    [Fact]
+    public void A_design_is_compiled_with_the_NodeSets_of_the_models_it_requires()
+    {
+        var folder = Directory.CreateTempSubdirectory("uaaml-design-includes-");
+        try
+        {
+            var design = Path.Combine(folder.FullName, "MPS500.xml");
+            ModelDesignWriter.FromFile(Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml")).Save(design);
+
+            var included = ModelCompilerTool.Includes(design, new CompileOptions());
+
+            Assert.Equal([NodeSetCatalog.Create(Array.Empty<string>()).Find(Fixtures.DiUri)!.FilePath], included);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_model_given_with_include_is_not_given_twice()
+    {
+        var folder = Directory.CreateTempSubdirectory("uaaml-design-includes-");
+        try
+        {
+            var design = Path.Combine(folder.FullName, "MPS500.xml");
+            ModelDesignWriter.FromFile(Path.Combine(Repository.Root, "examples", "mps500", "MPS500.NodeSet2.xml")).Save(design);
+            var own = Path.Combine(folder.FullName, "Di.NodeSet2.xml");
+            File.Copy(NodeSetCatalog.Create(Array.Empty<string>()).Find(Fixtures.DiUri)!.FilePath, own);
+
+            var included = ModelCompilerTool.Includes(design, new CompileOptions { Included = [own] });
+
+            Assert.Equal([Path.GetFullPath(own)], included);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
+    [Fact]
+    public void A_design_that_needs_a_model_nobody_has_says_which()
+    {
+        var folder = Directory.CreateTempSubdirectory("uaaml-design-includes-");
+        try
+        {
+            var design = Path.Combine(folder.FullName, "Pump.xml");
+            new XDocument(new XElement(Opc + "ModelDesign",
+                new XAttribute("TargetNamespace", "http://example.org/Pump/"),
+                new XElement(Opc + "Namespaces",
+                    new XElement(Opc + "Namespace", new XAttribute("Name", "Pump"), "http://example.org/Pump/"),
+                    new XElement(Opc + "Namespace", new XAttribute("Name", "OpcUa"), "http://opcfoundation.org/UA/"),
+                    new XElement(Opc + "Namespace", new XAttribute("Name", "Valves"), "http://example.org/Valves/")))).Save(design);
+
+            var ex = Assert.Throws<ModelCompilerException>(() => ModelCompilerTool.Includes(design, new CompileOptions()));
+
+            Assert.Contains("http://example.org/Valves/", ex.Message);
+            Assert.Contains("--include", ex.Message);
+        }
+        finally
+        {
+            folder.Delete(recursive: true);
+        }
+    }
+
     [Fact]
     public void Says_how_to_get_the_compiler_when_it_is_missing()
     {

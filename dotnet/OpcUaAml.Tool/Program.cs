@@ -193,7 +193,7 @@ public static class Program
             from UACLOUD_API_KEY instead.
 
         uaaml design export <NodeSet.xml|doc.aml> -o <design.xml> [--namespace <uri>] [--name <n>] [--search <dir>]...
-        uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--version v105] [--compiler <exe>]
+        uaaml design compile <design.xml> [-o <folder>] [--include <file>]... [--search <dir>]... [--version v105] [--compiler <exe>]
         uaaml design import <design.xml> [--include <file>]... [--into <doc.aml>] [-o <out.aml>] [--search <dir>]... [--keep] [--compiler <exe>]
             ModelDesign, the form the OPC Foundation's ModelCompiler reads and
             writes. export writes a model as a design (its types, declarations,
@@ -201,7 +201,9 @@ public static class Program
             from a document, whose model is first written back as the nodes
             Annex A made of it (--namespace names it when the document holds
             several); compile
-            runs the ModelCompiler over a design and reports the NodeSet it wrote;
+            runs the ModelCompiler over a design and reports the NodeSet it wrote,
+            giving it the NodeSets of the models the design requires (bundled
+            ones such as DI, those in --search folders) unless --include does;
             import compiles it and puts the model into a document (Annex A) in one
             go. The ModelCompiler is not part of uaaml; install it with
             "dotnet tool install --global OPCFoundation.Opc.Ua.ModelCompiler.Tool"
@@ -1170,6 +1172,8 @@ public static class Program
         {
             Executable = o.One("--compiler"),
             Included = o.All("--include"),
+            // The models the design requires: from these folders and the bundled ones.
+            Catalog = NodeSetCatalog.Create(o.All("--search")),
             SpecificationVersion = o.One("--version"),
         });
     }

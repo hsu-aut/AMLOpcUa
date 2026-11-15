@@ -43,6 +43,7 @@ it.
 uaaml design export Opc.Ua.Di.NodeSet2.xml -o DI.xml     # writes DI.xml and DI.csv
 uaaml design export plant.aml -o Plant.xml               # a model of a document, by way of Annex A's inverse
 uaaml design compile DI.xml -o ./compiled                # ModelCompiler, reports the NodeSet
+uaaml design compile MPS500.xml -o ./code                # brings DI's NodeSet along, which MPS500 requires
 uaaml design import DI.xml --into plant.aml              # compile and import in one go
 ```
 
@@ -107,9 +108,14 @@ The name comes from the model's NodeSet in the catalog
 (`ModelDesignOptions.Catalog`, `--search` for `design export`; the bundled
 models such as DI when none is given). Where no NodeSet of the model is at hand, or it does not hold the
 node, the design is refused with a message naming the node and the model,
-rather than written with a NodeId the compiler cannot read. Compile such a
-design with the other model's NodeSet or design given as well
-(`--include`, `-d2`).
+rather than written with a NodeId the compiler cannot read. Compiling, the
+compiler needs that model's NodeSet as well (`-d2`): `design compile`, `design
+import` and the plugin give it the NodeSets of the models the design requires
+(its `Namespaces`), from the same catalog (`CompileOptions.Catalog`,
+`--search`; the bundled models), each after the models it builds on. A file
+given with `--include` takes the place of the catalog's for its model. A
+required model no file at hand holds is named before the compiler runs;
+before, the compiler stopped with a stack trace.
 
 Left out, because the compiler makes them from the design itself: the
 encodings of a structure, the names of an enumeration (EnumStrings,
