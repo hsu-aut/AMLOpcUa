@@ -80,6 +80,11 @@ minor versions.
   written with its namespace URI now (`nsu=…;i=1143`). An array got the type
   of its elements (`xs:double` for "1 2 3"), which its text is not; it gets
   none now.
+- **Screen readers named the rows of the lists by their class.** A row of
+  the watch list was read out as "Aml.Editor.Plugin.OpcUa.OpcUaPlugin+WatchRow",
+  a finding as "Aml.Editor.Plugin.OpcUa.FindingRow". The rows name what they
+  show now: the node with its value and status, the finding with its severity,
+  rule, element and message, the namespace with its version.
 - **The log's line after an import** said "(only its types are imported)",
   the command line's words, where the status line said more; it now says what
   the status line says.

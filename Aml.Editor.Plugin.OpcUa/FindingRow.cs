@@ -19,4 +19,7 @@ public sealed class FindingRow(Finding finding)
     public string ElementPath => Finding.ElementPath;
 
     public string Message => Finding.Format is { } format ? L.T(format, Finding.Args.Cast<object?>().ToArray()) : Finding.Message;
+
+    /// <summary>What a screen reader says of the row: UI Automation names a row by it.</summary>
+    public override string ToString() => $"{Severity} {Rule} {ElementPath}: {Message}";
 }

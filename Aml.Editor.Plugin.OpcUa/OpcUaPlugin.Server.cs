@@ -63,6 +63,9 @@ public partial class OpcUaPlugin : ISupportsSelection
             Received = DateTime.Now.ToString("HH:mm:ss");
             PropertyChanged?.Invoke(this, new(null));
         }
+
+        /// <summary>What a screen reader says of the row: UI Automation names a row by it.</summary>
+        public override string ToString() => Received.Length == 0 ? $"{Node}: {Status}" : $"{Node}: {Value}, {Status}";
     }
 
     /// <summary>Asks the editor to select an element in its tree (after mirroring or binding).</summary>

@@ -33,7 +33,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     private readonly PluginSettings _settings;
 
     /// <summary>A row of the namespace list.</summary>
-    public sealed record NamespaceRow(string NamespaceUri, string ModelVersion, string Published, int LibraryCount);
+    public sealed record NamespaceRow(string NamespaceUri, string ModelVersion, string Published, int LibraryCount)
+    {
+        /// <summary>What a screen reader says of the row: UI Automation names a row by it.</summary>
+        public override string ToString() => $"{NamespaceUri} {ModelVersion}";
+    }
 
     public OpcUaPlugin()
     {
