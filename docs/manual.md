@@ -872,7 +872,7 @@ dialog "Trust this server?".
 |---|---|
 | **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, every AutomationML BPR 007 DataVariable and every attribute with an `aml-opcua-variable` sub-attribute. Bindings to another server are skipped: a `NodeId` whose `ServerInstanceUri` names another server, and a DataVariable or `aml-opcua-variable` of another endpoint. A `NodeId` without `ServerInstanceUri` is read from the connected server. |
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
-| **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
+| **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Unit** where the server states one, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
 
 When no element of the document is bound to the connected server, both say so
 and how to change it: take its nodes into the document, or bind an element.

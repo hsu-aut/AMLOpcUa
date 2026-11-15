@@ -7,6 +7,12 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- The watch list has a column **Unit**: the unit the server states for the
+  variable (EngineeringUnits), read once when it is added. A screen reader
+  names it after the value.
+
 ### Fixed
 
 - **A design of a model that builds on another did not compile** without

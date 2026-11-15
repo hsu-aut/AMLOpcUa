@@ -53,6 +53,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         public bool Good { get; private set; }
         public string Received { get; private set; } = "";
 
+        /// <summary>The unit its server states (EngineeringUnits), empty for none.</summary>
+        public string Unit { get; private set; } = "";
+
+        public void SetUnit(string unit)
+        {
+            Unit = unit;
+            PropertyChanged?.Invoke(this, new(nameof(Unit)));
+        }
+
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
         public void Update(UaReadResult r)
@@ -65,7 +74,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
 
         /// <summary>What a screen reader says of the row: UI Automation names a row by it.</summary>
-        public override string ToString() => Received.Length == 0 ? $"{Node}: {Status}" : $"{Node}: {Value}, {Status}";
+        public override string ToString() => Received.Length == 0 ? $"{Node}: {Status}"
+            : Unit.Length == 0 ? $"{Node}: {Value}, {Status}" : $"{Node}: {Value} {Unit}, {Status}";
     }
 
     /// <summary>Asks the editor to select an element in its tree (after mirroring or binding).</summary>
@@ -297,8 +307,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         var node = SelectedNode;
         if (node == null || _client == null || node.NodeClass != "Variable") return;
         if (_watchRows.Any(r => r.Address == node.Address)) return;
-        _watchRows.Add(new WatchRow { Address = node.Address, Node = node.DisplayName });
+        var row = new WatchRow { Address = node.Address, Node = node.DisplayName };
+        _watchRows.Add(row);
         await RestartWatchAsync();
+        // Its unit, where the server states one; read once, a unit does not move.
+        try
+        {
+            if (_client is { } client && await client.ReadEngineeringUnitsAsync(node.Address) is { } unit) row.SetUnit(unit.DisplayName);
+        }
+        catch (Exception ex) { PluginLog.Info($"No unit read for {node.Address}: {ex.Message}"); }
     }
 
     private async void UnwatchButton_Click(object sender, RoutedEventArgs e)

@@ -37,7 +37,7 @@ public class NodeDetailsUnitTests
         holes.AttributeDataType = "xs:int";
         holes.Value = "3";
         var pki = Directory.CreateTempSubdirectory("opcuaaml-unit-pki-").FullName;
-        string? withUnit = null, withoutUnit = "not read";
+        string? withUnit = null, withoutUnit = "not read", watchedUnit = null;
         try
         {
             OnUiThread(async () =>
@@ -58,6 +58,11 @@ public class NodeDetailsUnitTests
                 await Until(() => Row(plugin, L.T("Unit")) != null, 10);
                 withUnit = Row(plugin, L.T("Unit"));
 
+                // Watched, it shows its unit in the list as well.
+                Click(plugin.WatchButton);
+                await Until(() => plugin.WatchList.Items.OfType<OpcUaPlugin.WatchRow>().FirstOrDefault()?.Unit.Length > 0, 10);
+                watchedUnit = plugin.WatchList.Items.OfType<OpcUaPlugin.WatchRow>().First().Unit;
+
                 (await Child(drillItem, "Holes")).IsSelected = true;
                 await Until(() => Row(plugin, L.T("DataType")) != null, 10);
                 await Task.Delay(300);
@@ -71,6 +76,7 @@ public class NodeDetailsUnitTests
         }
 
         Assert.Equal("min⁻¹", withUnit);
+        Assert.Equal("min⁻¹", watchedUnit);
         Assert.Null(withoutUnit);
     }
 }

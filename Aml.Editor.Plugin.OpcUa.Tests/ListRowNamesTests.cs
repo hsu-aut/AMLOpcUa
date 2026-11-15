@@ -25,6 +25,17 @@ public class ListRowNamesTests
     }
 
     [Fact]
+    public void A_watched_variable_with_a_unit_names_it_after_the_value()
+    {
+        var row = new OpcUaPlugin.WatchRow { Address = Speed, Node = "SpindleSpeed" };
+        row.SetUnit("min⁻¹");
+        row.Update(new UaReadResult(Speed, 1450.5, "Double", true, "Good"));
+
+        Assert.Equal("min⁻¹", row.Unit);
+        Assert.Equal("SpindleSpeed: 1450.5 min⁻¹, Good", row.ToString());
+    }
+
+    [Fact]
     public void A_watched_variable_without_a_value_yet_says_so()
     {
         var row = new OpcUaPlugin.WatchRow { Address = Speed, Node = "SpindleSpeed" };
