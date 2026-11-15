@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-15
+
 ### Added
 
 - **The node details follow live values.** With document values kept live,
@@ -35,6 +37,8 @@ minor versions.
 
 ### Changed
 
+- The Modeler tab brings NodeSet.js 0.3.1: the tooltip of **+ machine**
+  cites OPC 10000-16 for state machines instead of OPC 10000-5 Annex B.
 - **Libraries carry the notice of their NodeSet.** The NodeSets of the OPC
   Foundation hold their copyright and licence (MIT) in a comment at the top;
   Opc2Aml left it behind and wrote "© OPC Foundation" into every library,
