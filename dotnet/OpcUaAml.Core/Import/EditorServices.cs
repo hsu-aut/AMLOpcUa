@@ -83,8 +83,8 @@ public static class EditorServices
     /// the lookup service build its tables for the whole document again. A first
     /// value adds a Value attribute; when the service held no tables for the
     /// document then, it built them, and with updates on it reported every
-    /// reference as updated (153 751 for the UA base model and DI), each answered
-    /// by the editor's trees searching themselves: minutes after taking nodes.
+    /// reference as updated (153 751 for the UA base model and DI), each of which
+    /// the editor's trees answer by searching themselves.
     /// </summary>
     public static void WithoutUndo(CAEXDocument document, Action change)
     {
@@ -118,10 +118,10 @@ public static class EditorServices
         if (!IsLoaded(document)) return;
         // Held like a merge: the lookup service hears these events too. With
         // automatic updates on it reported every reference of the new elements
-        // as updated, and the editor's tree searched itself once for each:
-        // minutes after taking the practice plant's 188 typed nodes. Updates off
-        // and the document in its registry, it entered each reference a second
-        // time. Held, it builds its tables once when the events are through.
+        // as updated, and the editor's tree searches itself once for each.
+        // Updates off and the document in its registry, it entered each
+        // reference a second time. Held, it builds its tables once when the
+        // events are through.
         Hold(document, () =>
         {
             foreach (var element in added)

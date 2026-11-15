@@ -46,25 +46,19 @@ minor versions.
 
 ### Fixed
 
-- **The editor did not answer for minutes after taking nodes.** Taking the
-  practice plant's 188 typed nodes and importing Machinery afterwards kept
-  the editor busy for 43 to 150 s. While the editor took the new elements
-  into its trees, and while their values were written, its lookup service
-  built its tables for the document anew with automatic reference updates on
-  and reported every reference as updated, about 300 000 times (measured with
-  `dotnet-stack` and a counter in the editor); every tree of the editor
-  searched itself once for each report. Automatic updates are now off while
-  values are written (`EditorServices.WithoutUndo`), while taken elements are
-  announced (`EditorServices.Announce`), and after taking nodes, importing,
-  New instance…, Add missing Mandatory children and Bind to element… until
-  the editor has caught up. The same run leaves the editor 0.0 s of work
-  after the import.
 - **Libraries that did not change are kept.** Every model that requires DI
   brings the UA base model and DI along, converted anew with new IDs, and
   with Replace existing libraries on (the default) they replaced the
   document's copies although nothing in them had changed. A library that
   says the same as the document's, its IDs aside, is kept now
-  (`LibraryMerger.SameContent`).
+  (`LibraryMerger.SameContent`). Machinery imported beside the MPS 500 types
+  and 188 taken nodes replaced 11 libraries in 5.3 s; it keeps them now and
+  merges in 3.1 s.
+- Values are written and taken elements announced to the editor with its
+  automatic reference updates off (`EditorServices.WithoutUndo`,
+  `EditorServices.Announce`). Neither changes a reference, and a lookup
+  service that held no tables for the document reported every reference as
+  updated when it built them: 153 751 times for the UA base model and DI.
 - **Show me found no button in a toolbar's overflow.** With the plugin
   narrow, the last buttons of a toolbar go into its overflow, and Show me
   framed nothing: lesson 3, step 8 (Watch). It now opens the overflow.

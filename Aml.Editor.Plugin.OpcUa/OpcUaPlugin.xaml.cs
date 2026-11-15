@@ -35,51 +35,6 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     /// <summary>A row of the namespace list.</summary>
     public sealed record NamespaceRow(string NamespaceUri, string ModelVersion, string Published, int LibraryCount);
 
-    /// <summary>
-    /// Runs a change to the document with the editor's automatic reference
-    /// updates off until the editor has caught up with it. The editor takes new
-    /// elements into its trees on the UI thread and asks its lookup service about
-    /// each; the service then built its tables for the document, and with updates
-    /// on it reported every reference as updated, each report answered by every
-    /// tree searching itself: about 300 000 reports and minutes without an answer
-    /// after taking the practice plant's 188 typed nodes.
-    /// </summary>
-    internal async Task<T> HeldUntilIdleAsync<T>(Func<Task<T>> change)
-    {
-        var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
-        var held = autoUpdate?.IsAutoUpdateEnabled == true;
-        if (held) autoUpdate!.IsAutoUpdateEnabled = false;
-        try
-        {
-            var result = await change();
-            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-            return result;
-        }
-        finally
-        {
-            if (held) autoUpdate!.IsAutoUpdateEnabled = true;
-        }
-    }
-
-    /// <summary>
-    /// <see cref="HeldUntilIdleAsync{T}"/> for a change made at once: updates off
-    /// for the change, back on when the editor has taken it in.
-    /// </summary>
-    internal void HoldUntilIdle(Action change)
-    {
-        var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
-        var held = autoUpdate?.IsAutoUpdateEnabled == true;
-        if (held) autoUpdate!.IsAutoUpdateEnabled = false;
-        try
-        {
-            change();
-        }
-        finally
-        {
-            if (held) Dispatcher.InvokeAsync(() => autoUpdate!.IsAutoUpdateEnabled = true, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-        }
-    }
-
     public OpcUaPlugin()
     {
         // The log first, so that a problem reading the settings is written down.
@@ -548,31 +503,14 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             // Each phase is timed and logged: inside the editor an import has
             // taken minutes that the command line needs seconds for (PF-AML-19).
             var clock = System.Diagnostics.Stopwatch.StartNew();
-            ImportResult result;
-            TimeSpan merged, shown;
-            // After the merge the editor rebuilds its trees and asks its lookup
-            // service about every element; the service then builds its tables for
-            // the document. With automatic updates on it reported every reference
-            // as updated, and every tree searched itself once for each report:
-            // 120 to 150 s after Machinery beside the practice plant's nodes.
-            // Off until the editor has caught up.
-            var autoUpdate = Aml.Engine.Services.ServiceLocator.AutoUpdateService;
-            var heldUpdates = autoUpdate?.IsAutoUpdateEnabled == true;
-            if (heldUpdates) autoUpdate!.IsAutoUpdateEnabled = false;
-            try
-            {
-                // The same report as the command line's: what Annex A leaves behind included.
-                result = OpcUaImport.MergeConverted(document, conversion, file, options);
-                merged = clock.Elapsed;
-                // Waiting until the editor is idle measures how long its updates take.
-                await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                shown = clock.Elapsed - merged;
-            }
-            finally
-            {
-                if (heldUpdates) autoUpdate!.IsAutoUpdateEnabled = true;
-            }
+            // The same report as the command line's: what Annex A leaves behind included.
+            var result = OpcUaImport.MergeConverted(document, conversion, file, options);
             var merge = result.Merge;
+            var merged = clock.Elapsed;
+            // The editor updates its trees and lookups after the change; waiting
+            // until it is idle measures how long that takes.
+            await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            var shown = clock.Elapsed - merged;
 
             foreach (var c in merge.Changes)
             {
@@ -660,15 +598,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                 FillPlaceholder = p => window.Fills.TryGetValue(p, out var fills) ? fills : Array.Empty<PlaceholderFill>(),
                 AllowAbstract = true,
             });
-            InstanceHierarchyType ih = null!;
-            InternalElementType created = null!;
-            HoldUntilIdle(() =>
-            {
-                ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
+            var ih = document.CAEXFile.InstanceHierarchy[window.HierarchyName]
                      ?? document.CAEXFile.InstanceHierarchy.Append(window.HierarchyName);
-                ih.InternalElement.Insert(result.Instance, asFirst: false);
-                created = ih.InternalElement.Last();
-            });
+            ih.InternalElement.Insert(result.Instance, asFirst: false);
+            var created = ih.InternalElement.Last();
 
             var message = L.T("Created '{0}' ({1}) in '{2}' with {3} children.", result.Instance.Name, window.SelectedType.Name, ih.Name, result.Included.Count);
             PluginLog.Info(message);
@@ -739,8 +672,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
                     L.T("Add"), DialogKit.Facts((L.T("Adds"), list, false))))
                 return;
         }
-        IReadOnlyList<UpgradeChange> changes = Array.Empty<UpgradeChange>();
-        HoldUntilIdle(() => changes = InstanceUpgrader.UpgradeDocument(document));
+        var changes = InstanceUpgrader.UpgradeDocument(document);
         foreach (var c in changes) PluginLog.Info($"Added '{c.Added}' to {c.ElementPath}.");
         var message = changes.Count == 0
             ? L.T("All instances already have the Mandatory children of their types.")

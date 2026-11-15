@@ -125,9 +125,8 @@ public class EditorServicesMergeTests(BundledDiConversion di) : IClassFixture<Bu
 
     /// <summary>
     /// The same with instances in the document that use the classes of its
-    /// libraries: Machinery imported after taking the practice plant's 188
-    /// typed nodes kept the editor busy for 142 s, its tree searching itself
-    /// once for each reference the lookup service reported.
+    /// libraries, as after taking the practice plant's typed nodes: the editor's
+    /// tree searches itself once for each reference the lookup service reports.
     /// </summary>
     [Fact]
     public void A_merge_beside_typed_instances_reports_no_reference_as_updated()

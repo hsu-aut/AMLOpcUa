@@ -739,7 +739,7 @@ public partial class OpcUaPlugin : ISupportsSelection
                 risky: true))
             return;
 
-        HoldUntilIdle(() => Bind(element, bound, node.NodeClass));
+        Bind(element, bound, node.NodeClass);
         var message = $"Bound {node.Address} to '{element.Name}'.";
         PluginLog.Info(message + (before != null && before != bound ? $" It was bound to {before}." : ""));
         SetStatus(L.T("Bound {0} to '{1}'.", node.Address, element.Name) + L.T(" Press Ctrl+S to save."));
