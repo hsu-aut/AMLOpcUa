@@ -595,6 +595,13 @@
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="{l:T 'Stop watching'}" Click="UnwatchButton_Click" ToolTip="{l:T 'Stop watching and clear the live list.'}">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
+                        <Button x:Name="SaveWatchButton" Click="SaveWatchButton_Click"
+                                ToolTip="{l:T 'Save every value the watch received, with the time it arrived, as a CSV file with semicolons, to open in a spreadsheet.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE74E;" Foreground="{DynamicResource Plain}"/>
+                                <TextBlock Text="{l:T 'Save values…'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <guide:HelpButton Topic="server.commands"/>
                     </ToolBar>
 

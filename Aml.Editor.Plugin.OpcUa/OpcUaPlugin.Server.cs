@@ -42,6 +42,9 @@ public partial class OpcUaPlugin : ISupportsSelection
     private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
 
+    /// <summary>Every value the watch received, with its time, until Stop watching; kept past a disconnect, to save.</summary>
+    private readonly WatchRecording _recording = new();
+
     /// <summary>A row of the live list; updated from the subscription thread through the dispatcher.</summary>
     public sealed class WatchRow : System.ComponentModel.INotifyPropertyChanged
     {
@@ -321,7 +324,39 @@ public partial class OpcUaPlugin : ISupportsSelection
     private async void UnwatchButton_Click(object sender, RoutedEventArgs e)
     {
         _watchRows.Clear();
+        _recording.Clear();
         await RestartWatchAsync();
+        UpdateServerState();
+    }
+
+    /// <summary>Save values…: what the watch received, as CSV.</summary>
+    private void SaveWatchButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_recording.Count == 0)
+        {
+            SetStatus(L.T("The watch has received no value yet."));
+            return;
+        }
+        var dialog = new SaveFileDialog
+        {
+            Title = L.T("Save the watched values"),
+            Filter = L.T("CSV, semicolons (*.csv)|*.csv"),
+            FileName = $"watch-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try
+        {
+            File.WriteAllText(dialog.FileName, _recording.ToCsv(), new System.Text.UTF8Encoding(true));
+            var text = L.T("Saved {0} value(s) to {1}.", _recording.Count, dialog.FileName);
+            if (_recording.Dropped > 0) text += L.T(" The {0} oldest were dropped to keep the list small.", _recording.Dropped);
+            PluginLog.Info(text);
+            SetStatus(text);
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Saving the watched values to {dialog.FileName} failed", ex);
+            SetStatus(L.T("Saving the watched values failed: {0}", ex.Message));
+        }
     }
 
     /// <summary>
@@ -339,7 +374,12 @@ public partial class OpcUaPlugin : ISupportsSelection
             if (_client == null || _watchRows.Count == 0) return;
             var rows = _watchRows.ToDictionary(r => r.Address);
             _watch = await _client.WatchAsync(rows.Keys.ToList(), r =>
-                Dispatcher.BeginInvoke(() => { if (rows.TryGetValue(r.Address, out var row)) row.Update(r); }));
+                Dispatcher.BeginInvoke(() =>
+                {
+                    if (!rows.TryGetValue(r.Address, out var row)) return;
+                    row.Update(r);
+                    _recording.Add(DateTimeOffset.Now, row.Node, row.Unit, r);
+                }));
         }
         catch (Exception ex)
         {
@@ -923,6 +963,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         LiveGlyph.Text = _live != null ? "\uE71A" : "\uE9D9";
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
+        SaveWatchButton.IsEnabled = _watchRows.Count > 0 || _recording.Count > 0;
         ServeText.Text = _host != null ? L.T("Stop serving") : L.T("Serve");
         ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";
         ServeGlyph.Foreground = _host != null ? new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30)) : (Brush)FindResource("Create");
