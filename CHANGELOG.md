@@ -40,6 +40,11 @@ minor versions.
   model whose NodeSet is nowhere is named in the status line, and instances
   of its types stay plain objects. Library: `AmlServerOptions.WithTypes`,
   `Folders`, `AmlServerHost.ServedTypes`, `MissingTypes`.
+- **Save values…** beside the watch list saves every value the watch
+  received, with the time it arrived, as a CSV file with semicolons: what the
+  watched variables did, to open in a spreadsheet. The last 100000 values are
+  kept; stopping the watch clears them, disconnecting does not. Library:
+  `WatchRecording`.
 
 ## [0.4.2] - 2026-11-16
 

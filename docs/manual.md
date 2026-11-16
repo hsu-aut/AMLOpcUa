@@ -919,13 +919,30 @@ dialog "Trust this server?".
 |---|---|
 | **Read values into document** | Reads the current value of every element bound to this server once and writes it into the document: every element with a `NodeId` and a `Value` attribute, every AutomationML BPR 007 DataVariable and every attribute with an `aml-opcua-variable` sub-attribute. Bindings to another server are skipped: a `NodeId` whose `ServerInstanceUri` names another server, and a DataVariable or `aml-opcua-variable` of another endpoint. A `NodeId` without `ServerInstanceUri` is read from the connected server. |
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
-| **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Unit** where the server states one, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
+| **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Unit** where the server states one, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. **Save values…** writes every value the watch received since it started, with the time it arrived, as a CSV file (see below). |
 
 Both bring the unit along where the server states one (the property
 EngineeringUnits of the variable) and the `Value` attribute has none yet: it
 becomes the attribute's **Unit**, as the editor shows it in the attribute
 details (`min⁻¹`, `°C`). A unit your model gives already stays. Taking nodes
 into the document does the same for the variables it takes.
+
+**Save values…** keeps what a variable did while it was watched. The file has
+one row per value received, in the order they arrived:
+
+```
+Time;Node;NodeId;Value;Unit;Status
+2026-11-24T10:00:00.000+01:00;Speed;"nsu=http://hsu-hh.de/UA/MPS500/;i=1035";1200.5;min⁻¹;Good
+```
+
+Times are ISO 8601 with the offset to UTC, numbers have a point, cells are
+separated by semicolons (cells holding one are quoted), and the file is UTF-8
+with a byte order mark, so a spreadsheet opens it with the units intact. A
+spreadsheet set to German reads `1200.5` as text: replace the points by
+commas, or import the file with the point as the decimal separator. The
+plugin keeps the last 100000 values and says how many older ones it dropped.
+Stopping the watch clears them; disconnecting does not, so they can still be
+saved.
 
 When no element of the document is bound to the connected server, both say so
 and how to change it: take its nodes into the document, or bind an element.
