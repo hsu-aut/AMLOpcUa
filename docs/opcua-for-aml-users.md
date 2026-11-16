@@ -241,9 +241,10 @@ name.
    of your model already carries the same NodeId, the copy refers to it with
    the attribute `refBaseObj`; an element of the same name is not matched.
 2. **Bind to element…** gives one element of your model the NodeId of one
-   node, and a `Value` attribute when the node is a variable. It binds one
-   element at a time, in a dialog per value; there is no bulk binding, and
-   the command line tool cannot bind.
+   node, and a `Value` attribute when the node is a variable, in a dialog per
+   value. **Bind model…** does it for a whole model at once: it proposes a
+   variable for each value by the words of both paths, and binds the rows you
+   keep. The command line tool cannot bind.
 
 Then **Read values into document** or **Keep document values live** fill the
 `Value` attributes of every bound element: the copies and your own elements

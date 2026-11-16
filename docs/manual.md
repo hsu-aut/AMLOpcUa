@@ -814,21 +814,67 @@ attribute in the editor; its `Value` keeps the last value read.
 
 ![A plant model of one's own without any OPC UA in it, ProcessingStation with Drill, SpindleSpeed, PartsCounter and Turntable: connected to the practice plant, the drill spindle's Speed is bound to SpindleSpeed and PartsProduced to PartsCounter; SpindleSpeed gets the attributes NodeId and Value, and with document values kept live its Value follows the plant in the attribute details](manual/bind.gif)
 
+### Bind a whole model
+
+**Bind model…** binds all values of a model of your own at once:
+
+1. Connect to the server. To search only a part of it, select an object in
+   the address space (a station, say); otherwise the whole server is read.
+2. Select your model's element in the editor, or pick an InstanceHierarchy in
+   the dialog. Its values are its elements without elements below them, and
+   its elements with a `Value` attribute. Elements taken from a server and
+   instances of UA types are not offered: their NodeIds come from the server.
+3. Check the table. For each value the plugin proposes the variable whose path
+   has the same words: `Drill/SpindleSpeed` gets
+   `MD_Drilling_unit/DV_Drill_spindle/Speed`, `Feeder/SensorOccupied` gets
+   `GVL/DI_FB_SensorOccupied`.
+4. Click **Bind**. Every ticked row binds as **Bind to element…** does: the
+   element gets the NodeId and a `Value` attribute.
+
+How the proposals are made:
+
+- The value's own name counts most, its parents' names less. A word few
+  variables have counts more than one most have, such as the name of a
+  station.
+- Names are split into words as they are written: `DI_FB_SensorOccupied` is
+  di, fb, sensor and occupied. Short forms and a few German words count as
+  the same word: Temp and Temperature, Drehzahl and Speed, ST and Station,
+  MD and Module, DV and Device.
+- An element of your model that clearly stands for an object of the server
+  (ProcessingStation for ST30_Processing) keeps the values below it to the
+  variables below that object.
+- A number in a name must agree: Motor1 is never bound to Motor2. A value
+  whose `Value` attribute has a data type gets no variable of another kind
+  (a boolean, a number, a text, a time).
+- Each variable goes to one value. An element that has a NodeId already keeps
+  it; the table shows it as bound already.
+
+The column **Match** says how sure a proposal is. **sure** and **likely** are
+ticked. **check** means another variable fits nearly as well; the row is not
+ticked, and the list in the row offers the next candidates. **none found**
+means no variable shares a word with the value's own name. Picking a variable
+ticks the row; picking **(none)** unticks it.
+
+**Save report…** writes every value with its variable, and the variables no
+value got, as a CSV file with semicolons: what the model and the plant do not
+have in common.
+
+The search stops after 20000 variables and says so; select a part of the
+server to narrow it.
+
 ### Connect an existing plant model to a PLC
 
 Your plant model exists, and a PLC or another OPC UA server delivers the
-values. Two commands lead there; they differ in where the values land.
+values. Three commands lead there; they differ in where the values land and
+how a node finds its element.
 
-| | **Take into document** | **Bind to element…** |
-|---|---|---|
-| Where the values land | In a copy of the server's nodes, below a server element in the hierarchy under **nodes into** | In your own elements, where they are |
-| How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId (see [Planned elements](#take-nodes-into-the-document)). Names are never compared. | You pick the element for each node |
-| Effort | One command for many nodes | One dialog per value |
+| | **Take into document** | **Bind to element…** | **Bind model…** |
+|---|---|---|---|
+| Where the values land | In a copy of the server's nodes, below a server element in the hierarchy under **nodes into** | In your own elements, where they are | In your own elements, where they are |
+| How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId (see [Planned elements](#take-nodes-into-the-document)). Names are never compared. | You pick the element for each node | By the words of both paths, proposed and checked in a table (see [Bind a whole model](#bind-a-whole-model)) |
+| Effort | One command for many nodes | One dialog per value | One dialog for the whole model |
 
-Binding has no bulk form: each value is one dialog, and the command line tool
-cannot bind. For hundreds of values, take the nodes into the document and read
-the values there, or give your elements their NodeIds by a script, so that
-the nodes taken link to them.
+The command line tool cannot bind.
 
 For a model of your own, bind:
 
@@ -838,7 +884,8 @@ For a model of your own, bind:
    bound. Binding gives the element its `NodeId` and `Value` attributes.
 2. Connect to the server. Its types are not needed for binding.
 3. For each value: select the variable in the address space, click **Bind to
-   element…** and pick the element.
+   element…** and pick the element. **Bind model…** proposes them all at once
+   (see [Bind a whole model](#bind-a-whole-model)).
 4. **Read values into document** reads them once; **Keep document values
    live** follows every change.
 5. Save. The bindings are attributes of the elements and work again in the
@@ -1427,7 +1474,8 @@ message; later versions fix that (see the [changelog](../CHANGELOG.md)).
   [CAEX 2.15 documents](#caex-215-documents)).
 - All commands wait while the plugin works (the progress bar runs).
 - On the **Server** tab most commands need a connection; **Watch (view
-  only)** needs a variable selected; **Bind to element…** a node selected.
+  only)** needs a variable selected; **Bind to element…** a node selected;
+  **Bind model…** an open document.
 - **Save after import** is greyed when this editor version has no save
   command the plugin knows; its tooltip says so. Save with Ctrl+S.
 - **Remove…** in the details of a namespace is greyed while something still

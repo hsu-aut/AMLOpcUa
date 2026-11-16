@@ -15,6 +15,7 @@ using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
 using OpcUaAml.Addressing;
+using OpcUaAml.Binding;
 using OpcUaAml.Import;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Server;
@@ -779,6 +780,63 @@ public partial class OpcUaPlugin : ISupportsSelection
     });
 
     /// <summary>
+    /// Bind model…: the variables below the selected object (the whole server
+    /// without one) are read, a variable is proposed for each value of a model
+    /// of the user's own, and what is ticked in the dialog is bound.
+    /// </summary>
+    private async void BindModelButton_Click(object sender, RoutedEventArgs e)
+    {
+        var document = _document;
+        var client = _client;
+        if (document == null || client == null) return;
+        var models = ModelBindRows.Models(document).ToList();
+        // An element of one's own selected in the editor is the model first offered.
+        if (_editorSelection is InternalElementType selected && ModelBindRows.IsOwn(selected) && selected.InternalElement.Any())
+            models.Insert(0, selected);
+        if (models.Count == 0)
+        {
+            SetStatus(L.T("The document has no model of your own to bind: an InstanceHierarchy with an element for each value."));
+            return;
+        }
+        var start = SelectedNode is { NodeClass: "Object" } node ? node : null;
+        SetBusy(true, start == null ? L.T("Reading the server's variables …") : L.T("Reading the variables below {0} …", start.DisplayName));
+        var token = BeginCancellable();
+        CollectedVariables found;
+        try
+        {
+            found = await ServerVariables.CollectAsync(client, start?.Address, ct: token);
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            SetStatus(L.T("Reading the server's variables cancelled."));
+            return;
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Reading the server's variables failed", ex);
+            SetStatus(L.T("Reading the server's variables failed: {0}", ex.Message));
+            return;
+        }
+        finally
+        {
+            EndCancellable();
+            SetBusy(false, null);
+        }
+        if (found.Variables.Count == 0)
+        {
+            SetStatus(start == null ? L.T("The server has no variables to bind.") : L.T("The server has no variables below {0}.", start.DisplayName));
+            return;
+        }
+
+        var window = new ModelBindWindow(models, models[0], found, start?.DisplayName ?? L.T("the whole server")) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true) return;
+        var bound = ModelBinder.Apply(window.Kept, client.ServerUri);
+        foreach (var p in window.Kept) PluginLog.Info($"Bound {p.Variable!.Address} to '{p.Signal.PathText}'.");
+        SetStatus(L.T("Bound {0} value(s) of '{1}' to the server.", bound, window.ModelName) + L.T(" Press Ctrl+S to save."));
+        UpdateServerState();
+    }
+
+    /// <summary>
     /// Gives <paramref name="element"/> the node's address as its NodeId attribute
     /// (Annex A), and for a variable a Value attribute: reading and keeping values
     /// live take only elements that have one, so a variable bound without it was
@@ -917,6 +975,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         RemoveSelectionButton.IsEnabled = SelectionList.SelectedItem != null;
         ClearSelectionButton.IsEnabled = _items.Count > 0 || _excluded.Count > 0;
         BindButton.IsEnabled = hasNode;
+        BindModelButton.IsEnabled = connected && _document != null && !_busy;
         SnapshotButton.IsEnabled = connected && _document != null && !_busy;
         LiveButton.IsEnabled = !_liveStarting && (_live != null || (connected && _document != null && !_busy));
         LiveText.Text = _live != null ? L.T("Stop keeping values live") : L.T("Keep document values live");

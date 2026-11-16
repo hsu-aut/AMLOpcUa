@@ -39,7 +39,7 @@ internal static class HelpTopics
             "plant", "connect"),
         ["server.commands"] = new(
             L.T("What to do with the server"),
-            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."),
+            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address; Bind model does it for every value of a model of yours at once. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."),
             new[] { "Node", "Variable", "NodeId", "Binding", "Subscription", "Address space", "InternalElement", "Attribute" },
             "plant", "working-with-a-running-server", AlsoLesson: "bind"),
         ["server.take"] = new(
