@@ -925,8 +925,10 @@ then be tried against the engineering model before the plant exists.
 
 1. Check the port under **port** (default 48400).
 2. Tick **simulate values** if the values should move.
-3. Tick **to the network** only if other computers must reach the server.
-4. Click **Serve**.
+3. Leave **with types** ticked to serve instances of UA types as instances of
+   their types (see below).
+4. Tick **to the network** only if other computers must reach the server.
+5. Click **Serve**.
 
 The status line says how many nodes are served and where, for instance
 "Serving 42 node(s) of this document at opc.tcp://127.0.0.1:48400/AMLOpcUa,
@@ -946,9 +948,20 @@ What is served:
 - an element whose class is a UA VariableType becomes a Variable, one whose
   class is a UA ObjectType an Object; an element without a UA class becomes a
   Variable when it carries a `Value`, with children or without, an Object otherwise;
-- every Object is a BaseObjectType and every Variable a BaseDataVariableType,
-  held by HasComponent, also where the element has a UA type of a companion
-  specification: the document server serves the plant, not its types. A
+- with **with types**, an element whose class is a UA type is an instance of
+  that type: its TypeDefinition is the type's NodeId (the Annex A NodeId of
+  its class). The types come along: the plugin loads the NodeSets of their
+  models, and of the models those require, from the bundled ones and the
+  folders it knows (**Settings ▾ › NodeSet folders…**, the models it fetched),
+  and serves their types, with their instance declarations, encodings and
+  namespace metadata, below Types. The instances a model declares itself,
+  such as DI's DeviceSet, are not served: below Objects are the document's
+  elements only. Each model is offered as the NamespaceFile of its namespace,
+  so another AMLOpcUa can take the types with **Types of the server…**. The
+  status line names the models; a model whose NodeSet is nowhere is named
+  too, and instances of its types are served as plain objects;
+- an element without a UA class, and every element without **with types**,
+  is a BaseObjectType or a BaseDataVariableType, held by HasComponent. A
   property is served the same way, so a client sees no HasProperty and no
   PropertyType;
 - elements with an Annex A NodeId keep it, except NodeIds of the namespace of
@@ -968,7 +981,9 @@ What is served:
   their name (`degree Celsius`); any other unit is served as written;
 - nothing is writable and no method is offered.
 
-To serve a model with its types, export it as a NodeSet (see
+The command line tool does the same with `uaaml serve <doc.aml> --types`
+(`--search <folder>` for NodeSets elsewhere). To serve a model as the NodeSet
+it was, with its own instances, export it (see
 [Exporting as a NodeSet](#exporting-as-a-nodeset)) and serve that file with
 `uaaml serve --nodeset`. In OPC UA terms, what you get is described in
 [AutomationML for OPC UA developers](aml-for-opcua-developers.md).

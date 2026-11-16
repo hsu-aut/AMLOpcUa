@@ -50,6 +50,18 @@ public sealed class AmlServerOptions
     /// the new middle, an edited text or date is served as it is.
     /// </summary>
     public bool Simulate { get; init; }
+
+    /// <summary>
+    /// Serve the types too: an element that is an instance of a UA type is
+    /// served as an instance of that type, and the types come from the
+    /// NodeSets of their models (the bundled ones and <see cref="Folders"/>),
+    /// without the instances those declare. Off: every element is a
+    /// BaseObjectType or BaseDataVariableType.
+    /// </summary>
+    public bool WithTypes { get; init; }
+
+    /// <summary>Folders searched for the NodeSets of the types (<see cref="WithTypes"/>).</summary>
+    public IReadOnlyList<string> Folders { get; init; } = [];
 }
 
 /// <summary>A client certificate the document server refused or trusts.</summary>
@@ -146,7 +158,9 @@ public sealed class AmlServerHost : IAsyncDisposable
             "AMLOpcUa document server", "DocumentServer", "CN=AMLOpcUa document server, O=AMLOpcUa",
             options.Port, options.Network, options.PkiRoot, ct).ConfigureAwait(false);
 
-        var server = new DocumentServer(model, options.Simulate);
+        var missing = new List<string>();
+        var types = options.WithTypes ? NodeSetServerHost.ResolveModels(model.TypeModels, options.Folders, missing) : [];
+        var server = new DocumentServer(model, options.Simulate, types, options.WithTypes);
         try
         {
             await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
@@ -157,8 +171,19 @@ public sealed class AmlServerHost : IAsyncDisposable
             throw;
         }
         if (options.Simulate) server.NodeManager?.StartSimulation(TimeSpan.FromMilliseconds(500));
-        return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace) { CertificateReplaced = replaced };
+        return new AmlServerHost(server, url, model.Count, document, options.DocumentNamespace)
+        {
+            CertificateReplaced = replaced,
+            ServedTypes = types.Select(s => s.ModelUri).ToList(),
+            MissingTypes = missing,
+        };
     }
+
+    /// <summary>The models whose types are served (<see cref="AmlServerOptions.WithTypes"/>), required models included.</summary>
+    public IReadOnlyList<string> ServedTypes { get; private init; } = [];
+
+    /// <summary>Models of the document's types whose NodeSet was not found; their instances are served as plain objects.</summary>
+    public IReadOnlyList<string> MissingTypes { get; private init; } = [];
 
     /// <summary>The server's certificate was made anew, because the old one named other addresses.</summary>
     public bool CertificateReplaced { get; private init; }
@@ -213,18 +238,23 @@ public sealed class AmlServerHost : IAsyncDisposable
         _server.Dispose();
     }
 
-    private sealed class DocumentServer(AmlAddressSpace model, bool simulate) : StandardServer
+    private sealed class DocumentServer(AmlAddressSpace model, bool simulate, IReadOnlyList<NodeSetServerHost.ServedSet> types, bool withTypes) : StandardServer
     {
         public DocumentNodeManager? NodeManager { get; private set; }
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            NodeManager = new DocumentNodeManager(server, configuration, model, simulate);
-            return new(server, configuration, null, NodeManager);
+            // The namespaces whose types are there: the base model's always, the others when loaded.
+            var typed = withTypes ? types.SelectMany(s => s.Namespaces).Append(Opc.Ua.Namespaces.OpcUa).ToHashSet(StringComparer.Ordinal) : null;
+            NodeManager = new DocumentNodeManager(server, configuration, model, simulate, typed);
+            if (types.Count == 0) return new(server, configuration, null, NodeManager);
+            var typeManager = new NodeSetServerHost.PlantNodeManager(server, configuration, types, publish: true, simulate: false, typesOnly: true);
+            return new(server, configuration, null, typeManager, NodeManager);
         }
     }
 
-    private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model, bool simulate)
+    private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model, bool simulate,
+        IReadOnlySet<string>? typed)
         : CustomNodeManager2(server, configuration, model.NamespaceUris.ToArray())
     {
         private readonly List<(BaseDataVariableState State, AmlNode Node)> _variables = new();
@@ -318,16 +348,27 @@ public sealed class AmlServerHost : IAsyncDisposable
             }
         }
 
+        private NodeId Id(UaNodeAddress address)
+        {
+            var ns = (ushort)Server.NamespaceUris.GetIndex(address.NamespaceUri);
+            return address.IdType switch
+            {
+                UaIdType.Numeric => new NodeId(uint.Parse(address.Identifier, CultureInfo.InvariantCulture), ns),
+                UaIdType.Guid => new NodeId(Guid.Parse(address.Identifier), ns),
+                UaIdType.Opaque => new NodeId(Convert.FromBase64String(address.Identifier), ns),
+                _ => new NodeId(address.Identifier, ns),
+            };
+        }
+
+        /// <summary>The node's UA type, where it is served; null for the base types.</summary>
+        private NodeId? TypeOf(AmlNode node) =>
+            node.TypeDefinition is { } type && typed != null && typed.Contains(type.NamespaceUri) && Server.NamespaceUris.GetIndex(type.NamespaceUri) >= 0
+                ? Id(type) : null;
+
         private NodeState Create(AmlNode node, NodeState? parent)
         {
             var ns = (ushort)Server.NamespaceUris.GetIndex(node.Address.NamespaceUri);
-            var nodeId = node.Address.IdType switch
-            {
-                UaIdType.Numeric => new NodeId(uint.Parse(node.Address.Identifier, CultureInfo.InvariantCulture), ns),
-                UaIdType.Guid => new NodeId(Guid.Parse(node.Address.Identifier), ns),
-                UaIdType.Opaque => new NodeId(Convert.FromBase64String(node.Address.Identifier), ns),
-                _ => new NodeId(node.Address.Identifier, ns),
-            };
+            var nodeId = Id(node.Address);
             BaseInstanceState state;
             if (node.IsFolder)
             {
@@ -338,7 +379,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                 var (dataType, value) = Typed(node.Value, node.DataType);
                 state = new BaseDataVariableState(parent)
                 {
-                    TypeDefinitionId = VariableTypeIds.BaseDataVariableType,
+                    TypeDefinitionId = TypeOf(node) ?? VariableTypeIds.BaseDataVariableType,
                     DataType = dataType,
                     ValueRank = ValueRanks.Scalar,
                     AccessLevel = AccessLevels.CurrentRead,
@@ -352,7 +393,7 @@ public sealed class AmlServerHost : IAsyncDisposable
             }
             else
             {
-                state = new BaseObjectState(parent) { TypeDefinitionId = ObjectTypeIds.BaseObjectType };
+                state = new BaseObjectState(parent) { TypeDefinitionId = TypeOf(node) ?? ObjectTypeIds.BaseObjectType };
             }
             state.NodeId = nodeId;
             state.BrowseName = new QualifiedName(node.Name, ns);
@@ -461,6 +502,9 @@ public sealed record AmlNode(string Name, UaNodeAddress Address, bool IsFolder, 
 
     /// <summary>The unit CAEX gives the value (the Unit of its attribute), served as EngineeringUnits.</summary>
     public string? Unit { get; init; }
+
+    /// <summary>The NodeId of the element's UA type (its class's Annex A NodeId), if it is an instance of one.</summary>
+    public UaNodeAddress? TypeDefinition { get; init; }
 }
 
 public sealed class AmlAddressSpace
@@ -468,6 +512,9 @@ public sealed class AmlAddressSpace
     public List<AmlNode> Roots { get; } = new();
     public List<string> NamespaceUris { get; } = new();
     public int Count { get; private set; }
+
+    /// <summary>The models of the UA types the elements are instances of, the base model left out.</summary>
+    public HashSet<string> TypeModels { get; } = new(StringComparer.Ordinal);
 
     public static AmlAddressSpace From(CAEXDocument doc, string documentNamespace)
     {
@@ -505,10 +552,18 @@ public sealed class AmlAddressSpace
             ? UaTypes.Chain(type).Any(t => t.Name == "BaseVariableType")
             : ie.Attribute["Value"] != null;
         var value = ie.Attribute["Value"];
+        UaNodeAddress? typeId = null;
+        if (type != null)
+        {
+            try { typeId = AnnexANodeId.Of(type) is { } t ? t with { ServerUri = null } : null; }
+            catch (AddressingException) { /* a class without a usable NodeId serves as a base type */ }
+        }
+        if (typeId != null && typeId.NamespaceUri != "http://opcfoundation.org/UA/") TypeModels.Add(typeId.NamespaceUri);
         Count++;
         return new AmlNode(ie.Name, address, false, isVariable, value?.Value, value?.AttributeDataType, children)
         {
             Source = ie,
+            TypeDefinition = typeId,
             // Not where the element models EngineeringUnits as a child of its own.
             Unit = isVariable && !string.IsNullOrWhiteSpace(value?.Unit) && children.All(c => c.Name != "EngineeringUnits") ? value!.Unit : null,
         };

@@ -135,14 +135,17 @@ public static class Program
             the NodeSet from the server ('uaaml nodeset'); --no-publish leaves
             that out, and the client rebuilds it by browsing.
 
-        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate] [--for <seconds>]
+        uaaml serve <doc.aml> [--port <n>] [--network] [--simulate] [--types [--search <dir>]...] [--for <seconds>]
             Serve the document's instance hierarchies as an OPC UA server on port
             48400 (or --port) until Ctrl+C or Enter (or for the seconds given),
             to this computer only. An
             input at its end (a script, a scheduled task) does not stop it. --network offers it to other computers: secured
             endpoints only, and only to clients whose certificate is trusted.
             --simulate lets numbers swing around the document's values and
-            booleans toggle, as in a running plant.
+            booleans toggle, as in a running plant. --types serves an element
+            that is an instance of a UA type as an instance of that type, with
+            the types from the NodeSets of their models (the bundled ones and
+            the folders searched), without the instances those declare.
 
         uaaml clients [--nodeset] [--trust <thumbprint>] [--distrust <thumbprint>]
             The client certificates the document server refused and those it
@@ -855,7 +858,7 @@ public static class Program
     private static async Task<int> ServeCommand(List<string> args)
     {
         var o = Options.Parse(args, valued: new[] { "--port", "--nodeset", "--search", "--for" },
-            flags: new[] { "--network", "--simulate", "--no-publish" });
+            flags: new[] { "--network", "--simulate", "--no-publish", "--types" });
         var network = o.Has("--network");
         var nodeSets = o.All("--nodeset");
         var where = !network ? ", to this computer only."
@@ -890,8 +893,14 @@ public static class Program
 
         var doc = Documents.Load(o.SinglePositional("document"));
         var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
-        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions { Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki });
+        await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions
+        {
+            Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki,
+            WithTypes = o.Has("--types"), Folders = o.All("--search"),
+        });
         Console.WriteLine($"Serving {host.Nodes} node(s) at {host.EndpointUrl}" + where + stop);
+        if (host.ServedTypes.Count > 0) Console.WriteLine($"With the types of {string.Join(", ", host.ServedTypes)}.");
+        if (host.MissingTypes.Count > 0) Console.WriteLine($"No NodeSet found for {string.Join(", ", host.MissingTypes)}; instances of their types are served as plain objects. Give the folder that holds it with --search.");
         await UntilStoppedAsync(limit);
         return 0;
     }

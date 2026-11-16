@@ -235,7 +235,18 @@ VariableType becomes a Variable, one whose class is a UA ObjectType an
 Object; an element without a UA class becomes a Variable when it carries a
 `Value`, with children or without, an Object otherwise. Every Variable is a
 `BaseDataVariableType` and every Object a `BaseObjectType`, held by
-HasComponent, properties included. Elements with an Annex A NodeId keep it
+HasComponent, properties included, unless `AmlServerOptions.WithTypes` is set:
+then an element whose class is a UA type gets that type (the class's Annex A
+NodeId) as its TypeDefinition. `AmlAddressSpace.TypeModels` collects the
+models of those types; `NodeSetServerHost.ResolveModels` finds their NodeSets,
+required models first, from the bundled ones and `AmlServerOptions.Folders`,
+and a second node manager (`PlantNodeManager` with `typesOnly`) loads only
+what belongs to types: each node of the flat import whose topmost parent (by
+ParentNodeId, or else an inverse HasComponent, HasProperty, HasOrderedComponent
+or HasAddIn) is a type, an encoding, a dictionary or namespace metadata. The
+instances a model declares (DI's DeviceSet) stay out. A model none of the
+folders holds is in `AmlServerHost.MissingTypes`; instances of its types are
+served with the base types. Elements with an Annex A NodeId keep it
 (the namespace is registered), the others get a string NodeId from their path
 in `urn:amlopcua:document`. Two elements with the same NodeId (a planned
 element and its mirrored aspect, copied instances): the first in document
