@@ -247,7 +247,12 @@ order keeps it, each further one gets the string NodeId `<identifier>#2`,
 (`EngineeringUnit.From`) by its symbol (`°C`, `mm`; case matters), a plain-text
 spelling (`1/min`, `rpm`, `m2`, `Nm`), its common code (`CEL`) or its name
 (`degree Celsius`); any other text is served as it is, with UnitId -1 and no
-namespace. `UaClient.ReadEngineeringUnitsAsync` reads it back from any server.
+namespace. `UaClient.ReadEngineeringUnitsAsync` reads it back from any server,
+for a list of variables in two requests (TranslateBrowsePaths to
+`HasProperty EngineeringUnits`, then Read). `ValueSnapshot`, `LiveValues` (once,
+at the start) and the mirror write it as the CAEX Unit of a `Value` that has
+none (`ValueSnapshot.FillUnitsAsync`); a server that cannot say leaves the
+values read and the units as they were.
 The nodes are those of the document at start; their
 values follow it: a change in the document reaches the served nodes after a
 short quiet time, and subscribed clients see it (`FollowDocument`,

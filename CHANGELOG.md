@@ -9,6 +9,12 @@ minor versions.
 
 ### Added
 
+- **Units come into the document.** Reading values once, keeping them live
+  and taking nodes write the unit the server states (EngineeringUnits) as the
+  CAEX Unit of the `Value` attribute where it has none; a unit the model gives
+  stays. The units of all bound values are read in two requests
+  (`UaClient.ReadEngineeringUnitsAsync` for a list, by TranslateBrowsePaths),
+  once when values are kept live, since a unit does not move.
 - The watch list has a column **Unit**: the unit the server states for the
   variable (EngineeringUnits), read once when it is added. A screen reader
   names it after the value.

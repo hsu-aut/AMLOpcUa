@@ -874,6 +874,12 @@ dialog "Trust this server?".
 | **Keep document values live** | The same bindings, subscribed: every change the server reports is written into the document until you click **Stop keeping values live**, disconnect, or close the document. The status line shows the last change. The document is not saved; Ctrl+S keeps the last values. |
 | **Watch (view only)** | Shows the value of the selected variable in a list below the tree (**Node**, **Value**, **Unit** where the server states one, **Status**, **Received**) as it changes. Nothing is written into the document. The button beside it stops watching and clears the list. |
 
+Both bring the unit along where the server states one (the property
+EngineeringUnits of the variable) and the `Value` attribute has none yet: it
+becomes the attribute's **Unit**, as the editor shows it in the attribute
+details (`min⁻¹`, `°C`). A unit your model gives already stays. Taking nodes
+into the document does the same for the variables it takes.
+
 When no element of the document is bound to the connected server, both say so
 and how to change it: take its nodes into the document, or bind an element.
 Values bound to another server are left out and counted; values the server

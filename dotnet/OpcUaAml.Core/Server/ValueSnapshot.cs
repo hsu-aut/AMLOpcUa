@@ -42,12 +42,45 @@ public static class ValueSnapshot
                     else { failed++; problems.Add($"{targets[i].What}: {results[i].Status}"); }
                 }
             });
+            await FillUnitsAsync(doc, client, targets.Select(t => (t.Address, t.Attribute)).ToList(), ct);
         }
         return new SnapshotResult(read, failed, skipped, problems);
     }
 
-    /// <summary>A bound value in the document: how to write it, which node, and a name for messages.</summary>
-    internal sealed record Target(Action<UaReadResult> Write, UaNodeAddress Address, string What);
+    /// <summary>A bound value in the document: how to write it, which node, a name for messages, and its attribute.</summary>
+    internal sealed record Target(Action<UaReadResult> Write, UaNodeAddress Address, string What, Func<AttributeType?> Attribute);
+
+    /// <summary>
+    /// The units the server states (EngineeringUnits) for bound values whose
+    /// attribute has none yet, written as the attribute's CAEX Unit; a unit the
+    /// model gives stays. A server that cannot say is no failure: the values
+    /// are in, the units are a gain. The number of units written.
+    /// </summary>
+    internal static async Task<int> FillUnitsAsync(CAEXDocument doc, UaClient client,
+        IReadOnlyList<(UaNodeAddress Address, Func<AttributeType?> Attribute)> bound, CancellationToken ct)
+    {
+        var open = bound.Where(b => b.Attribute() is { } a && string.IsNullOrEmpty(a.Unit)).ToList();
+        if (open.Count == 0) return 0;
+        var addresses = open.Select(o => o.Address).Distinct().ToList();
+        IReadOnlyList<EngineeringUnit?> units;
+        try { units = await client.ReadEngineeringUnitsAsync(addresses, ct); }
+        catch (Opc.Ua.ServiceResultException) { return 0; }
+        var byAddress = new Dictionary<UaNodeAddress, EngineeringUnit>();
+        for (var i = 0; i < addresses.Count; i++)
+            if (units[i] is { DisplayName.Length: > 0 } unit) byAddress[addresses[i]] = unit;
+        if (byAddress.Count == 0) return 0;
+        var filled = 0;
+        Import.EditorServices.WithoutUndo(doc, () =>
+        {
+            foreach (var (address, attribute) in open)
+            {
+                if (!byAddress.TryGetValue(address, out var unit) || attribute() is not { } a || !string.IsNullOrEmpty(a.Unit)) continue;
+                a.Unit = unit.DisplayName;
+                filled++;
+            }
+        });
+        return filled;
+    }
 
     /// <summary>
     /// Every bound value of the instance hierarchies that this client's server
@@ -64,7 +97,7 @@ public static class ValueSnapshot
             try
             {
                 var address = await client.ResolveAsync(id, ct);
-                targets.Add(new Target(r => SetValue(ie, r), address, ie.Name));
+                targets.Add(new Target(r => SetValue(ie, r), address, ie.Name, () => ie.Attribute["Value"]));
             }
             catch (AddressingException ex)
             {
@@ -96,7 +129,7 @@ public static class ValueSnapshot
             if (address != null && ie.Attribute["Value"] != null)
             {
                 if (OtherServer(address.ServerUri, client)) skipped++;
-                else targets.Add(new Target(r => SetValue(ie, r), address with { ServerUri = null }, ie.Name));
+                else targets.Add(new Target(r => SetValue(ie, r), address with { ServerUri = null }, ie.Name, () => ie.Attribute["Value"]));
             }
 
             foreach (var legacy in AllAttributes(ie).Where(LegacyOpcUaVariable.IsBound))
@@ -106,7 +139,7 @@ public static class ValueSnapshot
                     var (server, nodeId) = LegacyOpcUaVariable.Read(legacy);
                     if (!SameUrl(server, client)) { skipped++; continue; }
                     // The index belongs to exactly this server, so its table resolves it.
-                    targets.Add(new Target(r => SetAttribute(legacy, r), UaNodeAddress.Parse(nodeId, client.NamespaceTable), $"{ie.Name}/{legacy.Name}"));
+                    targets.Add(new Target(r => SetAttribute(legacy, r), UaNodeAddress.Parse(nodeId, client.NamespaceTable), $"{ie.Name}/{legacy.Name}", () => legacy));
                 }
                 catch (Exception ex) when (ex is AddressingException or FormatException)
                 {
@@ -120,7 +153,7 @@ public static class ValueSnapshot
                 {
                     var (a, source) = BprDataVariable.Read(dv, doc);
                     if (!SameEndpoint(source, client)) { skipped++; continue; }
-                    targets.Add(new Target(r => SetAttribute(dv, r), a, $"{ie.Name}/{dv.Name}"));
+                    targets.Add(new Target(r => SetAttribute(dv, r), a, $"{ie.Name}/{dv.Name}", () => dv));
                 }
                 catch (Exception ex) when (ex is AddressingException or FormatException)
                 {

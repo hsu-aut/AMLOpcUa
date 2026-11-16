@@ -427,6 +427,8 @@ public static class AddressSpaceMirror
                 ValueSnapshot.SetValue(state.Variables[i].Element, results[i]);
             }
         });
+        await ValueSnapshot.FillUnitsAsync(state.Variables[0].Element.CAEXDocument, client,
+            state.Variables.Select(v => (v.Address, (Func<AttributeType?>)(() => v.Element.Attribute["Value"]))).ToList(), ct);
     }
 
     /// <summary>

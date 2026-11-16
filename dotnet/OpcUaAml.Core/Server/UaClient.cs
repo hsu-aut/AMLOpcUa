@@ -445,18 +445,68 @@ public sealed class UaClient : IAsyncDisposable
     /// EngineeringUnits below it (OPC 10000-8). Null where it has none or the
     /// property holds no EUInformation.
     /// </summary>
-    public async Task<EngineeringUnit?> ReadEngineeringUnitsAsync(UaNodeAddress variable, CancellationToken ct = default)
+    public async Task<EngineeringUnit?> ReadEngineeringUnitsAsync(UaNodeAddress variable, CancellationToken ct = default) =>
+        (await ReadEngineeringUnitsAsync(new[] { variable }, ct).ConfigureAwait(false))[0];
+
+    /// <summary>
+    /// The units of several variables in two requests, whatever their number:
+    /// the paths to their EngineeringUnits (HasProperty, OPC 10000-8), then the
+    /// values. Null for a variable that has none, or a node that is gone.
+    /// </summary>
+    public async Task<IReadOnlyList<EngineeringUnit?>> ReadEngineeringUnitsAsync(IReadOnlyList<UaNodeAddress> variables, CancellationToken ct = default)
     {
-        var property = (await BrowseAsync(variable, ct).ConfigureAwait(false)).FirstOrDefault(i => i.BrowseName == BrowseNames.EngineeringUnits);
-        if (property == null) return null;
-        var read = await ReadAsync(property.Address, ct).ConfigureAwait(false);
-        var eu = read.Value switch
+        var units = new EngineeringUnit?[variables.Count];
+        if (variables.Count == 0) return units;
+        var paths = new BrowsePathCollection();
+        var asked = new List<int>();
+        for (var i = 0; i < variables.Count; i++)
         {
-            EUInformation e => e,
-            ExtensionObject { Body: EUInformation e } => e,
-            _ => null,
-        };
-        return read.Good && eu != null ? EngineeringUnit.Of(eu.NamespaceUri, eu.UnitId, eu.DisplayName?.Text, eu.Description?.Text) : null;
+            NodeId start;
+            try { start = ToNodeId(variables[i]); }
+            catch (FormatException) { continue; }
+            paths.Add(new BrowsePath
+            {
+                StartingNode = start,
+                RelativePath = new RelativePath
+                {
+                    Elements = new RelativePathElementCollection
+                    {
+                        new RelativePathElement
+                        {
+                            ReferenceTypeId = ReferenceTypeIds.HasProperty, IsInverse = false, IncludeSubtypes = true,
+                            TargetName = new QualifiedName(BrowseNames.EngineeringUnits),
+                        },
+                    },
+                },
+            });
+            asked.Add(i);
+        }
+        if (paths.Count == 0) return units;
+        var found = await _session.TranslateBrowsePathsToNodeIdsAsync(null, paths, ct).ConfigureAwait(false);
+        var read = new ReadValueIdCollection();
+        var of = new List<int>();
+        for (var k = 0; k < found.Results.Count; k++)
+        {
+            var result = found.Results[k];
+            if (!StatusCode.IsGood(result.StatusCode) || result.Targets.Count == 0) continue;
+            read.Add(new ReadValueId { NodeId = ExpandedNodeId.ToNodeId(result.Targets[0].TargetId, _session.NamespaceUris), AttributeId = Attributes.Value });
+            of.Add(asked[k]);
+        }
+        if (read.Count == 0) return units;
+        var values = await _session.ReadAsync(null, 0, TimestampsToReturn.Neither, read, ct).ConfigureAwait(false);
+        for (var k = 0; k < values.Results.Count; k++)
+        {
+            var dv = values.Results[k];
+            var eu = dv.Value switch
+            {
+                EUInformation e => e,
+                ExtensionObject { Body: EUInformation e } => e,
+                _ => null,
+            };
+            if (StatusCode.IsGood(dv.StatusCode) && eu != null)
+                units[of[k]] = EngineeringUnit.Of(eu.NamespaceUri, eu.UnitId, eu.DisplayName?.Text, eu.Description?.Text);
+        }
+        return units;
     }
 
     /// <summary>Reads the Value attribute of several variables in one request.</summary>

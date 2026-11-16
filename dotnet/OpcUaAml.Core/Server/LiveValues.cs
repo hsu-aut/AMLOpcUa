@@ -60,6 +60,8 @@ public sealed class LiveValues : IAsyncDisposable
         Action<LiveUpdate>? changed = null, int publishingIntervalMs = 1000, CancellationToken ct = default)
     {
         var (targets, problems, skipped) = await ValueSnapshot.ResolvedTargetsAsync(doc, client, ct);
+        // Units once at the start: a unit does not move with the values.
+        await ValueSnapshot.FillUnitsAsync(doc, client, targets.Select(t => (t.Address, t.Attribute)).ToList(), ct);
         // One monitored item per node, even when several elements are bound to it.
         var byAddress = targets.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.ToList());
         // The first values arrive while the subscription is created, before this object exists.
