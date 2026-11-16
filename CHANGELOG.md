@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-16
+
 ### Fixed
 
 - **No server could be reached when another plugin brings an OPC UA stack of
