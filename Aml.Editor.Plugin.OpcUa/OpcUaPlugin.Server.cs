@@ -778,6 +778,83 @@ public partial class OpcUaPlugin : ISupportsSelection
         Selected?.Invoke(this, new SelectionEventArgs(element));
     });
 
+    /// <summary>Write value…: the selected variable's type and value now, a new value typed and checked, then written.</summary>
+    private async void WriteButton_Click(object sender, RoutedEventArgs e)
+    {
+        var node = SelectedNode;
+        var client = _client;
+        if (node is not { NodeClass: "Variable" } || client == null) return;
+        UaVariableInfo info;
+        UaReadResult now;
+        try
+        {
+            info = await client.DescribeVariableAsync(node.Address);
+            now = await client.ReadAsync(node.Address);
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Reading {node.Address} before writing failed", ex);
+            SetStatus(L.T("Reading '{0}' failed: {1}", node.DisplayName, ex.Message));
+            return;
+        }
+        if (!info.Writable)
+        {
+            SetStatus(L.T("The server lets '{0}' only be read.", node.DisplayName));
+            return;
+        }
+        var window = new WriteValueWindow(node.DisplayName, node.Address.ToString(), info, now.Good ? now.ValueText ?? "" : "") { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true) return;
+        var text = window.Input.Text;
+        SetBusy(true, L.T("Writing '{0}' …", node.DisplayName));
+        try
+        {
+            var result = await client.WriteValueAsync(node.Address, text);
+            PluginLog.Info($"Write {text} to {node.Address}: {result.Status}.");
+            SetStatus(result.Good ? L.T("Wrote {0} into '{1}'.", text, node.DisplayName) : L.T("The server did not write '{0}': {1}", node.DisplayName, result.Status));
+            if (result.Good && _shownValue is { } shown && shown.Address == node.Address)
+            {
+                var back = await client.ReadAsync(node.Address);
+                if (back.Good) shown.Text.Text = back.ValueText ?? "";
+            }
+        }
+        catch (ValueEntryException ex) { SetStatus(ValueTexts.Describe(ex)); }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Writing {node.Address} failed", ex);
+            SetStatus(L.T("Writing '{0}' failed: {1}", node.DisplayName, ex.Message));
+        }
+        finally { SetBusy(false, null); }
+    }
+
+    /// <summary>Call method…: the selected method on the object above it in the address space, with typed arguments.</summary>
+    private async void CallButton_Click(object sender, RoutedEventArgs e)
+    {
+        var item = AddressTree.SelectedItem as TreeViewItem;
+        var client = _client;
+        if (item?.Tag is not UaBrowseItem { NodeClass: "Method" } method || client == null) return;
+        if ((item.Parent as TreeViewItem)?.Tag is not UaBrowseItem target)
+        {
+            SetStatus(L.T("'{0}' has no object above it in the address space to be called on.", method.DisplayName));
+            return;
+        }
+        UaMethodInfo info;
+        try { info = await client.DescribeMethodAsync(method.Address); }
+        catch (Exception ex)
+        {
+            PluginLog.Error($"Reading the arguments of {method.Address} failed", ex);
+            SetStatus(L.T("Reading the arguments of '{0}' failed: {1}", method.DisplayName, ex.Message));
+            return;
+        }
+        var window = new CallMethodWindow(method.DisplayName, target.DisplayName, info, async inputs =>
+        {
+            var answer = await client.CallAsync(target.Address, method.Address, inputs);
+            PluginLog.Info($"Call {method.Address} on {target.Address} ({string.Join(", ", inputs)}): {answer.Status}"
+                           + string.Concat(answer.Outputs.Select(o => $"; {o.Name} = {o.Value}")));
+            return answer;
+        }) { Owner = Window.GetWindow(this) };
+        window.ShowDialog();
+    }
+
     /// <summary>
     /// Gives <paramref name="element"/> the node's address as its NodeId attribute
     /// (Annex A), and for a variable a Value attribute: reading and keeping values
@@ -922,6 +999,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         LiveText.Text = _live != null ? L.T("Stop keeping values live") : L.T("Keep document values live");
         LiveGlyph.Text = _live != null ? "\uE71A" : "\uE9D9";
         WatchButton.IsEnabled = connected && SelectedNode?.NodeClass == "Variable";
+        WriteButton.IsEnabled = connected && !_busy && SelectedNode?.NodeClass == "Variable";
+        CallButton.IsEnabled = connected && !_busy && SelectedNode?.NodeClass == "Method";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
         ServeText.Text = _host != null ? L.T("Stop serving") : L.T("Serve");
         ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";

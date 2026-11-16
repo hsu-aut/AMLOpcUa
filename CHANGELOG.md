@@ -7,6 +7,18 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Write value…** writes a value into the selected variable of a running
+  server, and **Call method…** calls the selected method on the object above
+  it, with a field per input argument and the server's answer and outputs
+  below. Both say first that a PLC may act at once. What is typed is checked
+  against the data type before anything is sent (whole numbers within their
+  range, a point or a comma for decimals, ISO 8601 times, Base64, arrays
+  separated by spaces); a variable the server lets only be read is not
+  written. Library: `UaClient.DescribeVariableAsync`, `WriteValueAsync`,
+  `DescribeMethodAsync`, `CallAsync`, `ValueEntry`.
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed
