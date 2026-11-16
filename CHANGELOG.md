@@ -45,6 +45,13 @@ minor versions.
   watched variables did, to open in a spreadsheet. The last 100000 values are
   kept; stopping the watch clears them, disconnecting does not. Library:
   `WatchRecording`.
+- **Find servers…** beside the endpoint box asks a discovery server (the
+  Local Discovery Server at port 4840 of a computer, or a server about
+  itself; OPC 10000-12 FindServers) which servers it knows, shows the
+  endpoints of the one chosen with their security and the users they admit,
+  and takes the address into the endpoint box, with **Secure** set to match.
+  Library: `UaDiscovery.FindServersAsync`, `GetEndpointsAsync`,
+  `DiscoveryUrl`.
 
 ## [0.4.2] - 2026-11-16
 

@@ -507,6 +507,11 @@
                                         <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                     </DockPanel>
                                 </Border>
+                                <Button x:Name="FindServersButton" DockPanel.Dock="Right" Click="FindServersButton_Click" Margin="4,0,0,0" Padding="4,1"
+                                        AutomationProperties.Name="{l:T 'Find servers…'}"
+                                        ToolTip="{l:T 'Find servers: ask a discovery server (port 4840 of a computer) which servers it knows, and take an address from the list.'}">
+                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Exchange}" Margin="0"/>
+                                </Button>
                                 <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
                                           ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
                             </DockPanel>

@@ -192,7 +192,7 @@ public sealed partial class UaClient : IAsyncDisposable
         File.WriteAllBytes(Path.Combine(folder, $"{name} [{certificate.Sha256.Replace(":", "")[..16]}].der"), certificate.Raw);
     }
 
-    private static async Task<ApplicationConfiguration> CreateConfigurationAsync(UaConnectOptions options, CancellationToken ct)
+    internal static async Task<ApplicationConfiguration> CreateConfigurationAsync(UaConnectOptions options, CancellationToken ct)
     {
         var app = new ApplicationInstance
         {

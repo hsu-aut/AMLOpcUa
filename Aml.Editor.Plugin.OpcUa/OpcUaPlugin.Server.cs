@@ -306,6 +306,18 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
     }
 
+    /// <summary>Find servers…: an address from a discovery server into the endpoint box.</summary>
+    private void FindServersButton_Click(object sender, RoutedEventArgs e)
+    {
+        // The host of what is in the box, to ask there first; this computer otherwise.
+        var where = Uri.TryCreate(EndpointBox.Text.Trim(), UriKind.Absolute, out var uri) ? uri.Host : "";
+        var window = new FindServersWindow(where) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true || window.Chosen == null) return;
+        EndpointBox.Text = window.Chosen;
+        if (window.Secure is bool secure) SecurityToggle.IsChecked = secure;
+        SetStatus(L.T("Took {0} from the discovery server; Connect connects to it.", window.Chosen));
+    }
+
     private async void WatchButton_Click(object sender, RoutedEventArgs e)
     {
         var node = SelectedNode;
@@ -1085,6 +1097,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         ConnectText.Text = connected ? L.T("Disconnect") : L.T("Connect");
         ConnectGlyph.Text = connected ? "\uE711" : "\uE703";
         EndpointBox.IsEnabled = !connected;
+        FindServersButton.IsEnabled = !connected && !_busy;
         SecurityToggle.IsEnabled = !connected;
         UserBox.IsEnabled = !connected;
         PasswordBox.IsEnabled = !connected;
