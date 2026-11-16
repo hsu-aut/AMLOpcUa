@@ -7,6 +7,21 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Bind model…** binds a whole model of one's own to a server at once,
+  instead of one dialog per value. For each value of the model (an element
+  without elements below it, or one with a `Value`) the plugin proposes the
+  variable whose path has the same words: its own name counts most, a word
+  few variables have more than one most have, short forms and a few German
+  words count as the same word (Temp, Drehzahl, ST, MD, DV), and an element
+  that stands for an object of the server keeps the values below it there.
+  Numbers in names must agree and kinds of value must fit. The sure
+  proposals are ticked in a table; for the others the next candidates are
+  offered. **Save report…** lists every value with its variable and the
+  variables no value got. Library: `OpcUaAml.Binding` (`ServerVariables`,
+  `ModelBinder`).
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed

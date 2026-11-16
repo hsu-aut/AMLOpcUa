@@ -570,6 +570,13 @@
                                 <TextBlock Text="{l:T 'Bind to element…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="BindModelButton" Click="BindModelButton_Click"
+                                ToolTip="{l:T 'Propose a variable of the server for each value of a model of your own, check the proposals and bind them at once; the selected part of the address space narrows the search.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/>
+                                <TextBlock Text="{l:T 'Bind model…'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <Separator/>
                         <Button x:Name="SnapshotButton" Click="SnapshotButton_Click"
                                 ToolTip="{l:T 'Read the value of every element bound to this server into the document, once.'}">

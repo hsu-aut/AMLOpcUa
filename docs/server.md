@@ -161,6 +161,13 @@ file (`ServerNodeSetTests`).
   reported; both appear as notes. `--no-link` turns linking off.
 - **Bind to element**: writes the selected node's NodeId attribute onto an
   element of your choice; the editor then selects that element.
+- **Bind model** (`OpcUaAml.Binding`): `ServerVariables.CollectAsync` reads the
+  variables below a start node (the Objects folder unless given; the server's
+  own nodes, methods and the properties that describe a variable left out),
+  `ModelBinder.Signals` takes the values of a model (elements without
+  elements below them, and elements with a `Value`), `ModelBinder.Propose`
+  matches them by the words of both paths, and `ModelBinder.Apply` writes the
+  NodeIds of the proposals kept.
 - **Read values into document** (`ValueSnapshot`): every element with a NodeId and a
   `Value` attribute, and every BPR DataVariable, gets the current value.
   The parent attribute of an `aml-opcua-variable` binding gets its value too.
