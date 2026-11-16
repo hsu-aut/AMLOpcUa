@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A machine with variables to write, one that may only be read, and a
+     method without an implementation: for writing values and calling
+     methods from the plugin's client (WriteCallTests). -->
+<UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd"
+           xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd"
+           LastModified="2026-11-16T00:00:00Z">
+  <NamespaceUris>
+    <Uri>http://example.org/WriteCall/</Uri>
+  </NamespaceUris>
+  <Models>
+    <Model ModelUri="http://example.org/WriteCall/" Version="1.0.0" PublicationDate="2026-11-16T00:00:00Z">
+      <RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z" />
+    </Model>
+  </Models>
+  <Aliases>
+    <Alias Alias="Boolean">i=1</Alias>
+    <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="Double">i=11</Alias>
+    <Alias Alias="String">i=12</Alias>
+    <Alias Alias="ServerState">i=852</Alias>
+    <Alias Alias="Argument">i=296</Alias>
+    <Alias Alias="Organizes">i=35</Alias>
+    <Alias Alias="HasTypeDefinition">i=40</Alias>
+    <Alias Alias="HasProperty">i=46</Alias>
+    <Alias Alias="HasComponent">i=47</Alias>
+  </Aliases>
+
+  <UAObject NodeId="ns=1;i=1000" BrowseName="1:Machine">
+    <DisplayName>Machine</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=58</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1002</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1004</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1005</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1006</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1007</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=2001</Reference>
+    </References>
+  </UAObject>
+
+  <UAVariable NodeId="ns=1;i=1001" BrowseName="1:Running" ParentNodeId="ns=1;i=1000" DataType="Boolean" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Running</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:Boolean>false</uax:Boolean></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="1:Count" ParentNodeId="ns=1;i=1000" DataType="Int32" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Count</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1003" BrowseName="1:Speed" ParentNodeId="ns=1;i=1000" DataType="Double" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1004" BrowseName="1:Label" ParentNodeId="ns=1;i=1000" DataType="String" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Label</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:String>first</uax:String></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1005" BrowseName="1:State" ParentNodeId="ns=1;i=1000" DataType="ServerState" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>State</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:Int32>0</uax:Int32></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1006" BrowseName="1:Limits" ParentNodeId="ns=1;i=1000" DataType="Double" ValueRank="1" ArrayDimensions="0" AccessLevel="3" UserAccessLevel="3">
+    <DisplayName>Limits</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:ListOfDouble><uax:Double>0</uax:Double><uax:Double>10</uax:Double></uax:ListOfDouble></Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1007" BrowseName="1:SerialNumber" ParentNodeId="ns=1;i=1000" DataType="String" AccessLevel="1" UserAccessLevel="1">
+    <DisplayName>SerialNumber</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+    </References>
+    <Value><uax:String>SN-1</uax:String></Value>
+  </UAVariable>
+
+  <UAMethod NodeId="ns=1;i=2001" BrowseName="1:Scale" ParentNodeId="ns=1;i=1000">
+    <DisplayName>Scale</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1000</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=2002</Reference>
+      <Reference ReferenceType="HasProperty">ns=1;i=2003</Reference>
+    </References>
+  </UAMethod>
+  <UAVariable NodeId="ns=1;i=2002" BrowseName="InputArguments" ParentNodeId="ns=1;i=2001" DataType="Argument" ValueRank="1" ArrayDimensions="1">
+    <DisplayName>InputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=2001</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId><uax:Identifier>i=297</uax:Identifier></uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Factor</uax:Name>
+              <uax:DataType><uax:Identifier>i=11</uax:Identifier></uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description><uax:Text>How much to scale by</uax:Text></uax:Description>
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=2003" BrowseName="OutputArguments" ParentNodeId="ns=1;i=2001" DataType="Argument" ValueRank="1" ArrayDimensions="1">
+    <DisplayName>OutputArguments</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=2001</Reference>
+    </References>
+    <Value>
+      <uax:ListOfExtensionObject>
+        <uax:ExtensionObject>
+          <uax:TypeId><uax:Identifier>i=297</uax:Identifier></uax:TypeId>
+          <uax:Body>
+            <uax:Argument>
+              <uax:Name>Result</uax:Name>
+              <uax:DataType><uax:Identifier>i=11</uax:Identifier></uax:DataType>
+              <uax:ValueRank>-1</uax:ValueRank>
+              <uax:ArrayDimensions />
+              <uax:Description />
+            </uax:Argument>
+          </uax:Body>
+        </uax:ExtensionObject>
+      </uax:ListOfExtensionObject>
+    </Value>
+  </UAVariable>
+</UANodeSet>
