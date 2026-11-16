@@ -30,6 +30,16 @@ minor versions.
   separated by spaces); a variable the server lets only be read is not
   written. Library: `UaClient.DescribeVariableAsync`, `WriteValueAsync`,
   `DescribeMethodAsync`, `CallAsync`, `ValueEntry`.
+- **The document is served with types.** With **with types** (on by
+  default; `uaaml serve <doc.aml> --types`), an element whose class is a UA
+  type is served as an instance of that type, and the types come along from
+  the NodeSets of their models and the models those require, below Types,
+  with their instance declarations, encodings and namespace metadata. The
+  instances a model declares itself (DI's DeviceSet) stay out; each model is
+  offered as its NamespaceFile, so another client can take the types. A
+  model whose NodeSet is nowhere is named in the status line, and instances
+  of its types stay plain objects. Library: `AmlServerOptions.WithTypes`,
+  `Folders`, `AmlServerHost.ServedTypes`, `MissingTypes`.
 
 ## [0.4.2] - 2026-11-16
 

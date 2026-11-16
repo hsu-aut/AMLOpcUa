@@ -680,6 +680,8 @@
                                      ToolTip="{l:T 'Port at which this document is served (48400 unless you change it).'}"/>
                             <CheckBox x:Name="ServeSimulateBox" Content="{l:T 'simulate values'}" VerticalAlignment="Center" Margin="10,0,0,0"
                                       ToolTip="{l:T 'Numbers swing around the document\'s values and booleans toggle, as in a running plant; the document keeps its values.'}"/>
+                            <CheckBox x:Name="ServeTypesBox" Content="{l:T 'with types'}" IsChecked="True" VerticalAlignment="Center" Margin="10,0,0,0"
+                                      ToolTip="{l:T 'Serve an element that is an instance of a UA type as an instance of that type, with the types from the NodeSets of their models. Off: plain objects and variables.'}"/>
                             <CheckBox x:Name="ServeNetworkBox" Content="{l:T 'to the network'}" VerticalAlignment="Center" Margin="10,0,6,0"
                                       ToolTip="{l:T 'Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session.'}"/>
                             <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="{l:T 'Clients…'}" Padding="4,1"

@@ -366,10 +366,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         var port = ValueOf(ServePortBox)!.Value;
         var network = ServeNetworkBox.IsChecked == true;
         var simulate = ServeSimulateBox.IsChecked == true;
+        var withTypes = ServeTypesBox.IsChecked == true;
         SetBusy(true, L.T("Starting the document server …"));
         try
         {
-            var started = await AmlServerHost.StartAsync(document, new AmlServerOptions { Port = port, Network = network, Simulate = simulate });
+            var started = await AmlServerHost.StartAsync(document, new AmlServerOptions
+            {
+                Port = port, Network = network, Simulate = simulate, WithTypes = withTypes,
+                Folders = KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder).ToList(),
+            });
             // Closed, or another document opened, while it started (the first start
             // makes a certificate and takes seconds): it would hold the port until the
             // editor ends, or serve a closed document.
@@ -398,6 +403,8 @@ public partial class OpcUaPlugin : ISupportsSelection
                 (false, true) => L.T("Serving {0} node(s) of this document at {1}, to this computer only, with simulated values.", _host.Nodes, _host.EndpointUrl),
                 _ => L.T("Serving {0} node(s) of this document at {1}, to this computer only.", _host.Nodes, _host.EndpointUrl),
             };
+            if (_host.ServedTypes.Count > 0) message += L.T(" With the types of {0}.", string.Join(", ", _host.ServedTypes));
+            if (_host.MissingTypes.Count > 0) message += L.T(" No NodeSet found for {0}; instances of their types are served as plain objects.", string.Join(", ", _host.MissingTypes));
             PluginLog.Info(message);
             SetStatus(message);
             if (_client == null) EndpointBox.Text = _host.EndpointUrl;
@@ -1068,6 +1075,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         ServePortBox.IsEnabled = _host == null;
         ServeNetworkBox.IsEnabled = _host == null;
         ServeSimulateBox.IsEnabled = _host == null;
+        ServeTypesBox.IsEnabled = _host == null;
         UpdatePracticePlantButton();
         var lost = connected && !_client!.Reachable;
         ServerStateText.Text = (lost ? L.T("Connection lost") : connected ? L.T("Connected  ·  {0}", SecurityText(_client!.SecurityMode)) : L.T("Not connected"))

@@ -106,7 +106,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
     }
 
     /// <summary>One NodeSet to serve: where it is, what it declares, and its namespaces.</summary>
-    private sealed record ServedSet(string Path, string ModelUri, string? Version, DateTime? PublicationDate, IReadOnlyList<string> Namespaces);
+    internal sealed record ServedSet(string Path, string ModelUri, string? Version, DateTime? PublicationDate, IReadOnlyList<string> Namespaces);
 
     /// <summary>
     /// The files to load, required models first. A name that is no file is
@@ -148,6 +148,31 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         return result;
     }
 
+    /// <summary>
+    /// The NodeSets of models given by their URIs, required models first, from
+    /// the bundled NodeSets and the folders given; a model none of them holds
+    /// is added to <paramref name="missing"/>.
+    /// </summary>
+    internal static IReadOnlyList<ServedSet> ResolveModels(IEnumerable<string> modelUris, IReadOnlyList<string> folders, List<string> missing)
+    {
+        var catalog = NodeSetCatalog.Create(folders);
+        var result = new List<ServedSet>();
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        void Add(NodeSetInfo info)
+        {
+            if (info.PrimaryModel.Model.ModelUri == NodeSetInfo.UaNamespace || !taken.Add(info.PrimaryModel.Model.ModelUri)) return;
+            result.Add(new ServedSet(info.FilePath, info.PrimaryModel.Model.ModelUri,
+                info.PrimaryModel.Model.Version, info.PrimaryModel.Model.PublicationDate, NamespacesOf(info.FilePath)));
+        }
+        foreach (var uri in modelUris.Where(u => u != NodeSetInfo.UaNamespace).Distinct())
+        {
+            if (catalog.Find(uri) is not { } info) { missing.Add(uri); continue; }
+            foreach (var dependency in catalog.Dependencies(info)) Add(dependency);
+            Add(info);
+        }
+        return result;
+    }
+
     /// <summary>The namespaces a NodeSet writes, so the node manager can register them before importing.</summary>
     private static IReadOnlyList<string> NamespacesOf(string path)
     {
@@ -175,8 +200,15 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         }
     }
 
-    private sealed class PlantNodeManager(IServerInternal server, ApplicationConfiguration configuration,
-        IReadOnlyList<ServedSet> sets, bool publish, bool simulate)
+    /// <summary>
+    /// Serves NodeSets. With <paramref name="typesOnly"/> only their types come
+    /// along, with what belongs to them (instance declarations, encodings,
+    /// dictionaries, namespace metadata), not the instances a model declares
+    /// (DI's DeviceSet): the document server serves the document's instances
+    /// as instances of these types.
+    /// </summary>
+    internal sealed class PlantNodeManager(IServerInternal server, ApplicationConfiguration configuration,
+        IReadOnlyList<ServedSet> sets, bool publish, bool simulate, bool typesOnly = false)
         : CustomNodeManager2(server, configuration, sets.SelectMany(s => s.Namespaces)
             .Where(u => u != NodeSetInfo.UaNamespace).Distinct().ToArray())
     {
@@ -199,9 +231,11 @@ public sealed class NodeSetServerHost : IAsyncDisposable
                     var nodeSet = Opc.Ua.Export.UANodeSet.Read(stream);
                     var nodes = new NodeStateCollection();
                     nodeSet.Import(SystemContext, nodes);
+                    var keep = typesOnly ? OfTypes(nodes) : null;
                     NodeState? own = null;
                     foreach (var node in nodes)
                     {
+                        if (keep != null && !keep.Contains(node)) continue;
                         AddPredefinedNode(SystemContext, node);
                         Nodes++;
                         Collect(node);
@@ -216,6 +250,46 @@ public sealed class NodeSetServerHost : IAsyncDisposable
                 }
                 AddReverseReferences(externalReferences);
             }
+        }
+
+        /// <summary>Instances that describe types rather than being a part of the plant.</summary>
+        private static readonly HashSet<NodeId> Describing =
+        [
+            ObjectTypeIds.DataTypeEncodingType, ObjectTypeIds.DataTypeSystemType, ObjectTypeIds.NamespaceMetadataType,
+            VariableTypeIds.DataTypeDictionaryType, VariableTypeIds.DataTypeDescriptionType,
+        ];
+
+        private static readonly NodeId[] Hierarchical =
+            [ReferenceTypeIds.HasComponent, ReferenceTypeIds.HasProperty, ReferenceTypeIds.HasOrderedComponent, ReferenceTypeIds.HasAddIn];
+
+        /// <summary>
+        /// The nodes of a flat import that are types or belong to one: the topmost
+        /// node above each (by ParentNodeId, or else an inverse HasComponent,
+        /// HasProperty and the like) is a type or describes types.
+        /// </summary>
+        private HashSet<NodeState> OfTypes(NodeStateCollection nodes)
+        {
+            var byId = new Dictionary<NodeId, NodeState>();
+            foreach (var node in nodes) if (!NodeId.IsNull(node.NodeId)) byId.TryAdd(node.NodeId, node);
+            NodeState? Parent(NodeState node)
+            {
+                if (node is BaseInstanceState { Handle: NodeId handle }) return byId.GetValueOrDefault(handle);
+                var references = new List<IReference>();
+                node.GetReferences(SystemContext, references);
+                foreach (var r in references)
+                    if (r.IsInverse && Hierarchical.Contains(r.ReferenceTypeId) && byId.TryGetValue(ExpandedNodeId.ToNodeId(r.TargetId, Server.NamespaceUris), out var p))
+                        return p;
+                return null;
+            }
+            var keep = new HashSet<NodeState>(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+            foreach (var node in nodes)
+            {
+                var top = node;
+                var seen = new HashSet<NodeState>(System.Collections.Generic.ReferenceEqualityComparer.Instance) { node };
+                for (var p = Parent(top); p != null && seen.Add(p); p = Parent(p)) top = p;
+                if (top is BaseTypeState || top is BaseInstanceState i && Describing.Contains(i.TypeDefinitionId)) keep.Add(node);
+            }
+            return keep;
         }
 
         /// <summary>The variables whose values the simulation moves.</summary>
