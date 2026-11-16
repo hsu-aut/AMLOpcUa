@@ -20,6 +20,7 @@ internal static class ServerStartup
         string applicationName, string applicationSuffix, string subjectName,
         int port, bool network, string pkiRoot, CancellationToken ct)
     {
+        OpcUaStack.UseOwnTypes();
         // The stack listens on every address for a host name, on that address alone for an IP address.
         var host = network ? System.Net.Dns.GetHostName() : "127.0.0.1";
         var url = $"opc.tcp://{host}:{port}/AMLOpcUa";

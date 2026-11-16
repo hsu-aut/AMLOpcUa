@@ -1478,6 +1478,11 @@ The status line below the modeler says why:
   text.": with **Secure** unticked, connect anonymously, or tick **Secure**.
 - "No endpoint at …": the URL is wrong, or the server is not running or not
   reachable from this computer.
+- "No endpoint at … (BadDecodingError) 'Could not process
+  OpenSecureChannelResponse.'", for every server, the practice plant too: up
+  to version 0.4.1, another plugin with an OPC UA stack of its own (MTP
+  Control, for instance) was loaded first. Update AMLOpcUa in the PlugIn
+  Manager.
 - The certificate dialog appears again for a server you trusted: the server
   now shows another certificate. Compare the fingerprint before you trust it.
 - "The server at … did not accept this computer's certificate. Its

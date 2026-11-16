@@ -7,6 +7,17 @@ minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **No server could be reached when another plugin brings an OPC UA stack of
+  its own,** such as MTP Control: connecting failed with "(BadDecodingError)
+  'Could not process OpenSecureChannelResponse.'", for the practice plant as
+  well, and the plugin's own servers could not read a client's request. The
+  stack (1.5.378) takes its message types from the first Opc.Ua.Core in the
+  process, also from one another plugin loaded in a load context of its own.
+  Connecting and serving now put the plugin's own message types in place
+  first (`OpcUaStack.UseOwnTypes`); other plugins keep theirs.
+
 ## [0.4.1] - 2026-11-16
 
 ### Added

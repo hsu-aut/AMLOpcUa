@@ -129,6 +129,7 @@ public sealed class UaClient : IAsyncDisposable
 
     public static async Task<UaClient> ConnectAsync(UaConnectOptions options, CancellationToken ct = default)
     {
+        OpcUaStack.UseOwnTypes();
         ApplicationConfiguration config;
         try
         {
