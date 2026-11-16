@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-16
+
 ### Added
 
 - **Units come into the document.** Reading values once, keeping them live
