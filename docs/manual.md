@@ -938,7 +938,7 @@ plugin ends it too.
 
 ![The Server tab while the document is served with simulated values: the button reads Stop serving, port and options are locked, the two stations taken into the document carry a check mark in the address space, and the status line says "Serving 112 node(s) of this document at opc.tcp://127.0.0.1:48400/AMLOpcUa, to this computer only"](manual/serve.png)
 
-![A plant model with values served with simulated values: the plugin connects to its own document server and watches SpindleSpeed, Running, Temperature and PartsProduced as they swing, toggle and count; the details of SpindleSpeed show the unit min⁻¹ the CAEX Unit gave it](manual/serve.gif)
+![A plant model with values served with simulated values: the plugin connects to its own document server and watches SpindleSpeed, Running, Temperature and PartsProduced as they swing, toggle and count, the watch list showing their units °C and min⁻¹; the details of SpindleSpeed show the unit min⁻¹ the CAEX Unit gave it](manual/serve.gif)
 
 What is served:
 
