@@ -936,6 +936,48 @@ A NodeId given as a browse path or an alias is resolved by the connected
 server when values are read or kept live. How the conventions of addressing a
 node from AML differ: [servers](server.md#addressing-a-node-from-aml).
 
+### Write a value, call a method
+
+Both act on the running server at once: a PLC may move the plant. Use them
+only on a plant you may change.
+
+**Write value…** writes into the variable selected in the address space. The
+dialog shows its data type and its value now; type the new value and click
+**Write**. The plugin checks the text against the data type before anything
+goes to the server:
+
+| Data type | Type |
+|---|---|
+| Boolean | `true` or `false` (`1`, `0`) |
+| SByte to UInt64 | a whole number within the type's range |
+| Float, Double | a number, with a point or a comma: `1.5`, `1,5` |
+| an enumeration | the number of the value, as the node details show it |
+| String, LocalizedText | the text as it is |
+| DateTime | ISO 8601, such as `2026-11-24T10:00:00Z`; without a zone it is taken as UTC |
+| Guid, ByteString | a GUID; Base64 |
+| an array | the elements separated by spaces: `0 10 2.5` |
+
+Structures and matrices cannot be typed in. A variable the server lets you
+only read (its AccessLevel or UserAccessLevel without CurrentWrite) is not
+offered for writing; the status line says so. When the server refuses the
+value, the status line shows its status code, such as `BadTypeMismatch` or
+`BadUserAccessDenied`. A server that admits only known users needs the user
+name of one allowed to write (see [Connect](#connect)).
+
+**Call method…** calls the method selected in the address space on the
+object above it. The dialog has a field for each input argument, with its
+data type and description, typed as for writing. **Call** shows the server's
+answer below: `Done: Good` and the output arguments, or the status code the
+server refused with (`BadNotImplemented` for a method the server declares but
+does not run, `BadInvalidArgument` naming the argument). The dialog stays open
+for another call; **Close** ends it.
+
+The practice plant has no variables to write and no methods of its own. To try
+both, its published NodeSets offer the methods of a file: below the Server
+object (tick **Show Server object**), `Namespaces`, a namespace, then
+`NamespaceFile` with **Open** (mode `1`), **Read** (the handle Open gave, and a
+length) and **Close**.
+
 ### A plant to practise on
 
 The plugin brings a plant to connect to: the MPS 500 learning factory of the
@@ -1474,8 +1516,9 @@ message; later versions fix that (see the [changelog](../CHANGELOG.md)).
   [CAEX 2.15 documents](#caex-215-documents)).
 - All commands wait while the plugin works (the progress bar runs).
 - On the **Server** tab most commands need a connection; **Watch (view
-  only)** needs a variable selected; **Bind to element…** a node selected;
-  **Bind model…** an open document.
+  only)** and **Write value…** need a variable selected; **Call method…** a
+  method; **Bind to element…** a node selected; **Bind model…** an open
+  document.
 - **Save after import** is greyed when this editor version has no save
   command the plugin knows; its tooltip says so. Save with Ctrl+S.
 - **Remove…** in the details of a namespace is greyed while something still

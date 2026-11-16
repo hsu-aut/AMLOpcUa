@@ -82,7 +82,7 @@ public sealed record UaReadResult(UaNodeAddress Address, object? Value, string? 
     public string? ValueText => ValueFormatting.ToAml(Value);
 }
 
-public sealed class UaClient : IAsyncDisposable
+public sealed partial class UaClient : IAsyncDisposable
 {
     private readonly ISession _session;
 

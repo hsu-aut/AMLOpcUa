@@ -168,6 +168,14 @@ file (`ServerNodeSetTests`).
   elements below them, and elements with a `Value`), `ModelBinder.Propose`
   matches them by the words of both paths, and `ModelBinder.Apply` writes the
   NodeIds of the proposals kept.
+- **Write value** and **Call method** (`UaClient.WriteValueAsync`,
+  `CallAsync`): the variable's DataType, ValueRank and AccessLevel, or the
+  method's InputArguments and OutputArguments, are read first;
+  `ValueEntry.Parse` makes the typed text a value of the built-in type (the
+  supertype chain of the DataType through the session's type tree), and a
+  text that is none throws `ValueEntryException` with the problem, for a
+  message in the user's language. A variable without CurrentWrite in its
+  AccessLevel and UserAccessLevel is not written (`BadNotWritable`).
 - **Read values into document** (`ValueSnapshot`): every element with a NodeId and a
   `Value` attribute, and every BPR DataVariable, gets the current value.
   The parent attribute of an `aml-opcua-variable` binding gets its value too.
