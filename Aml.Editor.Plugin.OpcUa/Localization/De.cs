@@ -181,7 +181,6 @@ internal static class De
         ["Variable of the server"] = "Variable des Servers",
         ["Variables without a value of the model"] = "Variablen ohne Wert des Modells",
         ["Took {0} from the discovery server; Connect connects to it."] = "{0} vom Discovery-Server übernommen; 'Verbinden' verbindet damit.",
-        ["Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."] = "'Typen des Servers' importiert die Typen eines seiner Namespaces. 'Ins Dokument übernehmen' legt für die angehakten Knoten Elemente an, mit ihren NodeIds, UA-Typen und Werten; 'Knoten zählen' sagt vorher, wie viele es werden. 'An Element binden' gibt einem deiner Elemente die Adresse eines Knotens. 'Werte ins Dokument lesen' liest die Werte der gebundenen Elemente einmal, 'Dokumentwerte live halten' schreibt jede Änderung in sie, 'Beobachten' zeigt Werte nur in der Liste unten an.",
         ["Use"] = "Übernehmen",
         ["Users"] = "Benutzer",
         ["Warning"] = "Warnung",
