@@ -629,6 +629,13 @@ selected so far. Background: [servers](server.md).
 
 1. Enter the endpoint URL in the box at the top, for example
    `opc.tcp://plc:4840`. The list of the box holds the servers used recently.
+   Not sure of the address? The magnifier beside the box (**Find servers…**)
+   asks a discovery server which servers it knows: the Local Discovery
+   Server at port 4840 of a computer, or any OPC UA server about itself. Type
+   a host (`plc`), a host and port (`plc:4841`) or a URL; empty asks this
+   computer. Pick a server to see its endpoints with their security and the
+   users they admit, and **Use** takes the endpoint chosen (and ticks or
+   unticks **Secure** to match), or the server's discovery URL.
 2. For a user login, fill in **User** and **Password**; leave both empty to
    connect anonymously. In a narrow pane they stand on a second line, below
    the endpoint URL.
