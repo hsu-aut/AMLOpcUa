@@ -38,9 +38,13 @@ public class ModelBindingTests
             "ST30_Processing/MD_Rotary_indexing_table/DV_Index_drive/Speed", "ST30_Processing/MD_Rotary_indexing_table/Ready",
             "ST30_Processing/ParameterSet/CycleCount", "ST30_Processing/ParameterSet/CycleTime", "ST30_Processing/ParameterSet/PartsProduced",
             "ST30_Processing/RevisionCounter", "ST30_Processing/SerialNumber", "ST30_Processing/Manufacturer",
+            "ST30_Processing/StationNumber", "ST30_Processing/StationState/CurrentState", "ST30_Processing/StationState/CurrentState/Id",
         }.Select(p => "MPS500/" + p),
         "MPS500/ST10_Distributing/ParameterSet/PartsProduced", "MPS500/ST10_Distributing/ParameterSet/CycleCount",
         "MPS500/ST10_Distributing/RevisionCounter", "MPS500/ST10_Distributing/MD_Stack_magazine/DV_Ejecting_cylinder/Position",
+        "MPS500/ST10_Distributing/StationNumber", "MPS500/ST10_Distributing/StationState/CurrentState",
+        "MPS500/ST20_PartsDistributing/RevisionCounter", "MPS500/ST20_PartsDistributing/ParameterSet/PartsProduced",
+        "MPS500/ST20_PartsDistributing/StationState/CurrentState",
     ];
 
     [Theory]
@@ -63,7 +67,7 @@ public class ModelBindingTests
 
         var speed = Of(plan, "Plant/ProcessingStation/Drill/SpindleSpeed");
         Assert.Equal("MPS500/ST30_Processing/MD_Drilling_unit/DV_Drill_spindle/Speed", speed.Variable!.PathText);
-        Assert.True(speed.Keep, speed.ToString());
+        Assert.True(speed.Keep, speed + "; stands: " + string.Join(", ", plan.Stands));
         Assert.Contains("spindle", speed.Shared);
     }
 

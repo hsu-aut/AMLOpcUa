@@ -66,8 +66,14 @@ public sealed record BindingProposal(
         + $" [{string.Join(", ", Shared)}]; next: {string.Join(", ", Candidates.Where(c => c != Variable).Select(c => c.PathText))}";
 }
 
+/// <summary>An element of the model that stands for an object of the server: the signals below it look there first.</summary>
+public sealed record StandsFor(string Element, string Object);
+
 /// <summary>What the model and the server have to say to each other.</summary>
-public sealed record BindingPlan(IReadOnlyList<BindingProposal> Proposals, IReadOnlyList<ServerVariable> Unmatched);
+public sealed record BindingPlan(IReadOnlyList<BindingProposal> Proposals, IReadOnlyList<ServerVariable> Unmatched)
+{
+    public IReadOnlyList<StandsFor> Stands { get; init; } = [];
+}
 
 /// <summary>Words of a name, as model and PLC names are written: DI_FB_SensorOccupied is di fb sensor occupied.</summary>
 public static class NameWords
@@ -227,7 +233,7 @@ public static class ModelBinder
             proposals.Add(new BindingProposal(signals[i], c.Variable, c.Score, confidence, c.Shared, shown));
         }
         var unmatched = variables.Where(v => !taken.Contains(Bare(v.Address))).ToList();
-        return new BindingPlan(proposals, unmatched);
+        return new BindingPlan(proposals, unmatched) { Stands = stands.Select(s => new StandsFor(string.Join("/", s.Prefix), s.Object)).ToList() };
     }
 
     private static UaNodeAddress Bare(UaNodeAddress a) => a with { ServerUri = null };
@@ -266,7 +272,15 @@ public static class ModelBinder
             // Objects above or below the best one do not compete with it.
             var rival = ranked.Skip(1).Where(o => !o.Key.StartsWith(best + "/", StringComparison.Ordinal) && !best.StartsWith(o.Key + "/", StringComparison.Ordinal))
                 .Select(o => o.Score).DefaultIfEmpty(0).Max();
-            if (ranked[0].Score - rival >= 0.15) stands.Add((path, best));
+            if (ranked[0].Score - rival < 0.15) continue;
+            // An object above the best one that fits nearly as well is taken
+            // instead: ProcessingStation is ST30_Processing, not its StationState,
+            // though "station" is in the name of that one only. The wider
+            // object keeps fewer variables from the signals below.
+            var wider = ranked
+                .Where(o => best.StartsWith(o.Key + "/", StringComparison.Ordinal) && o.Score >= 0.3 && o.Score >= ranked[0].Score / 2)
+                .OrderBy(o => o.Key.Length).Select(o => o.Key).FirstOrDefault();
+            stands.Add((path, wider ?? best));
         }
         return stands;
     }
@@ -408,6 +422,11 @@ public static class ModelBinder
             ["spindle", "spindel"],
             ["door", "tuer"],
             ["time", "zeit"],
+            // Abbreviations of the plant's parts, as PLC and device names use them (ST10, MD_, DV_).
+            ["station", "st", "stn"],
+            ["module", "md", "mod"],
+            ["device", "dv", "dev"],
+            ["control", "ctrl"],
         ];
 
         private static readonly Dictionary<string, int> Group =
