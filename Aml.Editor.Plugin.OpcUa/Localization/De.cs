@@ -287,7 +287,6 @@ internal static class De
         ["Trust signer…"] = "Unterzeichner vertrauen…",
         ["Trust the certificate that signed this Descriptor, after comparing its fingerprint with the sender."] = "Dem Zertifikat vertrauen, das diesen Descriptor signiert hat, nachdem du seinen Fingerabdruck mit dem Absender verglichen hast.",
         ["Trust {0}?"] = "{0} vertrauen?",
-        ["Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below."] = "'Typen des Servers' importiert die Typen eines seiner Namespaces. 'Ins Dokument übernehmen' legt für die angehakten Knoten Elemente an, mit ihren NodeIds, UA-Typen und Werten; 'Knoten zählen' sagt vorher, wie viele es werden. 'An Element binden' gibt einem deiner Elemente die Adresse eines Knotens. 'Werte ins Dokument lesen' liest die Werte der gebundenen Elemente einmal, 'Dokumentwerte live halten' schreibt jede Änderung in sie, 'Beobachten' zeigt Werte nur in der Liste unten an.",
         ["UAFX Descriptor (*.amlx)|*.amlx"] = "UAFX-Descriptor (*.amlx)|*.amlx",
         ["UAFX Descriptor (*.amlx)|*.amlx|All files (*.*)|*.*"] = "UAFX-Descriptor (*.amlx)|*.amlx|Alle Dateien (*.*)|*.*",
         ["UAFX Descriptor ▾"] = "UAFX-Descriptor ▾",
