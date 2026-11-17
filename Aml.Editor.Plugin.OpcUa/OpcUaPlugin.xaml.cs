@@ -1003,7 +1003,17 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     }
 
     /// <summary>The status line; the whole text is in its tooltip when the line is too short.</summary>
+    /// <summary>When the values kept live may take the status line, so other messages stay readable.</summary>
+    private readonly LiveStatusLine _statusLine = new();
+
     private void SetStatus(string text)
+    {
+        _statusLine.Other(DateTime.Now);
+        ShowStatus(text);
+    }
+
+    /// <summary>The status line, without holding it against live values.</summary>
+    private void ShowStatus(string text)
     {
         StatusText.Text = text;
         StatusText.ToolTip = string.IsNullOrEmpty(text) ? null : new System.Windows.Controls.TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 600 };
