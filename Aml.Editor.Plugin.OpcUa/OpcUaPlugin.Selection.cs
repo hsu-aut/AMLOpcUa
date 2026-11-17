@@ -229,7 +229,7 @@ public partial class OpcUaPlugin
         // Two filter boxes clicked quickly, or F5 twice: only the last load fills the tree.
         if (load != _rootLoads) return false;
         foreach (var item in roots)
-            if (filter.Admits(item)) AddressTree.Items.Add(NodeItem(item, null));
+            if (filter.Shows(item)) AddressTree.Items.Add(NodeItem(item, null));
         await LoadViewsAsync(load);
         return true;
     }
@@ -338,7 +338,7 @@ public partial class OpcUaPlugin
                 var isView = node.NodeClass == "View";
                 var filter = CurrentFilter();
                 foreach (var child in await _client.BrowseAsync(node.Address, isView ? null : view))
-                    if (filter.Admits(child)) item.Items.Add(NodeItem(child, view));
+                    if (filter.Shows(child)) item.Items.Add(NodeItem(child, view));
             }
             catch (Exception ex)
             {

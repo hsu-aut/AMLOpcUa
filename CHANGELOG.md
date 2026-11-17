@@ -91,6 +91,9 @@ minor versions.
   requires, ended as "cancelled: required models are missing". The dialog of
   the missing models now comes back and says why, as it does for the OPC
   Foundation; the download can be cancelled.
+- **Call method…** could not be used: the address space showed no methods,
+  filtered with what **Take into document** takes, which leaves methods out.
+  It shows them now; they are still not taken.
 - **UAFX Descriptor ▾** and **Settings ▾** did nothing when a narrow pane had
   put them into the overflow of their tool bar: clicking there closed the
   overflow and the menu with it. The menu now opens below the tool bar.

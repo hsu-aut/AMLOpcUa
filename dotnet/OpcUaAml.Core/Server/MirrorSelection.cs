@@ -48,6 +48,15 @@ public sealed record MirrorFilter
 
     private static readonly UaNodeAddress Server = new("http://opcfoundation.org/UA/", UaIdType.Numeric, "2253");
 
+    /// <summary>
+    /// Whether the address space shows a node: what a mirror takes, and
+    /// methods too, which a mirror leaves out but a user calls (Call method…).
+    /// </summary>
+    public bool Shows(UaBrowseItem node) =>
+        node.NodeClass == "Method"
+            ? !ObjectsOnly && (Namespaces.Count == 0 || Namespaces.Contains(node.Address.NamespaceUri))
+            : Admits(node);
+
     /// <summary>Whether a node found below a selected one is taken.</summary>
     public bool Admits(UaBrowseItem node) =>
         node.NodeClass != "Method"
