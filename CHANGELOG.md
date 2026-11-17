@@ -7,6 +7,16 @@ minor versions.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Keep document values live** followed only the elements bound when it
+  started: a copy of a bound element, or an element bound with **Bind to
+  element…** meanwhile, got no values until live was switched off and on
+  again (a mirror did, as it shows its master's attributes). It now looks
+  every two seconds whether the bindings changed, follows what was bound,
+  copied or rebound, drops what was deleted, and names it in the status line.
+  Library: `LiveValues.FollowChangesAsync`, `BindingSet`.
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed
