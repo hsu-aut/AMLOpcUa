@@ -647,11 +647,11 @@
                             <TextBox x:Name="MirrorHierarchyBox" AutomationProperties.Name="{l:T 'Into instance hierarchy'}" Text="{l:T 'OpcUaServer'}" Width="120" VerticalContentAlignment="Center" TextChanged="MirrorHierarchyBox_TextChanged" Margin="0,0,16,0"
                                      ToolTip="{l:T 'The InstanceHierarchy that receives what is taken.'}"/>
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE71C;" Foreground="{DynamicResource Plain}"/>
-                            <CheckBox x:Name="SkipPropertiesBox" Content="{l:T 'Leave out properties'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                            <CheckBox x:Name="SkipPropertiesBox" Content="{l:T 'Leave out properties'}" VerticalAlignment="Center" Margin="0,0,12,0" Checked="Filter_Changed" Unchecked="Filter_Changed"
                                       ToolTip="{l:T 'Leave out nodes held by HasProperty (EURange, EngineeringUnits, Identification properties …).'}"/>
-                            <CheckBox x:Name="ObjectsOnlyBox" Content="{l:T 'Objects only'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                            <CheckBox x:Name="ObjectsOnlyBox" Content="{l:T 'Objects only'}" VerticalAlignment="Center" Margin="0,0,12,0" Checked="Filter_Changed" Unchecked="Filter_Changed"
                                       ToolTip="{l:T 'Leave out variables.'}"/>
-                            <CheckBox x:Name="ShowServerBox" Content="{l:T 'Show Server object'}" VerticalAlignment="Center" Margin="0,0,12,0" Click="Filter_Changed"
+                            <CheckBox x:Name="ShowServerBox" Content="{l:T 'Show Server object'}" VerticalAlignment="Center" Margin="0,0,12,0" Checked="Filter_Changed" Unchecked="Filter_Changed"
                                       ToolTip="{l:T 'The Server object holds the server\'s own diagnostics and capabilities; it is hidden by default.'}"/>
                             <Button x:Name="NamespacesButton" Content="{l:T 'Namespaces: all'}" Click="NamespacesButton_Click" Margin="0,0,20,0" Padding="6,1"
                                     ToolTip="{l:T 'Take only nodes of these namespaces, with what they hold.'}"/>

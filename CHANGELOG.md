@@ -53,6 +53,13 @@ minor versions.
   Library: `UaDiscovery.FindServersAsync`, `GetEndpointsAsync`,
   `DiscoveryUrl`.
 
+### Fixed
+
+- **The filters above the address space** (Leave out properties, Objects
+  only, Show Server object) reloaded it on a click only. Ticked through UI
+  Automation, as a screen reader does, the box changed and the address space
+  stayed as it was. They now reload whenever they change.
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed
