@@ -126,6 +126,20 @@ public class ModelBindingTests
     }
 
     [Fact]
+    public void Names_of_the_plant_above_the_part_searched_do_not_weaken_a_match()
+    {
+        // Searched below ST30_Processing: neither station nor plant is in a variable's path.
+        const string st30 = "MPS500/ST30_Processing/";
+        var below = PracticePlant.Where(p => p.StartsWith(st30, StringComparison.Ordinal)).Select(p => p[st30.Length..]).ToArray();
+
+        var plan = ModelBinder.Propose([Signal("Plant/ProcessingStation/Drill/SpindleSpeed")], Variables(below));
+
+        var speed = Of(plan, "Plant/ProcessingStation/Drill/SpindleSpeed");
+        Assert.Equal("MD_Drilling_unit/DV_Drill_spindle/Speed", speed.Variable!.PathText);
+        Assert.True(speed.Keep, speed + "; stands: " + string.Join(", ", plan.Stands));
+    }
+
+    [Fact]
     public void Each_variable_is_proposed_for_one_signal_only()
     {
         var plan = ModelBinder.Propose(

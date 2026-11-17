@@ -14,7 +14,10 @@
 using System.Globalization;
 using System.Text;
 using Aml.Engine.CAEX;
+using Aml.Engine.CAEX.Extensions;
 using OpcUaAml.Addressing;
+using OpcUaAml.Server;
+using OpcUaAml.Types;
 
 namespace OpcUaAml.Binding;
 
@@ -112,6 +115,57 @@ public static class NameWords
 public static class ModelBinder
 {
     /// <summary>
+    /// An element of the user's own: not below an element taken from a server
+    /// and not an instance of a UA type, whose values the server describes itself.
+    /// </summary>
+    public static bool IsOwn(InternalElementType element)
+    {
+        for (var e = element; e != null; e = e.CAEXParent as InternalElementType)
+            if (UaTypes.IsUaLibraryPath(e.RefBaseSystemUnitPath) || e.Attribute[AddressSpaceMirror.EndpointAttribute] != null) return false;
+        return true;
+    }
+
+    /// <summary>The instance hierarchies that hold elements of the user's own.</summary>
+    public static IReadOnlyList<CAEXObject> Models(CAEXDocument document) =>
+        document.CAEXFile.InstanceHierarchy.Where(ih => ih.Descendants<InternalElementType>().Any(IsOwn)).Cast<CAEXObject>().ToList();
+
+    /// <summary>The signals of a model that are the user's own.</summary>
+    public static IReadOnlyList<ModelSignal> OwnSignals(CAEXObject model) =>
+        Signals(model).Where(s => s.Element == null || IsOwn(s.Element)).ToList();
+
+    /// <summary>
+    /// The plan as CSV with semicolons: every value with its variable, the
+    /// match and whether it is bound (kept), then the variables no value got.
+    /// </summary>
+    public static string Report(BindingPlan plan)
+    {
+        var text = new StringBuilder();
+        void Line(params string?[] cells) => text.Append(string.Join(";", cells.Select(Cell))).Append(Environment.NewLine);
+        Line("Value of the model", "Variable of the server", "NodeId", "Match", "Bind", "Words in common");
+        foreach (var p in plan.Proposals)
+            Line(p.Signal.PathText, p.Variable?.PathText, p.Variable?.Address.ToString(), MatchWord(p.Confidence), p.Keep ? "yes" : "no", string.Join(", ", p.Shared));
+        text.Append(Environment.NewLine);
+        Line("Variables without a value of the model", "NodeId");
+        var used = plan.Proposals.Where(p => p.Keep || p.BoundAlready).Select(p => p.Variable).OfType<ServerVariable>().ToHashSet();
+        foreach (var v in plan.Unmatched.Concat(plan.Proposals.Select(p => p.Variable).OfType<ServerVariable>()).Distinct().Where(v => !used.Contains(v)))
+            Line(v.PathText, v.Address.ToString());
+        return text.ToString();
+    }
+
+    /// <summary>The confidence as the report and the command line name it.</summary>
+    public static string MatchWord(BindingConfidence confidence) => confidence switch
+    {
+        BindingConfidence.Sure => "sure",
+        BindingConfidence.Likely => "likely",
+        BindingConfidence.Check => "check",
+        BindingConfidence.Bound => "bound already",
+        _ => "none found",
+    };
+
+    private static string Cell(string? s) =>
+        s == null ? "" : s.IndexOfAny([';', '"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+
+    /// <summary>
     /// The signals of a model: below <paramref name="root"/>, every element
     /// without elements of its own, and every element with a Value attribute.
     /// </summary>
@@ -182,16 +236,32 @@ public static class ModelBinder
         var reserved = new HashSet<UaNodeAddress>();
         var byAddress = variables.GroupBy(v => Bare(v.Address)).ToDictionary(g => g.Key, g => g.First());
         var scored = new List<(int Signal, ServerVariable Variable, double Score, IReadOnlyList<string> Shared)>();
-        var candidates = new List<(ServerVariable Variable, double Score, IReadOnlyList<string> Shared)>[signals.Count];
+        var raw = new List<(ServerVariable Variable, double Score, IReadOnlyList<string> Shared)>[signals.Count];
         for (var i = 0; i < signals.Count; i++)
         {
-            candidates[i] = [];
+            raw[i] = [];
             if (signals[i].BoundTo is { } b) { reserved.Add(Bare(b)); continue; }
             var words = Weighted(signals[i].Path, SignalLevels);
             foreach (var v in corpus.Near(words.Where(w => w.Level == 0).Select(w => w.Word)))
             {
                 var (score, shared) = Score(words, signals[i].DataType, corpus.WordsOf(v), v.DataType, corpus);
-                if (score <= 0) continue;
+                if (score > 0) raw[i].Add((v, score, shared));
+            }
+        }
+        // An object stands for an element of the model only where a signal below
+        // that element finds something below the object: ProcessingStation is not
+        // StationState, though "station" is in that name, when no value of the
+        // station is below it.
+        stands = stands.Where(s => Enumerable.Range(0, signals.Count).Any(i => IsBelow(signals[i].Path, s.Prefix)
+            && raw[i].Any(c => c.Score >= Least && c.Variable.PathText.StartsWith(s.Object + "/", StringComparison.Ordinal)))).ToList();
+
+        var candidates = new List<(ServerVariable Variable, double Score, IReadOnlyList<string> Shared)>[signals.Count];
+        for (var i = 0; i < signals.Count; i++)
+        {
+            candidates[i] = [];
+            foreach (var (v, first, shared) in raw[i])
+            {
+                var score = first;
                 foreach (var (prefix, obj) in stands.Where(s => IsBelow(signals[i].Path, s.Prefix)).Select(s => (s.Prefix, s.Object)))
                     if (!v.PathText.StartsWith(obj + "/", StringComparison.Ordinal)) score *= Elsewhere;
                 if (score < Least) continue;

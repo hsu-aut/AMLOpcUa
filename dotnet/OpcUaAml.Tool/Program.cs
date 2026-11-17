@@ -82,6 +82,19 @@ public static class Program
             several match, the first the server lists is taken. A step with the
             namespace index of its BrowseName ("2:Pump1") matches that one only.
 
+        uaaml bind <endpoint> <doc.aml> [--model <hierarchy[/element...]>] [--below <node>] [--report <out.csv>]
+                   [--apply] [-o <out.aml>] [--insecure] [--accept] [--user <name>]
+            Propose a variable of the server for each value of a model of one's
+            own (an element without elements below it, or one with a Value),
+            by the words of both paths, as Bind model... in the plugin does: each
+            value with its variable and how sure the match is (sure, likely,
+            check, none found). --model names the model (the first hierarchy
+            with elements of one's own unless given), --below the part of the
+            server to search (the Objects folder unless given). --report writes
+            the proposals and the variables no value got as CSV. --apply binds
+            the sure and likely ones (NodeId and Value, as Bind to element...)
+            and saves the document (or -o); without it nothing changes.
+
         uaaml watch <endpoint> <node>... [--for <seconds>] [--insecure] [--accept] [--user <name>]
             Each value as it changes, one line with the time, until Ctrl+C or
             Enter (or for the seconds given). A node the server does not have
@@ -265,6 +278,7 @@ public static class Program
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "read" => Run(ReadCommand(rest)),
+                "bind" => Run(BindCommand(rest)),
                 "watch" => Run(WatchCommand(rest)),
                 "mirror" => Run(MirrorCommand(rest)),
                 "snapshot" => Run(SnapshotCommand(rest)),
@@ -639,6 +653,64 @@ public static class Program
                               + (r.Good && r.DataType is { } type ? $"  ({type})" : ""));
         }
         return 0;
+    }
+
+    /// <summary>A model of one's own bound to the server's variables by the words of both paths.</summary>
+    private static async Task<int> BindCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--user", "--model", "--below", "--report", "-o" },
+            flags: new[] { "--secure", "--insecure", "--accept", "--apply" });
+        if (o.Positional.Count != 2) throw new ArgumentException("bind needs an endpoint and a document.");
+        var docPath = o.Positional[1];
+        var doc = Documents.Load(docPath);
+        var model = BindModelOf(doc, o.One("--model"));
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var below = o.One("--below") is { } node ? await client.ResolveAsync(node) : null;
+        var found = await OpcUaAml.Binding.ServerVariables.CollectAsync(client, below);
+        if (found.Truncated)
+            Console.Error.WriteLine($"The search stopped after {found.Variables.Count} variables; name a part of the server with --below.");
+        var plan = OpcUaAml.Binding.ModelBinder.Propose(OpcUaAml.Binding.ModelBinder.OwnSignals(model), found.Variables);
+
+        var width = plan.Proposals.Select(p => p.Signal.PathText.Length).DefaultIfEmpty(0).Max();
+        var right = plan.Proposals.Select(p => (p.Variable?.PathText ?? "(none)").Length).DefaultIfEmpty(0).Max();
+        foreach (var p in plan.Proposals)
+            Console.WriteLine($"{p.Signal.PathText.PadRight(width)}  ->  {(p.Variable?.PathText ?? "(none)").PadRight(right)}  {OpcUaAml.Binding.ModelBinder.MatchWord(p.Confidence)}");
+        var kept = plan.Proposals.Count(p => p.Keep);
+        var check = plan.Proposals.Count(p => p.Confidence == OpcUaAml.Binding.BindingConfidence.Check);
+        var none = plan.Proposals.Count(p => p.Confidence == OpcUaAml.Binding.BindingConfidence.None);
+        Console.WriteLine($"{kept} of {plan.Proposals.Count} value(s) sure or likely, {check} to check, {none} without a variable; "
+                          + $"{plan.Unmatched.Count} variable(s) of the server without a value of the model.");
+        if (o.One("--report") is { } report)
+        {
+            File.WriteAllText(report, OpcUaAml.Binding.ModelBinder.Report(plan), new System.Text.UTF8Encoding(true));
+            Console.WriteLine($"Report written to {Path.GetFullPath(report)}.");
+        }
+        if (!o.Has("--apply"))
+        {
+            Console.WriteLine("Nothing bound: --apply binds the sure and likely ones.");
+            return 0;
+        }
+        var bound = OpcUaAml.Binding.ModelBinder.Apply(plan.Proposals.Where(p => p.Keep), client.ServerUri);
+        var output = o.One("-o") ?? docPath;
+        Documents.Save(doc, output);
+        Console.WriteLine($"Bound {bound} value(s); saved to {Path.GetFullPath(output)}.");
+        return 0;
+    }
+
+    /// <summary>The model named (a hierarchy, then element names below it), or the first of one's own.</summary>
+    private static CAEXObject BindModelOf(CAEXDocument doc, string? name)
+    {
+        if (name == null)
+            return OpcUaAml.Binding.ModelBinder.Models(doc).FirstOrDefault()
+                   ?? throw new ArgumentException("The document has no model of its own to bind: an InstanceHierarchy with an element for each value.");
+        var steps = name.Split('/');
+        CAEXObject current = doc.CAEXFile.InstanceHierarchy[steps[0]] ?? throw new ArgumentException($"The document has no InstanceHierarchy '{steps[0]}'.");
+        foreach (var step in steps.Skip(1))
+        {
+            var children = current is InstanceHierarchyType ih ? ih.InternalElement : ((InternalElementType)current).InternalElement;
+            current = children[step] ?? throw new ArgumentException($"'{name}' does not name an element: no '{step}'.");
+        }
+        return current;
     }
 
     /// <summary>The values of nodes as they change, one line each, until Ctrl+C, Enter or --for.</summary>
