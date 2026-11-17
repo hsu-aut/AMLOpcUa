@@ -270,14 +270,23 @@ public partial class OpcUaPlugin
         var folder = Directory.CreateTempSubdirectory("amlopcua-design-").FullName;
         _designFolder = folder;
         SetBusy(true, L.T("Compiling {0} with the ModelCompiler …", Path.GetFileName(design)));
+        var token = BeginCancellable();
         try
         {
             // The models the design requires come from the folders an import searches.
             var catalog = NodeSetCatalog.Create(KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder));
             var result = await ModelCompilerTool.CompileAsync(design, folder,
-                new CompileOptions { Executable = _settings.ModelCompilerPath, Catalog = catalog });
+                new CompileOptions { Executable = _settings.ModelCompilerPath, Catalog = catalog }, token);
             PluginLog.Info($"ModelCompiler turned {design} into {result.NodeSetPath}.");
             return result.NodeSetPath;
+        }
+        // Cancelling ends the compiler's process.
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            PluginLog.Info($"Compiling {design} cancelled.");
+            SetStatus(L.T("Compiling {0} cancelled.", Path.GetFileName(design)));
+            DeleteFolder(folder);
+            return null;
         }
         catch (ModelCompilerException ex)
         {
@@ -288,6 +297,7 @@ public partial class OpcUaPlugin
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }

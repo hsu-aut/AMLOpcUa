@@ -463,12 +463,17 @@ public partial class OpcUaPlugin
     {
         if (_client == null || !NumbersValid(MirrorDepthBox, MirrorMaxNodesBox) || CurrentSelection() is not { } selection) return;
         SetBusy(true, L.T("Counting …"));
+        var token = BeginCancellable();
         try
         {
-            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(),
+            var (nodes, truncated) = await AddressSpaceMirror.PreviewAsync(_client, selection, CurrentMaxNodes(), token,
                 progress: NodesFound((n, max) => L.T("Counting … {0} of at most {1} node(s) found.", n, max)));
             SetStatus("");
             SelectionSummary.Text = truncated ? L.T("{0} element(s); the node limit was reached. Raise 'at most' or check less.", nodes) : L.T("{0} element(s).", nodes);
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            SetStatus(L.T("Counting cancelled."));
         }
         catch (Exception ex)
         {
@@ -477,6 +482,7 @@ public partial class OpcUaPlugin
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }

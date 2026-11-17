@@ -91,6 +91,9 @@ minor versions.
   requires, ended as "cancelled: required models are missing". The dialog of
   the missing models now comes back and says why, as it does for the OPC
   Foundation; the download can be cancelled.
+- **Cancel** now also stops counting the nodes a selection takes, reading
+  the current values (the document stays as it was), and compiling a
+  ModelDesign with the ModelCompiler, whose process ends.
 - **Closed while working:** a watch of values, or the NodeSet read from a
   server, that came back after the plugin closed was kept or reported to the
   closed plugin; it is now ended quietly.

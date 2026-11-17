@@ -1056,12 +1056,18 @@ public partial class OpcUaPlugin : ISupportsSelection
         var document = _document;
         if (document == null || _client == null) return;
         SetBusy(true, L.T("Reading current values …"));
+        var token = BeginCancellable();
         try
         {
-            var result = await ValueSnapshot.ApplyAsync(document, _client);
+            // All values are read before any is written: cancelled while reading, the document is as it was.
+            var result = await ValueSnapshot.ApplyAsync(document, _client, token);
             foreach (var p in result.Problems) PluginLog.Warn(p);
             PluginLog.Info($"Snapshot from {_client.EndpointUrl}: {result}.");
             SetStatus(Summaries.Snapshot(result, _client.EndpointUrl));
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            SetStatus(L.T("Reading current values cancelled."));
         }
         catch (Exception ex)
         {
@@ -1070,6 +1076,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }
