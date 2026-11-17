@@ -47,7 +47,9 @@ that were there before the session stay.
 - The editor does not take a selection in its own trees from UI Automation,
   only from a real mouse click, and Windows may refuse to bring it to the front
   for one.
-- The overflow of a WPF tool bar is not reachable through UI Automation.
+- The overflow of a WPF tool bar is not reachable through UI Automation in
+  the editor's theme; the plugin has no tool bars since then (rows that wrap,
+  More ▾). A command behind More ▾ is a menu item of a popup window of its own.
 - The plugin's dialogs are windows of their own; `Shot` takes their picture
   from their own handle.
 - Editor 6.4.3.8 has the file dialogs no longer among the windows UI

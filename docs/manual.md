@@ -170,6 +170,13 @@ The colour of a toolbar icon tells the kind of command: blue exchanges models
 (import, export, values), green creates, orange checks, purple links, grey is
 housekeeping.
 
+Commands used now and then sit behind **More ▾** at the end of a row: on
+the **Namespaces** tab **Cloud Library…**, **Companion specs…**, the UAFX
+Descriptor commands and **Link VDI 3682…**; on the **Server** tab **Count
+nodes**, **Check server**, **Bind model…**, **Read values into document**,
+**Save values…**, **Write value…** and **Call method…**. In a narrow pane a
+row wraps into a second line; no command is hidden.
+
 A CAEX 3.0 document without OPC UA shows first steps instead of the namespace
 list, under "Bring OPC UA into this document": **Import a NodeSet**, **Get a
 companion specification**, **Connect to a server**, **Take the tutorial** and
@@ -348,7 +355,8 @@ The OPC Foundation publishes the NodeSets of every released companion
 specification at github.com/OPCFoundation/UA-Nodeset. The plugin imports them
 without an account:
 
-1. Click **Companion specs…** (or the card **Get a companion specification**).
+1. Click **More ▾ › Companion specs…** (or the card **Get a companion
+   specification**).
 2. The dialog **Companion specifications** reads the list. It asks GitHub at
    most once a day and keeps the list on disk; **Refresh list** asks now.
 3. Type a name or a namespace, for example Machinery or Robotics. The name a
@@ -370,7 +378,7 @@ switches to the Cloud Library for models of other publishers.
 The OPC Foundation's UA Cloud Library also holds models of other publishers.
 It needs an account or an API key.
 
-1. Click **Cloud Library…**.
+1. Click **More ▾ › Cloud Library…**.
 2. Enter **User** and **Password**, or an API key in **or API key**.
 3. Enter keywords, or `*` for all, and click **Search**.
 4. Select a model and click **Download and import**.
@@ -1218,8 +1226,8 @@ with the document, a manifest that names it, the files you attach, and your
 digital signature. The receiver sees whether anything changed after you
 signed, and decides whether to trust you.
 
-**Save as a Descriptor.** On the **Namespaces** tab, **UAFX Descriptor ▾ ›
-Save as UAFX Descriptor…** asks for:
+**Save as a Descriptor.** On the **Namespaces** tab, **More ▾ › Save as
+UAFX Descriptor…** asks for:
 
 - the **identifier**, a URI that names this Descriptor and no other, such as
   `urn:hsu:mps500:station1`;
@@ -1238,7 +1246,7 @@ Save as UAFX Descriptor…** asks for:
 **Save…** asks where to write the file and checks it right away; the findings
 go to the **Check** tab. The open document stays as it is.
 
-**Check a Descriptor.** **UAFX Descriptor ▾ › Check a UAFX Descriptor…** opens
+**Check a Descriptor.** **More ▾ › Check a UAFX Descriptor…** opens
 an `.amlx` and checks it without the editor opening it: the manifest, the
 Root AML files, which files are related to what, and every signature with its
 certificate. The line above the findings names the Descriptor, its version,
@@ -1466,7 +1474,7 @@ OPC UA import or a running server. **Link VDI 3682…** connects them:
 | TechnicalResource | the Object that represents the same resource | `refOpcUaObject` |
 | ProcessOperator | the Method whose call executes the process | `refOpcUaMethod` |
 
-1. Click **Link VDI 3682…** on the **Namespaces** toolbar.
+1. Click **More ▾ › Link VDI 3682…** on the **Namespaces** toolbar.
 2. Under **Relation**, choose "TechnicalResource to UA object" or
    "ProcessOperator to UA method".
 3. Select the element under **VDI 3682 element** and its counterpart under

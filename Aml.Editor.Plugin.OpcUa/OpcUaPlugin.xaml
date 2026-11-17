@@ -93,6 +93,33 @@
             <Setter Property="Foreground" Value="{DynamicResource Ua.Muted}"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
+        <!-- A row of commands that wraps when the pane is narrow. A WPF tool bar
+             puts what does not fit behind an arrow that the editor's theme hides
+             from screen readers; commands used now and then sit behind More ▾. -->
+        <Style x:Key="ToolRow" TargetType="WrapPanel">
+            <Setter Property="Background" Value="{DynamicResource Ua.Band}"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+            <Style.Resources>
+                <Style TargetType="Button" BasedOn="{StaticResource {x:Static ToolBar.ButtonStyleKey}}">
+                    <Setter Property="Margin" Value="1,2"/>
+                </Style>
+                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Static ToolBar.TextBoxStyleKey}}">
+                    <Setter Property="Margin" Value="2"/>
+                </Style>
+                <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Static ToolBar.ComboBoxStyleKey}}">
+                    <Setter Property="Margin" Value="2"/>
+                </Style>
+                <Style TargetType="Separator">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="Separator">
+                                <Border Width="1" Margin="4,4" Background="{DynamicResource Ua.Line}"/>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
+        </Style>
     </aml:PluginViewBase.Resources>
 
     <DockPanel>
@@ -175,7 +202,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <ToolBar Grid.Row="0">
+                    <WrapPanel Grid.Row="0" Style="{StaticResource ToolRow}">
                         <Button x:Name="ImportButton" Click="ImportButton_Click"
                                 ToolTip="{l:T 'Import an OPC UA NodeSet (NodeSet2.xml) as AutomationML libraries according to OPC 10000-83 Annex A.'}">
                             <StackPanel Orientation="Horizontal">
@@ -188,35 +215,6 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xEDE1;" Foreground="{DynamicResource Exchange}"/>
                                 <TextBlock Text="{l:T 'Export NodeSet…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="DescriptorMenuButton" Click="DescriptorMenuButton_Click"
-                                ToolTip="{l:T 'UAFX Descriptors (OPC 10000-83): save the document as a signed AML container for offline engineering, or check one you received.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xEB95;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'UAFX Descriptor ▾'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                            <Button.ContextMenu>
-                                <ContextMenu x:Name="DescriptorMenu">
-                                    <MenuItem x:Name="SaveDescriptorItem" Header="{l:T 'Save as UAFX Descriptor…'}" Click="SaveDescriptor_Click"
-                                              ToolTip="{l:T 'Write this document as a UAFX Descriptor: an AML container with a manifest, the files you attach and your digital signature.'}"/>
-                                    <MenuItem x:Name="CheckDescriptorItem" Header="{l:T 'Check a UAFX Descriptor…'}" Click="CheckDescriptor_Click"
-                                              ToolTip="{l:T 'Check a Descriptor you received: manifest, files, relationships, and every signature with its certificate. The findings go to the Check tab.'}"/>
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                        </Button>
-                        <Button x:Name="CloudButton" Click="CloudButton_Click"
-                                ToolTip="{l:T 'Search the OPC Foundation\'s UA Cloud Library and import a model with the models it requires.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'Cloud Library…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="OpcfButton" Click="OpcfButton_Click"
-                                ToolTip="{l:T 'The companion specifications the OPC Foundation publishes, with the models they require; no account needed.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE774;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'Companion specs…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
@@ -232,13 +230,6 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Verify}"/>
                                 <TextBlock Text="{l:T 'Check'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="LinkButton" Click="LinkButton_Click"
-                                ToolTip="{l:T 'Link a VDI 3682 TechnicalResource to the OPC UA object representing it, or a ProcessOperator to the method executing it.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/>
-                                <TextBlock Text="{l:T 'Link VDI 3682…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
@@ -275,8 +266,41 @@
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>
+                        <Button x:Name="NamespacesMoreButton" Click="NamespacesMoreButton_Click" AutomationProperties.Name="{l:T 'More commands'}"
+                                ToolTip="{l:T 'Models from the OPC Foundation, UAFX Descriptors, links to VDI 3682.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE712;" Foreground="{DynamicResource Plain}"/>
+                                <TextBlock Text="{l:T 'More ▾'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="NamespacesMoreMenu">
+                                    <MenuItem x:Name="CloudButton" Header="{l:T 'Cloud Library…'}" Click="CloudButton_Click"
+                                              ToolTip="{l:T 'Search the OPC Foundation\'s UA Cloud Library and import a model with the models it requires.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE753;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="OpcfButton" Header="{l:T 'Companion specs…'}" Click="OpcfButton_Click"
+                                              ToolTip="{l:T 'The companion specifications the OPC Foundation publishes, with the models they require; no account needed.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE774;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem x:Name="SaveDescriptorItem" Header="{l:T 'Save as UAFX Descriptor…'}" Click="SaveDescriptor_Click"
+                                              ToolTip="{l:T 'Write this document as a UAFX Descriptor: an AML container with a manifest, the files you attach and your digital signature.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xEB95;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="CheckDescriptorItem" Header="{l:T 'Check a UAFX Descriptor…'}" Click="CheckDescriptor_Click"
+                                              ToolTip="{l:T 'Check a Descriptor you received: manifest, files, relationships, and every signature with its certificate. The findings go to the Check tab.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xEB95;" Foreground="{DynamicResource Verify}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem x:Name="LinkButton" Header="{l:T 'Link VDI 3682…'}" Click="LinkButton_Click"
+                                              ToolTip="{l:T 'Link a VDI 3682 TechnicalResource to the OPC UA object representing it, or a ProcessOperator to the method executing it.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                         <guide:HelpButton Topic="namespaces.commands"/>
-                    </ToolBar>
+                    </WrapPanel>
 
                     <Grid Grid.Row="1">
                         <Grid.RowDefinitions>
@@ -440,7 +464,7 @@
             <!-- ── Check: findings against the UA types ────────────────────── -->
             <TabItem Header="{l:T 'Check'}" x:Name="CheckTab">
                 <DockPanel>
-                    <ToolBar DockPanel.Dock="Top">
+                    <WrapPanel DockPanel.Dock="Top" Style="{StaticResource ToolRow}">
                         <Button x:Name="CheckAgainButton" Click="CheckButton_Click" ToolTip="{l:T 'Check the instance hierarchies again.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Verify}"/>
@@ -462,7 +486,7 @@
                             </StackPanel>
                         </Button>
                         <guide:HelpButton Topic="check"/>
-                    </ToolBar>
+                    </WrapPanel>
                     <TextBlock x:Name="CheckSummary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="6,6,6,4"
                                Text="{l:T 'Click Check on the Namespaces tab, or Check again above, to verify the instances against their UA types. Double click a finding to select its element.'}"/>
                     <ListView x:Name="FindingList" Margin="6,0,6,6" MouseDoubleClick="FindingList_DoubleClick" KeyDown="FindingList_KeyDown" AutomationProperties.Name="{l:T 'Findings; Enter selects the element'}">
@@ -567,10 +591,9 @@
                         </Grid>
                     </Border>
 
-                    <!-- Commands -->
-                    <!-- Types, Take and Keep live never go into the overflow: they are the run a booth shows, and the arrow to the overflow is easily missed. -->
-                    <ToolBar Grid.Row="1">
-                        <Button x:Name="ServerTypesButton" ToolBar.OverflowMode="Never" Click="ServerTypesButton_Click"
+                    <!-- Commands: the run a booth shows in the row, the rest behind More. -->
+                    <WrapPanel Grid.Row="1" Style="{StaticResource ToolRow}">
+                        <Button x:Name="ServerTypesButton" Click="ServerTypesButton_Click"
                                 ToolTip="{l:T 'Import the types of one of the server\'s namespaces, open them in the modeler, or save them as a NodeSet.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE8B5;" Foreground="{DynamicResource Exchange}"/>
@@ -578,24 +601,11 @@
                             </StackPanel>
                         </Button>
                         <Separator/>
-                        <Button x:Name="MirrorButton" ToolBar.OverflowMode="Never" Click="MirrorButton_Click"
+                        <Button x:Name="MirrorButton" Click="MirrorButton_Click"
                                 ToolTip="{l:T 'Create elements for the checked parts, or for the selected node with what is below it; taking a part again updates it.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE896;" Foreground="{DynamicResource Create}"/>
                                 <TextBlock Text="{l:T 'Take into document'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="PreviewButton" Click="PreviewButton_Click" ToolTip="{l:T 'Count the elements the selection gives, without changing the document.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE8EF;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="{l:T 'Count nodes'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="CheckServerButton" Click="CheckServerButton_Click"
-                                ToolTip="{l:T 'Check the server against the types its instances claim: missing Mandatory children, children of another type or data type, abstract types. Below the selected node, or the whole server; the findings go to the Check tab.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE9D5;" Foreground="{DynamicResource Verify}"/>
-                                <TextBlock Text="{l:T 'Check server'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <Separator/>
@@ -606,22 +616,8 @@
                                 <TextBlock Text="{l:T 'Bind to element…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="BindModelButton" Click="BindModelButton_Click"
-                                ToolTip="{l:T 'Propose a variable of the server for each value of a model of your own, check the proposals and bind them at once; the selected part of the address space narrows the search.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/>
-                                <TextBlock Text="{l:T 'Bind model…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
                         <Separator/>
-                        <Button x:Name="SnapshotButton" Click="SnapshotButton_Click"
-                                ToolTip="{l:T 'Read the value of every element bound to this server into the document, once.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE895;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'Read values into document'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="LiveButton" ToolBar.OverflowMode="Never" Click="LiveButton_Click"
+                        <Button x:Name="LiveButton" Click="LiveButton_Click"
                                 ToolTip="{l:T 'Write every change the server reports into the elements bound to it, until stopped.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="LiveGlyph" Style="{StaticResource IconText}" Text="&#xE9D9;" Foreground="{DynamicResource Exchange}"/>
@@ -638,30 +634,50 @@
                         <Button x:Name="UnwatchButton" AutomationProperties.Name="{l:T 'Stop watching'}" Click="UnwatchButton_Click" ToolTip="{l:T 'Stop watching and clear the live list.'}">
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE894;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
-                        <Button x:Name="SaveWatchButton" Click="SaveWatchButton_Click"
-                                ToolTip="{l:T 'Save every value the watch received, with the time it arrived, as a CSV file with semicolons, to open in a spreadsheet.'}">
+                        <Button x:Name="ServerMoreButton" Click="ServerMoreButton_Click" AutomationProperties.Name="{l:T 'More commands'}"
+                                ToolTip="{l:T 'Count nodes, check the server, bind a model, read, save, write values and call methods.'}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE74E;" Foreground="{DynamicResource Plain}"/>
-                                <TextBlock Text="{l:T 'Save values…'}" Style="{StaticResource Label}"/>
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE712;" Foreground="{DynamicResource Plain}"/>
+                                <TextBlock Text="{l:T 'More ▾'}" Style="{StaticResource Label}"/>
                             </StackPanel>
-                        </Button>
-                        <Separator/>
-                        <Button x:Name="WriteButton" Click="WriteButton_Click"
-                                ToolTip="{l:T 'Write a value into the selected variable of the server, after asking; a PLC may act on it at once.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE70F;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'Write value…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="CallButton" Click="CallButton_Click"
-                                ToolTip="{l:T 'Call the selected method on the object above it, with the arguments you type; a PLC may move the plant.'}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Exchange}"/>
-                                <TextBlock Text="{l:T 'Call method…'}" Style="{StaticResource Label}"/>
-                            </StackPanel>
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="ServerMoreMenu">
+                                    <MenuItem x:Name="PreviewButton" Header="{l:T 'Count nodes'}" Click="PreviewButton_Click"
+                                              ToolTip="{l:T 'Count the elements the selection gives, without changing the document.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE8EF;" Foreground="{DynamicResource Plain}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="CheckServerButton" Header="{l:T 'Check server'}" Click="CheckServerButton_Click"
+                                              ToolTip="{l:T 'Check the server against the types its instances claim: missing Mandatory children, children of another type or data type, abstract types. Below the selected node, or the whole server; the findings go to the Check tab.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE9D5;" Foreground="{DynamicResource Verify}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem x:Name="BindModelButton" Header="{l:T 'Bind model…'}" Click="BindModelButton_Click"
+                                              ToolTip="{l:T 'Propose a variable of the server for each value of a model of your own, check the proposals and bind them at once; the selected part of the address space narrows the search.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE71B;" Foreground="{DynamicResource Relate}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem x:Name="SnapshotButton" Header="{l:T 'Read values into document'}" Click="SnapshotButton_Click"
+                                              ToolTip="{l:T 'Read the value of every element bound to this server into the document, once.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE895;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="SaveWatchButton" Header="{l:T 'Save values…'}" Click="SaveWatchButton_Click"
+                                              ToolTip="{l:T 'Save every value the watch received, with the time it arrived, as a CSV file with semicolons, to open in a spreadsheet.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE74E;" Foreground="{DynamicResource Plain}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator/>
+                                    <MenuItem x:Name="WriteButton" Header="{l:T 'Write value…'}" Click="WriteButton_Click"
+                                              ToolTip="{l:T 'Write a value into the selected variable of the server, after asking; a PLC may act on it at once.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE70F;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem x:Name="CallButton" Header="{l:T 'Call method…'}" Click="CallButton_Click"
+                                              ToolTip="{l:T 'Call the selected method on the object above it, with the arguments you type; a PLC may move the plant.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE768;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </Button.ContextMenu>
                         </Button>
                         <guide:HelpButton Topic="server.commands"/>
-                    </ToolBar>
+                    </WrapPanel>
 
                     <!-- What to take -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1" Padding="6,4">
@@ -842,7 +858,7 @@
             <!-- ── Diagram: OPC 10000-3 notation ────────────────────────────── -->
             <TabItem Header="{l:T 'Diagram'}" x:Name="DiagramTab">
                 <DockPanel>
-                    <ToolBar DockPanel.Dock="Top">
+                    <WrapPanel DockPanel.Dock="Top" Style="{StaticResource ToolRow}">
                         <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Plain}"/>
                         <TextBox x:Name="DiagramSearchBox" Width="160" TextChanged="DiagramSearchBox_TextChanged" KeyDown="DiagramSearchBox_KeyDown"
                                  VerticalContentAlignment="Center" ToolTip="{l:T 'Filter types and instances by name; Enter draws the first'}"/>
@@ -871,7 +887,7 @@
                             </StackPanel>
                         </Button>
                         <guide:HelpButton x:Name="DiagramHelp" Topic="diagram"/>
-                    </ToolBar>
+                    </WrapPanel>
                     <TextBlock x:Name="DiagramInfo" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
                                Text="{l:T 'Pick a UA type or an instance of one; shapes follow OPC 10000-3 (rectangle Object, rounded Variable, ellipse Method, shaded types). Click a shape to select its element, double click to draw its type.'}"/>
                     <ScrollViewer x:Name="DiagramScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White"
@@ -884,7 +900,7 @@
             <!-- ── Modeler: NodeSet.js in WebView2 ─────────────────────────── -->
             <TabItem Header="{l:T 'Modeler'}" x:Name="ModelerTab">
                 <DockPanel>
-                    <ToolBar DockPanel.Dock="Top">
+                    <WrapPanel DockPanel.Dock="Top" Style="{StaticResource ToolRow}">
                         <ComboBox x:Name="ModelerNamespaceBox" Width="300" ToolTip="{l:T 'A namespace of the document; its NodeSet is the file it was imported from, or one in a NodeSet folder'}"/>
                         <Button x:Name="ModelerEditButton" Click="ModelerEdit_Click" ToolTip="{l:T 'Edit the NodeSet of this namespace in the modeler.'}">
                             <StackPanel Orientation="Horizontal">
@@ -912,7 +928,7 @@
                             <TextBlock Style="{StaticResource IconText}" Text="&#xE72C;" Foreground="{DynamicResource Plain}" Margin="0"/>
                         </Button>
                         <guide:HelpButton Topic="modeler"/>
-                    </ToolBar>
+                    </WrapPanel>
                     <TextBlock x:Name="ModelerStatus" DockPanel.Dock="Bottom" Style="{StaticResource Hint}" Margin="6,3"
                                Text="{l:T 'Edit a namespace of the document, start a new model, or open a NodeSet file. \'Apply to document\' in the modeler imports the result.'}"/>
                     <!-- Keeps its keys: a plain WebView2 hands Ctrl+Z, Ctrl+S, Delete … to the editor. -->

@@ -160,7 +160,7 @@ command line does.
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
   mismatched reference links. A double click or Enter selects the element.
-- **UAFX Descriptor ▾** saves the document as a signed UAFX Descriptor
+- **More ▾ › Save as UAFX Descriptor…** saves the document as a signed UAFX Descriptor
   (OPC 10000-83) with the files you attach, and checks a Descriptor you
   received: manifest, relationships, and every signature with its certificate
   against the UAFX Offline Security Policies; see
@@ -192,7 +192,9 @@ the manual that exist, and walk the lessons on the practice plant to their
 end.
 
 Every tab has a toolbar in the style of the other plugins of this family
-(icons of the editor's font, colour by kind of command); messages and
+(icons of the editor's font, colour by kind of command; commands used now and
+then behind **More ▾**, and a row wraps in a narrow pane, so a screen reader
+reaches every command); messages and
 progress appear in one status bar below all tabs, with the whole message in
 its tooltip and a link to the log that counts the warnings not seen yet. The
 log shows each line's level in colour and opens its file. Dialogs share one frame: what the dialog

@@ -63,8 +63,8 @@ minor versions.
   findings go to the Check tab. Command line: `uaaml check-server <endpoint>
   [--below <node>] [--limit <n>]`, exit code 1 on errors. Library:
   `ServerChecker`.
-- **UAFX Descriptors** (OPC 10000-83). **UAFX Descriptor ▾ › Save as UAFX
-  Descriptor…** writes the document as an AML container for OPC UA FX
+- **UAFX Descriptors** (OPC 10000-83). **More ▾ › Save as UAFX
+  Descriptor…** on the Namespaces tab writes the document as an AML container for OPC UA FX
   offline engineering: the document as Root AML file, the manifest of
   Annex J (identifier, version, and the OPC UA FX version read from the
   document's FX library), the files you attach (an attached Descriptor is
@@ -82,6 +82,18 @@ minor versions.
   `check` and `certificate`. Library: `OpcUaAml.Descriptors`
   (`DescriptorWriter`, `DescriptorChecker`, `PackageSignatures`). See
   [docs/descriptor.md](docs/descriptor.md).
+
+### Changed
+
+- **The tool bars wrap, and commands used now and then are behind More ▾.** A
+  narrow pane put the last commands of a tool bar behind a small arrow, which
+  the editor's theme does not show to a screen reader, and a menu button there
+  did not open its menu. A row now wraps into a second line. **More ▾** holds,
+  on the Namespaces tab, **Cloud Library…**, **Companion specs…**, the UAFX
+  Descriptor commands and **Link VDI 3682…**; on the Server tab, **Count
+  nodes**, **Check server**, **Bind model…**, **Read values into document**,
+  **Save values…**, **Write value…** and **Call method…**. **Show me** in the
+  lessons opens it.
 
 ### Fixed
 
@@ -101,9 +113,6 @@ minor versions.
 - **Call method…** could not be used: the address space showed no methods,
   filtered with what **Take into document** takes, which leaves methods out.
   It shows them now; they are still not taken.
-- **UAFX Descriptor ▾** and **Settings ▾** did nothing when a narrow pane had
-  put them into the overflow of their tool bar: clicking there closed the
-  overflow and the menu with it. The menu now opens below the tool bar.
 - **Save values…** was disabled right after **Watch** until another node
   was selected; it is enabled as soon as a value is watched.
 - **Cancel** now also stops counting the nodes a selection takes, reading

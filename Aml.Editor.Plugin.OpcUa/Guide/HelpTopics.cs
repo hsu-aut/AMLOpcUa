@@ -24,7 +24,7 @@ internal static class HelpTopics
             "models", "bringing-opc-ua-models-into-a-document"),
         ["namespaces.commands"] = new(
             L.T("Import, export and more"),
-            L.T("Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before. UAFX Descriptor saves the document as a signed Descriptor for OPC UA FX offline engineering (OPC 10000-83), or checks one you received."),
+            L.T("Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before. UAFX Descriptor saves the document as a signed Descriptor for OPC UA FX offline engineering (OPC 10000-83), or checks one you received. Companion specs, Cloud Library, the UAFX Descriptor commands and Link VDI 3682 are behind More."),
             new[] { "Annex A", "AML-UA-XSLT", "Cloud Library", "VDI 3682", "CAEX", "InstanceHierarchy" },
             "models", "the-tabs"),
         ["check"] = new(
@@ -39,7 +39,7 @@ internal static class HelpTopics
             "plant", "connect"),
         ["server.commands"] = new(
             L.T("What to do with the server"),
-            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address; Bind model does it for every value of a model of yours at once. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below. Write value and Call method act on the running server, after asking."),
+            L.T("Types of the server imports the types of one of its namespaces. Take into document creates elements for the checked nodes, with their NodeIds, UA types and values; Count nodes says how many first. Bind to element gives an element of yours a node's address; Bind model does it for every value of a model of yours at once. Read values into document reads the values of the bound elements once, Keep document values live writes every change into them, Watch only shows values in the list below. Write value and Call method act on the running server, after asking. Count nodes, Check server, Bind model, Read values into document, Save values, Write value and Call method are behind More."),
             new[] { "Node", "Variable", "NodeId", "Binding", "Subscription", "Address space", "InternalElement", "Attribute" },
             "plant", "working-with-a-running-server", AlsoLesson: "bind"),
         ["server.take"] = new(

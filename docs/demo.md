@@ -29,8 +29,8 @@ plugin brings, served with moving values by **Practice plant**.
    practice plant and warms the conversion cache: the first import of the
    MPS 500 with DI takes about twenty seconds, every later one under a second.
    Then close the document without saving.
-6. Screen: the plugin docked beside the trees; nothing of the Server tab may
-   sit in a tool bar's overflow.
+6. Screen: the plugin docked beside the trees; Types of the server…, Take
+   into document and Keep document values live are in the Server tab's row.
 
 **The loop**
 

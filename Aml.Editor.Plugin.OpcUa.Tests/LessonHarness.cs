@@ -83,6 +83,10 @@ internal static class LessonHarness
     public static void Click(System.Windows.Controls.Primitives.ButtonBase button) =>
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
 
+    /// <summary>A command behind More ▾, chosen as the user does once the menu is open.</summary>
+    public static void Click(System.Windows.Controls.MenuItem item) =>
+        item.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+
     public static async Task Until(Func<bool> condition, int seconds = 60)
     {
         for (var i = 0; i < seconds * 10 && !condition(); i++) await Task.Delay(100);

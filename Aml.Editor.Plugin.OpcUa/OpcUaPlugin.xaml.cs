@@ -779,30 +779,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (NamespaceList.SelectedItem is NamespaceRow row) CopyText(row.NamespaceUri);
     }
 
-    /// <summary>
-    /// Opens the menu of a menu button below it. Clicked in a tool bar's
-    /// overflow, the button makes the tool bar close the overflow, and an open
-    /// menu with it: the menu then opens once the overflow is closed, below the
-    /// tool bar at its right end, where the overflow was.
-    /// </summary>
-    private void OpenMenu(System.Windows.Controls.ContextMenu menu, System.Windows.Controls.Primitives.ButtonBase button)
+    /// <summary>Opens the menu of a menu button below it.</summary>
+    private static void OpenMenu(System.Windows.Controls.ContextMenu menu, System.Windows.Controls.Primitives.ButtonBase button)
     {
-        if (System.Windows.Controls.ToolBar.GetIsOverflowItem(button)
-            && System.Windows.Controls.ItemsControl.ItemsControlFromItemContainer(button) is System.Windows.Controls.ToolBar toolBar)
-        {
-            menu.PlacementTarget = toolBar;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Custom;
-            menu.CustomPopupPlacementCallback = (popup, target, _) => new[]
-            {
-                new System.Windows.Controls.Primitives.CustomPopupPlacement(new Point(Math.Max(0, target.Width - popup.Width), target.Height),
-                    System.Windows.Controls.Primitives.PopupPrimaryAxis.Horizontal),
-            };
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () => menu.IsOpen = true);
-            return;
-        }
         menu.PlacementTarget = button;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.CustomPopupPlacementCallback = null;
         menu.IsOpen = true;
     }
 
@@ -810,6 +791,16 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         OpenMenu(SettingsMenu, SettingsMenuButton);
     }
+
+    private void ServerMoreButton_Click(object sender, RoutedEventArgs e)
+    {
+        OpenMenu(ServerMoreMenu, ServerMoreButton);
+    }
+
+    /// <summary>The menu button whose menu holds <paramref name="item"/>, for Show me.</summary>
+    private System.Windows.Controls.Button? MenuButtonOf(System.Windows.Controls.MenuItem item) =>
+        new[] { ServerMoreButton, NamespacesMoreButton, SettingsMenuButton }
+            .FirstOrDefault(b => b.ContextMenu?.Items.Contains(item) == true);
 
     private void FindingList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
@@ -977,7 +968,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         DiagramExportButton.IsEnabled = _diagram != null;
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
-        DescriptorMenuButton.IsEnabled = !_busy;
+        NamespacesMoreButton.IsEnabled = !_busy;
         TrustSignerButton.IsEnabled = !_busy;
         FoldersButton.IsEnabled = !_busy;
     }

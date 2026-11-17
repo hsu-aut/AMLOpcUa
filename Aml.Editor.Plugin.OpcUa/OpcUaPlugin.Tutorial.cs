@@ -115,7 +115,7 @@ namespace Aml.Editor.Plugin.OpcUa
                         "AddressTree", "ServerTab", () => SelectedNode?.NodeClass == "Variable"),
                     new TourStep(L.T("Click Bind to element… and choose your element PartsProduced. It gets the node's address as its NodeId attribute (Annex A) and a Value attribute; nothing else in the document changes."),
                         "BindButton", "ServerTab", () => OwnElements().Any(e => e.Attribute["NodeId"] != null)),
-                    new TourStep(L.T("Click Read values into document. The value of every bound element is read once; select PartsProduced in the editor's tree and look at its Value. Keep document values live would follow every change."),
+                    new TourStep(L.T("Click More ▾, then Read values into document. The value of every bound element is read once; select PartsProduced in the editor's tree and look at its Value. Keep document values live would follow every change."),
                         "SnapshotButton", "ServerTab", () => OwnElements().Any(e => e.Attribute["NodeId"] != null && !string.IsNullOrEmpty(e.Attribute["Value"]?.Value))),
                     new TourStep(L.T("That is how a model of your own meets a running plant: bind each element once, then read or follow its values. Ctrl+S keeps the bindings. Click Stop practice plant to end the lesson."),
                         "PracticePlantButton", "ServerTab", () => _plant == null),
@@ -321,7 +321,7 @@ namespace Aml.Editor.Plugin.OpcUa
             if (step.Target != null)
             {
                 var show = DialogKit.Action(L.T("Show me"));
-                show.Click += (_, __) => Highlight(step);
+                show.Click += (_, __) => Highlight(step, openMenu: true);
                 row.Children.Add(show);
             }
             var next = DialogKit.Action(step.Done == null ? L.T("Next") : L.T("Skip step"));
@@ -338,18 +338,33 @@ namespace Aml.Editor.Plugin.OpcUa
         private static TextBlock Paragraph(string text, Brush brush) =>
             new() { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = brush, Margin = new Thickness(0, 2, 0, 0) };
 
-        /// <summary>Opens the step's tab and frames its control, once the tab has laid it out.</summary>
-        private void Highlight(TourStep step) => ShowMe(step.Target, step.Tab);
+        /// <summary>Opens the step's tab and frames its control, once the tab has laid it out; a menu opens only when the user asks.</summary>
+        private void Highlight(TourStep step, bool openMenu = false) => ShowMe(step.Target, step.Tab, openMenu);
 
-        /// <summary>Opens <paramref name="tabName"/> and frames the control named <paramref name="targetName"/>.</summary>
-        internal void ShowMe(string? targetName, string? tabName)
+        /// <summary>The control Show me frames now.</summary>
+        internal FrameworkElement? Highlighted => _highlight?.Element as FrameworkElement;
+
+        /// <summary>
+        /// Opens <paramref name="tabName"/> and frames the control named <paramref name="targetName"/>.
+        /// A command in a menu (More ▾) is framed by its menu button; with
+        /// <paramref name="openMenu"/> the menu opens too, the command in focus.
+        /// </summary>
+        internal void ShowMe(string? targetName, string? tabName, bool openMenu = false)
         {
             ClearHighlight();
             if (tabName != null && FindName(tabName) is TabItem tab) Tabs.SelectedItem = tab;
             if (targetName == null || FindName(targetName) is not FrameworkElement target) return;
-            // A narrow plugin puts the last buttons of a toolbar into its overflow, where
-            // nothing shows them: open it, so the button can be seen and clicked.
-            if (ToolBar.GetIsOverflowItem(target) && OwningToolBar(target) is { } toolBar) toolBar.IsOverflowOpen = true;
+            if (target is MenuItem item && MenuButtonOf(item) is { } button)
+            {
+                target = button;
+                if (openMenu)
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (!button.IsVisible || button.ContextMenu is not { } menu) return;
+                        OpenMenu(menu, button);
+                        item.Focus();
+                    }, DispatcherPriority.Loaded);
+            }
             Dispatcher.BeginInvoke(() =>
             {
                 if (!target.IsVisible || System.Windows.Documents.AdornerLayer.GetAdornerLayer(target) is not { } layer) return;
@@ -358,13 +373,6 @@ namespace Aml.Editor.Plugin.OpcUa
                 layer.Add(adorner);
                 _highlight = (target, adorner);
             }, DispatcherPriority.Loaded);
-        }
-
-        private static ToolBar? OwningToolBar(DependencyObject element)
-        {
-            for (var d = LogicalTreeHelper.GetParent(element); d != null; d = LogicalTreeHelper.GetParent(d))
-                if (d is ToolBar toolBar) return toolBar;
-            return null;
         }
 
         private void ClearHighlight()
