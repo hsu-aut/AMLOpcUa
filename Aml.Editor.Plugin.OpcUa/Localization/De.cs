@@ -169,7 +169,7 @@ internal static class De
         ["InternalLink"] = "InternalLink",
         ["Joins two ExternalInterfaces. Annex A writes a reference between the children of a type this way; Check makes sure only the pairs Annex A allows are joined. Nearest in OPC UA: a reference."] = "Verbindet zwei ExternalInterfaces. Annex A schreibt so eine Referenz zwischen den Kindern eines Typs; Prüfen stellt sicher, dass nur die Paare verbunden sind, die Annex A erlaubt. In OPC UA am nächsten: eine Referenz.",
         ["Kind"] = "Art",
-        ["Live: {0}  ·  {1} value(s) followed."] = "Live: {0}  ·  {1} Wert(e) verfolgt.",
+        ["Live: {0}  ·  {1} value(s) followed{2}."] = "Live: {0}  ·  {1} Wert(e) verfolgt{2}.",
         ["Mandatory child '{0}' of '{1}' is missing."] = "Das Mandatory-Kindelement '{0}' von '{1}' fehlt.",
         ["Manual"] = "Anleitung",
         ["Match"] = "Treffer",

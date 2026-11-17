@@ -1139,7 +1139,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             }
             _live = change.Live;
             foreach (var p in _live.Problems) PluginLog.Warn(p);
-            var text = LiveChangeText(change.Added, change.Removed, _live.Count);
+            var text = LiveChangeText(change.Added, change.Removed, _live.Count, _live.NotOnServer);
             PluginLog.Info(text);
             SetStatus(text);
             if (_live.Count == 0)
@@ -1160,7 +1160,7 @@ public partial class OpcUaPlugin : ISupportsSelection
     }
 
     /// <summary>What the status line says when keeping values live takes up changed bindings.</summary>
-    internal static string LiveChangeText(IReadOnlyList<string> added, IReadOnlyList<string> removed, int count)
+    internal static string LiveChangeText(IReadOnlyList<string> added, IReadOnlyList<string> removed, int count, int notOnServer = 0)
     {
         var moved = added.Intersect(removed).ToList();
         string Names(IReadOnlyList<string> names) => names.Count <= 3 ? string.Join(", ", names) : L.T("{0} element(s)", names.Count);
@@ -1170,7 +1170,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (newOnes.Count > 0) parts.Add(L.T("now also {0}", Names(newOnes)));
         if (gone.Count > 0) parts.Add(L.T("no longer {0}", Names(gone)));
         if (moved.Count > 0) parts.Add(L.T("{0} at another node", Names(moved)));
-        return L.T("Live: {0}  ·  {1} value(s) followed.", string.Join("; ", parts), count);
+        // A bound element whose node the server lacks is named in the log, and counted here as at the start.
+        var lacking = notOnServer > 0 ? L.T("; {0} not on this server (see log)", notOnServer) : "";
+        return L.T("Live: {0}  ·  {1} value(s) followed{2}.", string.Join("; ", parts), count, lacking);
     }
 
     private async Task StopLiveAsync()

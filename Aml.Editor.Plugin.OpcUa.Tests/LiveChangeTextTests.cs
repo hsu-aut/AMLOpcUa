@@ -6,11 +6,11 @@ namespace PluginTests;
 /// <summary>What the status line says when keeping values live takes up a change of the bindings.</summary>
 public class LiveChangeTextTests
 {
-    private static string Text(string[] added, string[] removed, int count)
+    private static string Text(string[] added, string[] removed, int count, int notOnServer = 0)
     {
         var german = L.German;
         L.German = false;
-        try { return OpcUaPlugin.LiveChangeText(added, removed, count); }
+        try { return OpcUaPlugin.LiveChangeText(added, removed, count, notOnServer); }
         finally { L.German = german; }
     }
 
@@ -37,5 +37,12 @@ public class LiveChangeTextTests
     {
         Assert.Equal("Live: now also 5 element(s); no longer Lampe  ·  9 value(s) followed.",
             Text(new[] { "A", "B", "C", "D", "E" }, new[] { "Lampe" }, 9));
+    }
+
+    [Fact]
+    public void Bound_values_the_server_lacks_are_counted_as_when_live_values_start()
+    {
+        Assert.Equal("Live: now also Blinker  ·  2 value(s) followed; 1 not on this server (see log).",
+            Text(new[] { "Blinker" }, Array.Empty<string>(), 2, notOnServer: 1));
     }
 }
