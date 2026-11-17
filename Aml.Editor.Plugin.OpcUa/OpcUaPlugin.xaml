@@ -567,6 +567,13 @@
                                 <TextBlock Text="{l:T 'Count nodes'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="CheckServerButton" Click="CheckServerButton_Click"
+                                ToolTip="{l:T 'Check the server against the types its instances claim: missing Mandatory children, children of another type or data type, abstract types. Below the selected node, or the whole server; the findings go to the Check tab.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE9D5;" Foreground="{DynamicResource Verify}"/>
+                                <TextBlock Text="{l:T 'Check server'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <Separator/>
                         <Button x:Name="BindButton" Click="BindButton_Click"
                                 ToolTip="{l:T 'Give an element of your choice the selected node\'s address (its NodeId attribute, OPC 10000-83 Annex A).'}">

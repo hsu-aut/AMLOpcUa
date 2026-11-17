@@ -92,6 +92,24 @@ instance hierarchies; the generated libraries are trusted.
 | UA007 | Warning | An element named like a placeholder (`<Name>`) sits in an instance hierarchy. |
 | UA008 | Warning | A VDI 3682 element links to an OPC UA element that does not exist ([VDI 3682](vdi3682.md)). |
 
+`ServerChecker` (command line: `uaaml check-server`, plugin: **Check
+server**) checks the instances of a running server the same way, on OPC UA
+terms: the InstanceDeclarations of each node's TypeDefinition and its
+supertypes (`FindSuperType` through the session's type tree), those its
+parent's declaration holds below it, the ModellingRule of each (HasModellingRule),
+and the NodeClass, TypeDefinition and DataType of the child found by its
+qualified BrowseName.
+
+| Rule | Severity | Finding |
+|---|---|---|
+| SV001 | Warning | A node has no HasTypeDefinition. |
+| SV002 | Error | Its TypeDefinition has IsAbstract set. |
+| SV003 | Error | A Mandatory declaration has no child of its BrowseName. |
+| SV004 | Error | The child has another NodeClass than the declaration. |
+| SV005 | Error | The child's TypeDefinition is neither the declared one nor a subtype of it. |
+| SV006 | Error | A variable's DataType is neither the declared one nor a subtype of it. |
+| SV007 | Error | A MandatoryPlaceholder has no child (other than those declarations name) of its type or a subtype. |
+
 UA003 and UA004 measure an element against its own type and against what
 its parent's type declares below it, inherited declarations included at every
 level (`UaTypes.Declarations`). `PubSubDiagnosticsWriterGroupType` declares

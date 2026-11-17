@@ -318,6 +318,48 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetStatus(L.T("Took {0} from the discovery server; Connect connects to it.", window.Chosen));
     }
 
+    /// <summary>Check server: the instances below the selected node, or of the whole server, against their types.</summary>
+    private async void CheckServerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var client = _client;
+        if (client == null) return;
+        var start = SelectedNode is { NodeClass: "Object" or "Variable" } node ? node : null;
+        SetBusy(true, start == null ? L.T("Checking the server against its types …") : L.T("Checking {0} against its types …", start.DisplayName));
+        var token = BeginCancellable();
+        try
+        {
+            var result = await OpcUaAml.Checks.ServerChecker.CheckAsync(client, start?.Address, ct: token);
+            var findings = result.Findings;
+            var errors = findings.Count(f => f.Severity == OpcUaAml.Checks.Severity.Error);
+            FindingList.ItemsSource = findings.Select(f => new FindingRow(f)).ToList();
+            CheckTab.Header = findings.Count == 0 ? L.T("Check") : L.T("Check ({0})", findings.Count);
+            var summary = L.T("Server {0}, {1} node(s) checked: {2} error(s), {3} warning(s).", client.EndpointUrl, result.Checked, errors, findings.Count - errors);
+            if (findings.Count > 0)
+                summary += " " + L.T("Rules: ") + string.Join("; ", findings.Select(f => f.Rule).Distinct().OrderBy(r => r)
+                    .Select(r => $"{r} {L.T(OpcUaAml.Checks.Rules.Descriptions[r])}"));
+            if (result.Truncated) summary += " " + L.T("The check stopped after {0} nodes; select a part of the server to check the rest.", result.Checked);
+            CheckSummary.Text = summary;
+            Tabs.SelectedItem = CheckTab;
+            PluginLog.Info($"Server check of {client.EndpointUrl}{(start != null ? " below " + start.Address : "")}: {result.Checked} node(s), {errors} error(s), {findings.Count - errors} warning(s).");
+            foreach (var f in findings) PluginLog.Info("  " + f);
+            SetStatus(L.T("Server check: {0} error(s), {1} warning(s).", errors, findings.Count - errors));
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            SetStatus(L.T("Checking the server cancelled."));
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Checking the server failed", ex);
+            SetStatus(L.T("Checking the server failed: {0}", ex.Message));
+        }
+        finally
+        {
+            EndCancellable();
+            SetBusy(false, null);
+        }
+    }
+
     private async void WatchButton_Click(object sender, RoutedEventArgs e)
     {
         var node = SelectedNode;
@@ -1108,6 +1150,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         InstancesOfButton.IsEnabled = connected && !_busy;
         LoadSelectionButton.IsEnabled = connected && _document != null && !_busy;
         PreviewButton.IsEnabled = connected && !_busy && (_items.Count > 0 || SelectedNode != null);
+        CheckServerButton.IsEnabled = connected && !_busy;
         NamespacesButton.IsEnabled = connected && !_busy;
         RemoveSelectionButton.IsEnabled = SelectionList.SelectedItem != null;
         ClearSelectionButton.IsEnabled = _items.Count > 0 || _excluded.Count > 0;
