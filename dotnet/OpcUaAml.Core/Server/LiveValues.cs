@@ -10,6 +10,9 @@ using Aml.Engine.CAEX;
 
 namespace OpcUaAml.Server;
 
+/// <summary>Live values following the bindings anew: the new subscription and what changed by name.</summary>
+public sealed record LiveChange(LiveValues Live, IReadOnlyList<string> Added, IReadOnlyList<string> Removed);
+
 /// <summary>What a live update changed, for a status line.</summary>
 public sealed record LiveUpdate(string What, string? Value, int Updates)
 {
@@ -21,6 +24,7 @@ public sealed class LiveValues : IAsyncDisposable
 {
     private readonly IAsyncDisposable _watch;
     private readonly Counter _counter;
+    private readonly Start _start;
 
     /// <summary>How many bound values are followed.</summary>
     public int Count { get; }
@@ -38,11 +42,15 @@ public sealed class LiveValues : IAsyncDisposable
     /// <summary>Bindings that could not be read (a malformed NodeId, for instance).</summary>
     public IReadOnlyList<string> Problems { get; }
 
-    /// <summary>Values written into the document so far.</summary>
+    /// <summary>Values written into the document so far, those of the subscriptions before it included.</summary>
     public int Updates => Volatile.Read(ref _counter.Value);
 
-    private LiveValues(IAsyncDisposable watch, Counter counter, int count, int skipped, int notOnServer, IReadOnlyList<string> problems)
+    /// <summary>The bindings it follows, as the document held them when it subscribed.</summary>
+    public BindingSet Bindings => _start.Bindings;
+
+    private LiveValues(Start start, IAsyncDisposable watch, Counter counter, int count, int skipped, int notOnServer, IReadOnlyList<string> problems)
     {
+        _start = start;
         _watch = watch;
         _counter = counter;
         Count = count;
@@ -56,17 +64,36 @@ public sealed class LiveValues : IAsyncDisposable
     /// <paramref name="dispatch"/> runs a write where the document may be
     /// changed; <paramref name="changed"/> hears of each write, after it.
     /// </summary>
-    public static async Task<LiveValues> FollowAsync(CAEXDocument doc, UaClient client, Action<Action> dispatch,
-        Action<LiveUpdate>? changed = null, int publishingIntervalMs = 1000, CancellationToken ct = default)
+    public static Task<LiveValues> FollowAsync(CAEXDocument doc, UaClient client, Action<Action> dispatch,
+        Action<LiveUpdate>? changed = null, int publishingIntervalMs = 1000, CancellationToken ct = default) =>
+        SubscribeAsync(new Start(doc, client, dispatch, changed, publishingIntervalMs, BindingSet.Of(doc)), new Counter(), ct);
+
+    /// <summary>
+    /// When the document's bindings differ from those it follows (an element bound, copied,
+    /// rebound or deleted since), subscribes to what is bound now and stops this subscription;
+    /// null, and this one goes on, when nothing changed. Runs where the document may be read,
+    /// as <see cref="FollowAsync"/> does; the count of written values goes on.
+    /// </summary>
+    public async Task<LiveChange?> FollowChangesAsync(CancellationToken ct = default)
     {
+        var now = BindingSet.Of(_start.Doc);
+        if (now.SameAs(_start.Bindings)) return null;
+        // The new one first, so no value is missed between the two.
+        var next = await SubscribeAsync(_start with { Bindings = now }, _counter, ct);
+        await DisposeAsync();
+        return new LiveChange(next, now.AddedSince(_start.Bindings), now.RemovedSince(_start.Bindings));
+    }
+
+    private static async Task<LiveValues> SubscribeAsync(Start start, Counter counter, CancellationToken ct)
+    {
+        var (doc, client, dispatch, changed, publishingIntervalMs, _) = start;
         var (targets, problems, skipped) = await ValueSnapshot.ResolvedTargetsAsync(doc, client, ct);
         // Units once at the start: a unit does not move with the values.
         await ValueSnapshot.FillUnitsAsync(doc, client, targets.Select(t => (t.Address, t.Attribute)).ToList(), ct);
         // One monitored item per node, even when several elements are bound to it.
         var byAddress = targets.GroupBy(t => t.Address).ToDictionary(g => g.Key, g => g.ToList());
         // The first values arrive while the subscription is created, before this object exists.
-        var counter = new Counter();
-        if (byAddress.Count == 0) return new LiveValues(new Nothing(), counter, 0, skipped, 0, problems);
+        if (byAddress.Count == 0) return new LiveValues(start, new Nothing(), counter, 0, skipped, 0, problems);
         // A server sends many values at once (a hundred every half second for the
         // MPS 500). Each one a call of its own on the editor's UI thread, through its
         // services one by one, made the editor hardly answer. They are gathered, the
@@ -114,8 +141,12 @@ public sealed class LiveValues : IAsyncDisposable
             notOnServer += bound.Count;
             problems.AddRange(bound.Select(t => $"{t.What}: not followed, {r.Status}"));
         }
-        return new LiveValues(watch, counter, targets.Count - notOnServer, skipped, notOnServer, problems);
+        return new LiveValues(start, watch, counter, targets.Count - notOnServer, skipped, notOnServer, problems);
     }
+
+    /// <summary>What a subscription is made from, kept to subscribe anew.</summary>
+    private sealed record Start(CAEXDocument Doc, UaClient Client, Action<Action> Dispatch, Action<LiveUpdate>? Changed,
+        int PublishingIntervalMs, BindingSet Bindings);
 
     public ValueTask DisposeAsync() => _watch.DisposeAsync();
 
