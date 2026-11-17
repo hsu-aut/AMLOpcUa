@@ -260,8 +260,9 @@ public static class Program
         Exit codes
             0   done; lines starting with "note:" on the error output are notes, not failures
             1   an error, or what the command looks for was found: info a required
-                model it cannot find, check an error in an instance, compare a
-                difference, roundtrip a chain that broke off
+                model it cannot find, check an error in an instance, descriptor
+                check an error in the Descriptor, compare a difference, roundtrip
+                a chain that broke off
             2   no command given
         """;
 

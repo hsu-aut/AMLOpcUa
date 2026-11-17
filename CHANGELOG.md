@@ -7,6 +7,28 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **UAFX Descriptors** (OPC 10000-83). **UAFX Descriptor ▾ › Save as UAFX
+  Descriptor…** writes the document as an AML container for OPC UA FX
+  offline engineering: the document as Root AML file, the manifest of
+  Annex J (identifier, version, and the OPC UA FX version read from the
+  document's FX library), the files you attach (an attached Descriptor is
+  embedded as one), and an XML signature as Annex I shows it, made with a
+  certificate the plugin keeps, one of the Windows store or a .pfx; **New…**
+  makes a self-signed one. **Check a UAFX Descriptor…** checks one received:
+  the manifest, the Root AML files, the relationships and content types, every
+  signature (each file signed and unchanged, the UAFX Offline Security
+  Policies of OPC 10000-84, the certificate's use, validity and chain) and
+  embedded Descriptors, with the findings (DX001 to DX016) on the Check tab.
+  **Trust signer…** trusts a signer after showing its fingerprint. Part 83
+  leaves the manifest's relationship type empty; the plugin writes
+  `http://schemas.opcfoundation.org/container/relationship/Manifest` and finds
+  a manifest by its content. On the command line: `uaaml descriptor create`,
+  `check` and `certificate`. Library: `OpcUaAml.Descriptors`
+  (`DescriptorWriter`, `DescriptorChecker`, `PackageSignatures`). See
+  [docs/descriptor.md](docs/descriptor.md).
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed

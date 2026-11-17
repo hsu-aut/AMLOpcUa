@@ -112,6 +112,11 @@ Werten auf diesem Rechner.
   ein Rechnername steht.
 - **NodeSet exportieren…** schreibt das Dokument als NodeSet, oder ein
   importiertes Modell so zurück, wie es war.
+- **UAFX-Descriptor ▾ › Als UAFX-Descriptor speichern…** packt das Dokument
+  mit Manifest, deinen Anhängen und deiner Signatur in einen AML-Container
+  nach OPC 10000-83. **UAFX-Descriptor prüfen…** prüft einen erhaltenen:
+  Manifest, Dateien und jede Signatur mit ihrem Zertifikat. Bevor du einem
+  Unterzeichner vertraust, vergleiche seinen Fingerabdruck mit dem Absender.
 
 ## Wenn etwas nicht klappt
 

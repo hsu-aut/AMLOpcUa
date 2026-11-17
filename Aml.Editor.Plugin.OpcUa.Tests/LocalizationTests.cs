@@ -36,6 +36,9 @@ public class LocalizationTests
         foreach (var description in OpcUaAml.Checks.Rules.Descriptions.Values) keys.Add(description);
         // So are the templates of the findings' messages.
         foreach (var template in OpcUaAml.Checks.FindingTexts.All) keys.Add(template);
+        // And those of the Descriptor check.
+        foreach (var description in OpcUaAml.Descriptors.DescriptorRules.Descriptions.Values) keys.Add(description);
+        foreach (var template in OpcUaAml.Descriptors.DescriptorTexts.All) keys.Add(template);
         return keys;
     }
 

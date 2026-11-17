@@ -190,6 +190,21 @@
                                 <TextBlock Text="{l:T 'Export NodeSet…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="DescriptorMenuButton" Click="DescriptorMenuButton_Click"
+                                ToolTip="{l:T 'UAFX Descriptors (OPC 10000-83): save the document as a signed AML container for offline engineering, or check one you received.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xEB95;" Foreground="{DynamicResource Exchange}"/>
+                                <TextBlock Text="{l:T 'UAFX Descriptor ▾'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="DescriptorMenu">
+                                    <MenuItem x:Name="SaveDescriptorItem" Header="{l:T 'Save as UAFX Descriptor…'}" Click="SaveDescriptor_Click"
+                                              ToolTip="{l:T 'Write this document as a UAFX Descriptor: an AML container with a manifest, the files you attach and your digital signature.'}"/>
+                                    <MenuItem x:Name="CheckDescriptorItem" Header="{l:T 'Check a UAFX Descriptor…'}" Click="CheckDescriptor_Click"
+                                              ToolTip="{l:T 'Check a Descriptor you received: manifest, files, relationships, and every signature with its certificate. The findings go to the Check tab.'}"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
                         <Button x:Name="CloudButton" Click="CloudButton_Click"
                                 ToolTip="{l:T 'Search the OPC Foundation\'s UA Cloud Library and import a model with the models it requires.'}">
                             <StackPanel Orientation="Horizontal">
@@ -435,6 +450,13 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE710;" Foreground="{DynamicResource Create}"/>
                                 <TextBlock Text="{l:T 'Add missing Mandatory children'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="TrustSignerButton" Click="TrustSignerButton_Click" Visibility="Collapsed"
+                                ToolTip="{l:T 'Trust the certificate that signed this Descriptor, after comparing its fingerprint with the sender.'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xEB95;" Foreground="{DynamicResource Verify}"/>
+                                <TextBlock Text="{l:T 'Trust signer…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
                         <guide:HelpButton Topic="check"/>

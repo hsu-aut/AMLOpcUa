@@ -641,6 +641,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             var findings = AnnexAChecker.Check(document);
             FindingList.ItemsSource = findings.Select(f => new FindingRow(f)).ToList();
+            TrustSignerButton.Visibility = Visibility.Collapsed;
             var errors = findings.Count(f => f.Severity == Severity.Error);
             CheckTab.Header = findings.Count == 0 ? L.T("Check") : L.T("Check ({0})", findings.Count);
             CheckSummary.Text = findings.Count == 0
@@ -923,6 +924,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         DiagramExportButton.IsEnabled = _diagram != null;
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
+        DescriptorMenuButton.IsEnabled = !_busy;
+        TrustSignerButton.IsEnabled = !_busy;
         FoldersButton.IsEnabled = !_busy;
     }
 
