@@ -779,11 +779,36 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (NamespaceList.SelectedItem is NamespaceRow row) CopyText(row.NamespaceUri);
     }
 
+    /// <summary>
+    /// Opens the menu of a menu button below it. Clicked in a tool bar's
+    /// overflow, the button makes the tool bar close the overflow, and an open
+    /// menu with it: the menu then opens once the overflow is closed, below the
+    /// tool bar at its right end, where the overflow was.
+    /// </summary>
+    private void OpenMenu(System.Windows.Controls.ContextMenu menu, System.Windows.Controls.Primitives.ButtonBase button)
+    {
+        if (System.Windows.Controls.ToolBar.GetIsOverflowItem(button)
+            && System.Windows.Controls.ItemsControl.ItemsControlFromItemContainer(button) is System.Windows.Controls.ToolBar toolBar)
+        {
+            menu.PlacementTarget = toolBar;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Custom;
+            menu.CustomPopupPlacementCallback = (popup, target, _) => new[]
+            {
+                new System.Windows.Controls.Primitives.CustomPopupPlacement(new Point(Math.Max(0, target.Width - popup.Width), target.Height),
+                    System.Windows.Controls.Primitives.PopupPrimaryAxis.Horizontal),
+            };
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () => menu.IsOpen = true);
+            return;
+        }
+        menu.PlacementTarget = button;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.CustomPopupPlacementCallback = null;
+        menu.IsOpen = true;
+    }
+
     private void SettingsMenuButton_Click(object sender, RoutedEventArgs e)
     {
-        SettingsMenu.PlacementTarget = SettingsMenuButton;
-        SettingsMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        SettingsMenu.IsOpen = true;
+        OpenMenu(SettingsMenu, SettingsMenuButton);
     }
 
     private void FindingList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)

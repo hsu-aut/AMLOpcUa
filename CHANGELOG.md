@@ -91,6 +91,9 @@ minor versions.
   requires, ended as "cancelled: required models are missing". The dialog of
   the missing models now comes back and says why, as it does for the OPC
   Foundation; the download can be cancelled.
+- **UAFX Descriptor ▾** and **Settings ▾** did nothing when a narrow pane had
+  put them into the overflow of their tool bar: clicking there closed the
+  overflow and the menu with it. The menu now opens below the tool bar.
 - **Save values…** was disabled right after **Watch** until another node
   was selected; it is enabled as soon as a value is watched.
 - **Cancel** now also stops counting the nodes a selection takes, reading

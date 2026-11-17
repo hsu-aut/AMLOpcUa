@@ -24,9 +24,7 @@ public partial class OpcUaPlugin
     {
         SaveDescriptorItem.IsEnabled = _document != null && !_busy;
         CheckDescriptorItem.IsEnabled = !_busy;
-        DescriptorMenu.PlacementTarget = DescriptorMenuButton;
-        DescriptorMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        DescriptorMenu.IsOpen = true;
+        OpenMenu(DescriptorMenu, DescriptorMenuButton);
     }
 
     private async void SaveDescriptor_Click(object sender, RoutedEventArgs e)
