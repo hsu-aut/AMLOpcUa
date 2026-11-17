@@ -62,44 +62,44 @@ public sealed record DescriptorInfo(string Identifier, DescriptorVersion Version
     /// Reads a manifest; <paramref name="problems"/> names what departs from Annex J. Null when
     /// it does not say which Descriptor it describes.
     /// </summary>
-    public static DescriptorInfo? Read(XDocument document, out IReadOnlyList<string> problems)
+    public static DescriptorInfo? Read(XDocument document, out IReadOnlyList<Problem> problems)
     {
-        var found = new List<string>();
+        var found = new List<Problem>();
         problems = found;
         var root = document.Root;
         if (root == null || root.Name.LocalName != "DescriptorInfo")
         {
-            found.Add("its root element is not DescriptorInfo.");
+            found.Add(new Problem(DescriptorTexts.ManifestRootElement));
             return null;
         }
         var ns = root.Name.Namespace;
         if (ns != Fx)
             found.Add(ns == XNamespace.None
-                ? $"DescriptorInfo is in no namespace; Annex J declares {Namespace}."
-                : $"DescriptorInfo is in the namespace {ns.NamespaceName}; Annex J declares {Namespace}.");
+                ? new Problem(DescriptorTexts.ManifestNoNamespace, Namespace)
+                : new Problem(DescriptorTexts.ManifestOtherNamespace, ns.NamespaceName, Namespace));
 
         var identifier = root.Element(ns + "DescriptorIdentifier")?.Value.Trim();
-        if (string.IsNullOrEmpty(identifier)) found.Add("DescriptorIdentifier is missing or empty.");
-        else if (!Uri.TryCreate(identifier, UriKind.Absolute, out _)) found.Add($"DescriptorIdentifier '{identifier}' is not an absolute URI.");
+        if (string.IsNullOrEmpty(identifier)) found.Add(new Problem(DescriptorTexts.ManifestNoIdentifier));
+        else if (!Uri.TryCreate(identifier, UriKind.Absolute, out _)) found.Add(new Problem(DescriptorTexts.ManifestIdentifierNotUri, identifier));
 
         var version = default(DescriptorVersion);
         var versionElement = root.Element(ns + "DescriptorVersion");
-        if (versionElement == null) found.Add("DescriptorVersion is missing.");
+        if (versionElement == null) found.Add(new Problem(DescriptorTexts.ManifestNoVersion));
         else
         {
             var numbers = new ushort[4];
             for (var i = 0; i < 4; i++)
             {
                 var part = versionElement.Element(ns + VersionParts[i]);
-                if (part == null) found.Add($"DescriptorVersion has no {VersionParts[i]}.");
+                if (part == null) found.Add(new Problem(DescriptorTexts.ManifestNoVersionPart, VersionParts[i]));
                 else if (!ushort.TryParse(part.Value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out numbers[i]))
-                    found.Add($"{VersionParts[i]} of DescriptorVersion is '{part.Value.Trim()}', not a number from 0 to 65535.");
+                    found.Add(new Problem(DescriptorTexts.ManifestVersionPartNotNumber, VersionParts[i], part.Value.Trim()));
             }
             version = new DescriptorVersion(numbers[0], numbers[1], numbers[2], numbers[3]);
         }
 
         var fx = root.Element(ns + "OpcUaFxVersion")?.Value.Trim();
-        if (string.IsNullOrEmpty(fx)) found.Add("OpcUaFxVersion is missing or empty.");
+        if (string.IsNullOrEmpty(fx)) found.Add(new Problem(DescriptorTexts.ManifestNoFxVersion));
 
         return string.IsNullOrEmpty(identifier) ? null : new DescriptorInfo(identifier, version, fx ?? "");
     }

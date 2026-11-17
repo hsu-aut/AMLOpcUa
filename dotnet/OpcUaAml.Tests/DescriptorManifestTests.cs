@@ -53,7 +53,7 @@ public class DescriptorManifestTests
         Assert.NotNull(info);
         Assert.Equal("urn:company:factory:plant_project:automation_component:1.0.0", info!.Identifier);
         Assert.Equal(new DescriptorVersion(1, 0, 0, 0), info.Version);
-        Assert.Contains(problems, p => p.Contains("namespace", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Message.Contains("namespace", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -68,7 +68,7 @@ public class DescriptorManifestTests
 
         DescriptorInfo.Read(doc, out var problems);
 
-        Assert.Contains(problems, p => p.Contains(missing, StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Message.Contains(missing, StringComparison.Ordinal));
     }
 
     [Fact]

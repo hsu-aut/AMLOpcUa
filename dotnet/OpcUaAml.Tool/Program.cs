@@ -53,6 +53,33 @@ public static class Program
             Check the instance hierarchies against their UA types. Exits with 1
             when there are errors.
 
+        uaaml descriptor create <doc.aml|amlx> -o <out.amlx> --id <uri> --cert <signer.pfx> [--version <1.0.0.0>]
+                                [--fx-version <v>] [--attach <file>]... [--chain <file|folder>]...
+            Write the document as a UAFX Descriptor (OPC 10000-83): an AML
+            container with the document as its Root AML file, the manifest
+            (--id, --version, and the OPC UA FX version, read from the document's
+            FX libraries unless --fx-version gives it), the files attached, and
+            a signature made with the certificate in the .pfx (--chain adds the
+            certificates of its chain). An attached file that is a Descriptor is
+            embedded as one. Of an .amlx only the root document is taken. The
+            password of the .pfx comes from AMLOPCUA_CERT_PASSWORD or is asked for.
+
+        uaaml descriptor check <file.amlx> [--trust <file|folder>]... [--issuers <file|folder>]...
+            Check a Descriptor: the manifest (Annex J), the Root AML files, the
+            relationships, the content types, every signature (each file signed
+            and unchanged, the UAFX Offline Security Policies of OPC 10000-84,
+            the certificate's use and validity) and embedded Descriptors.
+            A signer is trusted when it or a certificate of its chain is among
+            --trust (.der, .cer, .crt, .pem); --issuers adds certificates for
+            building chains. Revocation lists are not looked up. Exits with 1
+            when there are errors.
+
+        uaaml descriptor certificate <name> -o <signer.pfx> [--years <n>] [--ecc]
+            Make a self-signed certificate to sign Descriptors with (RSA 2048,
+            or ECC P-256 with --ecc), and its public part beside it (.cer) to
+            give to those who check them. The password comes from
+            AMLOPCUA_CERT_PASSWORD or is asked for twice.
+
         uaaml export <doc.aml|amlx> -o <out.xml> [--date <yyyy-mm-dd>] [--xslt-compatible]
                      [--annex-a-inverse [--namespace <uri>]]
             Convert the document (CAEX 2.15 or 3.0) into a UANodeSet by the rules
@@ -259,6 +286,7 @@ public static class Program
                 "types" => TypesCommand(rest),
                 "instantiate" => InstantiateCommand(rest),
                 "check" => CheckCommand(rest),
+                "descriptor" => DescriptorCommand(rest),
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "read" => Run(ReadCommand(rest)),
@@ -297,6 +325,11 @@ public static class Program
         {
             // The core's sentence, with the option that chooses another port.
             return Fail(ex.Message.TrimEnd('.') + " (--port).");
+        }
+        catch (System.Security.Cryptography.CryptographicException ex)
+        {
+            // A certificate or key that cannot be used: its sentence.
+            return Fail(ex.Message);
         }
         catch (Opc.Ua.ServiceResultException ex)
         {
@@ -543,6 +576,132 @@ public static class Program
     }
 
     private static int Run(Task<int> task) => task.GetAwaiter().GetResult();
+
+    /// <summary>Where the password of a .pfx comes from; never the command line.</summary>
+    private const string CertificatePasswordVariable = "AMLOPCUA_CERT_PASSWORD";
+
+    private static int DescriptorCommand(List<string> args)
+    {
+        if (args.Count == 0) throw new ArgumentException("descriptor needs create, check or certificate.");
+        var rest = args.Skip(1).ToList();
+        return args[0] switch
+        {
+            "create" => DescriptorCreate(rest),
+            "check" => DescriptorCheck(rest),
+            "certificate" => DescriptorCertificate(rest),
+            _ => throw new ArgumentException($"Unknown descriptor command '{args[0]}'."),
+        };
+    }
+
+    private static int DescriptorCertificate(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o", "--years" }, flags: new[] { "--ecc" });
+        var name = o.SinglePositional("name");
+        var output = o.One("-o") ?? throw new ArgumentException("-o names the .pfx file to write.");
+        var years = 3;
+        if (o.One("--years") is { } y && (!int.TryParse(y, out years) || years < 1))
+            throw new ArgumentException("--years needs a whole number of at least 1.");
+        var password = Environment.GetEnvironmentVariable(CertificatePasswordVariable);
+        if (password == null)
+        {
+            password = ReadSecret($"Password for {Path.GetFileName(output)}: ");
+            if (ReadSecret("The same password again: ") != password) return Fail("The two passwords differ; nothing was written.");
+        }
+        using var certificate = OpcUaAml.Descriptors.DescriptorCertificates.CreateSelfSigned(name, DateTimeOffset.Now, years, o.Has("--ecc"));
+        File.WriteAllBytes(output, certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx, password));
+        var cer = Path.ChangeExtension(output, ".cer");
+        File.WriteAllBytes(cer, certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Cert));
+        Console.WriteLine($"{certificate.Subject}, valid until {certificate.NotAfter:yyyy-MM-dd}, thumbprint {certificate.Thumbprint}");
+        Console.WriteLine($"Key and certificate: {Path.GetFullPath(output)}");
+        Console.WriteLine($"Public part, for those who check: {Path.GetFullPath(cer)}");
+        return 0;
+    }
+
+    private static int DescriptorCreate(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "-o", "--id", "--version", "--fx-version", "--cert", "--chain", "--attach" },
+            flags: Array.Empty<string>());
+        var file = o.SinglePositional("document");
+        var output = o.One("-o") ?? throw new ArgumentException("-o names the Descriptor (.amlx) to write.");
+        var id = o.One("--id") ?? throw new ArgumentException("--id gives the Descriptor's identifier, a URI such as urn:company:plant:component.");
+        if (!Uri.TryCreate(id, UriKind.Absolute, out _)) throw new ArgumentException($"--id '{id}' is not an absolute URI.");
+        if (!OpcUaAml.Descriptors.DescriptorVersion.TryParse(o.One("--version") ?? "1.0.0.0", out var version))
+            throw new ArgumentException("--version takes up to four numbers separated by points, such as 1.0.0.0.");
+        var certificateFile = o.One("--cert") ?? throw new ArgumentException("--cert names the .pfx to sign with ('uaaml descriptor certificate' makes one).");
+        var attachments = o.All("--attach").Select(a => new OpcUaAml.Descriptors.DescriptorFile(Path.GetFileName(a), File.ReadAllBytes(a))).ToList();
+        var chain = OpcUaAml.Descriptors.DescriptorTrust.Load(o.All("--chain"));
+
+        var root = OpcUaAml.Descriptors.DescriptorCertificates.RootDocumentOf(file);
+        var fx = o.One("--fx-version") ?? OpcUaAml.Descriptors.DescriptorWriter.FxVersionOf(root)
+                 ?? throw new ArgumentException("The document has no OPC UA FX AML library to read the OPC UA FX version from; give it with --fx-version.");
+
+        var password = Environment.GetEnvironmentVariable(CertificatePasswordVariable) ?? ReadSecret($"Password for {Path.GetFileName(certificateFile)}: ");
+        System.Security.Cryptography.X509Certificates.X509Certificate2 signer;
+        try
+        {
+            signer = new System.Security.Cryptography.X509Certificates.X509Certificate2(certificateFile, password,
+                System.Security.Cryptography.X509Certificates.X509KeyStorageFlags.EphemeralKeySet);
+        }
+        catch (System.Security.Cryptography.CryptographicException ex)
+        {
+            return Fail($"{certificateFile} does not open with this password, or holds no certificate with a key: {ex.Message.Trim()}");
+        }
+        using (signer)
+        {
+            var info = new OpcUaAml.Descriptors.DescriptorInfo(id, version, fx);
+            OpcUaAml.Descriptors.DescriptorWriter.Write(output, new OpcUaAml.Descriptors.DescriptorContent
+            {
+                Info = info,
+                Root = new OpcUaAml.Descriptors.DescriptorFile(Path.GetFileNameWithoutExtension(file) + ".aml", root),
+                Attachments = attachments,
+            }, signer, DateTimeOffset.Now, chain);
+            Console.WriteLine($"Descriptor {id} {version}, OPC UA FX {fx}, {attachments.Count} attachment(s), signed by {signer.GetNameInfo(System.Security.Cryptography.X509Certificates.X509NameType.SimpleName, false)}");
+            Console.WriteLine($"Written to {Path.GetFullPath(output)}");
+        }
+        return 0;
+    }
+
+    private static int DescriptorCheck(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--trust", "--issuers" }, flags: Array.Empty<string>());
+        var file = o.SinglePositional("Descriptor");
+        var trust = new OpcUaAml.Descriptors.DescriptorTrust(
+            OpcUaAml.Descriptors.DescriptorTrust.Load(o.All("--trust")), OpcUaAml.Descriptors.DescriptorTrust.Load(o.All("--issuers")));
+        var report = OpcUaAml.Descriptors.DescriptorChecker.Check(file, trust);
+        PrintDescriptor(report, "");
+        foreach (var f in report.Findings) Console.WriteLine(f);
+        var errors = report.Findings.Count(f => f.Severity == Severity.Error);
+        Console.WriteLine($"{errors} error(s), {report.Findings.Count - errors} warning(s).");
+        return errors == 0 ? 0 : 1;
+    }
+
+    private static void PrintDescriptor(OpcUaAml.Descriptors.DescriptorReport report, string indent)
+    {
+        void Line(string label, string value) => Console.WriteLine($"{indent}{label,-12}{value}");
+        Line("Descriptor", report.Info?.Identifier ?? "(no manifest)");
+        if (report.Info is { } info)
+        {
+            Line("Version", info.Version.ToString());
+            Line("OPC UA FX", info.OpcUaFxVersion);
+        }
+        foreach (var root in report.RootFiles) Line("Root", root);
+        foreach (var library in report.Libraries) Line("Library", library);
+        foreach (var attachment in report.Attachments) Line("Attachment", attachment);
+        foreach (var verdict in report.Signatures)
+        {
+            var s = verdict.Signature;
+            var state = !s.ValueValid || s.ChangedParts.Count > 0 || s.MissingParts.Count > 0 ? "does not verify"
+                : !verdict.ChainComplete ? "valid, chain incomplete"
+                : verdict.Trusted ? "valid, trusted" : "valid, not trusted";
+            var when = s.Time is { } t ? $" on {t:yyyy-MM-dd HH:mm zzz}" : "";
+            Line("Signed by", $"{verdict.SignerName}{when}: {state}; {s.SignedParts.Count} file(s)");
+        }
+        foreach (var embedded in report.Embedded)
+        {
+            Line("Embedded", embedded.Name);
+            PrintDescriptor(embedded, indent + "  ");
+        }
+    }
 
     /// <summary>
     /// The folder below which the certificates and trust lists are kept; null

@@ -62,8 +62,8 @@ public sealed class PackageSignature
     /// <summary>Signed parts the package no longer holds.</summary>
     public IReadOnlyList<Uri> MissingParts { get; init; } = Array.Empty<Uri>();
 
-    /// <summary>What else stands in the way of trusting it, in English.</summary>
-    public IReadOnlyList<string> Problems { get; init; } = Array.Empty<string>();
+    /// <summary>What else stands in the way of trusting it.</summary>
+    public IReadOnlyList<Problem> Problems { get; init; } = Array.Empty<Problem>();
 }
 
 public static class PackageSignatures
@@ -252,14 +252,14 @@ public static class PackageSignatures
             var uri = PackUriHelper.ResolvePartUri(origin.Uri, relation.TargetUri);
             signatures.Add(package.PartExists(uri)
                 ? Check(package, package.GetPart(uri))
-                : new PackageSignature(uri) { Problems = new[] { "the origin lists this signature, but the package does not hold it." } });
+                : new PackageSignature(uri) { Problems = new[] { new Problem(DescriptorTexts.SignatureMissing) } });
         }
         return signatures;
     }
 
     private static PackageSignature Check(Package package, PackagePart part)
     {
-        var problems = new List<string>();
+        var problems = new List<Problem>();
         var document = new XmlDocument { PreserveWhitespace = true, XmlResolver = null };
         try
         {
@@ -269,10 +269,10 @@ public static class PackageSignatures
         }
         catch (XmlException ex)
         {
-            return new PackageSignature(part.Uri) { Problems = new[] { $"the signature is not XML: {ex.Message}" } };
+            return new PackageSignature(part.Uri) { Problems = new[] { new Problem(DescriptorTexts.SignatureNotXml, ex.Message) } };
         }
         if (document.DocumentElement is not { LocalName: "Signature", NamespaceURI: Ds } root)
-            return new PackageSignature(part.Uri) { Problems = new[] { "the part holds no XML signature." } };
+            return new PackageSignature(part.Uri) { Problems = new[] { new Problem(DescriptorTexts.NoXmlSignature) } };
 
         var signed = new SignedXml(document);
         signed.SafeCanonicalizationMethods.Add(C14N11);
@@ -283,7 +283,7 @@ public static class PackageSignatures
         }
         catch (CryptographicException ex)
         {
-            return new PackageSignature(part.Uri) { Problems = new[] { $"the signature cannot be read: {ex.Message}" } };
+            return new PackageSignature(part.Uri) { Problems = new[] { new Problem(DescriptorTexts.SignatureUnreadable, ex.Message) } };
         }
 
         var certificates = new List<X509Certificate2>();
@@ -293,11 +293,11 @@ public static class PackageSignatures
         foreach (var relation in part.GetRelationshipsByType(CertificateRelationship))
         {
             var uri = PackUriHelper.ResolvePartUri(part.Uri, relation.TargetUri);
-            if (!package.PartExists(uri)) { problems.Add($"the certificate part {uri} is missing."); continue; }
+            if (!package.PartExists(uri)) { problems.Add(new Problem(DescriptorTexts.CertificatePartMissing, uri)); continue; }
             try { certificates.Add(new X509Certificate2(ReadAll(package.GetPart(uri)))); }
-            catch (CryptographicException ex) { problems.Add($"the certificate part {uri} cannot be read: {ex.Message}"); }
+            catch (CryptographicException ex) { problems.Add(new Problem(DescriptorTexts.CertificatePartUnreadable, uri, ex.Message)); }
         }
-        if (certificates.Count == 0) problems.Add("the signature carries no X.509 certificate.");
+        if (certificates.Count == 0) problems.Add(new Problem(DescriptorTexts.NoCertificate));
 
         X509Certificate2? signer = null;
         var valid = false;
@@ -309,14 +309,14 @@ public static class PackageSignatures
             }
             catch (CryptographicException ex)
             {
-                problems.Add($"the signature cannot be checked: {ex.Message}");
+                problems.Add(new Problem(DescriptorTexts.SignatureUncheckable, ex.Message));
                 break;
             }
         }
         signer ??= certificates.FirstOrDefault(c => !certificates.Any(o => o != c && o.Issuer == c.Subject && o.Subject != c.Subject))
                    ?? certificates.FirstOrDefault();
         if (!valid && certificates.Count > 0 && problems.Count == 0)
-            problems.Add("the signature value does not verify: SignedInfo or the Object it signs was changed.");
+            problems.Add(new Problem(DescriptorTexts.ValueInvalid));
 
         // Only the Objects SignedInfo signs count: a Manifest outside them proves nothing.
         var signedObjects = signed.SignedInfo!.References.OfType<Reference>()
@@ -335,7 +335,7 @@ public static class PackageSignatures
             foreach (XmlElement reference in obj.SelectNodes("ds:Manifest/ds:Reference", ns)!)
             {
                 var (uri, contentType) = SplitPartReference(reference.GetAttribute("URI"));
-                if (uri == null) { problems.Add($"the reference '{reference.GetAttribute("URI")}' names no part."); continue; }
+                if (uri == null) { problems.Add(new Problem(DescriptorTexts.ReferenceNoPart, reference.GetAttribute("URI"))); continue; }
                 signedParts.Add(uri);
                 var digestMethod = (reference.SelectSingleNode("ds:DigestMethod", ns) as XmlElement)?.GetAttribute("Algorithm") ?? "";
                 digestMethods.Add(digestMethod);
@@ -343,7 +343,7 @@ public static class PackageSignatures
                 var target = package.GetPart(uri);
                 if (contentType != null && !string.Equals(contentType, target.ContentType, StringComparison.OrdinalIgnoreCase))
                 {
-                    problems.Add($"{uri} was signed as {contentType} and is now {target.ContentType}.");
+                    problems.Add(new Problem(DescriptorTexts.ContentTypeChanged, uri, contentType, target.ContentType));
                     changed.Add(uri);
                     continue;
                 }
@@ -357,7 +357,7 @@ public static class PackageSignatures
                 }
                 catch (Exception ex) when (ex is NotSupportedException or XmlException or FormatException)
                 {
-                    problems.Add($"{uri} cannot be checked: {ex.Message}");
+                    problems.Add(new Problem(DescriptorTexts.PartUncheckable, uri, ex.Message));
                     changed.Add(uri);
                 }
             }
@@ -365,7 +365,7 @@ public static class PackageSignatures
             if (value != null && DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
                 time = parsed;
         }
-        if (time == null) problems.Add("the signature does not say when it was made (SignatureTime).");
+        if (time == null) problems.Add(new Problem(DescriptorTexts.NoTime));
 
         return new PackageSignature(part.Uri)
         {
