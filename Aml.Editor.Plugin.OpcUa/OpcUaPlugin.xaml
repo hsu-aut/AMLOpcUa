@@ -251,6 +251,8 @@
                                 <ContextMenu x:Name="SettingsMenu">
                                     <MenuItem x:Name="FoldersButton" Header="{l:T 'NodeSet folders…'}" Click="FoldersButton_Click"
                                               ToolTip="{l:T 'Folders searched for NodeSets that an import requires. The UA base model and DI are built in.'}"/>
+                                    <MenuItem x:Name="ModelCompilerButton" Header="{l:T 'ModelCompiler…'}" Click="ModelCompilerButton_Click"
+                                              ToolTip="{l:T 'The OPC UA ModelCompiler, which turns a ModelDesign into a NodeSet; to be chosen only when it is not where its installer puts it.'}"/>
                                     <Separator/>
                                     <MenuItem x:Name="ReplaceToggle" Header="{l:T 'Replace existing libraries'}" IsCheckable="True"
                                               Checked="Setting_Changed" Unchecked="Setting_Changed"

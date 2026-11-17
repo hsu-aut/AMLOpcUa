@@ -18,6 +18,7 @@ using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
 using OpcUaAml.Checks;
 using OpcUaAml.Import;
+using OpcUaAml.ModelDesign;
 using OpcUaAml.NodeSets;
 using OpcUaAml.Types;
 
@@ -870,6 +871,33 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         PluginLog.Info(_settings.NodeSetFolders.Count == 0
             ? "No NodeSet folders; only the built-in UA base model and DI are available."
             : "NodeSet folders: " + string.Join("; ", _settings.NodeSetFolders));
+    }
+
+    /// <summary>Settings › ModelCompiler…: the compiler a ModelDesign is compiled with, when it is not where its installer puts it.</summary>
+    private void ModelCompilerButton_Click(object sender, RoutedEventArgs e)
+    {
+        var current = _settings.ModelCompilerPath;
+        var dialog = new OpenFileDialog
+        {
+            Title = L.T("The OPC UA ModelCompiler"),
+            Filter = L.T("ModelCompiler|Opc.Ua.ModelCompiler*.exe|Programs (*.exe)|*.exe"),
+        };
+        if (current is { Length: > 0 } && Path.GetDirectoryName(current) is { } folder && Directory.Exists(folder)) dialog.InitialDirectory = folder;
+        if (dialog.ShowDialog() != true) return;
+        _settings.ModelCompilerPath = dialog.FileName;
+        _settings.Save();
+        var text = ModelCompilerText(_settings.ModelCompilerPath, ModelCompilerTool.Locate(_settings.ModelCompilerPath));
+        PluginLog.Info(text);
+        SetStatus(text);
+    }
+
+    /// <summary>Which ModelCompiler is used: the one chosen, the one found instead, or none, with how to install it.</summary>
+    internal static string ModelCompilerText(string? chosen, string? located)
+    {
+        if (located == null) return L.T("No ModelCompiler found. {0}", ModelCompilerTool.InstallHint.Replace(Environment.NewLine, " ").Replace("\n", " "));
+        if (chosen is { Length: > 0 } && !string.Equals(chosen, located, StringComparison.OrdinalIgnoreCase))
+            return L.T("{0} is not there; the ModelCompiler found is {1}.", chosen, located);
+        return L.T("The ModelCompiler is {0}.", located);
     }
 
     /// <summary>True while the toggles are set from the saved settings.</summary>
