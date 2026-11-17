@@ -482,6 +482,7 @@ NodeSet again does.
 | Entry | What it does |
 |---|---|
 | **NodeSet folders…** | The folders searched for required models. |
+| **ModelCompiler…** | The OPC UA ModelCompiler a ModelDesign is compiled with, chosen when it is not where its installer puts it; the status line says which one is used. |
 | **Replace existing libraries** | Replace OPC UA libraries the document already has on a new import (on by default). An older model never replaces a newer one, and a library that did not change stays as it is. |
 | **Save after import** | Trigger the editor's save command after an import and after **New instance…** (off by default). |
 | **Debug log** | Write detailed lines (DEBUG) to the log. |
@@ -1590,8 +1591,8 @@ plugin's language. In German, **Manual** in the status bar opens the
 | `%LOCALAPPDATA%\AMLOpcUa\descriptors` | The keys you sign UAFX Descriptors with (`signers`) and the certificates you trusted for them (`trusted`) |
 | `%TEMP%\opcua-plugin` | The log files |
 
-The settings file also takes `ModelCompilerPath`, the path of a ModelCompiler
-of your own, which has no field in the plugin. A settings file that cannot be
+The settings file keeps the ModelCompiler of **Settings ▾ › ModelCompiler…**
+as `ModelCompilerPath`. A settings file that cannot be
 read is kept as `settings.json.unreadable`, and the plugin starts with its
 defaults and a warning in the log.
 

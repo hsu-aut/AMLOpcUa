@@ -85,6 +85,18 @@ minor versions.
 
 ### Fixed
 
+- **Settings ▾ › ModelCompiler…** chooses the ModelCompiler a ModelDesign is
+  compiled with; the path was a field of the settings file only.
+- **A failed download from the UA Cloud Library**, for models an import
+  requires, ended as "cancelled: required models are missing". The dialog of
+  the missing models now comes back and says why, as it does for the OPC
+  Foundation; the download can be cancelled.
+- **Closed while working:** a watch of values, or the NodeSet read from a
+  server, that came back after the plugin closed was kept or reported to the
+  closed plugin; it is now ended quietly.
+- **Keep document values live**, taking up new bindings, now counts the
+  bound values the server lacks in the status line, as it does when it
+  starts.
 - **The filters above the address space** (Leave out properties, Objects
   only, Show Server object) reloaded it on a click only. Ticked through UI
   Automation, as a screen reader does, the box changed and the address space
