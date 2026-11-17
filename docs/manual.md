@@ -889,6 +889,32 @@ A NodeId given as a browse path or an alias is resolved by the connected
 server when values are read or kept live. How the conventions of addressing a
 node from AML differ: [servers](server.md#addressing-a-node-from-aml).
 
+### Check the server against its types
+
+Does the PLC implement the companion specification it claims? **Check
+server** checks the instances of the server against the types they name:
+below the node selected in the address space (an Object or a Variable,
+itself included), or the whole server without its own nodes (the Server
+object). Nothing is taken into the document, and the server's types need not
+be imported: the plugin reads them from the server. The findings go to the
+**Check** tab, as those of **Check** do:
+
+| Rule | Severity | Finding |
+|---|---|---|
+| SV001 | Warning | A node has no type definition. |
+| SV002 | Error | A node is an instance of an abstract type. |
+| SV003 | Error | A Mandatory child its type, a supertype, or its parent's declaration declares is missing. |
+| SV004 | Error | A child is of another NodeClass than declared. |
+| SV005 | Error | A child is of another type than declared, and not of a subtype of it. |
+| SV006 | Error | A variable holds another data type than declared, and not a subtype of it. |
+| SV007 | Error | A MandatoryPlaceholder has no child of its type or a subtype. |
+
+The line above the list names the server and how many nodes were checked. A
+check stops after 20000 nodes and says so; select a part of the server to
+check the rest. The practice plant has no findings. On the command line:
+`uaaml check-server <endpoint> [--below <node>]`, which ends with exit code 1
+when there are errors, for a script or a pipeline.
+
 ### A plant to practise on
 
 The plugin brings a plant to connect to: the MPS 500 learning factory of the

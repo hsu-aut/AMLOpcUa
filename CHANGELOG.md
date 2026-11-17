@@ -7,6 +7,19 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Check server** checks a running server against the types its instances
+  claim, what commissioning asks of a PLC: for each Object and Variable below
+  the selected node (or the whole server), the Mandatory children its type,
+  the type's supertypes and its parent's declaration declare, and the
+  NodeClass, type and data type of each child (a subtype is fine), abstract
+  types and MandatoryPlaceholders without a child (rules SV001 to SV007). The
+  types are read from the server; nothing is taken into the document. The
+  findings go to the Check tab. Command line: `uaaml check-server <endpoint>
+  [--below <node>] [--limit <n>]`, exit code 1 on errors. Library:
+  `ServerChecker`.
+
 ## [0.4.2] - 2026-11-16
 
 ### Fixed

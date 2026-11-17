@@ -53,6 +53,15 @@ public static class Program
             Check the instance hierarchies against their UA types. Exits with 1
             when there are errors.
 
+        uaaml check-server <endpoint> [--below <node>] [--limit <n>] [--insecure] [--accept] [--user <name>]
+            Check a running server against the types its instances claim: for
+            each Object and Variable below the node (the Objects folder unless
+            given, the server's own nodes left out), the Mandatory children its
+            type and the type's supertypes declare, their NodeClass, type and
+            data type (a subtype is fine), abstract types, MandatoryPlaceholders
+            without a child. At most --limit nodes (20000). Exits with 1 when
+            there are errors.
+
         uaaml export <doc.aml|amlx> -o <out.xml> [--date <yyyy-mm-dd>] [--xslt-compatible]
                      [--annex-a-inverse [--namespace <uri>]]
             Convert the document (CAEX 2.15 or 3.0) into a UANodeSet by the rules
@@ -259,6 +268,7 @@ public static class Program
                 "types" => TypesCommand(rest),
                 "instantiate" => InstantiateCommand(rest),
                 "check" => CheckCommand(rest),
+                "check-server" => Run(CheckServerCommand(rest)),
                 "roundtrip" => RoundtripCommand(rest),
                 "browse" => Run(BrowseCommand(rest)),
                 "read" => Run(ReadCommand(rest)),
@@ -539,6 +549,21 @@ public static class Program
         foreach (var f in findings) Console.WriteLine(f);
         var errors = findings.Count(f => f.Severity == Severity.Error);
         Console.WriteLine($"{errors} error(s), {findings.Count - errors} warning(s).");
+        return errors == 0 ? 0 : 1;
+    }
+
+    private static async Task<int> CheckServerCommand(List<string> args)
+    {
+        var o = Options.Parse(args, valued: new[] { "--user", "--below", "--limit" }, flags: new[] { "--secure", "--insecure", "--accept" });
+        if (o.Positional.Count != 1) throw new ArgumentException("check-server needs an endpoint.");
+        var limit = int.TryParse(o.One("--limit"), out var n) && n > 0 ? n : 20000;
+        await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
+        var below = o.One("--below") is { } node ? await client.ResolveAsync(node) : null;
+        var result = await ServerChecker.CheckAsync(client, below, limit);
+        foreach (var f in result.Findings) Console.WriteLine(f);
+        var errors = result.Findings.Count(f => f.Severity == Severity.Error);
+        Console.WriteLine($"{result.Checked} node(s) checked: {errors} error(s), {result.Findings.Count - errors} warning(s).");
+        if (result.Truncated) Console.Error.WriteLine($"The check stopped after {limit} nodes; name a part of the server with --below, or raise --limit.");
         return errors == 0 ? 0 : 1;
     }
 
