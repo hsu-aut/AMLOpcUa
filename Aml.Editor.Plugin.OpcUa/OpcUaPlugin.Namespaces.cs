@@ -513,7 +513,7 @@ public partial class OpcUaPlugin
     {
         var window = new OpcFoundationWindow(OpcfSource(), search) { Owner = Window.GetWindow(this) };
         var chosen = window.ShowDialog() == true ? window.Selected : null;
-        if (window.CloudLibraryWanted) return await DownloadFromCloudAsync(search);
+        if (window.CloudLibraryWanted) return (await DownloadFromCloudAsync(search)).Files;
         if (chosen == null) return null;
         SetBusy(true, L.T("Downloading {0} …", chosen.ModelUri));
         var token = BeginCancellable();
@@ -610,7 +610,10 @@ public partial class OpcUaPlugin
                 {
                     var have = NodeSetCatalog.Create(new[] { CloudCache }.Where(Directory.Exists).Concat(_settings.NodeSetFolders));
                     if (have.Find(model.ModelUri) != null) continue;
-                    if (await DownloadFromCloudAsync(ShortName(model.ModelUri)) == null) break;
+                    var download = await DownloadFromCloudAsync(ShortName(model.ModelUri));
+                    // A download that failed brings the dialog back with why, as the OPC Foundation's does.
+                    if (download.Problem != null) return (true, download.Problem);
+                    if (download.Files == null) break;
                     any = true;
                 }
                 return (any, null);
@@ -619,38 +622,51 @@ public partial class OpcUaPlugin
         }
     }
 
+    /// <summary>What a download from the Cloud Library brought: the files, the chosen model's first; or why none came. Neither: the user did not choose one, or cancelled.</summary>
+    private sealed record CloudDownload(IReadOnlyList<string>? Files, string? Problem = null);
+
     /// <summary>
     /// Lets the user pick a model of the Cloud Library and downloads it with the
-    /// models it requires; returns the files, the chosen model's first, or null.
+    /// models it requires.
     /// </summary>
-    private async Task<IReadOnlyList<string>?> DownloadFromCloudAsync(string search)
+    private async Task<CloudDownload> DownloadFromCloudAsync(string search)
     {
         var window = new CloudLibraryWindow(_settings.CloudLibraryUser, search) { Owner = Window.GetWindow(this) };
-        if (window.ShowDialog() != true || window.Selected == null) return null;
+        if (window.ShowDialog() != true || window.Selected == null) return new CloudDownload(null);
         _settings.CloudLibraryUser = window.UserName;
         _settings.Save();
-        SetBusy(true, L.T("Downloading {0} …", window.Selected.NamespaceUri));
+        var uri = window.Selected.NamespaceUri;
+        SetBusy(true, L.T("Downloading {0} …", uri));
+        var token = BeginCancellable();
         try
         {
             var catalog = NodeSetCatalog.Create(new[] { CloudCache }.Concat(_settings.NodeSetFolders));
-            var files = await window.CreateClient().DownloadWithDependenciesAsync(window.Selected.Identifier, CloudCache, catalog);
+            var files = await window.CreateClient().DownloadWithDependenciesAsync(window.Selected.Identifier, CloudCache, catalog, token);
             foreach (var f in files) PluginLog.Info("Downloaded " + f);
-            return files;
+            return new CloudDownload(files);
+        }
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            PluginLog.Info($"Downloading {uri} cancelled.");
+            SetStatus(L.T("Downloading {0} cancelled.", uri));
+            return new CloudDownload(null);
         }
         catch (CloudLibraryException ex)
         {
             PluginLog.Error(ex.Message);
             SetStatus(ex.Message);
-            return null;
+            return new CloudDownload(null, ex.Message);
         }
         catch (Exception ex)
         {
             PluginLog.Error("Downloading from the Cloud Library failed", ex);
-            SetStatus(L.T("Downloading from the Cloud Library failed: {0}", ex.Message));
-            return null;
+            var problem = L.T("Downloading from the Cloud Library failed: {0}", ex.Message);
+            SetStatus(problem);
+            return new CloudDownload(null, problem);
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }

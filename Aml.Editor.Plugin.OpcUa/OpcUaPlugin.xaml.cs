@@ -580,7 +580,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             SetStatus(L.T("This document uses CAEX {0}; OPC UA libraries need CAEX 3.0. Save a CAEX 3.0 copy… on the Namespaces tab writes one to open.", document.CAEXFile.SchemaVersion));
             return;
         }
-        var files = await DownloadFromCloudAsync("");
+        var files = (await DownloadFromCloudAsync("")).Files;
         if (files == null || files.Count == 0) return;
         await ImportFileAsync(document, files[0], new[] { CloudCache });
     }
