@@ -1180,13 +1180,17 @@ public partial class OpcUaPlugin : ISupportsSelection
             foreach (var p in _live.Problems) PluginLog.Warn(p);
             var text = LiveChangeText(change.Added, change.Removed, _live.Count, _live.NotOnServer);
             PluginLog.Info(text);
-            SetStatus(text);
-            if (_live.Count == 0)
+            var followed = _live;
+            if (_live.Count == 0) await StopLiveAsync();
+            // What the user's last command said is read first: the result of
+            // Take into document was gone after 1.7 s (editor probe all11c).
+            await _statusLine.WaitTillReadAsync(() => DateTime.Now, Task.Delay);
+            if (followed.Count == 0)
             {
-                await StopLiveAsync();
-                SetStatus(Summaries.NothingBound);
+                if (_live == null) SetStatus(Summaries.NothingBound);
                 UpdateServerState();
             }
+            else if (ReferenceEquals(_live, followed)) SetStatus(text);
         }
         catch (Exception ex)
         {

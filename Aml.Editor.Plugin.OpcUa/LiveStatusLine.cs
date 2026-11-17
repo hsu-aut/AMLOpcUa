@@ -1,6 +1,8 @@
 // When the values kept live may take the status line: at most once a second,
 // and not over another message for five seconds, so what a command says is
-// there to be read while values stream in.
+// there to be read while values stream in. A message that comes on its own,
+// not from a command (live values taking up changed bindings), waits the same
+// way.
 
 namespace Aml.Editor.Plugin.OpcUa;
 
@@ -21,5 +23,15 @@ internal sealed class LiveStatusLine
         if (now - _other < Hold || now - _live < Every) return false;
         _live = now;
         return true;
+    }
+
+    /// <summary>
+    /// Waits until the message on the line has been there five seconds, and
+    /// so for one that takes the line while waiting.
+    /// </summary>
+    public async Task WaitTillReadAsync(Func<DateTime> now, Func<TimeSpan, Task> delay)
+    {
+        for (var wait = _other + Hold - now(); wait > TimeSpan.Zero; wait = _other + Hold - now())
+            await delay(wait);
     }
 }

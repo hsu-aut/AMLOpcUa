@@ -85,6 +85,10 @@ minor versions.
 
 ### Fixed
 
+- **Take into document** while values are kept live: what it did ("… Press
+  Ctrl+S to save") was replaced after less than two seconds by "Live: now
+  also …". The status line now shows a message five seconds before live
+  values say that they follow new elements.
 - **Call method…**: a screen reader read "Answer of the server" instead of the
   answer, and did not announce it. It now reads the answer and announces each
   new one.
