@@ -127,24 +127,14 @@ public static class ModelBindRows
     private static string Cell(string? s) =>
         s == null ? "" : s.IndexOfAny([';', '"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
 
-    /// <summary>
-    /// An element of the user's own: not below an element taken from a server
-    /// and not an instance of a UA type, whose values the server describes itself.
-    /// </summary>
-    public static bool IsOwn(InternalElementType element)
-    {
-        for (var e = element; e != null; e = e.CAEXParent as InternalElementType)
-            if (UaTypes.IsUaLibraryPath(e.RefBaseSystemUnitPath) || e.Attribute[AddressSpaceMirror.EndpointAttribute] != null) return false;
-        return true;
-    }
+    /// <summary>An element of the user's own (<see cref="ModelBinder.IsOwn"/>).</summary>
+    public static bool IsOwn(InternalElementType element) => ModelBinder.IsOwn(element);
 
     /// <summary>The instance hierarchies that hold elements of the user's own.</summary>
-    public static IReadOnlyList<CAEXObject> Models(CAEXDocument document) =>
-        document.CAEXFile.InstanceHierarchy.Where(ih => ih.Descendants<InternalElementType>().Any(IsOwn)).Cast<CAEXObject>().ToList();
+    public static IReadOnlyList<CAEXObject> Models(CAEXDocument document) => ModelBinder.Models(document);
 
     /// <summary>The signals of a model that are the user's own.</summary>
-    public static IReadOnlyList<ModelSignal> Signals(CAEXObject model) =>
-        ModelBinder.Signals(model).Where(s => s.Element == null || IsOwn(s.Element)).ToList();
+    public static IReadOnlyList<ModelSignal> Signals(CAEXObject model) => ModelBinder.OwnSignals(model);
 }
 
 /// <summary>The dialog of Bind model….</summary>

@@ -874,7 +874,19 @@ how a node finds its element.
 | How a node finds its element | By NodeId only: a taken node is linked to an element of yours (`refBaseObj`) when that element already carries the same NodeId (see [Planned elements](#take-nodes-into-the-document)). Names are never compared. | You pick the element for each node | By the words of both paths, proposed and checked in a table (see [Bind a whole model](#bind-a-whole-model)) |
 | Effort | One command for many nodes | One dialog per value | One dialog for the whole model |
 
-The command line tool cannot bind.
+On the command line, `uaaml bind` does what **Bind model…** does:
+
+```
+uaaml bind opc.tcp://plc:4840 plant.aml --model Plant --below /MPS500/ST30_Processing --report binding.csv
+uaaml bind opc.tcp://plc:4840 plant.aml --model Plant --apply -o plant-bound.aml
+```
+
+It lists each value with its variable and how sure the match is, writes the
+report with `--report`, and binds the sure and likely ones only with
+`--apply`; without it the document stays as it is. `--model` names an
+InstanceHierarchy, or an element below one (`Plant/ProcessingStation`);
+`--below` the part of the server to search, as a NodeId or a path of browse
+names.
 
 For a model of your own, bind:
 

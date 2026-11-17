@@ -244,7 +244,7 @@ name.
    node, and a `Value` attribute when the node is a variable, in a dialog per
    value. **Bind model…** does it for a whole model at once: it proposes a
    variable for each value by the words of both paths, and binds the rows you
-   keep. The command line tool cannot bind.
+   keep. On the command line, `uaaml bind` does the same (`--apply` binds).
 
 Then **Read values into document** or **Keep document values live** fill the
 `Value` attributes of every bound element: the copies and your own elements

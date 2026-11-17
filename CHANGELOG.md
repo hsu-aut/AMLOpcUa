@@ -19,8 +19,9 @@ minor versions.
   Numbers in names must agree and kinds of value must fit. The sure
   proposals are ticked in a table; for the others the next candidates are
   offered. **Save report…** lists every value with its variable and the
-  variables no value got. Library: `OpcUaAml.Binding` (`ServerVariables`,
-  `ModelBinder`).
+  variables no value got. On the command line: `uaaml bind <endpoint>
+  <doc.aml> [--model] [--below] [--report] [--apply]`, which binds only with
+  `--apply`. Library: `OpcUaAml.Binding` (`ServerVariables`, `ModelBinder`).
 
 ## [0.4.2] - 2026-11-16
 
