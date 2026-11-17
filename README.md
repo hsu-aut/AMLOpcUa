@@ -160,6 +160,11 @@ command line does.
 - **Check** lists findings on the "Check" tab: missing Mandatory children,
   unfilled MandatoryPlaceholders, abstract or unknown types, broken or
   mismatched reference links. A double click or Enter selects the element.
+- **UAFX Descriptor ▾** saves the document as a signed UAFX Descriptor
+  (OPC 10000-83) with the files you attach, and checks a Descriptor you
+  received: manifest, relationships, and every signature with its certificate
+  against the UAFX Offline Security Policies; see
+  [docs/descriptor.md](docs/descriptor.md).
 - The **Server** tab connects to a running server (recent endpoints are
   kept), imports its types, and takes the parts of its address space you
   check into the document; see [docs/server.md](docs/server.md). Its bands

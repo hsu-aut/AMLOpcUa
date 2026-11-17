@@ -24,12 +24,12 @@ internal static class HelpTopics
             "models", "bringing-opc-ua-models-into-a-document"),
         ["namespaces.commands"] = new(
             L.T("Import, export and more"),
-            L.T("Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before."),
+            L.T("Import NodeSet, Companion specs (the OPC Foundation's published NodeSets, no account) and Cloud Library bring models in; a second import of a namespace updates it, an older version never replaces a newer one. Export writes the document as a NodeSet by the AML-UA-XSLT rules, or one imported model back as the nodes it was. New instance creates an instance of a UA type; Check compares instances with their types; Link VDI 3682 ties process elements to OPC UA objects and methods. Ctrl+Z in the editor does not undo the plugin's changes; save before. UAFX Descriptor saves the document as a signed Descriptor for OPC UA FX offline engineering (OPC 10000-83), or checks one you received."),
             new[] { "Annex A", "AML-UA-XSLT", "Cloud Library", "VDI 3682", "CAEX", "InstanceHierarchy" },
             "models", "the-tabs"),
         ["check"] = new(
             L.T("Check"),
-            L.T("Compares each instance in the instance hierarchies with its UA type: every Mandatory child present, every MandatoryPlaceholder filled, types known and not abstract, reference links only between the interfaces Annex A allows. Double click or Enter selects the element of a finding. Add missing Mandatory children brings instances up to date after a newer version of their types was imported; it shows what it adds first."),
+            L.T("Compares each instance in the instance hierarchies with its UA type: every Mandatory child present, every MandatoryPlaceholder filled, types known and not abstract, reference links only between the interfaces Annex A allows. Double click or Enter selects the element of a finding. Add missing Mandatory children brings instances up to date after a newer version of their types was imported; it shows what it adds first. A UAFX Descriptor checked from the Namespaces tab lists its findings here too; Trust signer trusts its signer once you compared the fingerprint with the sender."),
             new[] { "ModellingRule", "Placeholder", "Abstract type", "InstanceHierarchy", "ExternalInterface", "InternalLink" },
             "instances", "checking-instances"),
         ["server.connection"] = new(

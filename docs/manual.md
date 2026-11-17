@@ -64,19 +64,20 @@ between versions.
    [A plant to practise on](#a-plant-to-practise-on)
 7. [Serving the document as an OPC UA server](#serving-the-document-as-an-opc-ua-server)
 8. [Passing a document on](#passing-a-document-on)
-9. [Diagrams](#diagrams)
-10. [The Modeler tab](#the-modeler-tab):
+9. [UAFX Descriptors](#uafx-descriptors)
+10. [Diagrams](#diagrams)
+11. [The Modeler tab](#the-modeler-tab):
     [Edit a model of the document](#edit-a-model-of-the-document) ·
     [Start a new model](#start-a-new-model) ·
     [Apply the model to the document](#apply-the-model-to-the-document) ·
     [Save and unapplied changes](#save-and-unapplied-changes)
-11. [Exporting as a NodeSet](#exporting-as-a-nodeset)
-12. [CAEX 2.15 documents](#caex-215-documents)
-13. [Linking VDI 3682 process descriptions](#linking-vdi-3682-process-descriptions)
-14. [The command line tool uaaml](#the-command-line-tool-uaaml)
-15. [Language](#language)
-16. [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)
-17. [Troubleshooting](#troubleshooting)
+12. [Exporting as a NodeSet](#exporting-as-a-nodeset)
+13. [CAEX 2.15 documents](#caex-215-documents)
+14. [Linking VDI 3682 process descriptions](#linking-vdi-3682-process-descriptions)
+15. [The command line tool uaaml](#the-command-line-tool-uaaml)
+16. [Language](#language)
+17. [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)
+18. [Troubleshooting](#troubleshooting)
 
 ## Installing
 
@@ -1208,6 +1209,52 @@ server…** brought are neither changed nor searched, and their namespace URIs
 can hold a host name. Look at both before you pass the copy on. The plugin
 never writes credentials into a document.
 
+## UAFX Descriptors
+
+A UAFX Descriptor (OPC 10000-83) passes the model of an OPC UA FX
+AutomationComponent from one engineering tool to the next: an AML container
+with the document, a manifest that names it, the files you attach, and your
+digital signature. The receiver sees whether anything changed after you
+signed, and decides whether to trust you.
+
+**Save as a Descriptor.** On the **Namespaces** tab, **UAFX Descriptor ▾ ›
+Save as UAFX Descriptor…** asks for:
+
+- the **identifier**, a URI that names this Descriptor and no other, such as
+  `urn:hsu:mps500:station1`;
+- the **version**, up to four numbers (`1.0.0.0`);
+- the **OPC UA FX version** it adheres to, read from the document's OPC UA FX
+  AML library. A document without one is not an OPC UA FX information model,
+  as Part 83 asks of a Descriptor; the dialog says so, and the check warns;
+- **attachments**: manuals, pictures, anything that helps to use the
+  component. An attached Descriptor (`.amlx`) is embedded as one;
+- the **certificate to sign with**: one the plugin keeps, one of your
+  Windows certificate store, or a `.pfx` file (**From file…**). **New…** makes
+  a self-signed certificate under the name you give, valid for three years;
+  its key stays in your Windows profile. Everyone who checks your Descriptors
+  sees that name.
+
+**Save…** asks where to write the file and checks it right away; the findings
+go to the **Check** tab. The open document stays as it is.
+
+**Check a Descriptor.** **UAFX Descriptor ▾ › Check a UAFX Descriptor…** opens
+an `.amlx` and checks it without the editor opening it: the manifest, the
+Root AML files, which files are related to what, and every signature with its
+certificate. The line above the findings names the Descriptor, its version,
+its attachments and who signed it when, and whether the signature is valid
+and trusted. The rules (DX001 to DX016) are listed in
+[descriptor.md](descriptor.md#the-check).
+
+A valid signature by a certificate nobody trusts yet is a warning (DX015).
+**Trust signer…** above the findings shows the certificate with its SHA-256
+fingerprint. Compare that fingerprint with the one the sender tells you
+another way, by phone or in person, before you trust it: anyone can sign a
+Descriptor with a certificate of any name. Descriptors you sign yourself count
+as trusted.
+
+On the command line, `uaaml descriptor create`, `check` and `certificate` do
+the same.
+
 ## Diagrams
 
 The **Diagram** tab draws a UA type or an instance of one in the notation of
@@ -1487,6 +1534,7 @@ asked for.
 | `doc` | Writes the HTML documentation of an imported model | [README](../README.md) |
 | `diagram` | Draws a type or an instance as SVG, with `--state-chart` a state machine | [diagram](diagram.md) |
 | `link` | Links a VDI 3682 element to an OPC UA object or method | [VDI 3682](vdi3682.md) |
+| `descriptor` | Writes the document as a signed UAFX Descriptor, checks one, or makes a certificate to sign with | [Descriptors](descriptor.md) |
 | `opcf` | Searches and downloads the NodeSets the OPC Foundation publishes | [import](import.md) |
 | `cloud` | Searches, downloads and publishes models in the UA Cloud Library | [import](import.md) |
 | `design` | Exports, compiles and imports ModelDesign files | [ModelDesign](modeldesign.md) |
@@ -1498,7 +1546,8 @@ done; lines starting with `note:` on the error output are notes, not
 failures, so `import` and `export` exit with 0 when they warn. 1 on an error,
 and when what the command looks for is found: `info` a required model it
 cannot find, `check` an error in an instance, `compare` a difference,
-`roundtrip` a chain that broke off. 2 when no command is given. A NodeSet sent
+`roundtrip` a chain that broke off, `descriptor check` an error in the
+Descriptor. 2 when no command is given. A NodeSet sent
 through `roundtrip` without `--inverse` goes back by the AML-UA-XSLT rules,
 which keep no Methods, DataTypes or ReferenceTypes; `roundtrip` says so in a
 note.
@@ -1538,6 +1587,7 @@ plugin's language. In German, **Manual** in the status bar opens the
 | `%LOCALAPPDATA%\AMLOpcUa\pki-server` | The certificate of the document server and the clients it trusts or refused |
 | `%LOCALAPPDATA%\AMLOpcUa\pki-nodeset-server` | The same for the NodeSet server of `uaaml serve --nodeset` |
 | `%LOCALAPPDATA%\AMLOpcUa\WebView2` | The modeler's browser profile |
+| `%LOCALAPPDATA%\AMLOpcUa\descriptors` | The keys you sign UAFX Descriptors with (`signers`) and the certificates you trusted for them (`trusted`) |
 | `%TEMP%\opcua-plugin` | The log files |
 
 The settings file also takes `ModelCompilerPath`, the path of a ModelCompiler
