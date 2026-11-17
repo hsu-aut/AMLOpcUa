@@ -96,6 +96,11 @@ minor versions.
   every two seconds whether the bindings changed, follows what was bound,
   copied or rebound, drops what was deleted, and names it in the status line.
   Library: `LiveValues.FollowChangesAsync`, `BindingSet`.
+- **While values were kept live**, each value took the status line within a
+  second, so what another command said ("The watch has received no value
+  yet", a variable that can only be read) was gone before it could be read.
+  Another message now stays five seconds before live values take the line
+  again.
 
 ## [0.4.2] - 2026-11-16
 

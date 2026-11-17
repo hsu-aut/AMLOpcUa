@@ -30,7 +30,6 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// <summary>While values are kept live: looks every two seconds whether the bindings changed.</summary>
     private System.Windows.Threading.DispatcherTimer? _liveCheck;
     private bool _liveChecking;
-    private DateTime _liveStatusShown;
     private AmlServerHost? _host;
     private IDisposable? _hostFollow;
     private bool _structureNoted;
@@ -1076,9 +1075,8 @@ public partial class OpcUaPlugin : ISupportsSelection
                 update =>
                 {
                     ShowLiveValue(update);
-                    if ((DateTime.Now - _liveStatusShown).TotalSeconds < 1) return;
-                    _liveStatusShown = DateTime.Now;
-                    SetStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
+                    if (!_statusLine.MayShowLive(DateTime.Now)) return;
+                    ShowStatus(L.T("Live: {0} = {1}  ·  {2} value(s) written.", update.What, update.Value, update.Updates));
                 });
             // Closed, disconnected or another document opened meanwhile: the subscription
             // would stay with nothing to stop it.
