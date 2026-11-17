@@ -44,11 +44,16 @@ public static class FindingTexts
     public const string MissingMandatoryPlaceholderOfType = "'{0}' requires at least one child for '{1}' of type {2}.";
     public const string DanglingLink = "side {0} ('{1}') does not resolve.";
     public const string WrongLinkPair = "'{0}' may only connect to '{1}', but the other end is '{2}'.";
+    public const string NoTypeDefinition = "has no type definition.";
+    public const string WrongNodeClass = "'{0}' is a {1}, but {2} declares a {3}.";
+    public const string WrongTypeDefinition = "'{0}' is a {1}, but {2} declares a {3} or a subtype of it.";
+    public const string WrongDataType = "'{0}' holds {1}, but {2} declares {3} or a subtype of it.";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
         BrokenVdi3682Link, PlaceholderInInstance, UnknownType, AbstractType, MissingMandatory,
         MissingMandatoryPlaceholder, MissingMandatoryPlaceholderOfType, DanglingLink, WrongLinkPair,
+        NoTypeDefinition, WrongNodeClass, WrongTypeDefinition, WrongDataType,
     };
 }
 
@@ -64,6 +69,15 @@ public static class Rules
     public const string PlaceholderInInstance = "UA007";
     public const string BrokenVdi3682Link = "UA008";
 
+    // A running server checked against its types (ServerChecker).
+    public const string ServerNoTypeDefinition = "SV001";
+    public const string ServerAbstractType = "SV002";
+    public const string ServerMissingMandatory = "SV003";
+    public const string ServerWrongNodeClass = "SV004";
+    public const string ServerWrongTypeDefinition = "SV005";
+    public const string ServerWrongDataType = "SV006";
+    public const string ServerMissingMandatoryPlaceholder = "SV007";
+
     public static readonly IReadOnlyDictionary<string, string> Descriptions = new Dictionary<string, string>
     {
         [UnknownType] = "The element refers to a UA type that the document does not contain.",
@@ -74,6 +88,13 @@ public static class Rules
         [WrongLinkPair] = "An InternalLink connects reference interfaces that do not belong together (RefClassConnectsToPath).",
         [PlaceholderInInstance] = "A placeholder declaration (<Name>) was copied into an instance.",
         [BrokenVdi3682Link] = "A VDI 3682 element links to an OPC UA element that does not exist.",
+        [ServerNoTypeDefinition] = "A node of the server has no type definition.",
+        [ServerAbstractType] = "A node of the server is an instance of an abstract type.",
+        [ServerMissingMandatory] = "A Mandatory child its type declares is missing on the server.",
+        [ServerWrongNodeClass] = "A child on the server is of another NodeClass than its type declares.",
+        [ServerWrongTypeDefinition] = "A child on the server is of another type than its type declares.",
+        [ServerWrongDataType] = "A variable on the server holds another data type than its type declares.",
+        [ServerMissingMandatoryPlaceholder] = "A MandatoryPlaceholder of its type has no child on the server.",
     };
 }
 

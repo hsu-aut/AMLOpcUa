@@ -716,10 +716,10 @@ public sealed class UaClient : IAsyncDisposable
         }
     }
 
-    private NodeId ToNodeId(UaNodeAddress address) =>
+    internal NodeId ToNodeId(UaNodeAddress address) =>
         NodeId.Parse(address.ToNodeIdString(NamespaceTable));
 
-    private UaNodeAddress FromExpanded(ExpandedNodeId id) => Address(id, _session.NamespaceUris);
+    internal UaNodeAddress FromExpanded(ExpandedNodeId id) => Address(id, _session.NamespaceUris);
 
     /// <summary>
     /// A value as it can leave the session: a NodeId (and an array of them)
