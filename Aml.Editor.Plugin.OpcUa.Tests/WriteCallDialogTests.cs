@@ -96,4 +96,19 @@ public class WriteCallDialogTests
         Assert.Contains("Result = 3", shown);
         Assert.Contains("Good", shown);
     }
+
+    [Fact]
+    public void A_screen_reader_reads_the_answer_itself_not_a_fixed_name()
+    {
+        var info = new UaMethodInfo([], [new UaArgument("Result", "Double", "Double", -1, "")], true);
+        var name = OnUiThread(() =>
+        {
+            var window = new CallMethodWindow("Scale", "Machine", info,
+                _ => Task.FromResult(new UaCallResult(true, "Good", [("Result", "3")])));
+            window.CallAsync().GetAwaiter().GetResult();
+            return new System.Windows.Automation.Peers.TextBlockAutomationPeer(window.Result).GetName();
+        });
+
+        Assert.Contains("Result = 3", name);
+    }
 }

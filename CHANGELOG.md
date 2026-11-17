@@ -85,6 +85,9 @@ minor versions.
 
 ### Fixed
 
+- **Call method…**: a screen reader read "Answer of the server" instead of the
+  answer, and did not announce it. It now reads the answer and announces each
+  new one.
 - **Settings ▾ › ModelCompiler…** chooses the ModelCompiler a ModelDesign is
   compiled with; the path was a field of the settings file only.
 - **A failed download from the UA Cloud Library**, for models an import

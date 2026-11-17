@@ -140,7 +140,9 @@ public sealed class CallMethodWindow : Window
             inputs.Add(box);
         }
         Inputs = inputs;
-        AutomationProperties.SetName(Result, L.T("Answer of the server"));
+        // A name of its own would hide the answer from a screen reader: the
+        // answer is the name, what it is goes into the help text.
+        AutomationProperties.SetHelpText(Result, L.T("Answer of the server"));
         AutomationProperties.SetLiveSetting(Result, AutomationLiveSetting.Polite);
         body.Children.Add(Result);
 
@@ -162,6 +164,7 @@ public sealed class CallMethodWindow : Window
             catch (ValueEntryException ex)
             {
                 DialogKit.ShowError(Result, ValueTexts.Describe(ex.For(_info.Inputs[i].Name)));
+                Announce();
                 Inputs[i].Focus();
                 return;
             }
@@ -183,6 +186,18 @@ public sealed class CallMethodWindow : Window
             PluginLog.Error("Calling a method failed", ex);
             DialogKit.ShowError(Result, L.T("Calling failed: {0}", ex.Message));
         }
-        finally { _go.IsEnabled = true; }
+        finally
+        {
+            _go.IsEnabled = true;
+            Announce();
+        }
     }
+
+    /// <summary>
+    /// A live region is read out only when it says it changed; WPF does not
+    /// do that by itself. Without a screen reader there is no peer, and nothing to do.
+    /// </summary>
+    private void Announce() =>
+        System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(Result)?
+            .RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
 }
