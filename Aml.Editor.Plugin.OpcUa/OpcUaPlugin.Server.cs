@@ -374,6 +374,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         var row = new WatchRow { Address = node.Address, Node = node.DisplayName };
         _watchRows.Add(row);
         await RestartWatchAsync();
+        // Save values… and Unwatch follow the list; nothing else would tell them now.
+        UpdateServerState();
         // Its unit, where the server states one; read once, a unit does not move.
         try
         {
