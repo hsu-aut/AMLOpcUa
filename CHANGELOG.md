@@ -93,7 +93,9 @@ minor versions.
   Foundation; the download can be cancelled.
 - **Cancel** now also stops counting the nodes a selection takes, reading
   the current values (the document stays as it was), and compiling a
-  ModelDesign with the ModelCompiler, whose process ends.
+  ModelDesign with the ModelCompiler, whose process ends; searching instances
+  of a type, publishing to the UA Cloud Library, and starting the document
+  server, which then frees its port.
 - **Closed while working:** a watch of values, or the NodeSet read from a
   server, that came back after the plugin closed was kept or reported to the
   closed plugin; it is now ended quietly.

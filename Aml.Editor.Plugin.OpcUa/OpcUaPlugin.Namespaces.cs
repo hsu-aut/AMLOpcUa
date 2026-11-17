@@ -162,11 +162,18 @@ public partial class OpcUaPlugin
         _settings.CloudLibraryUser = window.UserName;
         _settings.Save();
         SetBusy(true, L.T("Publishing {0} to the UA Cloud Library …", uri));
+        var token = BeginCancellable();
         try
         {
-            var answer = await window.CreateClient(CloudUploadHttp).UploadAsync(await File.ReadAllTextAsync(info.FilePath), metadata, window.Overwrite);
+            var answer = await window.CreateClient(CloudUploadHttp).UploadAsync(await File.ReadAllTextAsync(info.FilePath, token), metadata, window.Overwrite, token);
             PluginLog.Info($"Published {uri} ({info.FilePath}) to the UA Cloud Library: {answer}");
             SetStatus(L.T("Published {0}; the OPC Foundation reviews it before it is listed.", uri));
+        }
+        // An upload under way may have arrived; the library says so on the next try (Overwrite).
+        catch (Exception) when (token.IsCancellationRequested)
+        {
+            PluginLog.Info($"Publishing {uri} cancelled.");
+            SetStatus(L.T("Publishing {0} cancelled; the UA Cloud Library may have received it.", uri));
         }
         catch (Exception ex)
         {
@@ -175,6 +182,7 @@ public partial class OpcUaPlugin
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
         }
     }

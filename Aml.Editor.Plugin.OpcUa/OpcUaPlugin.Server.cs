@@ -480,13 +480,15 @@ public partial class OpcUaPlugin : ISupportsSelection
         var simulate = ServeSimulateBox.IsChecked == true;
         var withTypes = ServeTypesBox.IsChecked == true;
         SetBusy(true, L.T("Starting the document server …"));
+        var token = BeginCancellable();
         try
         {
+            // Cancelled while starting, the server ends and frees its port.
             var started = await AmlServerHost.StartAsync(document, new AmlServerOptions
             {
                 Port = port, Network = network, Simulate = simulate, WithTypes = withTypes,
                 Folders = KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder).ToList(),
-            });
+            }, token);
             // Closed, or another document opened, while it started (the first start
             // makes a certificate and takes seconds): it would hold the port until the
             // editor ends, or serve a closed document.
@@ -521,6 +523,10 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(message);
             if (_client == null) EndpointBox.Text = _host.EndpointUrl;
         }
+        catch (Exception) when (token.IsCancellationRequested && !_released)
+        {
+            SetStatus(L.T("Starting the document server cancelled."));
+        }
         catch (Exception ex)
         {
             PluginLog.Error("Starting the document server failed", ex);
@@ -528,6 +534,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         }
         finally
         {
+            EndCancellable();
             SetBusy(false, null);
             UpdateServerState();
         }

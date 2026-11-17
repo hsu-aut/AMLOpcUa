@@ -379,9 +379,11 @@ public partial class OpcUaPlugin
         if (client == null || _busy) return;
         IReadOnlyList<UaBrowseItem> types;
         SetBusy(true, L.T("Reading the server's types …"));
-        try { types = await client.TypesAsync(); }
+        var reading = BeginCancellable();
+        try { types = await client.TypesAsync(ct: reading); }
+        catch (Exception) when (reading.IsCancellationRequested) { SetStatus(L.T("Reading the server's types cancelled.")); return; }
         catch (Exception ex) { PluginLog.Error("Reading the types failed", ex); SetStatus(L.T("Reading the types failed: {0}", ex.Message)); return; }
-        finally { SetBusy(false, null); }
+        finally { EndCancellable(); SetBusy(false, null); }
 
         var picker = new TypePickerWindow(types, L.T("Instances of which type below {0}?", Label(start))) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } type) return;
@@ -389,9 +391,11 @@ public partial class OpcUaPlugin
 
         IReadOnlyList<UaBrowseItem> found;
         SetBusy(true, L.T("Searching instances of {0} …", type.DisplayName));
-        try { found = await client.InstancesOfAsync(start, await client.SubtypesAsync(type.Address)); }
+        var searching = BeginCancellable();
+        try { found = await client.InstancesOfAsync(start, await client.SubtypesAsync(type.Address, searching), ct: searching); }
+        catch (Exception) when (searching.IsCancellationRequested) { SetStatus(L.T("Searching instances of {0} cancelled.", type.DisplayName)); return; }
         catch (Exception ex) { PluginLog.Error("Searching instances failed", ex); SetStatus(L.T("The search failed: {0}", ex.Message)); return; }
-        finally { SetBusy(false, null); }
+        finally { EndCancellable(); SetBusy(false, null); }
         if (found.Count == 0)
         {
             SetStatus(L.T("No instance of {0} below {1}.", type.DisplayName, Label(start)));
