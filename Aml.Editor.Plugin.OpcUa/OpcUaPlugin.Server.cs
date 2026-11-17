@@ -27,6 +27,9 @@ public partial class OpcUaPlugin : ISupportsSelection
     private UaClient? _client;
     private IAsyncDisposable? _watch;
     private LiveValues? _live;
+    /// <summary>While values are kept live: looks every two seconds whether the bindings changed.</summary>
+    private System.Windows.Threading.DispatcherTimer? _liveCheck;
+    private bool _liveChecking;
     private DateTime _liveStatusShown;
     private AmlServerHost? _host;
     private IDisposable? _hostFollow;
@@ -1090,6 +1093,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             PluginLog.Info(message);
             SetStatus(message);
             if (_live.Count == 0) await StopLiveAsync();
+            else StartLiveCheck();
         }
         catch (Exception ex)
         {
@@ -1104,8 +1108,77 @@ public partial class OpcUaPlugin : ISupportsSelection
         UpdateServerState();
     }
 
+    /// <summary>
+    /// An element bound, copied or deleted while values are live is followed or
+    /// dropped within two seconds; the editor tells a plugin of no change, so the
+    /// plugin looks. Looking is reading the document, cheap; only a change subscribes anew.
+    /// </summary>
+    private void StartLiveCheck()
+    {
+        _liveCheck?.Stop();
+        _liveCheck = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(2),
+        };
+        _liveCheck.Tick += LiveCheck_Tick;
+        _liveCheck.Start();
+    }
+
+    private async void LiveCheck_Tick(object? sender, EventArgs e)
+    {
+        var live = _live;
+        if (live == null || _liveStarting || _liveChecking || _busy || _document == null) return;
+        _liveChecking = true;
+        try
+        {
+            var change = await live.FollowChangesAsync();
+            if (change == null) return;
+            if (!ReferenceEquals(_live, live))
+            {
+                // Stopped meanwhile: the new subscription has no one to stop it.
+                await change.Live.DisposeAsync();
+                return;
+            }
+            _live = change.Live;
+            foreach (var p in _live.Problems) PluginLog.Warn(p);
+            var text = LiveChangeText(change.Added, change.Removed, _live.Count);
+            PluginLog.Info(text);
+            SetStatus(text);
+            if (_live.Count == 0)
+            {
+                await StopLiveAsync();
+                SetStatus(Summaries.NothingBound);
+                UpdateServerState();
+            }
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Following changed bindings failed", ex);
+        }
+        finally
+        {
+            _liveChecking = false;
+        }
+    }
+
+    /// <summary>What the status line says when keeping values live takes up changed bindings.</summary>
+    internal static string LiveChangeText(IReadOnlyList<string> added, IReadOnlyList<string> removed, int count)
+    {
+        var moved = added.Intersect(removed).ToList();
+        string Names(IReadOnlyList<string> names) => names.Count <= 3 ? string.Join(", ", names) : L.T("{0} element(s)", names.Count);
+        var parts = new List<string>();
+        var newOnes = added.Except(moved).ToList();
+        var gone = removed.Except(moved).ToList();
+        if (newOnes.Count > 0) parts.Add(L.T("now also {0}", Names(newOnes)));
+        if (gone.Count > 0) parts.Add(L.T("no longer {0}", Names(gone)));
+        if (moved.Count > 0) parts.Add(L.T("{0} at another node", Names(moved)));
+        return L.T("Live: {0}  ·  {1} value(s) followed.", string.Join("; ", parts), count);
+    }
+
     private async Task StopLiveAsync()
     {
+        _liveCheck?.Stop();
+        _liveCheck = null;
         var live = _live;
         _live = null;
         _liveToken = null;
