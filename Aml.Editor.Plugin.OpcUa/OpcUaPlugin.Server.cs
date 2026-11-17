@@ -42,6 +42,10 @@ public partial class OpcUaPlugin : ISupportsSelection
     /// </summary>
     private object? _liveToken;
     private readonly SemaphoreSlim _watchGate = new(1, 1);
+
+    /// <summary>For tests: whether a watch subscription is held, and whether none is being set up.</summary>
+    internal bool Watching => _watch != null;
+    internal bool WatchSettled => _watchGate.CurrentCount == 1;
     private int _detailsVersion;
     private readonly System.Collections.ObjectModel.ObservableCollection<WatchRow> _watchRows = new();
 
@@ -428,15 +432,27 @@ public partial class OpcUaPlugin : ISupportsSelection
             if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
             WatchList.ItemsSource = _watchRows;
             WatchList.Visibility = _watchRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (_client == null || _watchRows.Count == 0) return;
+            var client = _client;
+            if (client == null || _watchRows.Count == 0) return;
             var rows = _watchRows.ToDictionary(r => r.Address);
-            _watch = await _client.WatchAsync(rows.Keys.ToList(), r =>
+            var watch = await client.WatchAsync(rows.Keys.ToList(), r =>
                 Dispatcher.BeginInvoke(() =>
                 {
                     if (!rows.TryGetValue(r.Address, out var row)) return;
                     row.Update(r);
                     _recording.Add(DateTimeOffset.Now, row.Node, row.Unit, r);
                 }));
+            // Closed or disconnected while the server answered: no one would end this subscription.
+            if (_released || !ReferenceEquals(_client, client))
+            {
+                await watch.DisposeAsync();
+                return;
+            }
+            _watch = watch;
+        }
+        // The plugin closed its session meanwhile; there is no one to tell.
+        catch (Exception) when (_released)
+        {
         }
         catch (Exception ex)
         {
@@ -800,6 +816,11 @@ public partial class OpcUaPlugin : ISupportsSelection
                 foreach (var note in set.Notes) PluginLog.Info($"{set.ModelUri}: {note}");
             }
         }
+        // Closed meanwhile: its session ended with it; there is no one to tell.
+        catch (Exception) when (_released)
+        {
+            return;
+        }
         catch (Exception) when (token.IsCancellationRequested)
         {
             PluginLog.Info($"Reading the NodeSet of {ns.Uri} cancelled.");
@@ -817,6 +838,8 @@ public partial class OpcUaPlugin : ISupportsSelection
             EndCancellable();
             SetBusy(false, null);
         }
+        // Closed or disconnected while reading: the files are written, and nothing more is done with them.
+        if (_released || !ReferenceEquals(_client, client)) return;
 
         try
         {
