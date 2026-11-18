@@ -270,6 +270,48 @@ public sealed class DescriptorAttackTests : IDisposable
         Assert.Contains(report.Findings, f => f.Format is DescriptorTexts.Curve or DescriptorTexts.CertificateCurve);
     }
 
+    // RSASSA-PSS names its hash in the parameters, SHA-1 where they leave it out;
+    // only the OID was checked, so PSS over SHA-1 would have passed.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_certificate_signed_with_PSS_over_SHA1_is_outside_the_policies(bool sha1Named)
+    {
+        using var key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=PSS Vendor", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pss);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+        using var made = request.CreateSelfSigned(Now.AddDays(-1), Now.AddYears(1));
+        // The same certificate, its outer signature algorithm made PSS over SHA-1:
+        // named, or by the parameters left empty, whose default is SHA-1.
+        var outer = new System.Formats.Asn1.AsnReader(made.RawData, System.Formats.Asn1.AsnEncodingRules.DER).ReadSequence();
+        var tbs = outer.ReadEncodedValue();
+        outer.ReadEncodedValue();
+        var signature = outer.ReadBitString(out _);
+        var writer = new System.Formats.Asn1.AsnWriter(System.Formats.Asn1.AsnEncodingRules.DER);
+        using (writer.PushSequence())
+        {
+            writer.WriteEncodedValue(tbs.Span);
+            using (writer.PushSequence())
+            {
+                writer.WriteObjectIdentifier("1.2.840.113549.1.1.10");
+                using (writer.PushSequence())
+                {
+                    if (sha1Named)
+                    {
+                        using (writer.PushSequence(new System.Formats.Asn1.Asn1Tag(System.Formats.Asn1.TagClass.ContextSpecific, 0)))
+                        using (writer.PushSequence())
+                            writer.WriteObjectIdentifier("1.3.14.3.2.26");
+                    }
+                }
+            }
+            writer.WriteBitString(signature);
+        }
+        using var patched = new X509Certificate2(writer.Encode());
+
+        Assert.Equal("SHA1", DescriptorChecker.PssHashOf(patched));
+        Assert.Equal("SHA256", DescriptorChecker.PssHashOf(made));
+    }
+
     // A signature whose Manifest names no part skipped the scope check.
     [Fact]
     public void A_signature_that_covers_no_part_is_not_trusted()

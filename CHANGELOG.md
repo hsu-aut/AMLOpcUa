@@ -142,7 +142,8 @@ minor versions.
   the relationships, a signer nobody trusts is an error (OPC 10000-83 7.8.2),
   a signature is valid only when no rule finds it wrong, and trust is offered
   only for a valid one. Every certificate of the chain is held to the key
-  lengths and curves of the policies, revocation lists are read where a
+  lengths and curves of the policies, and to the hash an RSASSA-PSS signature
+  names in its parameters (SHA-1 where it names none), revocation lists are read where a
   certificate names one, and a crafted file no longer ends the check with an
   exception. The plugin's signing keys are encrypted for the user's account;
   `uaaml descriptor certificate` writes a key file only with a password.

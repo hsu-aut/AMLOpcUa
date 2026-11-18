@@ -10,6 +10,7 @@
 // certificates and a list of issuer certificates (7.8.2): a signer no one
 // trusts is an error (7.8.2, 8.2), which the plugin lets the user resolve.
 
+using System.Formats.Asn1;
 using System.IO.Compression;
 using System.IO.Packaging;
 using System.Security.Cryptography;
@@ -504,6 +505,9 @@ public static class DescriptorChecker
             if (!Policies.CertificateSignatures.Contains(c.SignatureAlgorithm.Value ?? ""))
                 Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.CertificateAlgorithm, NameOf(c),
                     c.SignatureAlgorithm.FriendlyName ?? c.SignatureAlgorithm.Value);
+            // RSASSA-PSS names its hash in its parameters, the OID alone does not.
+            else if (PssHashOf(c) is { } pss && !Policies.PssHashes.Contains(pss))
+                Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.CertificateAlgorithm, NameOf(c), "RSASSA-PSS with " + pss);
             // Every certificate of the chain, not the signer's alone (Table 3).
             if (!ReferenceEquals(c, elements.FirstOrDefault()))
             {
@@ -544,6 +548,35 @@ public static class DescriptorChecker
         chain.ChainPolicy.VerificationFlags = X509VerificationFlags.IgnoreNotTimeValid;
         chain.ChainPolicy.DisableCertificateDownloads = true;
         return chain.Build(certificate) || chain.ChainStatus.All(s => !s.Status.HasFlag(X509ChainStatusFlags.NotSignatureValid));
+    }
+
+    /// <summary>
+    /// The hash of a certificate signed with RSASSA-PSS, from the parameters of its
+    /// signature algorithm (RFC 4055): SHA1 where they name none, as that is their
+    /// default; null for another algorithm.
+    /// </summary>
+    internal static string? PssHashOf(X509Certificate2 certificate)
+    {
+        try
+        {
+            var outer = new AsnReader(certificate.RawData, AsnEncodingRules.DER).ReadSequence();
+            outer.ReadEncodedValue();
+            var algorithm = outer.ReadSequence();
+            if (algorithm.ReadObjectIdentifier() != "1.2.840.113549.1.1.10") return null;
+            if (!algorithm.HasData) return "SHA1";
+            var parameters = algorithm.ReadSequence();
+            var hashTag = new Asn1Tag(TagClass.ContextSpecific, 0, isConstructed: true);
+            if (!parameters.HasData || !parameters.PeekTag().HasSameClassAndValue(hashTag)) return "SHA1";
+            return parameters.ReadSequence(hashTag).ReadSequence().ReadObjectIdentifier() switch
+            {
+                "1.3.14.3.2.26" => "SHA1",
+                "2.16.840.1.101.3.4.2.1" => "SHA256",
+                "2.16.840.1.101.3.4.2.2" => "SHA384",
+                "2.16.840.1.101.3.4.2.3" => "SHA512",
+                var other => other,
+            };
+        }
+        catch (AsnContentException) { return "unreadable parameters"; }
     }
 
     /// <summary>The named curve of an EC key (nistP256, …); "explicit" for a curve given by its parameters; null for another key.</summary>
@@ -675,6 +708,9 @@ public static class DescriptorChecker
             [PackageSignatures.EcdsaSha384] = new("ECC-nistP384", 384, 384, "nistP384"),
             [PackageSignatures.EcdsaSha512] = new("ECC-nistP521", 521, 521, "nistP521"),
         };
+
+        /// <summary>The hashes an RSASSA-PSS certificate signature may use.</summary>
+        public static readonly HashSet<string> PssHashes = new(StringComparer.Ordinal) { "SHA256", "SHA384", "SHA512" };
 
         /// <summary>The shortest RSA key a certificate of the chain may have.</summary>
         public const int MinRsaBits = 2048;
