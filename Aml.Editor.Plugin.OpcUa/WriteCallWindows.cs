@@ -20,12 +20,14 @@ public static class ValueTexts
         {
             ValueProblem.NotBoolean => L.T("'{0}' is not a Boolean: write true or false.", ex.Text),
             ValueProblem.NotWholeNumber => L.T("'{0}' is not a whole number.", ex.Text),
-            ValueProblem.OutOfRange => L.T("'{0}' is out of range: a {1} is {2}.", ex.Text, ex.Type, ex.Range ?? ""),
+            ValueProblem.OutOfRange => L.T("'{0}' is out of range: a {1} is {2}.", ex.Text, ex.Type,
+                ex.Min != null && ex.Max != null ? L.T("{0} to {1}", ex.Min, ex.Max) : ex.Range ?? ""),
             ValueProblem.NotNumber => L.T("'{0}' is not a number: write 1.5, for instance.", ex.Text),
             ValueProblem.NotTime => L.T("'{0}' is not a time: write 2026-11-24T10:00:00Z, for instance.", ex.Text),
             ValueProblem.NotGuid => L.T("'{0}' is not a GUID.", ex.Text),
             ValueProblem.NotBase64 => L.T("'{0}' is not Base64.", ex.Text),
             ValueProblem.Matrix => L.T("Values with {0} dimensions cannot be typed in.", ex.Range ?? ""),
+            ValueProblem.OpenQuote => L.T("'{0}': a quote is not closed.", ex.Text),
             _ => L.T("Values of the type {0} cannot be typed in.", ex.Type),
         };
         return ex.Argument != null ? ex.Argument + ": " + text : text;
@@ -42,7 +44,7 @@ public static class ValueTexts
                 array ? L.T("whole numbers, separated by spaces") : L.T("a whole number"),
             "Float" or "Double" => array ? L.T("numbers, separated by spaces, such as 1.5 2") : L.T("a number, such as 1.5"),
             "Enumeration" => array ? L.T("numbers of values, separated by spaces") : L.T("the number of a value"),
-            "String" or "LocalizedText" => array ? L.T("words, separated by spaces") : L.T("any text"),
+            "String" or "LocalizedText" => array ? L.T("texts separated by spaces; a text with spaces in quotes") : L.T("any text"),
             "DateTime" => L.T("a time, such as 2026-11-24T10:00:00Z"),
             "Guid" => L.T("a GUID"),
             "ByteString" => L.T("Base64"),

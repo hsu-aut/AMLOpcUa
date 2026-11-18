@@ -54,4 +54,91 @@ public class ValueEntryTests
     [Fact]
     public void Matrices_cannot_be_typed() =>
         Assert.Throws<ValueEntryException>(() => ValueEntry.Parse("Double", 2, "1 2"));
+
+    // Review of 2026-11-18: "01.02.2026" (1 February) was written as 2 January,
+    // "10:00" as today 10:00 UTC; the server took both as Good.
+    [Theory]
+    [InlineData("01.02.2026")]
+    [InlineData("02/01/2026")]
+    [InlineData("10:00")]
+    [InlineData("Feb 1 2026")]
+    public void Only_ISO_8601_is_read_as_a_time(string text)
+    {
+        var ex = Assert.Throws<ValueEntryException>(() => ValueEntry.Parse("DateTime", -1, text));
+        Assert.Equal(ValueProblem.NotTime, ex.Problem);
+    }
+
+    [Theory]
+    [InlineData("2026-02-01", "2026-02-01T00:00:00.0000000Z")]
+    [InlineData("2026-02-01T10:00Z", "2026-02-01T10:00:00.0000000Z")]
+    [InlineData("2026-02-01T10:00:00", "2026-02-01T10:00:00.0000000Z")]
+    [InlineData("2026-02-01T10:00:00.5+01:00", "2026-02-01T09:00:00.5000000Z")]
+    [InlineData("2026-02-01 10:00:00Z", "2026-02-01T10:00:00.0000000Z")]
+    public void ISO_8601_times_are_read_as_UTC(string text, string utc) =>
+        Assert.Equal(utc, ((DateTime)ValueEntry.Parse("DateTime", -1, text)).ToString("o"));
+
+    // 1e39 became Infinity as a Float, 1e400 as a Double, and was written.
+    [Theory]
+    [InlineData("Float", "1e39")]
+    [InlineData("Float", "-1e39")]
+    [InlineData("Double", "1e400")]
+    public void A_number_beyond_the_type_is_out_of_range(string type, string text)
+    {
+        var ex = Assert.Throws<ValueEntryException>(() => ValueEntry.Parse(type, -1, text));
+        Assert.Equal(ValueProblem.OutOfRange, ex.Problem);
+    }
+
+    [Fact]
+    public void Infinity_and_NaN_typed_as_such_are_values() =>
+        Assert.Equal([double.NaN, double.PositiveInfinity], (double[])ValueEntry.Parse("Double", 1, "NaN Infinity"));
+
+    [Fact]
+    public void The_range_names_its_ends_apart_for_a_message_in_another_language()
+    {
+        var ex = Assert.Throws<ValueEntryException>(() => ValueEntry.Parse("Byte", -1, "300"));
+        Assert.Equal(("0", "255"), (ex.Min, ex.Max));
+        Assert.Equal(("0", "255"), (ex.For("Mode").Min, ex.For("Mode").Max));
+    }
+
+    // ["Line 1", "Line 2"] was shown as "Line 1 Line 2" and written back as four elements.
+    [Fact]
+    public void Array_elements_with_spaces_are_quoted_and_quotes_doubled()
+    {
+        Assert.Equal(["Line 1", "Line 2", "x", "", "say \"hi\""],
+            (string[])ValueEntry.Parse("String", 1, "\"Line 1\" \"Line 2\" x \"\" \"say \"\"hi\"\"\""));
+    }
+
+    [Fact]
+    public void An_open_quote_is_no_array()
+    {
+        var ex = Assert.Throws<ValueEntryException>(() => ValueEntry.Parse("String", 1, "\"Line 1"));
+        Assert.Equal(ValueProblem.OpenQuote, ex.Problem);
+    }
+
+    [Fact]
+    public void The_text_of_a_value_reads_back_as_the_same_value()
+    {
+        string[] lines = ["Line 1", "x", "", "say \"hi\""];
+        var text = ValueEntry.ToText("String", 1, lines);
+        Assert.Equal("\"Line 1\" x \"\" \"say \"\"hi\"\"\"", text);
+        Assert.Equal(lines, (string[])ValueEntry.Parse("String", 1, text));
+
+        // A Byte array as its numbers, not as Base64: the dialog shows what it writes back.
+        Assert.Equal("7 8 9", ValueEntry.ToText("Byte", 1, new byte[] { 7, 8, 9 }));
+        Assert.Equal(new byte[] { 7, 8, 9 }, (byte[])ValueEntry.Parse("Byte", 1, "7 8 9"));
+        Assert.Equal("1.5", ValueEntry.ToText("Double", -1, 1.5));
+        Assert.Equal("", ValueEntry.ToText("String", -1, null));
+    }
+
+    // A byte[] made a Variant of type ByteString; the server held a ByteString in a Byte[] variable.
+    [Fact]
+    public void A_Byte_array_is_written_as_an_array_of_Byte()
+    {
+        var variant = ValueEntry.ToVariant("Byte", 1, new byte[] { 7, 8, 9 });
+        Assert.Equal(Opc.Ua.BuiltInType.Byte, variant.TypeInfo.BuiltInType);
+        Assert.Equal(Opc.Ua.ValueRanks.OneDimension, variant.TypeInfo.ValueRank);
+
+        var bytes = ValueEntry.ToVariant("ByteString", -1, new byte[] { 7 });
+        Assert.Equal(Opc.Ua.BuiltInType.ByteString, bytes.TypeInfo.BuiltInType);
+    }
 }

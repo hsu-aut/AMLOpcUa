@@ -961,15 +961,17 @@ one row per value received, in the order they arrived:
 
 ```
 Time;Node;NodeId;Value;Unit;Status
-2026-11-24T10:00:00.000+01:00;Speed;"nsu=http://hsu-hh.de/UA/MPS500/;i=1035";1200.5;min⁻¹;Good
+2026-11-24T10:00:00.000+01:00;Speed;"nsu=http://hsu-hh.de/UA/MPS500/;i=1035";1200,5;min⁻¹;Good
 ```
 
-Times are ISO 8601 with the offset to UTC, numbers have a point, cells are
-separated by semicolons (cells holding one are quoted), and the file is UTF-8
-with a byte order mark, so a spreadsheet opens it with the units intact. A
-spreadsheet set to German reads `1200.5` as text: replace the points by
-commas, or import the file with the point as the decimal separator. The
-plugin keeps the last 100000 values and says how many older ones it dropped.
+Times are ISO 8601 with the offset to UTC. The list separator and the
+decimal sign are those of Windows' regional format, as the spreadsheet on the
+same computer reads them: semicolon and comma for German (above), comma and
+point for English (US). Cells holding the separator are quoted, a text that
+starts like a formula (`=`, `+`, `-`, `@`) gets an apostrophe so it stays
+text, and the file is UTF-8 with a byte order mark, so the units stay intact.
+A value with an Uncertain status is kept with its status; only a Bad one has
+no value. The plugin keeps the last 100000 values and says how many older ones it dropped.
 Stopping the watch clears them; disconnecting does not, so they can still be
 saved.
 
@@ -996,14 +998,16 @@ goes to the server:
 |---|---|
 | Boolean | `true` or `false` (`1`, `0`) |
 | SByte to UInt64 | a whole number within the type's range |
-| Float, Double | a number, with a point or a comma: `1.5`, `1,5` |
+| Float, Double | a number, with a point or a comma: `1.5`, `1,5`; one beyond the type is refused, not written as Infinity |
 | an enumeration | the number of the value, as the node details show it |
 | String, LocalizedText | the text as it is |
-| DateTime | ISO 8601, such as `2026-11-24T10:00:00Z`; without a zone it is taken as UTC |
+| DateTime | ISO 8601 only, such as `2026-11-24T10:00:00Z` or `2026-11-24`; without a zone it is taken as UTC. `01.02.2026` is refused rather than guessed |
 | Guid, ByteString | a GUID; Base64 |
-| an array | the elements separated by spaces: `0 10 2.5` |
+| an array | the elements separated by spaces: `0 10 2.5`; an element with spaces, or an empty one, in quotes, a quote in it doubled: `"Line 1" "Line 2" ""` |
 
-Structures and matrices cannot be typed in. A variable the server lets you
+The dialog shows the value now in the same form, so it can be written back
+unchanged; a Byte array shows its numbers, not Base64. Structures and
+matrices cannot be typed in. A variable the server lets you
 only read (its AccessLevel or UserAccessLevel without CurrentWrite) is not
 offered for writing; the status line says so. When the server refuses the
 value, the status line shows its status code, such as `BadTypeMismatch` or

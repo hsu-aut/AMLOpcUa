@@ -42,7 +42,27 @@ public class WriteCallDialogTests
     public void A_text_that_is_no_value_is_told_in_the_users_language(ValueProblem problem, string text, string type, string? range, string? argument, string expected) =>
         Assert.Equal(expected, OnUiThread(() => ValueTexts.Describe(new ValueEntryException(problem, text, type, range, argument))));
 
+    // Review of 2026-11-18: "'300' liegt außerhalb: ein Byte reicht von 0 to 255."
+    [Fact]
+    public void The_range_is_told_in_German_without_English_in_it()
+    {
+        var german = L.German;
+        L.German = true;
+        try
+        {
+            var text = ValueTexts.Describe(new ValueEntryException(ValueProblem.OutOfRange, "300", "Byte", "0 to 255", min: "0", max: "255"));
+            Assert.Contains("0 bis 255", text);
+            Assert.DoesNotContain(" to ", text);
+        }
+        finally { L.German = german; }
+    }
+
+    [Fact]
+    public void An_open_quote_is_told() =>
+        Assert.Equal("'\"Line 1': a quote is not closed.", OnUiThread(() => ValueTexts.Describe(new ValueEntryException(ValueProblem.OpenQuote, "\"Line 1", "String"))));
+
     [Theory]
+    [InlineData("String", 1, "quotes")]
     [InlineData("Boolean", -1, "true or false")]
     [InlineData("Double", -1, "a number, such as 1.5")]
     [InlineData("Int32", 1, "whole numbers, separated by spaces")]

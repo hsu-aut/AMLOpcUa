@@ -97,6 +97,17 @@ minor versions.
 
 ### Fixed
 
+- **Write value…** and **Call method…** could send a value other than the
+  one meant: a date such as 01.02.2026 went out as 2 January (only ISO 8601,
+  2026-02-01, is taken now), a number beyond Float or Double as Infinity (it
+  is refused now), a Byte array as a ByteString (it goes as an array of Byte,
+  and the dialog shows its numbers instead of Base64). Array elements with
+  spaces are typed in quotes, so a text array can be written back unchanged.
+  In German, the range of a whole number no longer reads "0 to 255".
+- **Save values…** saved an Uncertain value without its value. Numbers and
+  the list separator now follow Windows' regional format, so a German
+  spreadsheet reads 1200,5 as a number, and a text that starts like a formula
+  stays text.
 - **Take into document** while values are kept live: what it did ("… Press
   Ctrl+S to save") was replaced after less than two seconds by "Live: now
   also …". The status line now shows a message five seconds before live

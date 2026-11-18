@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpcUaAml.Addressing;
 using OpcUaAml.Server;
 
@@ -12,6 +13,16 @@ public class WatchRecordingTests
     private static readonly UaNodeAddress Speed = new("urn:plant", UaIdType.String, "Drill/Speed");
     private static readonly UaNodeAddress Running = new("urn:plant", UaIdType.String, "Drill/Running");
     private static readonly DateTimeOffset T0 = new(2026, 11, 24, 10, 0, 0, TimeSpan.FromHours(1));
+
+    /// <summary>Semicolons and a decimal point, the file as it was before it followed the user's culture.</summary>
+    private static readonly CultureInfo Invariant = Semicolons();
+
+    private static CultureInfo Semicolons()
+    {
+        var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+        culture.TextInfo.ListSeparator = ";";
+        return culture;
+    }
 
     private static UaReadResult Read(UaNodeAddress a, object? value, bool good = true, string status = "Good") =>
         new(a, value, value?.GetType().Name, good, status);
@@ -36,7 +47,7 @@ public class WatchRecordingTests
         recording.Add(T0, "Speed", "min⁻¹", Read(Speed, 1200.5));
         recording.Add(T0.AddMilliseconds(250), "Speed", "min⁻¹", Read(Speed, null, good: false, status: "BadCommunicationError"));
 
-        var lines = recording.ToCsv().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+        var lines = recording.ToCsv(Invariant).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
         Assert.Equal("Time;Node;NodeId;Value;Unit;Status", lines[0]);
         Assert.Equal("2026-11-24T10:00:00.000+01:00;Speed;\"nsu=urn:plant;s=Drill/Speed\";1200.5;min⁻¹;Good", lines[1]);
@@ -49,7 +60,55 @@ public class WatchRecordingTests
         var recording = new WatchRecording();
         recording.Add(T0, "Label", "", Read(Running, "a;b \"c\""));
 
-        Assert.Contains(";\"a;b \"\"c\"\"\";", recording.ToCsv());
+        Assert.Contains(";\"a;b \"\"c\"\"\";", recording.ToCsv(Invariant));
+    }
+
+    // Review of 2026-11-18: in a German spreadsheet 1.5 became the 1st of May, and
+    // a semicolon file opened in one column where the list separator is a comma.
+    [Theory]
+    [InlineData("de-DE", "2026-11-24T10:00:00.000+01:00;Speed;\"nsu=urn:plant;s=Drill/Speed\";1200,5;min⁻¹;Good")]
+    [InlineData("en-US", "2026-11-24T10:00:00.000+01:00,Speed,nsu=urn:plant;s=Drill/Speed,1200.5,min⁻¹,Good")]
+    public void The_CSV_takes_the_list_separator_and_decimal_sign_of_the_spreadsheet(string culture, string row)
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, "Speed", "min⁻¹", Read(Speed, 1200.5));
+
+        Assert.Equal(row, recording.ToCsv(CultureInfo.GetCultureInfo(culture)).Split(Environment.NewLine)[1]);
+    }
+
+    // A text from the server that starts like a formula ran as one.
+    [Theory]
+    [InlineData("=1+1")]
+    [InlineData("+SUM(A1)")]
+    [InlineData("-2+3")]
+    [InlineData("@cmd")]
+    public void A_text_that_starts_like_a_formula_stays_text(string text)
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, text, "", Read(Running, text));
+
+        // The node's name and the value: two cells with the apostrophe.
+        var row = recording.ToCsv(Invariant).Split(Environment.NewLine)[1];
+        Assert.Equal(2, row.Split(";'" + text + ";").Length - 1);
+    }
+
+    [Fact]
+    public void A_negative_number_stays_a_number()
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, "Speed", "", Read(Speed, -2.5));
+
+        Assert.EndsWith(";-2.5;;Good", recording.ToCsv(Invariant).Split(Environment.NewLine)[1]);
+    }
+
+    // An Uncertain value (out of the engineering range, say) was saved without its value.
+    [Fact]
+    public void An_uncertain_value_is_kept_with_its_status()
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, "Speed", "", Read(Speed, 101.5, good: false, status: "UncertainEngineeringUnitsExceeded"));
+
+        Assert.Equal(("101.5", "UncertainEngineeringUnitsExceeded"), (recording.Entries[0].Value, recording.Entries[0].Status));
     }
 
     [Fact]

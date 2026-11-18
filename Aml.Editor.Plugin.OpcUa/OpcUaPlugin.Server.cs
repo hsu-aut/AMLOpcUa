@@ -938,7 +938,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(L.T("The server lets '{0}' only be read.", node.DisplayName));
             return;
         }
-        var window = new WriteValueWindow(node.DisplayName, node.Address.ToString(), info, now.Good ? now.ValueText ?? "" : "") { Owner = Window.GetWindow(this) };
+        var window = new WriteValueWindow(node.DisplayName, node.Address.ToString(), info, now.Good ? ValueEntry.ToText(info.BuiltInType, info.ValueRank, now.Value) : "") { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         var text = window.Input.Text;
         SetBusy(true, L.T("Writing '{0}' …", node.DisplayName));

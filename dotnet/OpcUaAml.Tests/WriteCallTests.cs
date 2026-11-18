@@ -70,6 +70,22 @@ public class WriteCallTests : IAsyncLifetime
         Assert.Equal(readBack, (await _client.ReadAsync(Node(id))).ValueText);
     }
 
+    // Review of 2026-11-18: texts with spaces fell apart, a Byte array came back
+    // as Base64 that could not be written again. (That a Byte array goes out as
+    // Byte[], not ByteString, ValueEntryTests shows: this server keeps a written
+    // byte[] without its type and reads it back as a ByteString either way.)
+    [Theory]
+    [InlineData(1008u, "Byte", "7 8 9")]
+    [InlineData(1009u, "String", "\"Line 1\" \"Line 2\" \"\"")]
+    public async Task An_array_reads_back_as_it_was_typed(uint id, string type, string text)
+    {
+        var result = await _client.WriteValueAsync(Node(id), text);
+        var read = await _client.ReadAsync(Node(id));
+
+        Assert.True(result.Good, result.Status);
+        Assert.Equal(text, ValueEntry.ToText(type, 1, read.Value));
+    }
+
     [Fact]
     public async Task A_variable_the_server_lets_only_be_read_is_not_written()
     {

@@ -57,10 +57,10 @@ public sealed partial class UaClient
     {
         var info = await DescribeVariableAsync(variable, ct).ConfigureAwait(false);
         if (!info.Writable) return new UaWriteResult(false, "BadNotWritable");
-        var value = ValueEntry.Parse(info.BuiltInType, info.ValueRank, text);
+        var value = ValueEntry.ToVariant(info.BuiltInType, info.ValueRank, ValueEntry.Parse(info.BuiltInType, info.ValueRank, text));
         var write = new WriteValueCollection
         {
-            new WriteValue { NodeId = ToNodeId(variable), AttributeId = Attributes.Value, Value = new DataValue(new Variant(value)) },
+            new WriteValue { NodeId = ToNodeId(variable), AttributeId = Attributes.Value, Value = new DataValue(value) },
         };
         var response = await _session.WriteAsync(null, write, ct).ConfigureAwait(false);
         var status = response.Results[0];
@@ -127,7 +127,11 @@ public sealed partial class UaClient
         var arguments = new VariantCollection();
         for (var i = 0; i < inputs.Count; i++)
         {
-            try { arguments.Add(new Variant(ValueEntry.Parse(info.Inputs[i].BuiltInType, info.Inputs[i].ValueRank, inputs[i]))); }
+            try
+            {
+                var input = info.Inputs[i];
+                arguments.Add(ValueEntry.ToVariant(input.BuiltInType, input.ValueRank, ValueEntry.Parse(input.BuiltInType, input.ValueRank, inputs[i])));
+            }
             catch (ValueEntryException ex) { throw ex.For(info.Inputs[i].Name); }
         }
         var request = new CallMethodRequestCollection
