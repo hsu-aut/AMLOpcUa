@@ -11,7 +11,11 @@ using OpcUaAml.Server;
 namespace OpcUaAml.Binding;
 
 /// <summary>The variables found; Truncated when the limit stopped the search.</summary>
-public sealed record CollectedVariables(IReadOnlyList<ServerVariable> Variables, bool Truncated);
+public sealed record CollectedVariables(IReadOnlyList<ServerVariable> Variables, bool Truncated)
+{
+    /// <summary>Nodes whose children could not be browsed: the list may lack what is below them.</summary>
+    public int Unbrowsed { get; init; }
+}
 
 public static class ServerVariables
 {
@@ -28,8 +32,11 @@ public static class ServerVariables
     public static async Task<CollectedVariables> CollectAsync(UaClient client, UaNodeAddress? start = null,
         int limit = 20000, int depth = 12, CancellationToken ct = default)
     {
+        // A start node the server does not have (a typo) is an error, not a server without variables.
+        if (start != null) await client.DescribeAsync(start, ct).ConfigureAwait(false);
         var found = new List<(UaNodeAddress Address, string[] Path)>();
         var seen = new HashSet<UaNodeAddress>();
+        var unbrowsed = 0;
         var queue = new Queue<(UaNodeAddress? Node, string[] Path)>();
         queue.Enqueue((start, []));
         var truncated = false;
@@ -39,7 +46,7 @@ public static class ServerVariables
             var (node, path) = queue.Dequeue();
             IReadOnlyList<UaBrowseItem> children;
             try { children = await client.BrowseAsync(node, ct).ConfigureAwait(false); }
-            catch (Exception ex) when (ex is not OperationCanceledException) { continue; }
+            catch (Exception ex) when (ex is not OperationCanceledException) { unbrowsed++; continue; }
             foreach (var c in children)
             {
                 if (c.NodeClass == "Method" || c.Address.NamespaceUri == UaBase || !seen.Add(c.Address)) continue;
@@ -64,6 +71,6 @@ public static class ServerVariables
             for (var k = 0; k < chunk.Count; k++)
                 variables.Add(new ServerVariable(chunk[k].Address, chunk[k].Path, read?[k] is { Good: true } r ? r.DataType : null));
         }
-        return new CollectedVariables(variables, truncated);
+        return new CollectedVariables(variables, truncated) { Unbrowsed = unbrowsed };
     }
 }

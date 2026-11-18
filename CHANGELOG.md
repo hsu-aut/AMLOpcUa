@@ -97,6 +97,23 @@ minor versions.
 
 ### Fixed
 
+- **Bind model…** and `uaaml bind --apply` replaced a binding by a browse
+  path, an alias, a BPR DataVariable or the older aml-opcua-variable with the
+  NodeId of another variable; such an element counts as bound now. Below a
+  node the server does not have, `uaaml bind` and `uaaml check-server`
+  passed with nothing found; they fail now. Nodes that could not be browsed
+  are named, and `--apply` then binds nothing. The count of variables without
+  a value agrees with the report.
+- **Check server** checked a node reached on two ways (two folders, a circle
+  of Organizes) once per way; it is checked once.
+- **Serve with types**: the children of an instance of a served type had the
+  document's namespace in their BrowseName, not that of their declaration, so
+  a client browsing by the type's names found nothing and Check server called
+  them missing.
+- `uaaml` refuses options it would pass over: `check-server --limit` that is
+  no number, `serve --types` with `--nodeset`, `--search` without `--types`, a
+  `--port` that is no port. **Find servers** keeps a port typed that is the
+  scheme's default (`https://host:443` became port 4840).
 - Commands of the **Server** tab that went wrong around other work:
   **Bind model…** offered and bound the models of the document open when it
   started, though another was open by then. **Write value…** read the

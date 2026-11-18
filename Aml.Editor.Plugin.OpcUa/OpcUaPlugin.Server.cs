@@ -1066,6 +1066,11 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(start == null ? L.T("The server has no variables to bind.") : L.T("The server has no variables below {0}.", start.DisplayName));
             return;
         }
+        if (found.Unbrowsed > 0)
+        {
+            PluginLog.Warn($"Bind model: {found.Unbrowsed} node(s) could not be browsed.");
+            SetStatus(L.T("{0} node(s) of the server could not be browsed; the proposals may lack what is below them.", found.Unbrowsed));
+        }
 
         var window = new ModelBindWindow(models, models[0], found, start?.DisplayName ?? L.T("the whole server")) { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;

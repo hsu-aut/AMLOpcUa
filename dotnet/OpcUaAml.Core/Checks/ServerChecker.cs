@@ -42,6 +42,9 @@ public static class ServerChecker
         private int _checked;
         private bool _truncated;
 
+        /// <summary>The nodes checked: one reached on two ways (two folders, a circle of Organizes) is checked once.</summary>
+        private readonly HashSet<NodeId> _visited = new();
+
         public async Task<ServerCheckResult> CheckAsync(UaNodeAddress? start)
         {
             if (start == null)
@@ -53,7 +56,10 @@ public static class ServerChecker
             else
             {
                 var id = client.ToNodeId(start);
-                await CheckAsync(await DescribeAsync(id), (await NameOfAsync(id)), null);
+                var node = await DescribeAsync(id);
+                if (node.Class is not (NodeClass.Object or NodeClass.Variable))
+                    throw new ArgumentException($"{start} is a node of the class {node.Class}; the check starts at an object or a variable.", nameof(start));
+                await CheckAsync(node, (await NameOfAsync(id)), null);
             }
             return new ServerCheckResult(_findings, _checked, _truncated);
         }
@@ -61,6 +67,7 @@ public static class ServerChecker
         private async Task CheckAsync(Child node, string path, IReadOnlyList<Declaration>? below)
         {
             if (node.Class is not (NodeClass.Object or NodeClass.Variable)) return;
+            if (!_visited.Add(node.Id)) return;
             if (_checked >= limit) { _truncated = true; return; }
             _checked++;
             ct.ThrowIfCancellationRequested();
@@ -209,6 +216,8 @@ public static class ServerChecker
                 new ReadValueId { NodeId = id, AttributeId = Attributes.NodeClass },
             };
             var r = (await _s.ReadAsync(null, 0, TimestampsToReturn.Neither, read, ct).ConfigureAwait(false)).Results;
+            // A start node the server does not have was checked as an Object named by its NodeId.
+            if (StatusCode.IsBad(r[1].StatusCode)) throw new UaConnectionException($"The server has no node {client.FromExpanded(id)}.");
             var typeRefs = await _s.BrowseAsync(null, null, 0, new BrowseDescriptionCollection
             {
                 new BrowseDescription

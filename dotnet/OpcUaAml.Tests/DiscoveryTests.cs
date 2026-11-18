@@ -15,6 +15,9 @@ public class DiscoveryTests
     [InlineData(" 192.168.0.10 ", "opc.tcp://192.168.0.10:4840")]
     [InlineData("opc.tcp://plc:48400/AMLOpcUa", "opc.tcp://plc:48400/AMLOpcUa")]
     [InlineData("opc.tcp://plc", "opc.tcp://plc:4840")]
+    // Review of 2026-11-18: a port typed that is the scheme's default was replaced by 4840.
+    [InlineData("https://plc:443/discovery", "https://plc:443/discovery")]
+    [InlineData("opc.https://plc:443", "opc.https://plc:443")]
     public void A_host_becomes_the_discovery_url_of_port_4840(string text, string url) =>
         Assert.Equal(url, UaDiscovery.DiscoveryUrl(text));
 

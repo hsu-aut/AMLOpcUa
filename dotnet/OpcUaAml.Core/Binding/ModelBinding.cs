@@ -27,6 +27,15 @@ public sealed record ModelSignal(IReadOnlyList<string> Path, string? DataType, U
     /// <summary>The element; null for a signal made up in a test.</summary>
     public InternalElementType? Element { get; init; }
 
+    /// <summary>
+    /// Bound, though not to an address read here: by a browse path or an alias
+    /// (Annex A), a BPR DataVariable or the older aml-opcua-variable. It is not
+    /// proposed a variable, and binding leaves it as it is.
+    /// </summary>
+    public bool BoundOtherwise { get; init; }
+
+    public bool Bound => BoundTo != null || BoundOtherwise;
+
     public string PathText => string.Join("/", Path);
 }
 
@@ -76,6 +85,19 @@ public sealed record StandsFor(string Element, string Object);
 public sealed record BindingPlan(IReadOnlyList<BindingProposal> Proposals, IReadOnlyList<ServerVariable> Unmatched)
 {
     public IReadOnlyList<StandsFor> Stands { get; init; } = [];
+
+    /// <summary>
+    /// The variables no value of the model is bound to by the plan: those matched by
+    /// no value, and those proposed only to check. What the report lists and the count says.
+    /// </summary>
+    public IReadOnlyList<ServerVariable> WithoutValue
+    {
+        get
+        {
+            var used = Proposals.Where(p => p.Keep || p.BoundAlready).Select(p => p.Variable).OfType<ServerVariable>().ToHashSet();
+            return Unmatched.Concat(Proposals.Select(p => p.Variable).OfType<ServerVariable>()).Distinct().Where(v => !used.Contains(v)).ToList();
+        }
+    }
 }
 
 /// <summary>Words of a name, as model and PLC names are written: DI_FB_SensorOccupied is di fb sensor occupied.</summary>
@@ -146,8 +168,7 @@ public static class ModelBinder
             Line(p.Signal.PathText, p.Variable?.PathText, p.Variable?.Address.ToString(), MatchWord(p.Confidence), p.Keep ? "yes" : "no", string.Join(", ", p.Shared));
         text.Append(Environment.NewLine);
         Line("Variables without a value of the model", "NodeId");
-        var used = plan.Proposals.Where(p => p.Keep || p.BoundAlready).Select(p => p.Variable).OfType<ServerVariable>().ToHashSet();
-        foreach (var v in plan.Unmatched.Concat(plan.Proposals.Select(p => p.Variable).OfType<ServerVariable>()).Distinct().Where(v => !used.Contains(v)))
+        foreach (var v in plan.WithoutValue)
             Line(v.PathText, v.Address.ToString());
         return text.ToString();
     }
@@ -182,9 +203,11 @@ public static class ModelBinder
                 if (children.Count == 0 || value != null)
                 {
                     UaNodeAddress? bound = null;
+                    var otherwise = false;
                     try { bound = AnnexANodeId.Of(e); }
-                    catch (AddressingException) { /* a browse path or alias: bound, though not to an address */ }
-                    signals.Add(new ModelSignal(path.ToArray(), NonEmpty(value?.AttributeDataType), bound) { Element = e });
+                    catch (AddressingException) { otherwise = true; /* a browse path or alias: bound, though not to an address */ }
+                    if (bound == null) otherwise |= BoundOtherwise(e);
+                    signals.Add(new ModelSignal(path.ToArray(), NonEmpty(value?.AttributeDataType), bound) { Element = e, BoundOtherwise = otherwise });
                 }
                 Walk(children, path);
                 path.RemoveAt(path.Count - 1);
@@ -198,6 +221,19 @@ public static class ModelBinder
             default: throw new ArgumentException("A model is an InstanceHierarchy or an InternalElement.", nameof(root));
         }
         return signals;
+    }
+
+    /// <summary>The kinds of binding reading values knows besides an Annex A address (see BindingSet).</summary>
+    private static bool BoundOtherwise(InternalElementType e)
+    {
+        try
+        {
+            if (AnnexANodeId.IndirectOf(e) != null) return true;
+        }
+        catch (AddressingException) { return true; }
+        static IEnumerable<AttributeType> All(IEnumerable<AttributeType> attributes) =>
+            attributes.SelectMany(a => new[] { a }.Concat(All(a.Attribute)));
+        return All(e.Attribute).Any(LegacyOpcUaVariable.IsBound) || e.Attribute.Any(BprDataVariable.IsDataVariable);
     }
 
     /// <summary>
@@ -241,6 +277,8 @@ public static class ModelBinder
         {
             raw[i] = [];
             if (signals[i].BoundTo is { } b) { reserved.Add(Bare(b)); continue; }
+            // Bound by a browse path or the like: its variable is not known here, so it reserves none.
+            if (signals[i].BoundOtherwise) continue;
             var words = Weighted(signals[i].Path, SignalLevels);
             foreach (var v in corpus.Near(words.Where(w => w.Level == 0).Select(w => w.Word)))
             {
@@ -288,6 +326,11 @@ public static class ModelBinder
             if (signals[i].BoundTo is { } b)
             {
                 proposals.Add(new BindingProposal(signals[i], byAddress.GetValueOrDefault(Bare(b)), 1, BindingConfidence.Bound, [], []));
+                continue;
+            }
+            if (signals[i].BoundOtherwise)
+            {
+                proposals.Add(new BindingProposal(signals[i], null, 1, BindingConfidence.Bound, [], []));
                 continue;
             }
             if (chosen[i] is not { } c)

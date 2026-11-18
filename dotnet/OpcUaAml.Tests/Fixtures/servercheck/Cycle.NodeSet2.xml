@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The fixture of the server check (ServerCheckTests), written by a script: a machine type with Mandatory, Optional,
+     nested and placeholder declarations, and instances that each break one rule. -->
+<UANodeSet xmlns="http://opcfoundation.org/UA/2011/03/UANodeSet.xsd" xmlns:uax="http://opcfoundation.org/UA/2008/02/Types.xsd" LastModified="2026-11-17T00:00:00Z">
+  <NamespaceUris><Uri>http://example.org/Check/</Uri></NamespaceUris>
+  <Models><Model ModelUri="http://example.org/Check/" Version="1.0.0" PublicationDate="2026-11-17T00:00:00Z"><RequiredModel ModelUri="http://opcfoundation.org/UA/" Version="1.05.03" PublicationDate="2023-12-15T00:00:00Z" /></Model></Models>
+  <Aliases><Alias Alias="Organizes">i=35</Alias><Alias Alias="HasModellingRule">i=37</Alias><Alias Alias="HasTypeDefinition">i=40</Alias><Alias Alias="HasSubtype">i=45</Alias><Alias Alias="HasProperty">i=46</Alias><Alias Alias="HasComponent">i=47</Alias></Aliases>
+  <UAObjectType NodeId="ns=1;i=1001" BrowseName="1:MachineType">
+    <DisplayName>MachineType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1002</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1003</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1004</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1006</Reference>
+      <Reference ReferenceType="HasSubtype">ns=1;i=1040</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1002" BrowseName="1:Speed" ParentNodeId="ns=1;i=1001" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAVariable NodeId="ns=1;i=1003" BrowseName="1:Label" ParentNodeId="ns=1;i=1001" DataType="i=12">
+    <DisplayName>Label</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasModellingRule">i=80</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1004" BrowseName="1:Motor" ParentNodeId="ns=1;i=1001">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1005</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=1005" BrowseName="1:Current" ParentNodeId="ns=1;i=1004" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1004</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=1006" BrowseName="1:&lt;Tool&gt;" ParentNodeId="ns=1;i=1001">
+    <DisplayName>&lt;Tool&gt;</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasModellingRule">i=11510</Reference>
+    </References>
+  </UAObject>
+  <UAObjectType NodeId="ns=1;i=1010" BrowseName="1:MotorType">
+    <DisplayName>MotorType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=1020" BrowseName="1:ToolType">
+    <DisplayName>ToolType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=1030" BrowseName="1:AbstractMachineType" IsAbstract="true">
+    <DisplayName>AbstractMachineType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">i=58</Reference>
+    </References>
+  </UAObjectType>
+  <UAObjectType NodeId="ns=1;i=1040" BrowseName="1:FastMachineType">
+    <DisplayName>FastMachineType</DisplayName>
+    <References>
+      <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=1001</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=1041</Reference>
+    </References>
+  </UAObjectType>
+  <UAVariable NodeId="ns=1;i=1041" BrowseName="1:Boost" ParentNodeId="ns=1;i=1040" DataType="i=1">
+    <DisplayName>Boost</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=1040</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5000" BrowseName="1:Plant">
+    <DisplayName>Plant</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">i=85</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5100</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=6000</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5200</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5300</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5400</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5500</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5600</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5700</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5800</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5900</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5100" BrowseName="1:GoodMachine" ParentNodeId="ns=1;i=5000">
+    <DisplayName>GoodMachine</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5101</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5102</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5104</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5101" BrowseName="1:Speed" ParentNodeId="ns=1;i=5100" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5102" BrowseName="1:Motor" ParentNodeId="ns=1;i=5100">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5103</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5103" BrowseName="1:Current" ParentNodeId="ns=1;i=5102" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5102</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5104" BrowseName="1:Drill" ParentNodeId="ns=1;i=5100">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5100</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5200" BrowseName="1:NoSpeed" ParentNodeId="ns=1;i=5000">
+    <DisplayName>NoSpeed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5202</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5204</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5202" BrowseName="1:Motor" ParentNodeId="ns=1;i=5200">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5203</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5203" BrowseName="1:Current" ParentNodeId="ns=1;i=5202" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5202</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5204" BrowseName="1:Drill" ParentNodeId="ns=1;i=5200">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5200</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5300" BrowseName="1:TextSpeed" ParentNodeId="ns=1;i=5000">
+    <DisplayName>TextSpeed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5301</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5302</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5304</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5301" BrowseName="1:Speed" ParentNodeId="ns=1;i=5300" DataType="i=12">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5300</Reference>
+    </References>
+    <Value><uax:String>fast</uax:String></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5302" BrowseName="1:Motor" ParentNodeId="ns=1;i=5300">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5300</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5303</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5303" BrowseName="1:Current" ParentNodeId="ns=1;i=5302" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5302</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5304" BrowseName="1:Drill" ParentNodeId="ns=1;i=5300">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5300</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5400" BrowseName="1:MotorWithoutCurrent" ParentNodeId="ns=1;i=5000">
+    <DisplayName>MotorWithoutCurrent</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5401</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5402</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5404</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5401" BrowseName="1:Speed" ParentNodeId="ns=1;i=5400" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5400</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5402" BrowseName="1:Motor" ParentNodeId="ns=1;i=5400">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5400</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5404" BrowseName="1:Drill" ParentNodeId="ns=1;i=5400">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5400</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5500" BrowseName="1:NoTool" ParentNodeId="ns=1;i=5000">
+    <DisplayName>NoTool</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5501</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5502</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5501" BrowseName="1:Speed" ParentNodeId="ns=1;i=5500" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5500</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5502" BrowseName="1:Motor" ParentNodeId="ns=1;i=5500">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5500</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5503</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5503" BrowseName="1:Current" ParentNodeId="ns=1;i=5502" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5502</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5600" BrowseName="1:WrongMotor" ParentNodeId="ns=1;i=5000">
+    <DisplayName>WrongMotor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1001</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5601</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5602</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5604</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5601" BrowseName="1:Speed" ParentNodeId="ns=1;i=5600" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5600</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5602" BrowseName="1:Motor" ParentNodeId="ns=1;i=5600">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5600</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5603</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5603" BrowseName="1:Current" ParentNodeId="ns=1;i=5602" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5602</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5604" BrowseName="1:Drill" ParentNodeId="ns=1;i=5600">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5600</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5700" BrowseName="1:Abstract" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Abstract</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1030</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5800" BrowseName="1:Fast" ParentNodeId="ns=1;i=5000">
+    <DisplayName>Fast</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1040</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5801</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5802</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5804</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5801" BrowseName="1:Speed" ParentNodeId="ns=1;i=5800" DataType="i=11">
+    <DisplayName>Speed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5800</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5802" BrowseName="1:Motor" ParentNodeId="ns=1;i=5800">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5800</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5803</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5803" BrowseName="1:Current" ParentNodeId="ns=1;i=5802" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5802</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5804" BrowseName="1:Drill" ParentNodeId="ns=1;i=5800">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5800</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5900" BrowseName="1:FastWithoutSpeed" ParentNodeId="ns=1;i=5000">
+    <DisplayName>FastWithoutSpeed</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1040</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5902</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5904</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5905</Reference>
+    </References>
+  </UAObject>
+  <UAObject NodeId="ns=1;i=5902" BrowseName="1:Motor" ParentNodeId="ns=1;i=5900">
+    <DisplayName>Motor</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1010</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5900</Reference>
+      <Reference ReferenceType="HasComponent">ns=1;i=5903</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5903" BrowseName="1:Current" ParentNodeId="ns=1;i=5902" DataType="i=11">
+    <DisplayName>Current</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5902</Reference>
+    </References>
+    <Value><uax:Double>1.5</uax:Double></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=5904" BrowseName="1:Drill" ParentNodeId="ns=1;i=5900">
+    <DisplayName>Drill</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">ns=1;i=1020</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5900</Reference>
+    </References>
+  </UAObject>
+  <UAVariable NodeId="ns=1;i=5905" BrowseName="1:Boost" ParentNodeId="ns=1;i=5900" DataType="i=1">
+    <DisplayName>Boost</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=63</Reference>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=5900</Reference>
+    </References>
+    <Value><uax:Boolean>true</uax:Boolean></Value>
+  </UAVariable>
+  <UAObject NodeId="ns=1;i=6000" BrowseName="1:Area">
+    <DisplayName>Area</DisplayName>
+    <References>
+      <Reference ReferenceType="HasTypeDefinition">i=61</Reference>
+      <Reference ReferenceType="Organizes" IsForward="false">ns=1;i=5000</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5000</Reference>
+      <Reference ReferenceType="Organizes">ns=1;i=5200</Reference>
+    </References>
+  </UAObject>
+</UANodeSet>

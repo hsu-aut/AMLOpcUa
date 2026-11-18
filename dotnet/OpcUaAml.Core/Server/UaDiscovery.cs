@@ -29,9 +29,12 @@ public static class UaDiscovery
         if (t.Length == 0) t = "localhost";
         if (!t.Contains("://", StringComparison.Ordinal)) t = "opc.tcp://" + t;
         if (!Uri.TryCreate(t, UriKind.Absolute, out var uri)) return t;
-        return uri.IsDefaultPort || uri.Port < 0
-            ? $"{uri.Scheme}://{uri.Host}:{DiscoveryPort}{uri.PathAndQuery.TrimEnd('/')}"
-            : t;
+        // A port typed stays, the scheme's default one too (https://host:443), which IsDefaultPort cannot tell apart.
+        var authority = t[(t.IndexOf("://", StringComparison.Ordinal) + 3)..].Split('/', 2)[0];
+        var portTyped = System.Text.RegularExpressions.Regex.IsMatch(authority, @":\d+$");
+        return portTyped || (!uri.IsDefaultPort && uri.Port >= 0)
+            ? t
+            : $"{uri.Scheme}://{uri.Host}:{DiscoveryPort}{uri.PathAndQuery.TrimEnd('/')}";
     }
 
     /// <summary>The servers the discovery server at <paramref name="where"/> knows.</summary>

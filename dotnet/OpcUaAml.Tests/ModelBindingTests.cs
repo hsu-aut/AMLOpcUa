@@ -223,4 +223,48 @@ public class ModelBindingTests
             AnnexANodeId.Of(speed));
         Assert.NotNull(speed.Attribute["Value"]);
     }
+
+    // Review of 2026-11-18: an element bound by a browse path (or an alias, a BPR
+    // DataVariable, the older aml-opcua-variable) counted as unbound; bind --apply
+    // gave it a NodeId of another variable and the working binding was gone.
+    [Theory]
+    [InlineData("browse path")]
+    [InlineData("aml-opcua-variable")]
+    [InlineData("BPR DataVariable")]
+    public void An_element_bound_another_way_is_bound_and_stays_as_it_is(string kind)
+    {
+        var doc = CAEXDocument.New_CAEXDocument();
+        var speed = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Station").InternalElement.Append("Speed");
+        speed.Attribute.Append("Value");
+        switch (kind)
+        {
+            case "browse path":
+                var nodeId = speed.Attribute.Append("NodeId");
+                var root = nodeId.Attribute.Append("RootNodeId");
+                root.Attribute.Append("NamespaceUri").Value = Plant;
+                root.Attribute.Append("StringId").Value = "Plant";
+                var target = nodeId.Attribute.Append("BrowsePath").Attribute.Append("Elements").Attribute.Append("0").Attribute.Append("TargetName");
+                target.Attribute.Append("NamespaceUri").Value = Plant;
+                target.Attribute.Append("Name").Value = "Speed";
+                break;
+            case "aml-opcua-variable":
+                speed.Attribute["Value"]!.Attribute.Append(LegacyOpcUaVariable.SubAttribute);
+                break;
+            default:
+                var dv = speed.Attribute.Append("Speed");
+                dv.Attribute.Append("NodeId");
+                dv.Attribute.Append("RefDataSource");
+                break;
+        }
+        var before = doc.CAEXFile.Node.ToString();
+
+        var signal = Assert.Single(ModelBinder.OwnSignals(ModelBinder.Models(doc).First()));
+        var plan = ModelBinder.Propose(new[] { signal }, new[] { Variable("Line2/Station/Speed") });
+        var applied = ModelBinder.Apply(plan.Proposals.Where(p => p.Keep), "urn:server");
+
+        Assert.True(signal.BoundOtherwise);
+        Assert.True(Assert.Single(plan.Proposals).BoundAlready);
+        Assert.Equal(0, applied);
+        Assert.Equal(before, doc.CAEXFile.Node.ToString());
+    }
 }

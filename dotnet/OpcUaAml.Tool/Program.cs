@@ -607,7 +607,9 @@ public static class Program
     {
         var o = Options.Parse(args, valued: new[] { "--user", "--below", "--limit" }, flags: new[] { "--secure", "--insecure", "--accept" });
         if (o.Positional.Count != 1) throw new ArgumentException("check-server needs an endpoint.");
-        var limit = int.TryParse(o.One("--limit"), out var n) && n > 0 ? n : 20000;
+        var limit = 20000;
+        if (o.One("--limit") is { } given && (!int.TryParse(given, out limit) || limit < 1))
+            throw new ArgumentException("--limit needs a whole number of at least 1.");
         await using var client = await OpcUaAml.Server.UaClient.ConnectAsync(Connect(o, o.Positional[0]));
         var below = o.One("--below") is { } node ? await client.ResolveAsync(node) : null;
         var result = await ServerChecker.CheckAsync(client, below, limit);
@@ -857,6 +859,8 @@ public static class Program
         var found = await OpcUaAml.Binding.ServerVariables.CollectAsync(client, below);
         if (found.Truncated)
             Console.Error.WriteLine($"The search stopped after {found.Variables.Count} variables; name a part of the server with --below.");
+        if (found.Unbrowsed > 0)
+            Console.Error.WriteLine($"{found.Unbrowsed} node(s) could not be browsed; the variables below them are missing from the proposals.");
         var plan = OpcUaAml.Binding.ModelBinder.Propose(OpcUaAml.Binding.ModelBinder.OwnSignals(model), found.Variables);
 
         var width = plan.Proposals.Select(p => p.Signal.PathText.Length).DefaultIfEmpty(0).Max();
@@ -867,7 +871,7 @@ public static class Program
         var check = plan.Proposals.Count(p => p.Confidence == OpcUaAml.Binding.BindingConfidence.Check);
         var none = plan.Proposals.Count(p => p.Confidence == OpcUaAml.Binding.BindingConfidence.None);
         Console.WriteLine($"{kept} of {plan.Proposals.Count} value(s) sure or likely, {check} to check, {none} without a variable; "
-                          + $"{plan.Unmatched.Count} variable(s) of the server without a value of the model.");
+                          + $"{plan.WithoutValue.Count} variable(s) of the server without a value of the model.");
         if (o.One("--report") is { } report)
         {
             File.WriteAllText(report, OpcUaAml.Binding.ModelBinder.Report(plan), new System.Text.UTF8Encoding(true));
@@ -878,6 +882,8 @@ public static class Program
             Console.WriteLine("Nothing bound: --apply binds the sure and likely ones.");
             return 0;
         }
+        // Proposals from part of the server are not sure enough to write: the rarity of a word was counted on that part.
+        if (found.Unbrowsed > 0) return Fail("Nothing bound: some nodes could not be browsed, so the proposals rest on part of the server.");
         var bound = OpcUaAml.Binding.ModelBinder.Apply(plan.Proposals.Where(p => p.Keep), client.ServerUri);
         var output = o.One("-o") ?? docPath;
         Documents.Save(doc, output);
@@ -1121,6 +1127,15 @@ public static class Program
             flags: new[] { "--network", "--simulate", "--no-publish", "--types" });
         var network = o.Has("--network");
         var nodeSets = o.All("--nodeset");
+        // Options that would do nothing are refused, not passed over.
+        if (nodeSets.Count > 0 && o.Has("--types"))
+            throw new ArgumentException("--types serves a document with its types; a NodeSet given with --nodeset is served with its types anyway.");
+        if (nodeSets.Count == 0 && o.All("--search").Count > 0 && !o.Has("--types"))
+            throw new ArgumentException("--search names the folders --types takes NodeSets from; without --types nothing is searched.");
+        int? givenPort = null;
+        if (o.One("--port") is { } portText)
+            givenPort = int.TryParse(portText, out var pp) && pp is >= 1 and <= 65535 ? pp
+                : throw new ArgumentException("--port needs a port number from 1 to 65535.");
         var where = !network ? ", to this computer only."
             : nodeSets.Count > 0 ? " to the network, to trusted clients only (see 'uaaml clients --nodeset')."
             : " to the network, to trusted clients only (see 'uaaml clients').";
@@ -1135,7 +1150,7 @@ public static class Program
             // structure of an AML document.
             var options = new OpcUaAml.Server.NodeSetServerOptions
             {
-                Port = int.TryParse(o.One("--port"), out var np) ? np : 4840,
+                Port = givenPort ?? 4840,
                 Network = network,
                 Simulate = o.Has("--simulate"),
                 PublishNodeSets = !o.Has("--no-publish"),
@@ -1152,7 +1167,7 @@ public static class Program
         }
 
         var doc = Documents.Load(o.SinglePositional("document"));
-        var port = int.TryParse(o.One("--port"), out var p) ? p : 48400;
+        var port = givenPort ?? 48400;
         await using var host = await OpcUaAml.Server.AmlServerHost.StartAsync(doc, new OpcUaAml.Server.AmlServerOptions
         {
             Port = port, Network = network, Simulate = o.Has("--simulate"), PkiRoot = DocumentServerPki,

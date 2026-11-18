@@ -791,6 +791,7 @@ internal static class De
         ["Reading current values …"] = "Aktuelle Werte werden gelesen …",
         ["Reading '{0}' …"] = "'{0}' wird gelesen …",
         ["Binding the model failed: {0}"] = "Binden des Modells fehlgeschlagen: {0}",
+        ["{0} node(s) of the server could not be browsed; the proposals may lack what is below them."] = "{0} Knoten des Servers ließen sich nicht durchsuchen; den Vorschlägen kann fehlen, was darunter liegt.",
         ["No element of this document has the ID {0}: the finding is about a node of the server, or the element is gone."] = "Kein Element dieses Dokuments hat die ID {0}: Der Befund betrifft einen Knoten des Servers, oder das Element gibt es nicht mehr.",
         ["Saving the report failed: {0}"] = "Speichern des Berichts fehlgeschlagen: {0}",
         ["Making the certificate failed: {0}"] = "Erstellen des Zertifikats fehlgeschlagen: {0}",

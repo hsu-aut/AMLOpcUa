@@ -1,4 +1,5 @@
 using Aml.Engine.CAEX;
+using OpcUaAml.Addressing;
 using OpcUaAml.Binding;
 using OpcUaAml.Server;
 
@@ -52,6 +53,19 @@ public class ServerVariablesTests
         Assert.DoesNotContain(found.Variables, v => v.Address.NamespaceUri == "http://opcfoundation.org/UA/");
         Assert.DoesNotContain(found.Variables, v => v.Path[^1] is "EngineeringUnits" or "EURange");
         Assert.False(found.Truncated);
+    }
+
+    // Review of 2026-11-18: below a NodeId the server does not have (a typo), the search
+    // found nothing and said nothing; uaaml bind printed "(none)" for every value and passed.
+    [Fact]
+    public async Task Collecting_below_a_node_the_server_does_not_have_is_an_error()
+    {
+        var (host, client) = await PracticePlantAsync();
+        await using var _ = host;
+        await using var __ = client;
+
+        await Assert.ThrowsAsync<UaConnectionException>(() =>
+            ServerVariables.CollectAsync(client, new UaNodeAddress("http://hsu-hh.de/UA/MPS500/", UaIdType.String, "Typo")));
     }
 
     [Fact]

@@ -903,7 +903,10 @@ report with `--report`, and binds the sure and likely ones only with
 `--apply`; without it the document stays as it is. `--model` names an
 InstanceHierarchy, or an element below one (`Plant/ProcessingStation`);
 `--below` the part of the server to search, as a NodeId or a path of browse
-names.
+names. A value already bound, by a NodeId, a browse path, an alias, a BPR
+DataVariable or an aml-opcua-variable, stays as it is. A `--below` the server
+does not have is an error; nodes that could not be browsed are named, and
+`--apply` then binds nothing, as the proposals rest on part of the server.
 
 For a model of your own, bind:
 
@@ -1050,9 +1053,11 @@ be imported: the plugin reads them from the server. The findings go to the
 
 The line above the list names the server and how many nodes were checked. A
 check stops after 20000 nodes and says so; select a part of the server to
-check the rest. The practice plant has no findings. On the command line:
-`uaaml check-server <endpoint> [--below <node>]`, which ends with exit code 1
-when there are errors, for a script or a pipeline.
+check the rest. A node reached on two ways is checked once. The practice
+plant has no findings. On the command line: `uaaml check-server <endpoint>
+[--below <node>] [--limit <n>]`, which ends with exit code 1 when there are
+errors, for a script or a pipeline; a `--below` the server does not have, or
+one that is no object or variable, is an error too.
 
 ### A plant to practise on
 

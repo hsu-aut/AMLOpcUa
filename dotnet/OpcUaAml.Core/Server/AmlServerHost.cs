@@ -246,7 +246,7 @@ public sealed class AmlServerHost : IAsyncDisposable
         {
             // The namespaces whose types are there: the base model's always, the others when loaded.
             var typed = withTypes ? types.SelectMany(s => s.Namespaces).Append(Opc.Ua.Namespaces.OpcUa).ToHashSet(StringComparer.Ordinal) : null;
-            NodeManager = new DocumentNodeManager(server, configuration, model, simulate, typed);
+            NodeManager = new DocumentNodeManager(server, configuration, model, simulate, typed, withTypes ? types : []);
             if (types.Count == 0) return new(server, configuration, null, NodeManager);
             var typeManager = new NodeSetServerHost.PlantNodeManager(server, configuration, types, publish: true, simulate: false, typesOnly: true);
             return new(server, configuration, null, typeManager, NodeManager);
@@ -254,10 +254,13 @@ public sealed class AmlServerHost : IAsyncDisposable
     }
 
     private sealed class DocumentNodeManager(IServerInternal server, ApplicationConfiguration configuration, AmlAddressSpace model, bool simulate,
-        IReadOnlySet<string>? typed)
+        IReadOnlySet<string>? typed, IReadOnlyList<NodeSetServerHost.ServedSet> typeSets)
         : CustomNodeManager2(server, configuration, model.NamespaceUris.ToArray())
     {
         private readonly List<(BaseDataVariableState State, AmlNode Node)> _variables = new();
+
+        /// <summary>The served types as their NodeSets declare them, read to look up instance declarations; not in the address space.</summary>
+        private readonly Dictionary<NodeId, BaseTypeState> _types = new();
 
         // Simulation: the document's value of each variable is the middle it moves around.
         private readonly Dictionary<BaseDataVariableState, object?> _middle = new();
@@ -338,9 +341,18 @@ public sealed class AmlServerHost : IAsyncDisposable
                 if (!externalReferences.TryGetValue(ObjectIds.ObjectsFolder, out var refs))
                     externalReferences[ObjectIds.ObjectsFolder] = refs = new List<IReference>();
 
+                foreach (var set in typeSets)
+                {
+                    using var stream = File.OpenRead(set.Path);
+                    var nodes = new NodeStateCollection();
+                    // Children linked to their parents: a type's declarations are then its children.
+                    Opc.Ua.Export.UANodeSet.Read(stream).Import(SystemContext, nodes, linkParentChild: true);
+                    foreach (var type in nodes.OfType<BaseTypeState>()) _types[type.NodeId] = type;
+                }
+
                 foreach (var folder in model.Roots)
                 {
-                    var state = Create(folder, null);
+                    var state = Create(folder, null, null);
                     state.AddReference(ReferenceTypeIds.Organizes, true, ObjectIds.ObjectsFolder);
                     refs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, state.NodeId));
                     AddPredefinedNode(SystemContext, state);
@@ -360,13 +372,35 @@ public sealed class AmlServerHost : IAsyncDisposable
             };
         }
 
+        /// <summary>
+        /// The instance declarations of a served type and its supertypes, a subtype's
+        /// own first. An element named like one is that declaration in the instance,
+        /// so it takes its BrowseName, in the namespace of the type's model: a client
+        /// that browses by the type's BrowseNames finds it (OPC 10000-3 6.3.3).
+        /// </summary>
+        private List<BaseInstanceState> DeclarationsOf(NodeId? type)
+        {
+            var all = new List<BaseInstanceState>();
+            var seen = new HashSet<NodeId>();
+            for (var t = type; t != null && !NodeId.IsNull(t) && seen.Add(t) && _types.TryGetValue(t, out var state); t = state.SuperTypeId)
+            {
+                var children = new List<BaseInstanceState>();
+                state.GetChildren(SystemContext, children);
+                foreach (var c in children)
+                    if (!all.Any(a => a.BrowseName?.Name == c.BrowseName?.Name)) all.Add(c);
+            }
+            return all;
+        }
+
         /// <summary>The node's UA type, where it is served; null for the base types.</summary>
         private NodeId? TypeOf(AmlNode node) =>
             node.TypeDefinition is { } type && typed != null && typed.Contains(type.NamespaceUri) && Server.NamespaceUris.GetIndex(type.NamespaceUri) >= 0
                 ? Id(type) : null;
 
-        private NodeState Create(AmlNode node, NodeState? parent)
+        /// <summary>A node of the document; <paramref name="declared"/> the declarations its parent's type and declaration hold.</summary>
+        private NodeState Create(AmlNode node, NodeState? parent, IReadOnlyList<BaseInstanceState>? declared)
         {
+            var declaration = declared?.FirstOrDefault(d => d.BrowseName?.Name == node.Name);
             var ns = (ushort)Server.NamespaceUris.GetIndex(node.Address.NamespaceUri);
             var nodeId = Id(node.Address);
             BaseInstanceState state;
@@ -396,11 +430,20 @@ public sealed class AmlServerHost : IAsyncDisposable
                 state = new BaseObjectState(parent) { TypeDefinitionId = TypeOf(node) ?? ObjectTypeIds.BaseObjectType };
             }
             state.NodeId = nodeId;
-            state.BrowseName = new QualifiedName(node.Name, ns);
+            state.BrowseName = declaration?.BrowseName ?? new QualifiedName(node.Name, ns);
             state.DisplayName = node.Name;
-            state.ReferenceTypeId = node.IsFolder ? ReferenceTypeIds.Organizes : ReferenceTypeIds.HasComponent;
+            state.ReferenceTypeId = node.IsFolder ? ReferenceTypeIds.Organizes : declaration?.ReferenceTypeId ?? ReferenceTypeIds.HasComponent;
             parent?.AddChild(state);
-            foreach (var child in node.Children) Create(child, state);
+            // What the node's own type declares, then what its declaration holds below it.
+            var below = DeclarationsOf(TypeOf(node));
+            if (declaration != null)
+            {
+                var inner = new List<BaseInstanceState>();
+                declaration.GetChildren(SystemContext, inner);
+                foreach (var d in inner)
+                    if (!below.Any(b => b.BrowseName?.Name == d.BrowseName?.Name)) below.Add(d);
+            }
+            foreach (var child in node.Children) Create(child, state, below.Count > 0 ? below : null);
             return state;
         }
 

@@ -1,5 +1,6 @@
 using Aml.Engine.CAEX;
 using OpcUaAml.Addressing;
+using OpcUaAml.Checks;
 using OpcUaAml.Server;
 using OpcUaAml.Types;
 
@@ -50,6 +51,22 @@ public class ServeTypesTests(DiDocument di) : IClassFixture<DiDocument>
     {
         var folder = (await client.BrowseAsync()).Single(i => i.BrowseName == hierarchy);
         return (await client.BrowseAsync(folder.Address)).Single(i => i.BrowseName == "Firmware");
+    }
+
+    // Review of 2026-11-18: the children of a typed instance took the document's namespace
+    // as their BrowseName, not that of their declaration; Check server called them missing.
+    [Fact]
+    public async Task The_children_of_an_instance_have_the_BrowseNames_of_their_declarations()
+    {
+        WithFirmware("Named");
+        var (host, client) = await ServeAsync(withTypes: true);
+        await using var _ = host;
+        await using var __ = client;
+
+        var firmware = await FirmwareAsync(client, "Named");
+        var result = await ServerChecker.CheckAsync(client, firmware.Address);
+
+        Assert.DoesNotContain(result.Findings, f => f.Rule == Rules.ServerMissingMandatory);
     }
 
     [Fact]
