@@ -1038,9 +1038,12 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetBusy(true, start == null ? L.T("Reading the server's variables …") : L.T("Reading the variables below {0} …", start.DisplayName));
         var token = BeginCancellable();
         CollectedVariables found;
+        IReadOnlyDictionary<System.Xml.Linq.XElement, UaNodeAddress> resolved;
         try
         {
             found = await ServerVariables.CollectAsync(client, start?.Address, ct: token);
+            // Values bound by a browse path or an alias: the server says which variables they take.
+            resolved = await ModelBinder.ResolveIndirectAsync(document, client, token);
         }
         catch (Exception) when (token.IsCancellationRequested)
         {
@@ -1072,7 +1075,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(L.T("{0} node(s) of the server could not be browsed; the proposals may lack what is below them.", found.Unbrowsed));
         }
 
-        var window = new ModelBindWindow(models, models[0], found, start?.DisplayName ?? L.T("the whole server")) { Owner = Window.GetWindow(this) };
+        var window = new ModelBindWindow(models, models[0], found, start?.DisplayName ?? L.T("the whole server"), resolved) { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         int bound;
         try { bound = ModelBinder.Apply(window.Kept, client.ServerUri); }

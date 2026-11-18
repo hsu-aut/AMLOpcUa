@@ -861,7 +861,8 @@ public static class Program
             Console.Error.WriteLine($"The search stopped after {found.Variables.Count} variables; name a part of the server with --below.");
         if (found.Unbrowsed > 0)
             Console.Error.WriteLine($"{found.Unbrowsed} node(s) could not be browsed; the variables below them are missing from the proposals.");
-        var plan = OpcUaAml.Binding.ModelBinder.Propose(OpcUaAml.Binding.ModelBinder.OwnSignals(model), found.Variables);
+        var resolved = await OpcUaAml.Binding.ModelBinder.ResolveIndirectAsync(doc, client);
+        var plan = OpcUaAml.Binding.ModelBinder.Propose(OpcUaAml.Binding.ModelBinder.OwnSignals(model, resolved), found.Variables);
 
         var width = plan.Proposals.Select(p => p.Signal.PathText.Length).DefaultIfEmpty(0).Max();
         var right = plan.Proposals.Select(p => (p.Variable?.PathText ?? "(none)").Length).DefaultIfEmpty(0).Max();

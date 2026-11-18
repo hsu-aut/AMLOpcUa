@@ -99,7 +99,9 @@ minor versions.
 
 - **Bind model…** and `uaaml bind --apply` replaced a binding by a browse
   path, an alias, a BPR DataVariable or the older aml-opcua-variable with the
-  NodeId of another variable; such an element counts as bound now. Below a
+  NodeId of another variable; such an element counts as bound now, and where
+  the server resolves its browse path or alias, its variable is no longer
+  proposed to another value. Below a
   node the server does not have, `uaaml bind` and `uaaml check-server`
   passed with nothing found; they fail now. Nodes that could not be browsed
   are named, and `--apply` then binds nothing. The count of variables without

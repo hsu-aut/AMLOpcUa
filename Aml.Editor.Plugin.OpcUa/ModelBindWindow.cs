@@ -15,6 +15,7 @@ using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
 using Aml.Engine.CAEX.Extensions;
 using Microsoft.Win32;
+using OpcUaAml.Addressing;
 using OpcUaAml.Binding;
 using OpcUaAml.Server;
 using OpcUaAml.Types;
@@ -134,7 +135,8 @@ public static class ModelBindRows
     public static IReadOnlyList<CAEXObject> Models(CAEXDocument document) => ModelBinder.Models(document);
 
     /// <summary>The signals of a model that are the user's own.</summary>
-    public static IReadOnlyList<ModelSignal> Signals(CAEXObject model) => ModelBinder.OwnSignals(model);
+    public static IReadOnlyList<ModelSignal> Signals(CAEXObject model, IReadOnlyDictionary<System.Xml.Linq.XElement, UaNodeAddress>? resolved = null) =>
+        ModelBinder.OwnSignals(model, resolved);
 }
 
 /// <summary>The dialog of Bind model….</summary>
@@ -153,9 +155,14 @@ public sealed class ModelBindWindow : Window
 
     public string ModelName => (_models.SelectedItem as ComboBoxItem)?.Content as string ?? "";
 
-    public ModelBindWindow(IReadOnlyList<CAEXObject> models, CAEXObject? preferred, CollectedVariables variables, string serverPart)
+    /// <summary>The addresses the server gave values bound by a browse path or an alias: their variables are taken.</summary>
+    private readonly IReadOnlyDictionary<System.Xml.Linq.XElement, OpcUaAml.Addressing.UaNodeAddress>? _resolved;
+
+    public ModelBindWindow(IReadOnlyList<CAEXObject> models, CAEXObject? preferred, CollectedVariables variables, string serverPart,
+        IReadOnlyDictionary<System.Xml.Linq.XElement, OpcUaAml.Addressing.UaNodeAddress>? resolved = null)
     {
         _variables = variables;
+        _resolved = resolved;
         Width = 1000;
         Height = 640;
         ResizeMode = ResizeMode.CanResizeWithGrip;
@@ -219,7 +226,7 @@ public sealed class ModelBindWindow : Window
     private void Propose()
     {
         if ((_models.SelectedItem as ComboBoxItem)?.Tag is not CAEXObject model) return;
-        _plan = ModelBinder.Propose(ModelBindRows.Signals(model), _variables.Variables);
+        _plan = ModelBinder.Propose(ModelBindRows.Signals(model, _resolved), _variables.Variables);
         foreach (var r in _rows) r.PropertyChanged -= RowChanged;
         _rows = ModelBindRows.From(_plan);
         foreach (var r in _rows) r.PropertyChanged += RowChanged;

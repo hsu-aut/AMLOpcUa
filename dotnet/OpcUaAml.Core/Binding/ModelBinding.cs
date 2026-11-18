@@ -151,9 +151,31 @@ public static class ModelBinder
     public static IReadOnlyList<CAEXObject> Models(CAEXDocument document) =>
         document.CAEXFile.InstanceHierarchy.Where(ih => ih.Descendants<InternalElementType>().Any(IsOwn)).Cast<CAEXObject>().ToList();
 
-    /// <summary>The signals of a model that are the user's own.</summary>
-    public static IReadOnlyList<ModelSignal> OwnSignals(CAEXObject model) =>
-        Signals(model).Where(s => s.Element == null || IsOwn(s.Element)).ToList();
+    /// <summary>The signals of a model that are the user's own; <paramref name="resolved"/> as for <see cref="Signals"/>.</summary>
+    public static IReadOnlyList<ModelSignal> OwnSignals(CAEXObject model, IReadOnlyDictionary<System.Xml.Linq.XElement, UaNodeAddress>? resolved = null) =>
+        Signals(model, resolved).Where(s => s.Element == null || IsOwn(s.Element)).ToList();
+
+    /// <summary>
+    /// The variables that values bound by a browse path or an alias (Annex A) stand for on
+    /// <paramref name="client"/>'s server, by element: Propose then keeps them from the other
+    /// values. What the server cannot resolve, or what is bound to another server, stays out,
+    /// bound otherwise.
+    /// </summary>
+    public static async Task<IReadOnlyDictionary<System.Xml.Linq.XElement, UaNodeAddress>> ResolveIndirectAsync(
+        CAEXDocument document, UaClient client, CancellationToken ct = default)
+    {
+        var resolved = new Dictionary<System.Xml.Linq.XElement, UaNodeAddress>();
+        foreach (var e in document.CAEXFile.InstanceHierarchy.SelectMany(ih => ih.Descendants<InternalElementType>()))
+        {
+            IndirectNodeId? id;
+            try { id = AnnexANodeId.IndirectOf(e); }
+            catch (AddressingException) { continue; }
+            if (id == null || (id.ServerUri != null && client.ServerUri != null && id.ServerUri != client.ServerUri)) continue;
+            try { resolved[e.Node] = (await client.ResolveAsync(id, ct).ConfigureAwait(false)) with { ServerUri = null }; }
+            catch (Exception ex) when (ex is AddressingException or Opc.Ua.ServiceResultException) { /* not on this server */ }
+        }
+        return resolved;
+    }
 
     /// <summary>
     /// The plan as CSV with semicolons: every value with its variable, the
@@ -190,7 +212,8 @@ public static class ModelBinder
     /// The signals of a model: below <paramref name="root"/>, every element
     /// without elements of its own, and every element with a Value attribute.
     /// </summary>
-    public static IReadOnlyList<ModelSignal> Signals(CAEXObject root)
+    /// <param name="resolved">Addresses a server gave the browse paths and aliases of elements (<see cref="ResolveIndirectAsync"/>).</param>
+    public static IReadOnlyList<ModelSignal> Signals(CAEXObject root, IReadOnlyDictionary<System.Xml.Linq.XElement, UaNodeAddress>? resolved = null)
     {
         var signals = new List<ModelSignal>();
         void Walk(IEnumerable<InternalElementType> elements, List<string> path)
@@ -207,6 +230,7 @@ public static class ModelBinder
                     try { bound = AnnexANodeId.Of(e); }
                     catch (AddressingException) { otherwise = true; /* a browse path or alias: bound, though not to an address */ }
                     if (bound == null) otherwise |= BoundOtherwise(e);
+                    if (bound == null && resolved != null && resolved.TryGetValue(e.Node, out var address)) bound = address;
                     signals.Add(new ModelSignal(path.ToArray(), NonEmpty(value?.AttributeDataType), bound) { Element = e, BoundOtherwise = otherwise });
                 }
                 Walk(children, path);

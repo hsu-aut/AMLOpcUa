@@ -68,6 +68,43 @@ public class ServerVariablesTests
             ServerVariables.CollectAsync(client, new UaNodeAddress("http://hsu-hh.de/UA/MPS500/", UaIdType.String, "Typo")));
     }
 
+    // Review of 2026-11-18: a value bound by a browse path kept its binding, but its variable
+    // was free for the others, so another value of the model could be proposed it.
+    [Fact]
+    public async Task A_value_bound_by_a_browse_path_keeps_its_variable_from_the_others()
+    {
+        var (host, client) = await PracticePlantAsync();
+        await using var _ = host;
+        await using var __ = client;
+        async Task<UaBrowseItem> Child(UaNodeAddress? parent, string name) =>
+            (await client.BrowseAsync(parent)).Single(i => i.BrowseName == name);
+        var parameters = await Child((await Child((await Child(null, "MPS500")).Address, "ST30_Processing")).Address, "ParameterSet");
+        var parts = await Child(parameters.Address, "PartsProduced");
+
+        var doc = CAEXDocument.New_CAEXDocument();
+        var plant = doc.CAEXFile.InstanceHierarchy.Append("Plant");
+        var bound = plant.InternalElement.Append("Station").InternalElement.Append("PartsProduced");
+        bound.Attribute.Append("Value");
+        var nodeId = bound.Attribute.Append("NodeId");
+        var root = nodeId.Attribute.Append("RootNodeId");
+        root.Attribute.Append("NamespaceUri").Value = parameters.Address.NamespaceUri;
+        root.Attribute.Append(parameters.Address.IdType == UaIdType.Numeric ? "NumericId" : "StringId").Value = parameters.Address.Identifier;
+        var target = nodeId.Attribute.Append("BrowsePath").Attribute.Append("Elements").Attribute.Append("0").Attribute.Append("TargetName");
+        target.Attribute.Append("NamespaceUri").Value = parts.Address.NamespaceUri;
+        target.Attribute.Append("Name").Value = "PartsProduced";
+        plant.InternalElement.Append("Line").InternalElement.Append("PartsProduced");
+
+        var resolved = await ModelBinder.ResolveIndirectAsync(doc, client);
+        var found = await ServerVariables.CollectAsync(client);
+        var plan = ModelBinder.Propose(ModelBinder.OwnSignals(plant, resolved), found.Variables);
+
+        var mine = plan.Proposals.Single(p => p.Signal.PathText == "Plant/Station/PartsProduced");
+        var other = plan.Proposals.Single(p => p.Signal.PathText == "Plant/Line/PartsProduced");
+        Assert.True(mine.BoundAlready);
+        Assert.Equal(parts.Address with { ServerUri = null }, mine.Variable?.Address with { ServerUri = null });
+        Assert.NotEqual(parts.Address with { ServerUri = null }, other.Variable?.Address with { ServerUri = null });
+    }
+
     [Fact]
     public async Task Collecting_stops_at_the_limit_and_says_so()
     {
