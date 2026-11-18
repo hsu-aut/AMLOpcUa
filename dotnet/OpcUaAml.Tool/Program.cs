@@ -650,6 +650,8 @@ public static class Program
             password = ReadSecret($"Password for {Path.GetFileName(output)}: ");
             if (ReadSecret("The same password again: ") != password) return Fail("The two passwords differ; nothing was written.");
         }
+        // Without one the private key would lie in the file for anyone who can read it.
+        if (string.IsNullOrEmpty(password)) return Fail("A key file needs a password; nothing was written.");
         using var certificate = OpcUaAml.Descriptors.DescriptorCertificates.CreateSelfSigned(name, DateTimeOffset.Now, years, o.Has("--ecc"));
         File.WriteAllBytes(output, certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Pfx, password));
         var cer = Path.ChangeExtension(output, ".cer");
@@ -734,6 +736,7 @@ public static class Program
         {
             var s = verdict.Signature;
             var state = !s.ValueValid || s.ChangedParts.Count > 0 || s.MissingParts.Count > 0 ? "does not verify"
+                : !verdict.Valid ? "not valid, see the findings"
                 : !verdict.ChainComplete ? "valid, chain incomplete"
                 : verdict.Trusted ? "valid, trusted" : "valid, not trusted";
             var when = s.Time is { } t ? $" on {t:yyyy-MM-dd HH:mm zzz}" : "";

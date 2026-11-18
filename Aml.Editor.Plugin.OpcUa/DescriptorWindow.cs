@@ -250,6 +250,7 @@ internal static class DescriptorSummary
         {
             var s = verdict.Signature;
             var state = !s.ValueValid || s.ChangedParts.Count > 0 || s.MissingParts.Count > 0 ? L.T("does not verify")
+                : !verdict.Valid ? L.T("not valid, see the findings")
                 : !verdict.ChainComplete ? L.T("valid, but its chain is incomplete")
                 : verdict.Trusted ? L.T("valid and trusted") : L.T("valid, not trusted yet");
             parts.Add(s.Time is { } time
@@ -259,10 +260,13 @@ internal static class DescriptorSummary
         return string.Join(" ", parts);
     }
 
-    /// <summary>The signer to offer trust to: of a signature that verifies, whose chain is complete, and that nobody trusts yet.</summary>
+    /// <summary>
+    /// The signer to offer trust to: of a signature that holds in every respect but
+    /// whom it comes from, whose chain is complete, and that nobody trusts yet. Trust
+    /// is never offered for a signature that does not hold, weak or changed.
+    /// </summary>
     public static X509Certificate2? SignerToTrust(DescriptorReport report) =>
-        report.Signatures.FirstOrDefault(v => !v.Trusted && v.ChainComplete && v.Signature.ValueValid
-                                              && v.Signature.ChangedParts.Count == 0 && v.Signature.MissingParts.Count == 0)?.Signature.Signer;
+        report.Signatures.FirstOrDefault(v => v.Valid && v.ChainComplete && !v.SignerTrusted)?.Signature.Signer;
 
     /// <summary>The SHA-256 fingerprint, in pairs, to compare with what the sender says.</summary>
     public static string Fingerprint(X509Certificate2 certificate) =>

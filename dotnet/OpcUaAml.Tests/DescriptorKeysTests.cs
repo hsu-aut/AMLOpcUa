@@ -27,6 +27,20 @@ public sealed class DescriptorKeysTests : IDisposable
         Assert.True(found.HasPrivateKey);
     }
 
+    // Review of 2026-11-18: the key lay on disk as a .pfx without a password, readable
+    // by anyone with read access to the profile folder (a group on this computer had it).
+    [Fact]
+    public void A_signing_key_on_disk_does_not_open_without_the_users_account()
+    {
+        var keys = new DescriptorKeys(_folder);
+        using var made = keys.CreateSigner("Plant engineering");
+
+        var file = Assert.Single(Directory.GetFiles(Path.Combine(_folder, "signers")));
+
+        Assert.ThrowsAny<System.Security.Cryptography.CryptographicException>(
+            () => new X509Certificate2(File.ReadAllBytes(file), (string?)null, X509KeyStorageFlags.EphemeralKeySet));
+    }
+
     [Fact]
     public void A_Descriptor_signed_with_an_own_key_is_trusted()
     {

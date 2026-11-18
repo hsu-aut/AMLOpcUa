@@ -1255,12 +1255,15 @@ an `.amlx` and checks it without the editor opening it: the manifest, the
 Root AML files, which files are related to what, and every signature with its
 certificate. The line above the findings names the Descriptor, its version,
 its attachments and who signed it when, and whether the signature is valid
-and trusted. The rules (DX001 to DX016) are listed in
-[descriptor.md](descriptor.md#the-check).
+and trusted. The rules (DX001 to DX017) are listed in
+[descriptor.md](descriptor.md#the-check). A signature counts as valid only
+when nothing else is wrong with it: a file it does not cover, an entry beside
+the files, a key too short or a certificate not for signing all make it not
+valid.
 
-A valid signature by a certificate nobody trusts yet is a warning (DX015).
-**Trust signer…** above the findings shows the certificate with its SHA-256
-fingerprint. Compare that fingerprint with the one the sender tells you
+A valid signature by a certificate nobody trusts yet is an error (DX015), as
+Part 83 asks. **Trust signer…** above the findings shows the certificate with
+its SHA-256 fingerprint; it is offered only for a valid signature. Compare that fingerprint with the one the sender tells you
 another way, by phone or in person, before you trust it: anyone can sign a
 Descriptor with a certificate of any name. Descriptors you sign yourself count
 as trusted.

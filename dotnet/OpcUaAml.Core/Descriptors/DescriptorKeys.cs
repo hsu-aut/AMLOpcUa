@@ -2,11 +2,12 @@
 // when it checks them (OPC 10000-83 8.3.4, 7.8.2), each in a folder of its
 // own below %LOCALAPPDATA%\AMLOpcUa\descriptors:
 //
-//   signers\<thumbprint>.pfx    own certificates with their keys
+//   signers\<thumbprint>.key    own certificates with their keys, a .pfx
+//                               encrypted for the user's account (UserSecret)
 //   trusted\<thumbprint>.der    certificates trusted by the user
 //
-// A signing key is kept like the plugin's OPC UA application key: in the
-// user's profile, readable by the user only. What one signs oneself is trusted.
+// What one signs oneself is trusted. Whoever runs as the user can add to
+// trusted\, as to the user's certificate store of Windows: trust is per user.
 
 using System.Security.Cryptography.X509Certificates;
 
@@ -30,9 +31,9 @@ public sealed class DescriptorKeys
     {
         if (!Directory.Exists(Signers)) return Array.Empty<X509Certificate2>();
         var found = new List<X509Certificate2>();
-        foreach (var file in Directory.EnumerateFiles(Signers, "*.pfx"))
+        foreach (var file in Directory.EnumerateFiles(Signers, "*.key"))
         {
-            try { found.Add(new X509Certificate2(File.ReadAllBytes(file), (string?)null, X509KeyStorageFlags.EphemeralKeySet)); }
+            try { found.Add(new X509Certificate2(UserSecret.Read(file), (string?)null, X509KeyStorageFlags.EphemeralKeySet)); }
             catch (System.Security.Cryptography.CryptographicException) { }
         }
         return found.OrderByDescending(c => c.NotBefore).ToList();
@@ -43,7 +44,7 @@ public sealed class DescriptorKeys
     {
         var certificate = DescriptorCertificates.CreateSelfSigned(name, DateTimeOffset.Now);
         Directory.CreateDirectory(Signers);
-        File.WriteAllBytes(Path.Combine(Signers, certificate.Thumbprint + ".pfx"), certificate.Export(X509ContentType.Pfx));
+        UserSecret.Write(Path.Combine(Signers, certificate.Thumbprint + ".key"), certificate.Export(X509ContentType.Pfx));
         return certificate;
     }
 

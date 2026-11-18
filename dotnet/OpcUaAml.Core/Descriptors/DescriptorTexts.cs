@@ -35,6 +35,7 @@ public static class DescriptorRules
     public const string Validity = "DX014";
     public const string Trust = "DX015";
     public const string NoTime = "DX016";
+    public const string StrayEntry = "DX017";
 
     public static readonly IReadOnlyDictionary<string, string> Descriptions = new Dictionary<string, string>
     {
@@ -54,6 +55,7 @@ public static class DescriptorRules
         [Validity] = "A signature was made outside the validity of its certificate.",
         [Trust] = "The chain of a signing certificate is incomplete or not trusted.",
         [NoTime] = "A signature does not say when it was made.",
+        [StrayEntry] = "The container holds an entry that is no part of the package.",
     };
 }
 
@@ -100,11 +102,18 @@ public static class DescriptorTexts
     public const string PartChanged = "was changed after {0} signed it.";
     public const string PartMissing = "was signed by {0}, but the Descriptor no longer holds it.";
     public const string NotSigned = "is not covered by the signature of {0}.";
+    public const string RelationshipNotSigned = "relationship {0} ({1}) is not covered by the signature of {2}.";
+    public const string SignsNothing = "the signature of {0} covers no part.";
+    public const string StrayEntry = "the container holds the entry '{0}', which is no part of the package: a program that reads the container directly takes it, and no signature covers it.";
+    public const string TooDeep = "is embedded more than {0} levels deep; the check goes no deeper.";
 
     public const string NoCertificate = "the signature carries no X.509 certificate.";
     public const string NoTime = "the signature does not say when it was made (SignatureTime).";
     public const string SignatureAlgorithm = "{0} signs with {1}, which no UAFX Offline Security Policy allows (OPC 10000-84).";
     public const string KeyLength = "the key of {0} has {1} bits; {2} allows {3} to {4}.";
+    public const string Curve = "the key of {0} is on the curve {1}; {2} asks for {3}.";
+    public const string CertificateKeyLength = "certificate {0} has an RSA key of {1} bits; the UAFX Offline Security Policies ask for at least {2}.";
+    public const string CertificateCurve = "certificate {0} has a key on the curve {1}, which no UAFX Offline Security Policy allows (nistP256, nistP384, nistP521).";
     public const string DigestAlgorithm = "{0} digests with {1}, which no UAFX Offline Security Policy allows (OPC 10000-84).";
     public const string CertificateAlgorithm = "certificate {0} is signed with {1}, which no UAFX Offline Security Policy allows (OPC 10000-84).";
     public const string NotForSigning = "certificate {0} is not for digital signatures (key usage).";
@@ -112,8 +121,11 @@ public static class DescriptorTexts
     public const string IsCa = "certificate {0} is a CA certificate; a Descriptor is signed by an end entity (OPC 10000-83 Table 3).";
     public const string SignedOutsideValidity = "{0} was signed on {1}, outside the validity of certificate {2} ({3} to {4}).";
     public const string NotYetValid = "certificate {0} is valid only from {1}.";
+    public const string Expired = "certificate {0} expired on {1}; that it was valid when {2} signed rests on the time the signature itself gives.";
     public const string ChainIncomplete = "the chain of {0} cannot be built: {1}";
     public const string Untrusted = "{0} is not trusted: neither it nor a certificate of its chain is in the list of trusted certificates.";
+    public const string Revoked = "certificate {0} is revoked.";
+    public const string RevocationUnknown = "whether certificate {0} is revoked could not be checked: no revocation list could be read.";
 
     public static readonly IReadOnlyList<string> All = typeof(DescriptorTexts)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)

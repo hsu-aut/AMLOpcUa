@@ -97,6 +97,19 @@ minor versions.
 
 ### Fixed
 
+- **UAFX Descriptor check**: a Descriptor could pass as valid and trusted
+  though files had been added or replaced: as zip entries the package library
+  passes over, as parts given the content type of a signature in the unsigned
+  `[Content_Types].xml`, or as relationships a Relationships Transform left
+  out. A Descriptor signed anew by anyone passed `uaaml descriptor check`. Now
+  an entry beside the parts is an error (DX017), the signatures' scope follows
+  the relationships, a signer nobody trusts is an error (OPC 10000-83 7.8.2),
+  a signature is valid only when no rule finds it wrong, and trust is offered
+  only for a valid one. Every certificate of the chain is held to the key
+  lengths and curves of the policies, revocation lists are read where a
+  certificate names one, and a crafted file no longer ends the check with an
+  exception. The plugin's signing keys are encrypted for the user's account;
+  `uaaml descriptor certificate` writes a key file only with a password.
 - **Write value…** and **Call method…** could send a value other than the
   one meant: a date such as 01.02.2026 went out as 2 January (only ISO 8601,
   2026-02-01, is taken now), a number beyond Float or Double as Infinity (it

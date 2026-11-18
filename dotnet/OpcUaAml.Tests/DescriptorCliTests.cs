@@ -24,6 +24,20 @@ public class DescriptorCliTests
         return (pfx, Path.ChangeExtension(pfx, ".cer"));
     }
 
+    // Review of 2026-11-18: an empty password wrote the key unprotected.
+    [Fact]
+    public async Task A_key_file_is_not_written_without_a_password()
+    {
+        using var uaaml = new Uaaml();
+        var pfx = Path.Combine(uaaml.Folder, "signer.pfx");
+        uaaml.Input = Environment.NewLine + Environment.NewLine;
+
+        var run = await uaaml.RunAsync("descriptor", "certificate", "CN=HSU Controls", "-o", pfx);
+
+        Assert.NotEqual(0, run.Exit);
+        Assert.False(File.Exists(pfx));
+    }
+
     [Fact]
     public async Task A_certificate_made_for_signing_is_written_with_its_public_part()
     {
@@ -67,7 +81,7 @@ public class DescriptorCliTests
     }
 
     [Fact]
-    public async Task Without_trust_the_signer_is_named_but_the_check_passes()
+    public async Task Without_trust_the_check_fails_until_the_signer_is_trusted()
     {
         using var uaaml = new Uaaml();
         var (pfx, _) = await CertificateAsync(uaaml);
@@ -78,9 +92,9 @@ public class DescriptorCliTests
 
         var check = await uaaml.RunAsync("descriptor", "check", output);
 
-        Assert.Equal(0, check.Exit);
+        Assert.Equal(1, check.Exit);
         Assert.Contains(DescriptorRules.Trust, check.Out);
-        Assert.Contains("0 error(s), 1 warning(s)", check.Out);
+        Assert.Contains("1 error(s), 0 warning(s)", check.Out);
     }
 
     [Fact]

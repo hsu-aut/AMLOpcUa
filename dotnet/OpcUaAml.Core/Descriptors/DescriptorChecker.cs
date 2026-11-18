@@ -4,9 +4,11 @@
 // certificates (Table 3). Embedded Descriptors are checked the same way; what
 // is found in one is named with its path ("/descriptors/vendor.amlx!/...").
 //
-// Revocation lists are not looked up (Table 3, Find Revocation List): the
-// check runs offline. Trust comes from a list of trusted certificates and a
-// list of issuer certificates (7.8.2).
+// Revocation lists are looked up where a certificate names one (Table 3,
+// Find Revocation List); one that cannot be read is a warning, not an error,
+// as Descriptors are checked offline too. Trust comes from a list of trusted
+// certificates and a list of issuer certificates (7.8.2): a signer no one
+// trusts is an error (7.8.2, 8.2), which the plugin lets the user resolve.
 
 using System.IO.Compression;
 using System.IO.Packaging;
@@ -68,8 +70,19 @@ public sealed class SignatureVerdict
     /// <summary>Whether the chain of the signer could be built up to a root.</summary>
     public bool ChainComplete { get; init; }
 
-    /// <summary>Whether the signer or a certificate of its chain is trusted.</summary>
-    public bool Trusted { get; init; }
+    /// <summary>Whether the signer or a certificate of its chain is in the list of trusted certificates.</summary>
+    public bool SignerTrusted { get; init; }
+
+    /// <summary>
+    /// Whether the signature holds: its value verifies, nothing it signs changed
+    /// or went, it covers every part and relationship, the container holds
+    /// nothing besides the parts, and no rule found its algorithms, keys or
+    /// certificates wrong. Whom it comes from is <see cref="SignerTrusted"/>.
+    /// </summary>
+    public bool Valid { get; init; }
+
+    /// <summary>Valid, and its signer trusted: only then does the Descriptor come from whom it says.</summary>
+    public bool Trusted => Valid && SignerTrusted;
 
     /// <summary>The chain, signer first.</summary>
     public IReadOnlyList<X509Certificate2> Chain { get; init; } = Array.Empty<X509Certificate2>();
@@ -112,7 +125,8 @@ public static class DescriptorChecker
 {
     private const string Whole = "/";
     private const string ContentTypesName = "[Content_Types].xml";
-    private const string CertificateContentType = "application/vnd.openxmlformats-package.digital-signature-certificate";
+    /// <summary>How deep Descriptors embedded in Descriptors are checked.</summary>
+    private const int MaxDepth = 4;
 
     /// <summary>Checks the Descriptor in <paramref name="path"/>; <paramref name="now"/> is the time the certificates are measured at.</summary>
     public static DescriptorReport Check(string path, DescriptorTrust? trust = null, DateTimeOffset? now = null)
@@ -129,12 +143,25 @@ public static class DescriptorChecker
                 Findings = new[] { Finding.Of(DescriptorRules.NotAPackage, Severity.Error, Whole, null, DescriptorTexts.NotAPackage, ex.Message) },
             };
         }
-        return Check(bytes, Path.GetFileName(path), "", trust ?? DescriptorTrust.None, now ?? DateTimeOffset.Now);
+        return Check(bytes, Path.GetFileName(path), trust, now);
     }
 
     /// <summary>Checks a Descriptor given as its bytes.</summary>
-    public static DescriptorReport Check(byte[] descriptor, string name, DescriptorTrust? trust = null, DateTimeOffset? now = null) =>
-        Check(descriptor, name, "", trust ?? DescriptorTrust.None, now ?? DateTimeOffset.Now);
+    public static DescriptorReport Check(byte[] descriptor, string name, DescriptorTrust? trust = null, DateTimeOffset? now = null)
+    {
+        try
+        {
+            return Check(descriptor, name, "", trust ?? DescriptorTrust.None, now ?? DateTimeOffset.Now, depth: 0);
+        }
+        // What a crafted file makes the libraries throw ends the check with a finding, not with the exception.
+        catch (Exception ex) when (ex is not OutOfMemoryException and not OperationCanceledException)
+        {
+            return new DescriptorReport(name)
+            {
+                Findings = new[] { Finding.Of(DescriptorRules.NotAPackage, Severity.Error, Whole, null, DescriptorTexts.NotAPackage, ex.Message) },
+            };
+        }
+    }
 
     internal static string? NameOf(X509Certificate2? certificate)
     {
@@ -143,7 +170,7 @@ public static class DescriptorChecker
         return string.IsNullOrEmpty(name) ? certificate.Subject : name;
     }
 
-    private static DescriptorReport Check(byte[] bytes, string name, string prefix, DescriptorTrust trust, DateTimeOffset now)
+    private static DescriptorReport Check(byte[] bytes, string name, string prefix, DescriptorTrust trust, DateTimeOffset now, int depth)
     {
         var findings = new List<Finding>();
         void Add(string rule, Severity severity, string path, string format, params object?[] args) =>
@@ -171,16 +198,30 @@ public static class DescriptorChecker
             var packageRelations = package.GetRelationships().Where(r => r.TargetMode == TargetMode.Internal).ToList();
             Uri Target(PackageRelationship r) => PackUriHelper.ResolvePartUri(r.SourceUri, r.TargetUri);
 
-            // The common services: relationships, the origin, signatures and their certificates.
+            // Entries the package library passes over as no part: a program that unpacks
+            // the container takes them all the same, and no signature covers them.
+            var stray = StrayEntries(bytes, parts);
+            foreach (var entry in stray)
+                Add(DescriptorRules.StrayEntry, Severity.Error, Whole, DescriptorTexts.StrayEntry, entry);
+
+            // The common services: relationship parts, the origin, the signatures it names
+            // and their certificates. By the relationships that name them, not by content
+            // type: that comes from [Content_Types].xml, which no signature covers.
             var origin = PackageSignatures.OriginPart(package);
+            var signatureParts = new List<PackagePart>();
+            var certificateParts = new List<PackagePart>();
+            if (origin != null)
+                foreach (var r in origin.GetRelationshipsByType(PackageSignatures.SignatureRelationship).Where(r => r.TargetMode == TargetMode.Internal))
+                {
+                    if (!byName.TryGetValue(Key(Target(r)), out var signaturePart)) continue;
+                    signatureParts.Add(signaturePart);
+                    foreach (var c in signaturePart.GetRelationshipsByType(PackageSignatures.CertificateRelationship).Where(c => c.TargetMode == TargetMode.Internal))
+                        if (byName.TryGetValue(Key(Target(c)), out var certificatePart)) certificateParts.Add(certificatePart);
+                }
             var common = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var part in parts)
-                if (PackUriHelper.IsRelationshipPartUri(part.Uri)
-                    || part.ContentType.Equals(PackageSignatures.SignatureContentType, StringComparison.OrdinalIgnoreCase)
-                    || part.ContentType.Equals(PackageSignatures.OriginContentType, StringComparison.OrdinalIgnoreCase)
-                    || part.ContentType.Equals(CertificateContentType, StringComparison.OrdinalIgnoreCase))
-                    common.Add(Key(part.Uri));
+            foreach (var part in parts.Where(p => PackUriHelper.IsRelationshipPartUri(p.Uri))) common.Add(Key(part.Uri));
             if (origin != null) common.Add(Key(origin.Uri));
+            foreach (var part in signatureParts.Concat(certificateParts)) common.Add(Key(part.Uri));
 
             // The manifest, by its content.
             var manifests = parts.Where(p => !common.Contains(Key(p.Uri)) && FxModels.IsManifestPart(p)).ToList();
@@ -299,8 +340,9 @@ public static class DescriptorChecker
             var verdicts = new List<SignatureVerdict>();
             var signatures = PackageSignatures.Read(package);
             if (signatures.Count == 0) Add(DescriptorRules.NoSignature, Severity.Error, Whole, DescriptorTexts.NoSignature);
+            // Outside every signature's scope (OPC 10000-83 7.8.1): the origin's relationships,
+            // the signatures the origin names with their relationships and certificates.
             var originRelationships = origin == null ? null : Key(PackUriHelper.GetRelationshipPartUri(origin.Uri));
-            var signatureParts = parts.Where(p => p.ContentType.Equals(PackageSignatures.SignatureContentType, StringComparison.OrdinalIgnoreCase)).ToList();
             var outOfScope = new HashSet<string>(StringComparer.Ordinal);
             if (originRelationships != null) outOfScope.Add(originRelationships);
             foreach (var s in signatureParts)
@@ -308,11 +350,11 @@ public static class DescriptorChecker
                 outOfScope.Add(Key(s.Uri));
                 outOfScope.Add(Key(PackUriHelper.GetRelationshipPartUri(s.Uri)));
             }
-            foreach (var part in parts.Where(p => p.ContentType.Equals(CertificateContentType, StringComparison.OrdinalIgnoreCase)))
-                outOfScope.Add(Key(part.Uri));
+            foreach (var part in certificateParts) outOfScope.Add(Key(part.Uri));
 
             foreach (var signature in signatures)
             {
+                var before = findings.Count;
                 var signer = NameOf(signature.Signer) ?? signature.Part.OriginalString;
                 var at = signature.Part.OriginalString;
                 foreach (var problem in signature.Problems)
@@ -330,14 +372,29 @@ public static class DescriptorChecker
                 foreach (var missing in signature.MissingParts)
                     Add(DescriptorRules.SignatureInvalid, Severity.Error, missing.OriginalString, DescriptorTexts.PartMissing, signer);
                 var signed = new HashSet<string>(signature.SignedParts.Select(Key), StringComparer.Ordinal);
-                if (signature.SignedParts.Count > 0)
+                if (signature.SignedParts.Count == 0)
+                    Add(DescriptorRules.SignatureInvalid, Severity.Error, at, DescriptorTexts.SignsNothing, signer);
+                else
                     foreach (var part in parts)
                     {
                         var key = Key(part.Uri);
                         if (!outOfScope.Contains(key) && !signed.Contains(key))
                             Add(DescriptorRules.NotSigned, Severity.Error, part.Uri.OriginalString, DescriptorTexts.NotSigned, signer);
                     }
-                verdicts.Add(Judge(signature, signer, at, trust, now, Add));
+                foreach (var (relationships, id, type) in signature.UncoveredRelationships)
+                    Add(DescriptorRules.NotSigned, Severity.Error, relationships.OriginalString, DescriptorTexts.RelationshipNotSigned, id, type, signer);
+                var judged = Judge(signature, signer, at, trust, now, Add);
+                // Whom it comes from aside (an untrusted signer, an incomplete chain), any error
+                // found on this signature, or an entry beside the parts, means it does not hold.
+                var broken = findings.Skip(before).Any(f => f.Severity == Severity.Error
+                                                            && (f.Rule != DescriptorRules.Trust || f.Format == DescriptorTexts.Revoked));
+                verdicts.Add(new SignatureVerdict(signature)
+                {
+                    ChainComplete = judged.ChainComplete,
+                    SignerTrusted = judged.SignerTrusted,
+                    Chain = judged.Chain,
+                    Valid = signature.ValueValid && !broken && stray.Count == 0,
+                });
             }
 
             // Embedded Descriptors, checked as Descriptors of their own.
@@ -345,7 +402,19 @@ public static class DescriptorChecker
             foreach (var key in embeddedParts)
             {
                 var part = byName[key];
-                var report = Check(PackageSignatures.ReadAll(part), part.Uri.OriginalString, prefix + part.Uri.OriginalString + "!", trust, now);
+                if (depth + 1 > MaxDepth)
+                {
+                    Add(DescriptorRules.NotAPackage, Severity.Error, part.Uri.OriginalString, DescriptorTexts.TooDeep, MaxDepth);
+                    continue;
+                }
+                byte[] inner;
+                try { inner = PackageSignatures.ReadAll(part); }
+                catch (Exception ex) when (ex is InvalidDataException or IOException)
+                {
+                    Add(DescriptorRules.NotAPackage, Severity.Error, part.Uri.OriginalString, DescriptorTexts.NotAPackage, ex.Message);
+                    continue;
+                }
+                var report = Check(inner, part.Uri.OriginalString, prefix + part.Uri.OriginalString + "!", trust, now, depth + 1);
                 embedded.Add(report);
                 findings.AddRange(report.Findings);
             }
@@ -379,6 +448,8 @@ public static class DescriptorChecker
         if (certificate == null) return new SignatureVerdict(signature);
         if (policy != null && KeySize(certificate) is int bits && (bits < policy.MinBits || bits > policy.MaxBits))
             Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.KeyLength, signer, bits, policy.Name, policy.MinBits, policy.MaxBits);
+        if (policy?.Curve is { } curve && CurveOf(certificate) is { } actual && actual != curve)
+            Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.Curve, signer, actual, policy.Name, curve);
 
         // The signing certificate's use.
         var basic = certificate.Extensions.OfType<X509BasicConstraintsExtension>().FirstOrDefault();
@@ -392,7 +463,10 @@ public static class DescriptorChecker
 
         // The chain, up to a root; time is checked by itself below.
         using var chain = new X509Chain();
-        chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+        // Revocation lists where a certificate names one; the root, trusted as it is, has none to name.
+        chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
+        chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+        chain.ChainPolicy.UrlRetrievalTimeout = TimeSpan.FromSeconds(10);
         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
         chain.ChainPolicy.VerificationFlags = X509VerificationFlags.IgnoreNotTimeValid | X509VerificationFlags.IgnoreNotTimeNested
                                               | X509VerificationFlags.IgnoreCtlNotTimeValid;
@@ -403,7 +477,8 @@ public static class DescriptorChecker
         var built = chain.Build(certificate);
         var elements = chain.ChainElements.Select(e => e.Certificate).ToList();
         var serious = chain.ChainStatus.Where(s => (s.Status & ~(X509ChainStatusFlags.NotTimeValid | X509ChainStatusFlags.NotTimeNested
-                                                                 | X509ChainStatusFlags.RevocationStatusUnknown | X509ChainStatusFlags.OfflineRevocation)) != 0).ToList();
+                                                                 | X509ChainStatusFlags.RevocationStatusUnknown | X509ChainStatusFlags.OfflineRevocation
+                                                                 | X509ChainStatusFlags.Revoked)) != 0).ToList();
         var complete = built || serious.Count == 0;
         if (!complete)
         {
@@ -413,22 +488,46 @@ public static class DescriptorChecker
             Add(DescriptorRules.Trust, Severity.Error, DescriptorTexts.ChainIncomplete, signer, why);
         }
 
+        if (complete)
+        {
+            var revoked = chain.ChainElements.Where(e => e.ChainElementStatus.Any(s => s.Status.HasFlag(X509ChainStatusFlags.Revoked))).ToList();
+            foreach (var e in revoked)
+                Add(DescriptorRules.Trust, Severity.Error, DescriptorTexts.Revoked, NameOf(e.Certificate));
+            var unknown = chain.ChainElements.FirstOrDefault(e => e.ChainElementStatus.Any(s =>
+                s.Status.HasFlag(X509ChainStatusFlags.RevocationStatusUnknown) || s.Status.HasFlag(X509ChainStatusFlags.OfflineRevocation)));
+            if (revoked.Count == 0 && unknown != null)
+                Add(DescriptorRules.Trust, Severity.Warning, DescriptorTexts.RevocationUnknown, NameOf(unknown.Certificate));
+        }
+
         foreach (var c in elements.Count > 0 ? elements : new List<X509Certificate2> { certificate })
         {
             if (!Policies.CertificateSignatures.Contains(c.SignatureAlgorithm.Value ?? ""))
                 Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.CertificateAlgorithm, NameOf(c),
                     c.SignatureAlgorithm.FriendlyName ?? c.SignatureAlgorithm.Value);
-            if (signature.Time is { } time && (time < c.NotBefore || time > c.NotAfter))
-                Add(DescriptorRules.Validity, Severity.Error, DescriptorTexts.SignedOutsideValidity, signer, Iso(time), NameOf(c),
+            // Every certificate of the chain, not the signer's alone (Table 3).
+            if (!ReferenceEquals(c, elements.FirstOrDefault()))
+            {
+                using var rsa = c.GetRSAPublicKey();
+                if (rsa != null && rsa.KeySize < Policies.MinRsaBits)
+                    Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.CertificateKeyLength, NameOf(c), rsa.KeySize, Policies.MinRsaBits);
+            }
+            if (CurveOf(c) is { } onCurve && !Policies.Curves.Contains(onCurve))
+                Add(DescriptorRules.Policy, Severity.Error, DescriptorTexts.CertificateCurve, NameOf(c), onCurve);
+            var outside = signature.Time is { } time && (time < c.NotBefore || time > c.NotAfter);
+            if (outside)
+                Add(DescriptorRules.Validity, Severity.Error, DescriptorTexts.SignedOutsideValidity, signer, Iso(signature.Time!.Value), NameOf(c),
                     Iso(c.NotBefore), Iso(c.NotAfter));
+            else if (now > c.NotAfter)
+                Add(DescriptorRules.Validity, Severity.Warning, DescriptorTexts.Expired, NameOf(c), Iso(c.NotAfter), signer);
             if (now < c.NotBefore)
                 Add(DescriptorRules.Validity, Severity.Error, DescriptorTexts.NotYetValid, NameOf(c), Iso(c.NotBefore));
         }
 
-        var trusted = complete && elements.Any(e => trust.Trusted.Any(t => t.Thumbprint == e.Thumbprint));
+        // The trusted certificate itself, byte for byte; a thumbprint is SHA-1.
+        var trusted = complete && elements.Any(e => trust.Trusted.Any(t => t.RawData.AsSpan().SequenceEqual(e.RawData)));
         if (complete && !trusted)
-            Add(DescriptorRules.Trust, Severity.Warning, DescriptorTexts.Untrusted, signer);
-        return new SignatureVerdict(signature) { ChainComplete = complete, Trusted = trusted, Chain = elements };
+            Add(DescriptorRules.Trust, Severity.Error, DescriptorTexts.Untrusted, signer);
+        return new SignatureVerdict(signature) { ChainComplete = complete, SignerTrusted = trusted, Chain = elements };
     }
 
     private static string Iso(DateTimeOffset time) => time.ToString("yyyy-MM-dd HH:mm 'UTC'zzz", System.Globalization.CultureInfo.InvariantCulture);
@@ -445,6 +544,53 @@ public static class DescriptorChecker
         chain.ChainPolicy.VerificationFlags = X509VerificationFlags.IgnoreNotTimeValid;
         chain.ChainPolicy.DisableCertificateDownloads = true;
         return chain.Build(certificate) || chain.ChainStatus.All(s => !s.Status.HasFlag(X509ChainStatusFlags.NotSignatureValid));
+    }
+
+    /// <summary>The named curve of an EC key (nistP256, …); "explicit" for a curve given by its parameters; null for another key.</summary>
+    private static string? CurveOf(X509Certificate2 certificate)
+    {
+        using var ec = certificate.GetECDsaPublicKey();
+        if (ec == null) return null;
+        try
+        {
+            var curve = ec.ExportParameters(false).Curve;
+            if (!curve.IsNamed) return "explicit";
+            return curve.Oid.Value switch
+            {
+                "1.2.840.10045.3.1.7" => "nistP256",
+                "1.3.132.0.34" => "nistP384",
+                "1.3.132.0.35" => "nistP521",
+                var other => curve.Oid.FriendlyName ?? other ?? "unknown",
+            };
+        }
+        catch (CryptographicException) { return "unknown"; }
+    }
+
+    /// <summary>
+    /// Zip entries that are no part of the package: a name the package library
+    /// passes over (no valid part name: "..", a backslash, another spelling of a
+    /// part), a second entry of one part, a folder entry with content.
+    /// </summary>
+    private static List<string> StrayEntries(byte[] bytes, IReadOnlyList<PackagePart> parts)
+    {
+        var stray = new List<string>();
+        var taken = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            using var zip = new ZipArchive(new MemoryStream(bytes, writable: false), ZipArchiveMode.Read);
+            foreach (var entry in zip.Entries.OrderBy(e => parts.Any(p => p.Uri.OriginalString == "/" + e.FullName) ? 0 : 1))
+            {
+                if (entry.FullName == ContentTypesName && taken.Add(ContentTypesName)) continue;
+                if (entry.FullName.EndsWith('/') && entry.Length == 0) continue;
+                Uri? asPart = null;
+                try { asPart = PackUriHelper.CreatePartUri(new Uri("/" + entry.FullName, UriKind.Relative)); }
+                catch (Exception ex) when (ex is ArgumentException or UriFormatException) { }
+                var part = asPart == null ? null : parts.FirstOrDefault(p => PackUriHelper.ComparePartUri(p.Uri, asPart) == 0);
+                if (part == null || !taken.Add(Key(part.Uri))) stray.Add(entry.FullName);
+            }
+        }
+        catch (InvalidDataException) { }
+        return stray;
     }
 
     private static int? KeySize(X509Certificate2 certificate)
@@ -515,7 +661,7 @@ public static class DescriptorChecker
     /// <summary>The UAFX Offline Security Policies of OPC 10000-84 (6.6.5).</summary>
     private static class Policies
     {
-        public sealed record SignaturePolicy(string Name, int MinBits, int MaxBits);
+        public sealed record SignaturePolicy(string Name, int MinBits, int MaxBits, string? Curve = null);
 
         public static readonly IReadOnlyDictionary<string, SignaturePolicy> Signature = new Dictionary<string, SignaturePolicy>
         {
@@ -525,10 +671,16 @@ public static class DescriptorChecker
             [PackageSignatures.RsaPssSha256] = new("Rsa-Pss-Sha256", 2048, 4096),
             [PackageSignatures.RsaPssSha384] = new("Rsa-Pss-Sha384", 3072, 4096),
             [PackageSignatures.RsaPssSha512] = new("Rsa-Pss-Sha512", 4096, 8192),
-            [PackageSignatures.EcdsaSha256] = new("ECC-nistP256", 256, 256),
-            [PackageSignatures.EcdsaSha384] = new("ECC-nistP384", 384, 384),
-            [PackageSignatures.EcdsaSha512] = new("ECC-nistP521", 521, 521),
+            [PackageSignatures.EcdsaSha256] = new("ECC-nistP256", 256, 256, "nistP256"),
+            [PackageSignatures.EcdsaSha384] = new("ECC-nistP384", 384, 384, "nistP384"),
+            [PackageSignatures.EcdsaSha512] = new("ECC-nistP521", 521, 521, "nistP521"),
         };
+
+        /// <summary>The shortest RSA key a certificate of the chain may have.</summary>
+        public const int MinRsaBits = 2048;
+
+        /// <summary>The curves the policies name.</summary>
+        public static readonly HashSet<string> Curves = new(StringComparer.Ordinal) { "nistP256", "nistP384", "nistP521" };
 
         public static readonly HashSet<string> Digests = new(StringComparer.Ordinal)
         {

@@ -381,16 +381,20 @@ public sealed class DescriptorTests : IDisposable
         Assert.Contains(report.Findings, f => f.Rule == DescriptorRules.SignatureInvalid && f.ElementPath == "/_rels/station.aml.rels");
     }
 
+    // OPC 10000-83 7.8.2: validation fails when neither the signer nor a CA of its
+    // chain is trusted. It was a warning, so anyone's signature passed the CLI.
     [Fact]
-    public void A_signer_nobody_trusts_is_a_warning()
+    public void A_signer_nobody_trusts_is_an_error_though_the_signature_holds()
     {
         var path = Write();
 
         var report = Check(path, trusted: false);
 
         var finding = Assert.Single(report.Findings);
-        Assert.Equal((DescriptorRules.Trust, Severity.Warning), (finding.Rule, finding.Severity));
-        Assert.False(Assert.Single(report.Signatures).Trusted);
+        Assert.Equal((DescriptorRules.Trust, Severity.Error, DescriptorTexts.Untrusted), (finding.Rule, finding.Severity, finding.Format));
+        var verdict = Assert.Single(report.Signatures);
+        Assert.True(verdict.Valid);
+        Assert.False(verdict.Trusted);
     }
 
     [Fact]
@@ -479,7 +483,9 @@ public sealed class DescriptorTests : IDisposable
 
             var report = DescriptorChecker.Check(path, new DescriptorTrust(new[] { caPublic }), Now);
 
-            Assert.True(report.Findings.Count == 0, Describe(report));
+            // The test CA names no revocation list: that it is not revoked cannot be known.
+            var finding = Assert.Single(report.Findings);
+            Assert.Equal((Severity.Warning, DescriptorTexts.RevocationUnknown), (finding.Severity, finding.Format));
             Assert.True(Assert.Single(report.Signatures).Trusted);
         }
     }
@@ -510,7 +516,8 @@ public sealed class DescriptorTests : IDisposable
 
             var report = DescriptorChecker.Check(path, new DescriptorTrust(new[] { caPublic }), Now);
 
-            Assert.True(report.Findings.Count == 0, Describe(report));
+            Assert.Equal(DescriptorTexts.RevocationUnknown, Assert.Single(report.Findings).Format);
+            Assert.True(Assert.Single(report.Signatures).Trusted);
             Assert.Equal(2, Assert.Single(report.Signatures).Signature.Certificates.Count);
         }
     }

@@ -84,26 +84,45 @@ here with Canonical XML 1.0 verifies there.
 | DX006 | Error | Relationships lead in a circle (7.5.2). |
 | DX007 | Warning | `[Content_Types].xml` lists an extension no file has (7.6). |
 | DX008 | Error | The Descriptor is not signed (7.8.1). |
-| DX009 | Error | A signature does not verify, a signed file changed or is gone. |
-| DX010 | Error | A file is outside the scope of a signature (7.8.1). |
+| DX009 | Error | A signature does not verify, a signed file changed or is gone, or it covers no file. |
+| DX010 | Error | A file is outside the scope of a signature (7.8.1), or a relationship that a Relationships Transform leaves out (the origin relationship aside). |
 | DX011 | Error | A signature carries no X.509 certificate. |
-| DX012 | Error | Signature, digest or certificate algorithm or key length outside the UAFX Offline Security Policies (OPC 10000-84). |
+| DX012 | Error | Signature, digest or certificate algorithm, key length or curve outside the UAFX Offline Security Policies (OPC 10000-84), for every certificate of the chain. |
 | DX013 | Error | The signing certificate is not for digital signatures, or is a CA certificate (Table 3). Warning: it states no key usage. |
-| DX014 | Error | A signature was made outside the validity of a certificate of its chain, or a certificate is not yet valid (Table 3). |
-| DX015 | Error | The chain of the signer cannot be built. Warning: neither the signer nor a certificate of its chain is trusted. |
+| DX014 | Error | A signature was made outside the validity of a certificate of its chain, or a certificate is not yet valid (Table 3). Warning: a certificate has expired since; that it was valid when signing rests on the time the signature gives. |
+| DX015 | Error | The chain of the signer cannot be built, a certificate is revoked, or neither the signer nor a certificate of its chain is trusted (7.8.2). Warning: whether a certificate is revoked could not be checked. |
 | DX016 | Error | A signature does not say when it was made (SignatureTime). |
+| DX017 | Error | The container holds a zip entry that is no part of the package (no valid part name, another spelling of a part, a second entry of one): a program that unpacks the container takes it, and no signature covers it. |
 
-Embedded Descriptors are checked the same way; what is found in one is named
-with its path, as in `/descriptors/vendor.amlx!/attachments/manual.pdf`.
+Embedded Descriptors are checked the same way, four levels deep; what is
+found in one is named with its path, as in
+`/descriptors/vendor.amlx!/attachments/manual.pdf`. Which parts lie outside a
+signature's scope follows from the relationships of the origin and the
+signatures, not from content types: those come from `[Content_Types].xml`,
+which no signature covers. A part that unpacks to more than 512 MB is not
+read.
+
+A signature is **valid** when its value verifies, no file it signs changed or
+went, it covers every file and relationship, the container holds nothing
+besides the parts, and no rule finds its algorithms, keys or certificates
+wrong; it is **trusted** when it is valid and its signer is trusted. Trust is
+never offered for a signature that is not valid.
 
 Trust follows 7.8.2: a list of trusted certificates (the signer itself or a
-CA that issued it) and a list of issuer certificates for building chains.
-Revocation lists are not looked up (Table 3, Find Revocation List): the check
-runs offline. The plugin keeps its lists below
+CA that issued it, matched byte for byte) and a list of issuer certificates
+for building chains. A signer nobody trusts is an error, so `uaaml descriptor
+check` fails until it is trusted; the plugin offers **Trust signer…** with its
+SHA-256 fingerprint. Revocation lists are looked up where a certificate below
+the root names one (Table 3, Find Revocation List); one that cannot be read
+is a warning rather than an error, as Descriptors are also checked offline,
+which departs from Table 3. The plugin keeps its lists below
 `%LOCALAPPDATA%\AMLOpcUa\descriptors`: `trusted` holds the certificates
 trusted with **Trust signer…**, `signers` the own signing keys, whose
-Descriptors count as trusted. On the command line `--trust` and `--issuers`
-name the certificates.
+Descriptors count as trusted, each encrypted with DPAPI for the user's
+account. Whoever runs as the user can add to `trusted`, as to the user's
+certificate store of Windows. On the command line `--trust` and `--issuers`
+name the certificates, and `uaaml descriptor certificate` writes a key file
+only with a password.
 
 The check does not look into the information model itself; `uaaml check`
 does that for the Root AML file (rules UA001 to UA008).

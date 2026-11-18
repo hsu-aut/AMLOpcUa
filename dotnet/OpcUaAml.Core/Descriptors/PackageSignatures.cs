@@ -64,6 +64,13 @@ public sealed class PackageSignature
 
     /// <summary>What else stands in the way of trusting it.</summary>
     public IReadOnlyList<Problem> Problems { get; init; } = Array.Empty<Problem>();
+
+    /// <summary>
+    /// Relationships of a part signed through the Relationships Transform that the
+    /// transform leaves out (the package's origin relationship aside), as
+    /// (relationship part, Id, type): the part counts as signed, these do not.
+    /// </summary>
+    public IReadOnlyList<(Uri Part, string Id, string Type)> UncoveredRelationships { get; init; } = Array.Empty<(Uri, string, string)>();
 }
 
 public static class PackageSignatures
@@ -295,24 +302,27 @@ public static class PackageSignatures
             var uri = PackUriHelper.ResolvePartUri(part.Uri, relation.TargetUri);
             if (!package.PartExists(uri)) { problems.Add(new Problem(DescriptorTexts.CertificatePartMissing, uri)); continue; }
             try { certificates.Add(new X509Certificate2(ReadAll(package.GetPart(uri)))); }
-            catch (CryptographicException ex) { problems.Add(new Problem(DescriptorTexts.CertificatePartUnreadable, uri, ex.Message)); }
+            catch (Exception ex) when (ex is CryptographicException or InvalidDataException or IOException) { problems.Add(new Problem(DescriptorTexts.CertificatePartUnreadable, uri, ex.Message)); }
         }
         if (certificates.Count == 0) problems.Add(new Problem(DescriptorTexts.NoCertificate));
 
         X509Certificate2? signer = null;
         var valid = false;
+        string? uncheckable = null;
         foreach (var certificate in certificates)
         {
+            // A certificate that cannot be used (put before the signer's by anyone, KeyInfo
+            // is not signed) must not keep the others from being tried, nor end the check.
             try
             {
                 if (signed.CheckSignature(certificate, verifySignatureOnly: true)) { signer = certificate; valid = true; break; }
             }
-            catch (CryptographicException ex)
+            catch (Exception ex) when (ex is CryptographicException or ArgumentException or NotSupportedException or InvalidOperationException)
             {
-                problems.Add(new Problem(DescriptorTexts.SignatureUncheckable, ex.Message));
-                break;
+                uncheckable ??= ex.Message;
             }
         }
+        if (!valid && uncheckable != null) problems.Add(new Problem(DescriptorTexts.SignatureUncheckable, uncheckable));
         signer ??= certificates.FirstOrDefault(c => !certificates.Any(o => o != c && o.Issuer == c.Subject && o.Subject != c.Subject))
                    ?? certificates.FirstOrDefault();
         if (!valid && certificates.Count > 0 && problems.Count == 0)
@@ -325,6 +335,7 @@ public static class PackageSignatures
         var signedParts = new List<Uri>();
         var changed = new List<Uri>();
         var missing = new List<Uri>();
+        var uncovered = new List<(Uri, string, string)>();
         DateTimeOffset? time = null;
         var ns = new XmlNamespaceManager(document.NameTable);
         ns.AddNamespace("ds", Ds);
@@ -351,11 +362,16 @@ public static class PackageSignatures
                 {
                     var bytes = ReadAll(target);
                     foreach (XmlElement transform in reference.SelectNodes("ds:Transforms/ds:Transform", ns)!)
+                    {
+                        if (transform.GetAttribute("Algorithm") == RelationshipTransform)
+                            foreach (var (id, type) in Unselected(bytes, transform))
+                                uncovered.Add((uri, id, type));
                         bytes = Apply(transform, bytes);
+                    }
                     var expected = Convert.FromBase64String((reference.SelectSingleNode("ds:DigestValue", ns)?.InnerText ?? "").Trim());
                     if (!CryptographicOperations.FixedTimeEquals(Hash(digestMethod, bytes), expected)) changed.Add(uri);
                 }
-                catch (Exception ex) when (ex is NotSupportedException or XmlException or FormatException)
+                catch (Exception ex) when (ex is NotSupportedException or XmlException or FormatException or InvalidDataException or IOException)
                 {
                     problems.Add(new Problem(DescriptorTexts.PartUncheckable, uri, ex.Message));
                     changed.Add(uri);
@@ -379,7 +395,30 @@ public static class PackageSignatures
             ChangedParts = changed,
             MissingParts = missing,
             Problems = problems,
+            UncoveredRelationships = uncovered,
         };
+    }
+
+    /// <summary>
+    /// The relationships of a relationship part the Relationships Transform does not
+    /// select, as (Id, type); the package's origin relationship is left out, as a
+    /// signature is added after it (ISO/IEC 29500-2, 13.2.4.24).
+    /// </summary>
+    private static IEnumerable<(string Id, string Type)> Unselected(byte[] input, XmlElement transform)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var types = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var child in transform.ChildNodes.OfType<XmlElement>().Where(e => e.NamespaceURI == OpcDs))
+            if (child.LocalName == "RelationshipReference") ids.Add(child.GetAttribute("SourceId"));
+            else if (child.LocalName == "RelationshipsGroupReference") types.Add(child.GetAttribute("SourceType"));
+        XNamespace r = RelationshipsNamespace;
+        var document = SafeXml.Load(new MemoryStream(input));
+        foreach (var e in document.Root?.Elements(r + "Relationship") ?? Enumerable.Empty<XElement>())
+        {
+            var id = (string?)e.Attribute("Id") ?? "";
+            var type = (string?)e.Attribute("Type") ?? "";
+            if (!ids.Contains(id) && !types.Contains(type) && type != OriginRelationship) yield return (id, type);
+        }
     }
 
     /// <summary>"/a/b.xml?ContentType=text/xml" into the part's URI and the content type it was signed as.</summary>
@@ -405,7 +444,7 @@ public static class PackageSignatures
         }
     }
 
-    private static byte[] Apply(XmlElement transform, byte[] input) => transform.GetAttribute("Algorithm") switch
+    internal static byte[] Apply(XmlElement transform, byte[] input) => transform.GetAttribute("Algorithm") switch
     {
         C14N or C14N11 => Canonicalize(input, comments: false),
         C14NWithComments or C14N11WithComments => Canonicalize(input, comments: true),
@@ -467,11 +506,21 @@ public static class PackageSignatures
         PackUriHelper.IsRelationshipPartUri(part.Uri)
         || string.Equals(part.ContentType, SignatureContentType, StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>The most a part may hold to be read: a part that unpacks to more (a zip bomb, say) is not read on.</summary>
+    internal const long MaxPartBytes = 512L * 1024 * 1024;
+
     internal static byte[] ReadAll(PackagePart part)
     {
         using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
         using var copy = new MemoryStream();
-        stream.CopyTo(copy);
+        var buffer = new byte[81920];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (copy.Length + read > MaxPartBytes)
+                throw new InvalidDataException($"{part.Uri.OriginalString} unpacks to more than {MaxPartBytes / (1024 * 1024)} MB.");
+            copy.Write(buffer, 0, read);
+        }
         return copy.ToArray();
     }
 }
