@@ -251,8 +251,16 @@ public sealed class ModelBindWindow : Window
             FileName = $"{ModelName}-binding.csv",
         };
         if (dialog.ShowDialog(this) != true) return;
-        File.WriteAllText(dialog.FileName, ModelBindRows.Report(_plan, _rows), new UTF8Encoding(true));
-        DialogKit.ShowInfo(_summary, L.T("Saved the report to {0}.", dialog.FileName));
+        try
+        {
+            File.WriteAllText(dialog.FileName, ModelBindRows.Report(_plan, _rows), new UTF8Encoding(true));
+            DialogKit.ShowInfo(_summary, L.T("Saved the report to {0}.", dialog.FileName));
+        }
+        // Open in a spreadsheet, say: said here, not behind the dialog.
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DialogKit.ShowError(_summary, L.T("Saving the report failed: {0}", ex.Message));
+        }
     }
 
     private static DataTemplate Check()

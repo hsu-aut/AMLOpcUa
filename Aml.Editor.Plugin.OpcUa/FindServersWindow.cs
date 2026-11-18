@@ -81,6 +81,13 @@ public sealed class FindServersWindow : Window
         body.Children.Add(_message);
 
         _search.Click += async (_, _) => await SearchAsync();
+        // Enter in the field searches the server typed; Use, the default button, would take the one found before.
+        _where.KeyDown += async (_, e) =>
+        {
+            if (e.Key != System.Windows.Input.Key.Enter) return;
+            e.Handled = true;
+            if (_search.IsEnabled) await SearchAsync();
+        };
         _servers.SelectionChanged += async (_, _) => await EndpointsAsync();
         _endpoints.SelectionChanged += (_, _) => Update();
         _use.Click += (_, _) =>

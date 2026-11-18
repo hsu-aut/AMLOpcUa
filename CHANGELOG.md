@@ -97,6 +97,23 @@ minor versions.
 
 ### Fixed
 
+- Commands of the **Server** tab that went wrong around other work:
+  **Bind model…** offered and bound the models of the document open when it
+  started, though another was open by then. **Write value…** read the
+  variable without holding the plugin busy, so another command could start
+  and lost its busy state when the write ended. **Keep document values live**
+  stayed disabled when another document was opened while it started. **Check
+  server** left **Trust signer…** of a Descriptor checked before beside its
+  findings. With a method selected, **Bind to element…** and **Count nodes**
+  were enabled and **Instances of a type…** searched below the method.
+- **Stop watching** let values still on their way into the recording, so
+  **Save values…** saved them; a watched value now has its unit from the first
+  value on. Enter on a finding of **Check server** says that it is about a node
+  of the server. Enter in the field of **Find servers** searches instead of
+  taking the server found before. A report or certificate that cannot be
+  written is said in its dialog.
+- Screen readers: the message line of a dialog is read out when it changes,
+  and the endpoint field comes before **Find servers** in Tab order.
 - **UAFX Descriptor check**: a Descriptor could pass as valid and trusted
   though files had been added or replaced: as zip entries the package library
   passes over, as parts given the content type of a signature in the unsigned

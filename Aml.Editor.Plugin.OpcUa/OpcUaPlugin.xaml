@@ -555,13 +555,20 @@
                                         <TextBlock x:Name="ServerStateText" Text="{l:T 'Not connected'}" VerticalAlignment="Center" FontSize="11" TextTrimming="CharacterEllipsis"/>
                                     </DockPanel>
                                 </Border>
-                                <Button x:Name="FindServersButton" DockPanel.Dock="Right" Click="FindServersButton_Click" Margin="4,0,0,0" Padding="4,1"
-                                        AutomationProperties.Name="{l:T 'Find servers…'}"
-                                        ToolTip="{l:T 'Find servers: ask a discovery server (port 4840 of a computer) which servers it knows, and take an address from the list.'}">
-                                    <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Exchange}" Margin="0"/>
-                                </Button>
-                                <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
-                                          ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
+                                <!-- The field first, then the magnifier beside it: so Tab and a screen reader take them. -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="EndpointBox" AutomationProperties.Name="{l:T 'Endpoint URL'}" IsEditable="True" VerticalContentAlignment="Center" KeyDown="EndpointBox_KeyDown"
+                                              ToolTip="{l:T 'Endpoint URL, e.g. opc.tcp://host:4840. Enter connects; the list holds the servers used recently.'}"/>
+                                    <Button x:Name="FindServersButton" Grid.Column="1" Click="FindServersButton_Click" Margin="4,0,0,0" Padding="4,1"
+                                            AutomationProperties.Name="{l:T 'Find servers…'}"
+                                            ToolTip="{l:T 'Find servers: ask a discovery server (port 4840 of a computer) which servers it knows, and take an address from the list.'}">
+                                        <TextBlock Style="{StaticResource IconText}" Text="&#xE721;" Foreground="{DynamicResource Exchange}" Margin="0"/>
+                                    </Button>
+                                </Grid>
                             </DockPanel>
                             <StackPanel x:Name="Credentials" Grid.Column="1" Orientation="Horizontal">
                                 <Label Content="{l:T '_User'}" Target="{Binding ElementName=UserBox}" Style="{StaticResource FieldLabel}" Margin="8,0,4,0"/>
@@ -745,8 +752,7 @@
                                       ToolTip="{l:T 'Off: only programs on this computer reach the server. On: other computers too, over secured connections only, and only clients you trusted under Clients…. Off again for every editor session.'}"/>
                             <Button x:Name="ServeClientsButton" Click="ServeClients_Click" Content="{l:T 'Clients…'}" Padding="4,1"
                                     ToolTip="{l:T 'The clients the document server refused over the network, to trust, and those it trusts.'}"/>
-                            <!-- About the document, not the connection: here it stays in view, where the
-                                 tool bar above put it into its overflow first. -->
+                            <!-- About the document, not the connection: here it stays in view. -->
                             <Button x:Name="StripAddressesButton" Click="StripAddressesButton_Click" Padding="4,1" Margin="16,0,0,0"
                                     ToolTip="{l:T 'Save a copy of the document without the addresses of servers (endpoints, server URIs, the ServerInstanceUri of every NodeId), to pass it on. The open document stays as it is.'}">
                                 <StackPanel Orientation="Horizontal">

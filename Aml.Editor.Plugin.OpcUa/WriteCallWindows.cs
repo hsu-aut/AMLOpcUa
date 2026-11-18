@@ -195,11 +195,5 @@ public sealed class CallMethodWindow : Window
         }
     }
 
-    /// <summary>
-    /// A live region is read out only when it says it changed; WPF does not
-    /// do that by itself. Without a screen reader there is no peer, and nothing to do.
-    /// </summary>
-    private void Announce() =>
-        System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(Result)?
-            .RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
+    private void Announce() => DialogKit.Announce(Result);
 }

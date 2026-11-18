@@ -96,7 +96,21 @@ internal static class DialogKit
     public static TextBlock Label(string text, double top = 10) =>
         new() { Text = text, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, top, 0, 3) };
 
-    public static TextBlock Message() => new() { Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 12, 0) };
+    /// <summary>A line for what a dialog says back; a screen reader reads it out when it changes.</summary>
+    public static TextBlock Message()
+    {
+        var line = new TextBlock { Foreground = Muted, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 12, 0) };
+        AutomationProperties.SetLiveSetting(line, AutomationLiveSetting.Polite);
+        return line;
+    }
+
+    /// <summary>
+    /// Tells a screen reader that a live line changed; WPF does not by itself. Without
+    /// a screen reader there is no peer, and nothing to do.
+    /// </summary>
+    public static void Announce(TextBlock line) =>
+        System.Windows.Automation.Peers.UIElementAutomationPeer.FromElement(line)?
+            .RaiseAutomationEvent(System.Windows.Automation.Peers.AutomationEvents.LiveRegionChanged);
 
     /// <summary>Red in both themes, for what went wrong and for what cannot be undone.</summary>
     public static readonly Brush Danger = Frozen(0xD1, 0x34, 0x38);
@@ -107,6 +121,7 @@ internal static class DialogKit
         message.Inlines.Clear();
         message.Inlines.Add(new System.Windows.Documents.Run("  ") { FontFamily = Icons, Foreground = Danger });
         message.Inlines.Add(new System.Windows.Documents.Run(text) { Foreground = Danger });
+        Announce(message);
     }
 
     /// <summary>Shows a hint or progress in a message line, in grey.</summary>
@@ -115,6 +130,7 @@ internal static class DialogKit
         message.Inlines.Clear();
         message.Text = text;
         message.Foreground = Muted;
+        Announce(message);
     }
 
     /// <summary>

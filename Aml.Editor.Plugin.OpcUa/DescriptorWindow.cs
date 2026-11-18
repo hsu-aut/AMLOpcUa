@@ -226,7 +226,13 @@ public sealed class DescriptorWindow : Window
         DialogKit.Frame(ask, "", DialogKit.Create, L.T("New certificate to sign with"), "", body, null, make, DialogKit.Action(L.T("Cancel"), cancel: true));
         ask.Loaded += (_, _) => name.Focus();
         if (ask.ShowDialog() != true) return;
-        var certificate = _keys.CreateSigner(name.Text.Trim());
+        X509Certificate2 certificate;
+        try { certificate = _keys.CreateSigner(name.Text.Trim()); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.Cryptography.CryptographicException)
+        {
+            DialogKit.ShowError(_info, L.T("Making the certificate failed: {0}", ex.Message));
+            return;
+        }
         AddSigner(certificate, L.T("kept by the plugin"), select: true);
         DialogKit.ShowInfo(_info, L.T("Made the certificate {0}.", certificate.Subject));
     }

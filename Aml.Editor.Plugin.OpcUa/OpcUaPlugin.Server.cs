@@ -336,6 +336,8 @@ public partial class OpcUaPlugin : ISupportsSelection
         {
             var result = await OpcUaAml.Checks.ServerChecker.CheckAsync(client, start?.Address, ct: token);
             var findings = result.Findings;
+            // The Check tab shows the server now: Trust signer… was for a Descriptor checked before.
+            TrustSignerButton.Visibility = Visibility.Collapsed;
             var errors = findings.Count(f => f.Severity == OpcUaAml.Checks.Severity.Error);
             FindingList.ItemsSource = findings.Select(f => new FindingRow(f)).ToList();
             CheckTab.Header = findings.Count == 0 ? L.T("Check") : L.T("Check ({0})", findings.Count);
@@ -372,16 +374,18 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (node == null || _client == null || node.NodeClass != "Variable") return;
         if (_watchRows.Any(r => r.Address == node.Address)) return;
         var row = new WatchRow { Address = node.Address, Node = node.DisplayName };
-        _watchRows.Add(row);
-        await RestartWatchAsync();
-        // Save values… and Unwatch follow the list; nothing else would tell them now.
-        UpdateServerState();
-        // Its unit, where the server states one; read once, a unit does not move.
+        // Its unit, where the server states one, before the first value arrives, so the
+        // recording has it from the start; read once, a unit does not move.
         try
         {
             if (_client is { } client && await client.ReadEngineeringUnitsAsync(node.Address) is { } unit) row.SetUnit(unit.DisplayName);
         }
         catch (Exception ex) { PluginLog.Info($"No unit read for {node.Address}: {ex.Message}"); }
+        if (_released || _watchRows.Any(r => r.Address == node.Address)) return;
+        _watchRows.Add(row);
+        await RestartWatchAsync();
+        // Save values… and Unwatch follow the list; nothing else would tell them now.
+        UpdateServerState();
     }
 
     private async void UnwatchButton_Click(object sender, RoutedEventArgs e)
@@ -391,6 +395,20 @@ public partial class OpcUaPlugin : ISupportsSelection
         await RestartWatchAsync();
         UpdateServerState();
     }
+
+    /// <summary>
+    /// A value the watch received. A row no longer in the list (Stop watching, while
+    /// values were still on their way) takes it no more, nor does the recording.
+    /// </summary>
+    internal void RecordWatchValue(WatchRow row, UaReadResult read)
+    {
+        if (!_watchRows.Contains(row)) return;
+        row.Update(read);
+        _recording.Add(DateTimeOffset.Now, row.Node, row.Unit, read);
+    }
+
+    /// <summary>How many values the watch recorded, for Save values….</summary>
+    internal int RecordedValues => _recording.Count;
 
     /// <summary>Save values…: what the watch received, as CSV.</summary>
     private void SaveWatchButton_Click(object sender, RoutedEventArgs e)
@@ -440,9 +458,7 @@ public partial class OpcUaPlugin : ISupportsSelection
             var watch = await client.WatchAsync(rows.Keys.ToList(), r =>
                 Dispatcher.BeginInvoke(() =>
                 {
-                    if (!rows.TryGetValue(r.Address, out var row)) return;
-                    row.Update(r);
-                    _recording.Add(DateTimeOffset.Now, row.Node, row.Unit, r);
+                    if (rows.TryGetValue(r.Address, out var row)) RecordWatchValue(row, r);
                 }));
             // Closed or disconnected while the server answered: no one would end this subscription.
             if (_released || !ReferenceEquals(_client, client))
@@ -919,9 +935,11 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var node = SelectedNode;
         var client = _client;
-        if (node is not { NodeClass: "Variable" } || client == null) return;
+        if (node is not { NodeClass: "Variable" } || client == null || _busy) return;
         UaVariableInfo info;
         UaReadResult now;
+        // Busy while it reads, so no other command starts meanwhile and has its busy state cleared.
+        SetBusy(true, L.T("Reading '{0}' …", node.DisplayName));
         try
         {
             info = await client.DescribeVariableAsync(node.Address);
@@ -933,6 +951,8 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(L.T("Reading '{0}' failed: {1}", node.DisplayName, ex.Message));
             return;
         }
+        finally { SetBusy(false, null); }
+        if (_released || !ReferenceEquals(_client, client)) return;
         if (!info.Writable)
         {
             SetStatus(L.T("The server lets '{0}' only be read.", node.DisplayName));
@@ -967,13 +987,14 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var item = AddressTree.SelectedItem as TreeViewItem;
         var client = _client;
-        if (item?.Tag is not UaBrowseItem { NodeClass: "Method" } method || client == null) return;
+        if (item?.Tag is not UaBrowseItem { NodeClass: "Method" } method || client == null || _busy) return;
         if ((item.Parent as TreeViewItem)?.Tag is not UaBrowseItem target)
         {
             SetStatus(L.T("'{0}' has no object above it in the address space to be called on.", method.DisplayName));
             return;
         }
         UaMethodInfo info;
+        SetBusy(true, L.T("Reading '{0}' …", method.DisplayName));
         try { info = await client.DescribeMethodAsync(method.Address); }
         catch (Exception ex)
         {
@@ -981,6 +1002,8 @@ public partial class OpcUaPlugin : ISupportsSelection
             SetStatus(L.T("Reading the arguments of '{0}' failed: {1}", method.DisplayName, ex.Message));
             return;
         }
+        finally { SetBusy(false, null); }
+        if (_released || !ReferenceEquals(_client, client)) return;
         var window = new CallMethodWindow(method.DisplayName, target.DisplayName, info, async inputs =>
         {
             var answer = await client.CallAsync(target.Address, method.Address, inputs);
@@ -1002,8 +1025,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         var client = _client;
         if (document == null || client == null) return;
         var models = ModelBindRows.Models(document).ToList();
-        // An element of one's own selected in the editor is the model first offered.
-        if (_editorSelection is InternalElementType selected && ModelBindRows.IsOwn(selected) && selected.InternalElement.Any())
+        // An element of one's own selected in the editor, of this document, is the model first offered.
+        if (_editorSelection is InternalElementType selected && ReferenceEquals(selected.CAEXDocument, document)
+            && ModelBindRows.IsOwn(selected) && selected.InternalElement.Any())
             models.Insert(0, selected);
         if (models.Count == 0)
         {
@@ -1034,6 +1058,9 @@ public partial class OpcUaPlugin : ISupportsSelection
             EndCancellable();
             SetBusy(false, null);
         }
+        // Another document opened, the plugin closed or the server left while reading:
+        // the models are those of a document no longer open.
+        if (_released || !ReferenceEquals(_document, document) || !ReferenceEquals(_client, client)) return;
         if (found.Variables.Count == 0)
         {
             SetStatus(start == null ? L.T("The server has no variables to bind.") : L.T("The server has no variables below {0}.", start.DisplayName));
@@ -1042,7 +1069,14 @@ public partial class OpcUaPlugin : ISupportsSelection
 
         var window = new ModelBindWindow(models, models[0], found, start?.DisplayName ?? L.T("the whole server")) { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
-        var bound = ModelBinder.Apply(window.Kept, client.ServerUri);
+        int bound;
+        try { bound = ModelBinder.Apply(window.Kept, client.ServerUri); }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Binding the model failed", ex);
+            SetStatus(L.T("Binding the model failed: {0}", ex.Message));
+            return;
+        }
         foreach (var p in window.Kept) PluginLog.Info($"Bound {p.Variable!.Address} to '{p.Signal.PathText}'.");
         SetStatus(L.T("Bound {0} value(s) of '{1}' to the server.", bound, window.ModelName) + L.T(" Press Ctrl+S to save."));
         UpdateServerState();
@@ -1141,8 +1175,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         finally
         {
             _liveStarting = false;
+            // Also when it ended early (another document opened meanwhile): the command is offered again.
+            UpdateServerState();
         }
-        UpdateServerState();
     }
 
     /// <summary>
@@ -1260,12 +1295,13 @@ public partial class OpcUaPlugin : ISupportsSelection
         UserBox.IsEnabled = !connected;
         PasswordBox.IsEnabled = !connected;
         ServerTypesButton.IsEnabled = connected && !_busy;
-        var hasNode = connected && SelectedNode != null && _document != null && !_busy;
+        // A method is shown to be called; binding, counting and taking are for objects and variables.
+        var hasNode = connected && SelectedNode is { NodeClass: not "Method" } && _document != null && !_busy;
         MirrorButton.IsEnabled = connected && _document != null && !_busy
                                  && (_items.Count > 0 || SelectedNode is { NodeClass: not "Method" });
         InstancesOfButton.IsEnabled = connected && !_busy;
         LoadSelectionButton.IsEnabled = connected && _document != null && !_busy;
-        PreviewButton.IsEnabled = connected && !_busy && (_items.Count > 0 || SelectedNode != null);
+        PreviewButton.IsEnabled = connected && !_busy && (_items.Count > 0 || SelectedNode is { NodeClass: not "Method" });
         CheckServerButton.IsEnabled = connected && !_busy;
         NamespacesButton.IsEnabled = connected && !_busy;
         RemoveSelectionButton.IsEnabled = SelectionList.SelectedItem != null;

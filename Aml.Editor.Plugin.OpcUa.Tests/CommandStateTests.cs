@@ -45,6 +45,26 @@ public class CommandStateTests
         Assert.False(svg);
     }
 
+    // Review of 2026-11-18: the Descriptor commands behind More ▾ followed the document only
+    // when More was clicked; opened by the menu key or by Show me, Save stayed enabled.
+    [Fact]
+    public void Without_a_document_Save_as_UAFX_Descriptor_is_greyed_out_before_More_is_clicked()
+    {
+        bool save = true, check = false;
+        OnUiThread(() =>
+        {
+            var plugin = new OpcUaPlugin();
+            var window = new System.Windows.Window { Content = plugin, Width = 900, Height = 700, ShowInTaskbar = false, Left = -4000 };
+            window.Show();
+            save = plugin.SaveDescriptorItem.IsEnabled;
+            check = plugin.CheckDescriptorItem.IsEnabled;
+            window.Close();
+        });
+
+        Assert.False(save);
+        Assert.True(check);
+    }
+
     [Fact]
     public void With_a_document_the_check_commands_work_and_SVG_waits_for_a_diagram()
     {

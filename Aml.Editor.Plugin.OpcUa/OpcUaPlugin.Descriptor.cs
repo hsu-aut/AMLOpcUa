@@ -20,13 +20,8 @@ public partial class OpcUaPlugin
     private DescriptorReport? _descriptorReport;
     private string? _descriptorPath;
 
-    /// <summary>More ▾ on the Namespaces tab; it holds the Descriptor commands, which follow the document as the menu opens.</summary>
-    private void NamespacesMoreButton_Click(object sender, RoutedEventArgs e)
-    {
-        SaveDescriptorItem.IsEnabled = _document != null && !_busy;
-        CheckDescriptorItem.IsEnabled = !_busy;
-        OpenMenu(NamespacesMoreMenu, NamespacesMoreButton);
-    }
+    /// <summary>More ▾ on the Namespaces tab; what it holds follows the document in UpdateCommands.</summary>
+    private void NamespacesMoreButton_Click(object sender, RoutedEventArgs e) => OpenMenu(NamespacesMoreMenu, NamespacesMoreButton);
 
     private async void SaveDescriptor_Click(object sender, RoutedEventArgs e)
     {

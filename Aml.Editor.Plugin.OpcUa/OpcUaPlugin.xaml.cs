@@ -337,6 +337,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         try { _closing.Cancel(); }
         catch (ObjectDisposedException) { /* shutting down */ }
         _tourTimer?.Stop();
+        _liveCheck?.Stop();
+        _liveCheck = null;
         var live = _live;
         _live = null;
         try { live?.DisposeAsync().AsTask().Wait(2000); }
@@ -812,10 +814,12 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     private void FindingList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e) => SelectFinding();
 
     /// <summary>Selects the element of a finding in the editor.</summary>
-    private void SelectFinding()
+    internal void SelectFinding()
     {
         if (FindingList.SelectedItem is not FindingRow { Finding.ElementId: { } id } || _document == null) return;
         if (_document.FindByID(id, true, null) is CAEXObject element) Selected?.Invoke(this, new SelectionEventArgs(element));
+        // A finding of Check server names a node of the server, not an element.
+        else SetStatus(L.T("No element of this document has the ID {0}: the finding is about a node of the server, or the element is gone.", id));
     }
 
     /// <summary>
@@ -969,6 +973,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         LinkButton.IsEnabled = usable && !_busy;
         ExportButton.IsEnabled = doc != null && !_busy;
         NamespacesMoreButton.IsEnabled = !_busy;
+        SaveDescriptorItem.IsEnabled = doc != null && !_busy;
+        CheckDescriptorItem.IsEnabled = !_busy;
         TrustSignerButton.IsEnabled = !_busy;
         FoldersButton.IsEnabled = !_busy;
     }
@@ -1049,10 +1055,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         SetStatus(L.T("Cancelling …"));
     }
 
-    /// <summary>The status line; the whole text is in its tooltip when the line is too short.</summary>
     /// <summary>When the values kept live may take the status line, so other messages stay readable.</summary>
     private readonly LiveStatusLine _statusLine = new();
 
+    /// <summary>The status line; the whole text is in its tooltip when the line is too short.</summary>
     private void SetStatus(string text)
     {
         _statusLine.Other(DateTime.Now);

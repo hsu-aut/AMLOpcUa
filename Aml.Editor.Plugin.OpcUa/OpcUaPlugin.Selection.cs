@@ -371,7 +371,7 @@ public partial class OpcUaPlugin
     }
 
     private async void InstancesOfButton_Click(object sender, RoutedEventArgs e) =>
-        await PickInstancesAsync(SelectedNode?.Address ?? ObjectsFolder);
+        await PickInstancesAsync(SelectedNode is { NodeClass: not "Method" } node ? node.Address : ObjectsFolder);
 
     private async Task PickInstancesAsync(UaNodeAddress start)
     {
