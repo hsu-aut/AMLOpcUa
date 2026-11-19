@@ -98,7 +98,7 @@ public sealed class EventHistory(int limit = 10_000)
                 return _rows.Where(r => r.Event == null ? minSeverity == 0 : r.Event.Severity >= minSeverity).ToList();
             var seen = new HashSet<UaNodeAddress>();
             var open = new List<EventRow>();
-            foreach (var row in _rows)
+            foreach (var row in Current())
             {
                 if (row.Event?.ConditionId is not { } condition || !seen.Add(condition)) continue;
                 if (IsOpen(row.Event) && row.Event.Severity >= minSeverity) open.Add(row);
@@ -107,13 +107,43 @@ public sealed class EventHistory(int limit = 10_000)
         }
     }
 
+    /// <summary>
+    /// The rows since the newest connection, the newest first: what the server
+    /// connected now sent. An alarm seen only before may have closed meanwhile,
+    /// or belong to another server; its state is not known any more.
+    /// </summary>
+    private IEnumerable<EventRow> Current() => _rows.TakeWhile(r => r.Event != null);
+
     /// <summary>Open while the server retains it; a server that does not say: while active or not acknowledged.</summary>
     private static bool IsOpen(UaEvent e) => e.Retain ?? (e.Active == true || e.Acked == false);
 
     /// <summary>The newest row of a condition, or null.</summary>
     public EventRow? LatestOf(UaNodeAddress conditionId)
     {
-        lock (_lock) return _rows.FirstOrDefault(r => r.Event?.ConditionId == conditionId);
+        lock (_lock) return Current().FirstOrDefault(r => r.Event?.ConditionId == conditionId);
+    }
+
+    /// <summary>
+    /// Since when the alarm of <paramref name="row"/> is active: the time of the
+    /// first of the active rows of its condition that lead up to it; null when
+    /// the row's state is not active.
+    /// </summary>
+    public DateTimeOffset? ActiveSince(EventRow row)
+    {
+        if (row.Event is not { ConditionId: { } condition, Active: true }) return null;
+        lock (_lock)
+        {
+            DateTimeOffset? since = null;
+            var reached = false;
+            foreach (var r in _rows)
+            {
+                if (ReferenceEquals(r, row)) reached = true;
+                if (!reached || r.Event?.ConditionId != condition) continue;
+                if (r.Event.Active != true) break;
+                since = r.Time;
+            }
+            return since;
+        }
     }
 
     /// <summary>Whether a row may be acknowledged: it is the newest of its condition, and that is not acknowledged.</summary>

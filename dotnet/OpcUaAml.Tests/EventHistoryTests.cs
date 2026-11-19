@@ -133,6 +133,42 @@ public class EventHistoryTests
         Assert.Same(latest, history.LatestOf(Spindle));
     }
 
+    /// <summary>
+    /// Review 2026-11-19: an alarm that closed while the plugin was not connected,
+    /// or one of another server, stayed open in the list and offered to be
+    /// acknowledged; after a connection only what that server sends is known.
+    /// </summary>
+    [Fact]
+    public void After_a_new_connection_only_its_alarms_are_open()
+    {
+        var history = new EventHistory();
+        history.AddConnected("Plant A", new DateTimeOffset(T0));
+        var before = history.Add(Alarm(Spindle, active: true, acked: false, retain: true, T0.AddSeconds(1)), "Plant A")!;
+        history.AddConnected("Plant B", new DateTimeOffset(T0.AddSeconds(2)));
+        var now = history.Add(Alarm(Magazine, active: true, acked: false, retain: true, T0.AddSeconds(3)), "Plant B")!;
+
+        var open = Assert.Single(history.Filter(onlyOpen: true, minSeverity: 0));
+        Assert.Equal(Magazine, open.Event!.ConditionId);
+        Assert.False(history.CanAcknowledge(before));
+        Assert.True(history.CanAcknowledge(now));
+        Assert.Equal(4, history.Filter(onlyOpen: false, minSeverity: 0).Count);
+    }
+
+    /// <summary>Review 2026-11-19: "since" in the acknowledge dialog was the newest row's time, not when the alarm came.</summary>
+    [Fact]
+    public void An_alarm_is_active_since_the_first_of_its_active_rows_in_a_row()
+    {
+        var history = new EventHistory();
+        history.Add(Alarm(Spindle, active: true, acked: false, retain: true, T0), "Plant");
+        history.Add(Alarm(Spindle, active: false, acked: false, retain: true, T0.AddSeconds(10)), "Plant");
+        history.Add(Alarm(Spindle, active: true, acked: false, retain: true, T0.AddSeconds(20)), "Plant");
+        var latest = history.Add(Alarm(Spindle, active: true, acked: true, retain: true, T0.AddSeconds(30)), "Plant")!;
+        var gone = history.Add(Alarm(Magazine, active: false, acked: false, retain: true, T0.AddSeconds(40)), "Plant")!;
+
+        Assert.Equal(new DateTimeOffset(T0.AddSeconds(20)), history.ActiveSince(latest));
+        Assert.Null(history.ActiveSince(gone));
+    }
+
     [Fact]
     public void A_connection_is_a_row_of_its_own()
     {
