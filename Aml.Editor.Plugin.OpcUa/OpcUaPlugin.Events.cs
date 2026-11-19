@@ -33,6 +33,13 @@ public partial class OpcUaPlugin
     /// <summary>Severity from which a newly active alarm is announced in the status line.</summary>
     private const ushort AnnouncedSeverity = 500;
 
+    /// <summary>How often a new alarm was read out (tests).</summary>
+    internal int AlarmsReadOut { get; private set; }
+
+    /// <summary>When the last alarm was read out: at most one in this time, so a flood is not read out without end.</summary>
+    private DateTime _lastReadOut = DateTime.MinValue;
+    private static readonly TimeSpan ReadOutEvery = TimeSpan.FromSeconds(3);
+
     /// <summary>Whether the events of the connected server are received.</summary>
     internal bool ReceivingEvents => _eventSubscription != null;
 
@@ -121,9 +128,15 @@ public partial class OpcUaPlugin
         // the status line keeps what the last command said.
         if (announce?.Event is { } alarm)
         {
+            // The line always shows the newest; it is read out at most every few seconds.
             AlarmAnnouncement.Text = L.T("Alarm: {0} at {1}, severity {2}.", alarm.Message, alarm.SourceName, alarm.Severity);
             AlarmAnnouncement.Visibility = Visibility.Visible;
-            DialogKit.Announce(AlarmAnnouncement);
+            if (DateTime.UtcNow - _lastReadOut >= ReadOutEvery)
+            {
+                _lastReadOut = DateTime.UtcNow;
+                DialogKit.Announce(AlarmAnnouncement);
+                AlarmsReadOut++;
+            }
         }
     }
 

@@ -204,6 +204,27 @@ public class EventListTests
         Assert.Equal("Alarm: Spindle overloaded at Drill, severity 800.", told);
     }
 
+    /// <summary>Review 2026-11-19: a flood of severe alarms was read out up to four times a second.</summary>
+    [Fact]
+    public void Severe_alarms_in_quick_succession_are_read_out_once_showing_the_newest()
+    {
+        int announced = 0;
+        string shown = "";
+        OnUiThread(async () =>
+        {
+            var plugin = new OpcUaPlugin();
+            plugin.DeliverEvents([Alarm(1, active: true, acked: false, severity: 800)]);
+            await Until(() => plugin.EventList.Items.Count == 1, 5);
+            plugin.DeliverEvents([Alarm(2, active: true, acked: false, severity: 900) with { ConditionId = new UaNodeAddress("urn:plant", UaIdType.String, "Robot") }]);
+            await Until(() => plugin.EventList.Items.Count == 2, 5);
+            announced = plugin.AlarmsReadOut;
+            shown = plugin.AlarmAnnouncement.Text;
+        });
+
+        Assert.Equal(1, announced);
+        Assert.Equal("Alarm: Spindle overloaded at Drill, severity 900.", shown);
+    }
+
     /// <summary>Review 2026-11-19: every new event rebuilt the whole list, which jumped back to the top.</summary>
     [Fact]
     public void New_events_go_on_top_without_rebuilding_the_list()
