@@ -541,6 +541,10 @@ public partial class OpcUaPlugin : ISupportsSelection
             };
             if (_host.ServedTypes.Count > 0) message += L.T(" With the types of {0}.", string.Join(", ", _host.ServedTypes));
             if (_host.MissingTypes.Count > 0) message += L.T(" No NodeSet found for {0}; instances of their types are served as plain objects.", string.Join(", ", _host.MissingTypes));
+            if (_host.Alarms > 0) message += L.T(" It raises {0} alarm(s) of the document.", _host.Alarms);
+            // Alarm elements it does not raise are served as plain objects; the log says why.
+            foreach (var skipped in _host.SkippedAlarms) PluginLog.Warn("Alarm not raised: " + skipped);
+            if (_host.SkippedAlarms.Count > 0) message += L.T(" {0} alarm(s) are not raised; the log says why.", _host.SkippedAlarms.Count);
             PluginLog.Info(message);
             SetStatus(message);
             if (_client == null) EndpointBox.Text = _host.EndpointUrl;
