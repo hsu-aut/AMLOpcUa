@@ -204,6 +204,28 @@ public class EventListTests
         Assert.Equal("Alarm: Spindle overloaded at Drill, severity 800.", told);
     }
 
+    /// <summary>Review 2026-11-19: every new event rebuilt the whole list, which jumped back to the top.</summary>
+    [Fact]
+    public void New_events_go_on_top_without_rebuilding_the_list()
+    {
+        object? sourceBefore = null, sourceAfter = null, firstBefore = null, secondAfter = null;
+        OnUiThread(async () =>
+        {
+            var plugin = new OpcUaPlugin();
+            plugin.DeliverEvents([Alarm(1, active: true, acked: false)]);
+            await Until(() => plugin.EventList.Items.Count == 1, 5);
+            sourceBefore = plugin.EventList.ItemsSource;
+            firstBefore = plugin.EventList.Items[0];
+            plugin.DeliverEvents([Alarm(2, active: false, acked: false)]);
+            await Until(() => plugin.EventList.Items.Count == 2, 5);
+            sourceAfter = plugin.EventList.ItemsSource;
+            secondAfter = plugin.EventList.Items[1];
+        });
+
+        Assert.Same(sourceBefore, sourceAfter);
+        Assert.Same(firstBefore, secondAfter);
+    }
+
     [Fact]
     public void State_text_is_translated()
     {

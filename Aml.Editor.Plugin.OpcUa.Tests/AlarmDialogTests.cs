@@ -116,6 +116,60 @@ public class AlarmDialogTests
         Assert.Equal("SlowSpindle", kept);
     }
 
+    /// <summary>Review 2026-11-19: the limit was read as a Double whatever the value's type, NaN and Infinity included.</summary>
+    [Fact]
+    public void The_limit_fits_the_type_of_the_value()
+    {
+        string whole = "", nan = "";
+        AlarmRequest? accepted = null;
+        OnUiThread(() =>
+        {
+            var (_, speed, _, drill) = Plant();
+            var count = drill.InternalElement.Append("PartsProduced");
+            var v = count.Attribute.Append("Value");
+            v.AttributeDataType = "xs:int";
+            v.Value = "12";
+            var forInt = new AlarmWindow(count);
+            forInt.LimitBox.Text = "1500.5";
+            if (forInt.Accept() == null) whole = Shown(forInt.Error);
+            forInt.LimitBox.Text = "1500";
+            accepted = forInt.Accept();
+            var forDouble = new AlarmWindow(speed);
+            forDouble.LimitBox.Text = "NaN";
+            if (forDouble.Accept() == null) nan = Shown(forDouble.Error);
+            return Task.CompletedTask;
+        });
+
+        Assert.EndsWith("'1500.5' is not a whole number.", whole);
+        Assert.Equal(1500, accepted!.Limit);
+        Assert.EndsWith("'NaN' is no limit: write a number, such as 1200.", nan);
+    }
+
+    /// <summary>Review 2026-11-19: on a CAEX 2.15 document the button was grey while its tooltip offered to create.</summary>
+    [Fact]
+    public void On_a_CAEX_2_15_document_the_button_says_why_it_is_grey()
+    {
+        bool enabled = true;
+        string? why = null;
+        OnUiThread(() =>
+        {
+            var doc = CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX2_15);
+            var speed = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Speed");
+            var v = speed.Attribute.Append("Value");
+            v.AttributeDataType = "xs:double";
+            v.Value = "1";
+            var plugin = new OpcUaPlugin();
+            plugin.DocumentLoaded(doc);
+            plugin.ChangeSelectedObject(speed);
+            enabled = plugin.AlarmButton.IsEnabled;
+            why = plugin.AlarmButton.ToolTip as string;
+            return Task.CompletedTask;
+        });
+
+        Assert.False(enabled);
+        Assert.Equal("Alarms need a CAEX 3.0 document; this one uses CAEX 2.15.", why);
+    }
+
     [Fact]
     public void A_custom_severity_is_1_to_1000()
     {

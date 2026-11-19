@@ -19,6 +19,7 @@ public sealed record AlarmRequest(AlarmKind Kind, double? Limit, bool? Normal, u
 public sealed class AlarmWindow : Window
 {
     private readonly InternalElementType _value;
+    private readonly string _builtIn;
     private bool _nameOwn, _messageOwn, _proposing;
 
     public RadioButton KindHigh { get; } = new() { Content = L.T("Above a limit"), GroupName = "Kind" };
@@ -41,6 +42,7 @@ public sealed class AlarmWindow : Window
     public AlarmWindow(InternalElementType value)
     {
         _value = value;
+        _builtIn = BuiltInOf(value.Attribute["Value"]?.AttributeDataType);
         Width = 560;
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
@@ -113,10 +115,16 @@ public sealed class AlarmWindow : Window
         double? limit = null;
         if (Kind != AlarmKind.State)
         {
-            try { limit = Convert.ToDouble(ValueEntry.Parse("Double", -1, LimitBox.Text), System.Globalization.CultureInfo.InvariantCulture); }
+            // A limit in the value's own type: a whole number for a whole-number value, within its range.
+            try { limit = Convert.ToDouble(ValueEntry.Parse(_builtIn, -1, LimitBox.Text), System.Globalization.CultureInfo.InvariantCulture); }
             catch (ValueEntryException ex)
             {
                 DialogKit.ShowError(Error, ValueTexts.Describe(ex));
+                return null;
+            }
+            if (double.IsNaN(limit.Value) || double.IsInfinity(limit.Value))
+            {
+                DialogKit.ShowError(Error, L.T("'{0}' is no limit: write a number, such as 1200.", LimitBox.Text.Trim()));
                 return null;
             }
         }
@@ -141,6 +149,21 @@ public sealed class AlarmWindow : Window
         Error.Text = "";
         return new AlarmRequest(Kind, limit, Kind == AlarmKind.State ? NormalTrue.IsChecked == true : null, severity, MessageBox.Text.Trim(), name);
     }
+
+    /// <summary>The built-in type a value of this XML Schema type is served as.</summary>
+    private static string BuiltInOf(string? xsType) => xsType switch
+    {
+        "xs:float" => "Float",
+        "xs:int" => "Int32",
+        "xs:long" or "xs:integer" => "Int64",
+        "xs:short" => "Int16",
+        "xs:byte" => "SByte",
+        "xs:unsignedInt" => "UInt32",
+        "xs:unsignedLong" => "UInt64",
+        "xs:unsignedShort" => "UInt16",
+        "xs:unsignedByte" => "Byte",
+        _ => "Double",
+    };
 
     private static StackPanel Row(params UIElement[] children)
     {

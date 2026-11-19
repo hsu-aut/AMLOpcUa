@@ -29,7 +29,7 @@ public class AcknowledgeDialogTests
         bool cancels = false, accepted = false;
         OnUiThread(() =>
         {
-            var window = new AcknowledgeWindow(Row());
+            var window = new AcknowledgeWindow(Row(), null);
             // The facts are text boxes, to copy from; the rest text blocks.
             texts = Logical(window).OfType<TextBlock>().Select(t => t.Text)
                 .Concat(Logical(window).OfType<TextBox>().Select(t => t.Text)).ToArray();
@@ -44,6 +44,26 @@ public class AcknowledgeDialogTests
         Assert.Contains(texts, t => t.Contains("Acknowledge only when you know the cause."));
         Assert.True(cancels);
         Assert.True(accepted);
+    }
+
+    /// <summary>Review 2026-11-19: "Since" was the time of the newest row, not when the alarm came.</summary>
+    [Fact]
+    public void The_dialog_says_since_when_an_active_alarm_is_active_and_when_another_changed()
+    {
+        string[] active = [], gone = [];
+        var since = new DateTimeOffset(2026, 11, 19, 8, 30, 5, TimeSpan.Zero);
+        OnUiThread(() =>
+        {
+            static string[] Texts(System.Windows.Window w) => Logical(w).OfType<TextBlock>().Select(t => t.Text)
+                .Concat(Logical(w).OfType<TextBox>().Select(t => t.Text)).ToArray();
+            active = Texts(new AcknowledgeWindow(Row(), since));
+            gone = Texts(new AcknowledgeWindow(Row(active: false), null));
+            return Task.CompletedTask;
+        });
+
+        Assert.Contains("Since", active);
+        Assert.Contains(active, t => t.StartsWith(since.ToLocalTime().ToString("HH:mm:ss"), StringComparison.Ordinal));
+        Assert.Contains("Last change", gone);
     }
 
     [Theory]

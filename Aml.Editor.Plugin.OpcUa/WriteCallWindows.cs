@@ -112,7 +112,8 @@ public sealed class AcknowledgeWindow : Window
 {
     public TextBox Comment { get; } = new() { MinWidth = 320 };
 
-    public AcknowledgeWindow(EventRow row)
+    /// <param name="since">Since when the alarm is active (<see cref="EventHistory.ActiveSince"/>); null for one that is not.</param>
+    public AcknowledgeWindow(EventRow row, DateTimeOffset? since)
     {
         var e = row.Event ?? throw new ArgumentException("A connection row is no alarm.", nameof(row));
         Width = 520;
@@ -120,12 +121,13 @@ public sealed class AcknowledgeWindow : Window
         ResizeMode = ResizeMode.NoResize;
         AutomationProperties.SetName(Comment, L.T("Comment"));
 
-        var since = row.Time.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        // An active alarm says since when it is active; another, when it last changed.
+        var (label, time) = since is { } came ? (L.T("Since"), came) : (L.T("Last change"), row.Time);
         var body = new StackPanel();
         body.Children.Add(DialogKit.Facts(
             (L.T("Alarm"), e.Message, false),
             (L.T("Source"), e.SourceName, false),
-            (L.T("Since"), L.T("{0}, severity {1}", since, e.Severity), false)));
+            (label, L.T("{0}, severity {1}", time.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture), e.Severity), false)));
         body.Children.Add(DialogKit.Label(L.T("Comment")));
         body.Children.Add(Comment);
         body.Children.Add(new TextBlock { Text = L.T("Optional. The server keeps it with the acknowledgement."), Foreground = DialogKit.Muted, Margin = new Thickness(0, 3, 0, 0) });

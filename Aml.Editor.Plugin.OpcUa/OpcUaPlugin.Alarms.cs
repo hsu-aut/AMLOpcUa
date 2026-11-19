@@ -30,6 +30,8 @@ public partial class OpcUaPlugin
     /// <summary>The value selected in the editor that an alarm can watch, or null with why not.</summary>
     private (InternalElementType? Value, string Why) AlarmTarget()
     {
+        if (_document is { } doc && doc.CAEXFile.SchemaVersion != OpcUaAml.Import.LibraryMerger.RequiredSchemaVersion)
+            return (null, L.T("Alarms need a CAEX 3.0 document; this one uses CAEX {0}.", doc.CAEXFile.SchemaVersion));
         if (_document == null || _editorSelection is not InternalElementType value || !ReferenceEquals(value.CAEXDocument, _document)
             || !AmlAddressSpace.IsServedVariable(value) || value.Attribute["Value"] is not { } attribute)
             return (null, L.T("Select a value in the editor first: an element with a Value."));

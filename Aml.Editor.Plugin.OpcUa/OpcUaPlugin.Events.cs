@@ -127,16 +127,59 @@ public partial class OpcUaPlugin
         }
     }
 
-    /// <summary>The list as the filter below it says.</summary>
+    /// <summary>The rows shown, the newest first; one view per row, kept while the row is.</summary>
+    private System.Collections.ObjectModel.ObservableCollection<EventRowView> _eventViews = new();
+    private readonly Dictionary<EventRow, EventRowView> _viewOf = new(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+    private (bool OnlyOpen, int MinSeverity) _shownFilter = (false, -1);
+
+    /// <summary>At most this many new rows go on top one by one; more, and the list is built anew.</summary>
+    private const int InsertedAtMost = 200;
+
+    /// <summary>
+    /// The list as the filter below it says. New rows go on top of the rows
+    /// shown, so the list stays where the user scrolled it; a new filter, the
+    /// open alarms (which change in the middle) or a flood build it anew.
+    /// </summary>
     private void ShowEvents()
     {
         var selected = (EventList.SelectedItem as EventRowView)?.Row;
-        var rows = _events.Filter(OpenOnlyBox.IsChecked == true, MinSeverity()).Select(r => new EventRowView(r)).ToList();
-        EventList.ItemsSource = rows;
-        if (selected != null) EventList.SelectedItem = rows.FirstOrDefault(r => ReferenceEquals(r.Row, selected));
+        var filter = (OpenOnlyBox.IsChecked == true, MinSeverity());
+        var rows = _events.Filter(filter.Item1, filter.Item2);
+        EventRowView View(EventRow r)
+        {
+            if (!_viewOf.TryGetValue(r, out var view)) _viewOf[r] = view = new EventRowView(r);
+            return view;
+        }
+        var newer = _eventViews.Count == 0 ? -1 : IndexOf(rows, _eventViews[0].Row);
+        if (filter == _shownFilter && !filter.Item1 && newer >= 0 && newer <= InsertedAtMost && ReferenceEquals(EventList.ItemsSource, _eventViews))
+        {
+            for (var i = newer - 1; i >= 0; i--) _eventViews.Insert(0, View(rows[i]));
+            // The rows that went are the oldest, at the end.
+            while (_eventViews.Count > rows.Count) _eventViews.RemoveAt(_eventViews.Count - 1);
+        }
+        else
+        {
+            _eventViews = new System.Collections.ObjectModel.ObservableCollection<EventRowView>(rows.Select(View));
+            EventList.ItemsSource = _eventViews;
+        }
+        _shownFilter = filter;
+        // Views of rows the history dropped go too.
+        if (_viewOf.Count > _events.Count + 1000)
+        {
+            var kept = _events.Rows.ToHashSet(System.Collections.Generic.ReferenceEqualityComparer.Instance);
+            foreach (var gone in _viewOf.Keys.Where(k => !kept.Contains(k)).ToList()) _viewOf.Remove(gone);
+        }
+        if (selected != null && (EventList.SelectedItem as EventRowView)?.Row != selected)
+            EventList.SelectedItem = _eventViews.FirstOrDefault(v => ReferenceEquals(v.Row, selected));
         EventsTab.Header = _events.Count == 0 ? L.T("Events") : L.T("Events ({0})", _events.Count);
         UpdateLiveTabs();
         UpdateEventCommands(_client != null);
+    }
+
+    private static int IndexOf(IReadOnlyList<EventRow> rows, EventRow row)
+    {
+        for (var i = 0; i < rows.Count; i++) if (ReferenceEquals(rows[i], row)) return i;
+        return -1;
     }
 
     private int MinSeverity() => SeverityBox.SelectedIndex switch { 1 => 200, 2 => 500, 3 => 800, _ => 0 };
@@ -218,7 +261,7 @@ public partial class OpcUaPlugin
     private async void AcknowledgeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_client == null || EventList.SelectedItem is not EventRowView view || !_events.CanAcknowledge(view.Row)) return;
-        var window = new AcknowledgeWindow(view.Row) { Owner = Window.GetWindow(this) };
+        var window = new AcknowledgeWindow(view.Row, _events.ActiveSince(view.Row)) { Owner = Window.GetWindow(this) };
         if (window.ShowDialog() != true) return;
         await AcknowledgeRowAsync(view.Row, window.Comment.Text);
     }
