@@ -60,8 +60,11 @@ minor versions.
   comment, user, condition, event type, EventId), or as an attachment of an
   element: the file goes beside the document, and the element gets an
   ExternalDataReference to it (AutomationMLInterfaceClassLib). For a
-  container (.amlx) the attachment is preselected; when the container is
-  saved, the AutomationML Editor offers to take the file in.
+  container (.amlx) the attachment is preselected and the file goes beside
+  the .amlx; when the container is saved, the AutomationML Editor offers to
+  take the file in. The plugin reads where the container is from the
+  editor's window, which tells plugins no path for it; where it cannot, the
+  file goes to `%LOCALAPPDATA%\AMLOpcUa\attachments`.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

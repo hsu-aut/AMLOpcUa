@@ -1184,10 +1184,14 @@ of the plugin. Separator, numbers and the guard against formulas are those of
   (AutomationMLInterfaceClassLib) that names the file, with MIMEType
   `text/csv`. Each save adds a new one. Beside an `.aml` document the file is
   named relative to it: pass it on with the document. For a container
-  (`.amlx`) this is preselected; when you save the container with Ctrl+S, the
-  AutomationML Editor offers to take the file in. Keep it ticked there, and
+  (`.amlx`) this is preselected, and the file goes beside the `.amlx`; when you
+  save the container with Ctrl+S, the AutomationML Editor offers to take the
+  file in ("Select external data", **Add as part**). Keep it ticked there, and
   the container holds the history. Until then the interface names the file by
-  its full path, which names your folder; unticked, it keeps that path.
+  its full path, which names your folder; unticked, it keeps that path. The
+  editor tells a plugin no path for a container; the plugin reads it from the
+  editor's window, and where that fails (a later editor may hide it) the file
+  goes to `%LOCALAPPDATA%\AMLOpcUa\attachments`.
 
 ### A plant to practise on
 
