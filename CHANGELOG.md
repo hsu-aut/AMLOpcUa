@@ -51,6 +51,13 @@ minor versions.
 - **Export NodeSet** (Annex A, inverse) writes the InputNode and NormalState
   of an alarm as the NodeIds the export gives the elements they name, so an
   alarm on a value of one's own model points to that value in the NodeSet too.
+- **Save events…** saves the event list, the oldest row first, as a CSV
+  file (time in UTC, server by its name, source, severity, message, state,
+  comment, user, condition, event type, EventId), or as an attachment of an
+  element: the file goes beside the document, and the element gets an
+  ExternalDataReference to it (AutomationMLInterfaceClassLib). For a
+  container (.amlx) the attachment is preselected; when the container is
+  saved, the AutomationML Editor offers to take the file in.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

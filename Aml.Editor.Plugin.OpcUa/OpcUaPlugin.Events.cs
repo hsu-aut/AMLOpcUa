@@ -5,11 +5,15 @@
 // list four times a second, so a flood of them does not stop the editor.
 
 using System.Collections.Concurrent;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.OpcUa.Localization;
+using Aml.Engine.CAEX;
+using Microsoft.Win32;
+using OpcUaAml.Import;
 using OpcUaAml.Server;
 
 namespace Aml.Editor.Plugin.OpcUa;
@@ -246,9 +250,78 @@ public partial class OpcUaPlugin
         : answer.Status == "BadEventIdUnknown" ? L.T("The alarm has changed; select it again.")
         : L.T("Acknowledging failed: {0}", answer.Status);
 
-    /// <summary>Save events… (task 9).</summary>
+    /// <summary>Save events…: as a CSV file, or as an attachment of an element of the document.</summary>
     private void SaveEventsButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_events.Count == 0) return;
+        var document = _document;
+        var owner = AttachmentOwner();
+        var window = new SaveEventsWindow(document != null && owner != null ? _documentPath : null, owner?.Name ?? "", () =>
+        {
+            if (document == null) return null;
+            var picker = new ElementPickerWindow(document, L.T("Attach the events to")) { Owner = Window.GetWindow(this) };
+            if (picker.ShowDialog() != true || picker.Selected == null) return null;
+            owner = picker.Selected;
+            return owner.Name;
+        }) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true) return;
+        if (window.AttachmentChoice.IsChecked == true && owner != null) SaveEventsAsAttachment(owner, DateTime.Now);
+        else SaveEventsAsCsv();
+    }
+
+    /// <summary>The element an attachment goes to unless the user chooses another: the one selected in the editor, else the topmost one.</summary>
+    private InternalElementType? AttachmentOwner() =>
+        _editorSelection is InternalElementType selected && ReferenceEquals(selected.CAEXDocument, _document) ? selected
+        : _document?.CAEXFile.InstanceHierarchy.FirstOrDefault()?.InternalElement.FirstOrDefault();
+
+    /// <summary>The events as a CSV file beside the document, attached to <paramref name="owner"/>.</summary>
+    internal void SaveEventsAsAttachment(InternalElementType owner, DateTime now)
+    {
+        if (_documentPath is not { } documentPath) return;
+        var file = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(documentPath)) ?? "", Attachments.FileName(documentPath, now));
+        try
+        {
+            File.WriteAllText(file, _events.ToCsv(), new System.Text.UTF8Encoding(true));
+            Attachments.Attach(owner, Attachments.UriFor(documentPath, file), "text/csv",
+                L.T("Events {0}", now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)));
+            var text = L.T("Saved {0} event(s) to {1} and attached it to '{2}'.", _events.Count, Path.GetFileName(file), owner.Name);
+            text += AmlContainers.IsContainerPath(documentPath)
+                ? L.T(" When you save the container (Ctrl+S), the editor offers to take the file in; keep it ticked there.")
+                : L.T(" Press Ctrl+S to save.");
+            if (_events.Dropped > 0) text += L.T(" The {0} oldest were dropped to keep the list small.", _events.Dropped);
+            PluginLog.Info($"Saved {_events.Count} event(s) to {file}, attached to {owner.Name}.");
+            SetStatus(text);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            PluginLog.Error($"Saving the events to {file} failed", ex);
+            SetStatus(L.T("Saving the events failed: {0}", ex.Message));
+        }
+    }
+
+    /// <summary>The events as a CSV file where the user says.</summary>
+    private void SaveEventsAsCsv()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = L.T("Save the events"),
+            Filter = L.T("CSV, semicolons (*.csv)|*.csv"),
+            FileName = $"events-{DateTime.Now:yyyyMMdd-HHmmss}.csv",
+        };
+        if (dialog.ShowDialog(Window.GetWindow(this)) != true) return;
+        try
+        {
+            File.WriteAllText(dialog.FileName, _events.ToCsv(), new System.Text.UTF8Encoding(true));
+            var text = L.T("Saved {0} event(s) to {1}.", _events.Count, dialog.FileName);
+            if (_events.Dropped > 0) text += L.T(" The {0} oldest were dropped to keep the list small.", _events.Dropped);
+            PluginLog.Info(text);
+            SetStatus(text);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            PluginLog.Error($"Saving the events to {dialog.FileName} failed", ex);
+            SetStatus(L.T("Saving the events failed: {0}", ex.Message));
+        }
     }
 
     /// <summary>The commands below the event list and Receive events behind More.</summary>
@@ -257,6 +330,7 @@ public partial class OpcUaPlugin
         ReceiveEventsItem.Visibility = _settings.ReceiveEvents ? Visibility.Collapsed : Visibility.Visible;
         ReceiveEventsItem.IsEnabled = connected && !ReceivingEvents && !_eventsStarting && !_busy;
         AcknowledgeButton.IsEnabled = connected && EventList.SelectedItem is EventRowView view && _events.CanAcknowledge(view.Row);
+        SaveEventsButton.IsEnabled = _events.Count > 0;
     }
 
     /// <summary>The lists below the address space show while either has something or events are received.</summary>
