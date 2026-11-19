@@ -43,7 +43,7 @@ public class ToolRowTests
             return Task.CompletedTask;
         });
 
-        Assert.Equal(["PreviewButton", "CheckServerButton", "BindModelButton", "SnapshotButton", "SaveWatchButton", "WriteButton", "CallButton"], server);
+        Assert.Equal(["PreviewButton", "CheckServerButton", "BindModelButton", "SnapshotButton", "ReceiveEventsItem", "SaveWatchButton", "WriteButton", "CallButton"], server);
         Assert.Equal(["CloudButton", "OpcfButton", "SaveDescriptorItem", "CheckDescriptorItem", "LinkButton"], namespaces);
     }
 

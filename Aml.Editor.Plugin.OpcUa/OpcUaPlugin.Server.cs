@@ -226,6 +226,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         SetStatus(L.T("Connected to {0}.", url));
         RememberEndpoint(url);
         await LoadRootAsync();
+        // The history says which server its rows came from; it stays across connections.
+        AddConnectedRow(client);
+        if (_settings.ReceiveEvents) await StartEventsAsync();
     }
 
     /// <summary>The width the endpoint URL keeps at least before user, password and Secure leave its line.</summary>
@@ -383,6 +386,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         catch (Exception ex) { PluginLog.Info($"No unit read for {node.Address}: {ex.Message}"); }
         if (_released || _watchRows.Any(r => r.Address == node.Address)) return;
         _watchRows.Add(row);
+        LiveTabs.SelectedItem = WatchTab;
         await RestartWatchAsync();
         // Save values… and Unwatch follow the list; nothing else would tell them now.
         UpdateServerState();
@@ -451,7 +455,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         {
             if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
             WatchList.ItemsSource = _watchRows;
-            WatchList.Visibility = _watchRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateLiveTabs();
             var client = _client;
             if (client == null || _watchRows.Count == 0) return;
             var rows = _watchRows.ToDictionary(r => r.Address);
@@ -637,9 +641,10 @@ public partial class OpcUaPlugin : ISupportsSelection
         try
         {
             await StopLiveAsync();
+            await StopEventsAsync();
             if (_watch != null) { await _watch.DisposeAsync(); _watch = null; }
             _watchRows.Clear();
-            WatchList.Visibility = Visibility.Collapsed;
+            UpdateLiveTabs();
             if (client != null) await client.DisposeAsync();
         }
         finally
@@ -1325,6 +1330,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         CallButton.IsEnabled = connected && !_busy && SelectedNode?.NodeClass == "Method";
         UnwatchButton.IsEnabled = connected && _watchRows.Count > 0;
         SaveWatchButton.IsEnabled = _watchRows.Count > 0 || _recording.Count > 0;
+        UpdateEventCommands(connected);
         ServeText.Text = _host != null ? L.T("Stop serving") : L.T("Serve");
         ServeGlyph.Text = _host != null ? "\uE71A" : "\uE768";
         ServeGlyph.Foreground = _host != null ? new SolidColorBrush(Color.FromRgb(0xC0, 0x30, 0x30)) : (Brush)FindResource("Create");

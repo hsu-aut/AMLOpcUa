@@ -76,6 +76,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _applyingSettings = true;
         ReplaceToggle.IsChecked = _settings.ReplaceExistingLibraries;
         SaveToggle.IsChecked = _settings.SaveAfterImport;
+        ReceiveEventsToggle.IsChecked = _settings.ReceiveEvents;
         _applyingSettings = false;
         DebugToggle.IsChecked = PluginLog.DebugEnabled;
         ShowLanguageChoice();
@@ -272,7 +273,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         ModelerTab.Header = L.T("Modeler");
         AddressTree.Items.Clear();
         _watchRows.Clear();
-        WatchList.Visibility = Visibility.Collapsed;
+        UpdateLiveTabs();
         _document = null;
         Watch(null);
         UpdateState();
@@ -345,6 +346,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         catch { /* shutting down */ }
         try { _watch?.DisposeAsync().AsTask().Wait(2000); }
         catch { /* shutting down */ }
+        _eventFlush?.Stop();
+        try { _eventSubscription?.DisposeAsync().AsTask().Wait(2000); }
+        catch { /* shutting down */ }
+        _eventSubscription = null;
         try { _client?.DisposeAsync().AsTask().Wait(3000); }
         catch { /* shutting down */ }
         _client = null;
@@ -928,7 +933,10 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         if (!IsInitialized || _applyingSettings) return;
         _settings.ReplaceExistingLibraries = ReplaceToggle.IsChecked == true;
         _settings.SaveAfterImport = SaveToggle.IsChecked == true;
+        _settings.ReceiveEvents = ReceiveEventsToggle.IsChecked == true;
         _settings.Save();
+        // Receive events behind More is there while the setting is off.
+        UpdateServerState();
     }
 
     private void DebugToggle_Changed(object sender, RoutedEventArgs e)

@@ -251,6 +251,9 @@
                                     <MenuItem x:Name="SaveToggle" Header="{l:T 'Save after import'}" IsCheckable="True"
                                               Checked="Setting_Changed" Unchecked="Setting_Changed"
                                               ToolTip="{l:T 'Trigger the editor\'s save command after a successful import.'}"/>
+                                    <MenuItem x:Name="ReceiveEventsToggle" Header="{l:T 'Receive events after connecting'}" IsCheckable="True"
+                                              Checked="Setting_Changed" Unchecked="Setting_Changed"
+                                              ToolTip="{l:T 'Receive the server\'s events and alarms as soon as you connect. Off, More ▾ in the Server tab offers to receive them.'}"/>
                                     <MenuItem x:Name="DebugToggle" Header="{l:T 'Debug log'}" IsCheckable="True"
                                               Checked="DebugToggle_Changed" Unchecked="DebugToggle_Changed"/>
                                     <MenuItem Header="{l:T 'Language'}" ToolTip="{l:T 'The language of the plugin and the modeler; it changes when the editor starts again.'}">
@@ -667,6 +670,10 @@
                                               ToolTip="{l:T 'Read the value of every element bound to this server into the document, once.'}">
                                         <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE895;" Foreground="{DynamicResource Exchange}"/></MenuItem.Icon>
                                     </MenuItem>
+                                    <MenuItem x:Name="ReceiveEventsItem" Header="{l:T 'Receive events'}" Click="ReceiveEventsItem_Click" Visibility="Collapsed"
+                                              ToolTip="{l:T 'Receive the server\'s events and alarms in the list below the address space.'}">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE7E7;" Foreground="{DynamicResource Verify}"/></MenuItem.Icon>
+                                    </MenuItem>
                                     <MenuItem x:Name="SaveWatchButton" Header="{l:T 'Save values…'}" Click="SaveWatchButton_Click"
                                               ToolTip="{l:T 'Save every value the watch received, with the time it arrived, as a CSV file with semicolons, to open in a spreadsheet.'}">
                                         <MenuItem.Icon><TextBlock Style="{StaticResource IconText}" Text="&#xE74E;" Foreground="{DynamicResource Plain}"/></MenuItem.Icon>
@@ -815,49 +822,123 @@
                         </Grid>
                     </Grid>
 
-                    <ListView x:Name="WatchList" Grid.Row="5" MaxHeight="160" Margin="6,0,6,6" Visibility="Collapsed">
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Header="{l:T 'Node'}" Width="240">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Node}" ToolTip="{Binding Where}"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{l:T 'Value'}" Width="240">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Value}" FontFamily="Consolas"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{l:T 'Unit'}" Width="80">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Unit}"/>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{l:T 'Status'}" Width="200">
-                                    <GridViewColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#C03030" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Status}" ToolTip="{Binding Status}"/>
-                                            </StackPanel>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding Good}" Value="True">
-                                                    <Setter TargetName="Dot" Property="Fill" Value="#2E9E4F"/>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </GridViewColumn.CellTemplate>
-                                </GridViewColumn>
-                                <GridViewColumn Header="{l:T 'Received'}" Width="80" DisplayMemberBinding="{Binding Received}"/>
-                            </GridView>
-                        </ListView.View>
-                    </ListView>
+                    <!-- Below the address space: the watched values and the server's events. -->
+                    <TabControl x:Name="LiveTabs" Grid.Row="5" Margin="6,0,6,6" Visibility="Collapsed">
+                        <TabItem x:Name="WatchTab" Header="{l:T 'Watched'}">
+                            <ListView x:Name="WatchList" MaxHeight="160" BorderThickness="0">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Header="{l:T 'Node'}" Width="240">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Node}" ToolTip="{Binding Where}"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="{l:T 'Value'}" Width="240">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Value}" FontFamily="Consolas"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="{l:T 'Unit'}" Width="80">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Unit}"/>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="{l:T 'Status'}" Width="200">
+                                            <GridViewColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Ellipse x:Name="Dot" Width="8" Height="8" Fill="#C03030" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{Binding Status}" ToolTip="{Binding Status}"/>
+                                                    </StackPanel>
+                                                    <DataTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding Good}" Value="True">
+                                                            <Setter TargetName="Dot" Property="Fill" Value="#2E9E4F"/>
+                                                        </DataTrigger>
+                                                    </DataTemplate.Triggers>
+                                                </DataTemplate>
+                                            </GridViewColumn.CellTemplate>
+                                        </GridViewColumn>
+                                        <GridViewColumn Header="{l:T 'Received'}" Width="80" DisplayMemberBinding="{Binding Received}"/>
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </TabItem>
+                        <TabItem x:Name="EventsTab" Header="{l:T 'Events'}">
+                            <DockPanel>
+                                <WrapPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
+                                    <Button x:Name="AcknowledgeButton" Click="AcknowledgeButton_Click" IsEnabled="False"
+                                            ToolTip="{l:T 'Acknowledge the selected alarm, after asking; the controller gets the acknowledgement at once.'}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource IconText}" Text="&#xE73E;" Foreground="{DynamicResource Exchange}"/>
+                                            <TextBlock Text="{l:T 'Acknowledge…'}" Style="{StaticResource Label}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button x:Name="SaveEventsButton" Click="SaveEventsButton_Click" IsEnabled="False" Margin="4,0,0,0"
+                                            ToolTip="{l:T 'Save the events as a CSV file, or as an attachment of an element in the document.'}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource IconText}" Text="&#xE74E;" Foreground="{DynamicResource Plain}"/>
+                                            <TextBlock Text="{l:T 'Save events…'}" Style="{StaticResource Label}"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <CheckBox x:Name="OpenOnlyBox" Content="{l:T 'Only open alarms'}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                              Checked="EventFilter_Changed" Unchecked="EventFilter_Changed"
+                                              ToolTip="{l:T 'Show each alarm once, in its last state, while it is active or not acknowledged.'}"/>
+                                    <Label Content="{l:T 'Se_verity from'}" Target="{Binding ElementName=SeverityBox}" Style="{StaticResource FieldLabel}" Margin="12,0,4,0"/>
+                                    <ComboBox x:Name="SeverityBox" Width="60" SelectedIndex="0" SelectionChanged="EventFilter_Changed"
+                                              AutomationProperties.Name="{l:T 'Severity from'}">
+                                        <ComboBoxItem Content="0"/>
+                                        <ComboBoxItem Content="200"/>
+                                        <ComboBoxItem Content="500"/>
+                                        <ComboBoxItem Content="800"/>
+                                    </ComboBox>
+                                </WrapPanel>
+                                <ListView x:Name="EventList" MaxHeight="160" BorderThickness="0" SelectionMode="Single" SelectionChanged="EventList_SelectionChanged">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="{l:T 'Time'}" Width="80">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Ellipse x:Name="Dot" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                                     Stroke="{Binding Brush}" StrokeThickness="1.5" Fill="Transparent" Visibility="{Binding DotVisibility}"/>
+                                                            <TextBlock Text="{Binding Time}"/>
+                                                        </StackPanel>
+                                                        <DataTemplate.Triggers>
+                                                            <DataTrigger Binding="{Binding Active}" Value="True">
+                                                                <Setter TargetName="Dot" Property="Fill" Value="{Binding Brush}"/>
+                                                            </DataTrigger>
+                                                        </DataTemplate.Triggers>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="{l:T 'Source'}" Width="140">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Source}" ToolTip="{Binding SourceTip}"/>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="{l:T 'Severity'}" Width="60" DisplayMemberBinding="{Binding Severity}"/>
+                                            <GridViewColumn Header="{l:T 'Message'}" Width="240">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Message}" ToolTip="{Binding MessageTip}"/>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="{l:T 'State'}" Width="180" DisplayMemberBinding="{Binding State}"/>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </DockPanel>
+                        </TabItem>
+                    </TabControl>
                 </Grid>
             </TabItem>
 

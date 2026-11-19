@@ -41,6 +41,9 @@ public sealed class PluginSettings
     /// <summary>Prefer a secured endpoint when connecting.</summary>
     public bool UseSecurity { get; set; } = true;
 
+    /// <summary>Receive the server's events and alarms as soon as the plugin connects.</summary>
+    public bool ReceiveEvents { get; set; } = true;
+
     /// <summary>Upper bound on nodes taken in one mirror.</summary>
     public int MirrorMaxNodes { get; set; } = OpcUaAml.Server.MirrorOptions.DefaultMaxNodes;
 

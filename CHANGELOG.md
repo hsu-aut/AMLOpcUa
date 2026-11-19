@@ -9,6 +9,15 @@ minor versions.
 
 ### Added
 
+- **Events and alarms** of the connected server are listed below the address
+  space, beside the watched values: each change a row of its own, the newest
+  first, with time, source, severity, message and state. "Only open alarms"
+  shows each alarm once, in its last state, while it is active or not
+  acknowledged; "Severity from" hides the lesser ones. Events are received
+  from connecting on (a setting leaves that to More ▾ › Receive events), the
+  alarms already active come at once (ConditionRefresh), the rows stay across
+  connections with a row for each, and the list holds at most 10 000 rows. A
+  new alarm from severity 500 on is told in the status line.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the
