@@ -941,7 +941,7 @@
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="{l:T 'Severity'}" Width="80" DisplayMemberBinding="{Binding Severity}"/>
+                                            <GridViewColumn Header="{l:T 'Severity'}" Width="110" DisplayMemberBinding="{Binding Severity}"/>
                                             <GridViewColumn Header="{l:T 'Message'}" Width="240">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>

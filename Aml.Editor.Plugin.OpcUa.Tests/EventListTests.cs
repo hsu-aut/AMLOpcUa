@@ -225,7 +225,7 @@ public class EventListTests
 
         Assert.InRange(watched, 1, 14);
         Assert.InRange(events, 1, 14);
-        Assert.True(severity >= 75, $"Severity {severity}");
+        Assert.True(severity >= 110, $"Severity {severity}");
         Assert.True(source >= 180, $"Source {source}");
     }
 
