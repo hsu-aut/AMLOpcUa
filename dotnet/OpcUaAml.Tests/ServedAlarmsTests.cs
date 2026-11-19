@@ -45,6 +45,12 @@ public sealed class SlowAlarmPlantFixture : AlarmPlantFixture
     protected override SimulationPace Pace => new(20, 10);
 }
 
+/// <summary>The practice plant with watched values that do not move during a test: every event of an alarm comes from the alarm itself.</summary>
+public sealed class StillAlarmPlantFixture : AlarmPlantFixture
+{
+    protected override SimulationPace Pace => new(3600, 3600);
+}
+
 [Trait("Speed", "Slow")]
 public class ServedAlarmsTests(AlarmPlantFixture plant) : IClassFixture<AlarmPlantFixture>
 {

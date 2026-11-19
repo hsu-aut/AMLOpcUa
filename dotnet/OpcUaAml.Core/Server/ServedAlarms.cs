@@ -25,7 +25,8 @@ public enum AlarmKind { High, Low, State }
 /// </summary>
 public sealed record AlarmDefinition(string Name, UaNodeAddress Input, AlarmKind Kind, double Limit, bool Normal, ushort Severity, string Message);
 
-internal sealed class ServedAlarms(ServerSystemContext context, ushort namespaceIndex, Action<NodeState> addNode, Action<NodeState> addRootNotifier)
+/// <param name="gate">The node manager's lock, which value changes hold while they evaluate the alarms.</param>
+internal sealed class ServedAlarms(ISystemContext context, ushort namespaceIndex, Action<NodeState> addNode, Action<NodeState> addRootNotifier, object gate)
 {
     private sealed class Served(AlarmDefinition definition, AlarmConditionState state, BaseDataVariableState input)
     {
@@ -117,6 +118,14 @@ internal sealed class ServedAlarms(ServerSystemContext context, ushort namespace
 
         var served = new Served(d, alarm, input);
         alarm.OnAcknowledge = (_, _, eventId, comment) => Acknowledge(served, eventId, comment);
+        // The stack runs a method outside the node manager's lock; under it, a value
+        // change cannot raise a new activation between the EventId check and the
+        // acknowledged state, which would then acknowledge what the client never saw.
+        var acknowledge = alarm.Acknowledge.OnCall;
+        alarm.Acknowledge.OnCall = (c, method, objectId, eventId, comment) =>
+        {
+            lock (gate) return acknowledge(c, method, objectId, eventId, comment);
+        };
         // Acknowledge reports by itself; a value change is reported below.
         alarm.AutoReportStateChanges = true;
 
@@ -124,7 +133,10 @@ internal sealed class ServedAlarms(ServerSystemContext context, ushort namespace
         // the topmost node, which is the root notifier; otherwise through the source,
         // which is then the root notifier itself. Two root notifiers on one path would
         // send each event twice.
-        source.AddReference(ReferenceTypeIds.HasCondition, false, alarm.NodeId);
+        // A forward notifier, besides the reference: a client subscribing at the source
+        // marks what it notifies as monitored, and the stack reports an acknowledgement
+        // only for a monitored condition. An alarm off the hierarchy is reached only so.
+        source.AddNotifier(context, ReferenceTypeIds.HasCondition, false, alarm);
         alarm.AddReference(ReferenceTypeIds.HasCondition, true, source.NodeId);
         if (!asComponent) alarm.AddNotifier(context, ReferenceTypeIds.HasCondition, true, source);
         var root = source;
@@ -211,10 +223,26 @@ internal sealed class ServedAlarms(ServerSystemContext context, ushort namespace
         alarm.ReportEvent(context, snapshot);
     }
 
-    /// <summary>The state of every alarm the server retains, for a ConditionRefresh.</summary>
+    /// <summary>
+    /// The state of every alarm the server retains, for a ConditionRefresh: as
+    /// snapshots, since the stack reads them after the lock is released, while a
+    /// value change may already be changing the live condition.
+    /// </summary>
     public void ConditionRefresh(List<IFilterTarget> events)
     {
-        foreach (var served in _alarms) served.State.ConditionRefresh(context, events, true);
+        var live = new List<IFilterTarget>();
+        foreach (var served in _alarms) served.State.ConditionRefresh(context, live, true);
+        foreach (var e in live)
+        {
+            if (e is not BaseInstanceState state)
+            {
+                events.Add(e);
+                continue;
+            }
+            var snapshot = new InstanceStateSnapshot();
+            snapshot.Initialize(context, state);
+            events.Add(snapshot);
+        }
     }
 
     /// <summary>Gives every node below the alarm a NodeId of the manager, named after its path, as the stack gives the type's own.</summary>

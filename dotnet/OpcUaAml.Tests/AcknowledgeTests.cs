@@ -83,3 +83,38 @@ public class AcknowledgeTests(SlowAlarmPlantFixture plant) : IClassFixture<SlowA
         try { Directory.Delete(pki, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
 }
+
+/// <summary>
+/// Review 2026-11-19: in the practice plant an acknowledgement sent no event;
+/// the acknowledged state showed only with the next value change, which the
+/// tests above waited for.
+/// </summary>
+[Trait("Speed", "Slow")]
+public class AcknowledgeEventTests(StillAlarmPlantFixture plant) : IClassFixture<StillAlarmPlantFixture>
+{
+    [Fact]
+    public async Task The_acknowledged_state_comes_at_once_without_a_value_change()
+    {
+        await using var client = await plant.ConnectAsync();
+        var events = new List<UaEvent>();
+        await using var subscription = await client.SubscribeEventsAsync(e => { lock (events) events.Add(e); });
+        UaEvent? active = null;
+        for (var i = 0; i < 100 && active == null; i++)
+        {
+            lock (events) active = events.LastOrDefault(e => e.ConditionName == "MagazineEmpty" && e.Active == true && e.Acked == false);
+            if (active == null) await Task.Delay(100);
+        }
+        Assert.NotNull(active);
+
+        var result = await client.AcknowledgeAsync(active!.ConditionId!, active.EventId, "checked");
+        Assert.True(result.Good, result.Status);
+
+        var acknowledged = false;
+        for (var i = 0; i < 30 && !acknowledged; i++)
+        {
+            lock (events) acknowledged = events.Any(e => e.ConditionName == "MagazineEmpty" && e.Active == true && e.Acked == true && e.Comment == "checked");
+            if (!acknowledged) await Task.Delay(100);
+        }
+        Assert.True(acknowledged, "no event of the acknowledgement within 3 s");
+    }
+}

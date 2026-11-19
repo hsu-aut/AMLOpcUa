@@ -368,7 +368,7 @@ public sealed class AmlServerHost : IAsyncDisposable
         private void AddAlarms()
         {
             if (_alarmNodes.Count == 0) return;
-            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier);
+            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier, Lock);
             foreach (var node in _alarmNodes)
             {
                 var alarm = node.Alarm!;

@@ -284,7 +284,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         private void AddAlarms()
         {
             if (AlarmDefinitions.Count == 0) return;
-            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier);
+            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier, Lock);
             foreach (var d in AlarmDefinitions)
             {
                 var id = ServedAlarms.ToNodeId(d.Input, Server.NamespaceUris);
