@@ -48,6 +48,9 @@ minor versions.
   A document without the OPC UA base library is offered to import it first.
   The Check tab finds alarms that watch no value (UA009), whose limit is no
   number (UA010), or state alarms on a value that is no boolean (UA011).
+- **Export NodeSet** (Annex A, inverse) writes the InputNode and NormalState
+  of an alarm as the NodeIds the export gives the elements they name, so an
+  alarm on a value of one's own model points to that value in the NodeSet too.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

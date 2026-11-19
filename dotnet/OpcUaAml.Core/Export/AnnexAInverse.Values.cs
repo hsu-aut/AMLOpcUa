@@ -24,8 +24,28 @@ public static partial class AnnexAInverse
             if (valueRank != null && valueRank != "-1") node.Add(new XAttribute("ValueRank", valueRank));
             if (Attr(e, "ArrayDimensions") is { } dims && dims.Elements(_caex + "Attribute").Any())
                 node.Add(new XAttribute("ArrayDimensions", string.Join(",", dims.Elements(_caex + "Attribute").Select(d => (string?)d.Element(_caex + "Value") ?? "0"))));
-            if (value != null && ValueXml(value) is { } xml) node.Add(new XElement(Ua + "Value", xml));
+            if (value != null && Referenced(e, value) is { } target)
+                node.Add(new XElement(Ua + "Value", new XElement(Types + "NodeId", new XElement(Types + "Identifier", Text(Assign(target))))));
+            else if (value != null && ValueXml(value) is { } xml) node.Add(new XElement(Ua + "Value", xml));
         }
+
+        /// <summary>
+        /// The element a property of DataType NodeId names by ID (refNode, as an
+        /// alarm's InputNode does): its value is the NodeId that element gets in
+        /// this export, whatever the document wrote, since an element of one's own
+        /// model gets its NodeId only here.
+        /// </summary>
+        private XElement? Referenced(XElement e, XElement value)
+        {
+            if (((string?)value.Attribute("RefAttributeType"))?.EndsWith("[NodeId]", StringComparison.Ordinal) != true) return null;
+            var reference = e.Elements(_caex + "Attribute").FirstOrDefault(a => Name(a) == OpcUaAml.Links.Vdi3682Links.RefNode);
+            if ((string?)reference?.Element(_caex + "Value") is not { Length: > 0 } id) return null;
+            _byId ??= _root.Descendants(_caex + "InternalElement").Where(x => x.Attribute("ID") != null)
+                .GroupBy(x => (string)x.Attribute("ID")!).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+            return _byId.GetValueOrDefault(id);
+        }
+
+        private Dictionary<string, XElement>? _byId;
 
         /// <summary>The DataType of an attribute: its RefAttributeType; for a "ListOf" helper type, the element type.</summary>
         private (UaNodeAddress? Type, bool List) DataTypeOf(XElement attribute)
