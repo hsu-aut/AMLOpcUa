@@ -1186,7 +1186,8 @@ of the plugin. Separator, numbers and the guard against formulas are those of
   named relative to it: pass it on with the document. For a container
   (`.amlx`) this is preselected; when you save the container with Ctrl+S, the
   AutomationML Editor offers to take the file in. Keep it ticked there, and
-  the container holds the history.
+  the container holds the history. Until then the interface names the file by
+  its full path, which names your folder; unticked, it keeps that path.
 
 ### A plant to practise on
 
