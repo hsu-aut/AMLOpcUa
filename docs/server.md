@@ -353,7 +353,8 @@ alarm, with the stack's condition state (`ExclusiveLevelAlarmState`,
 and ConditionRefresh are the stack's. Its InputNode names the value it watches
 (by `refNode`, else by NodeId), its NormalState the property NormalValue.
 The object above the value is the event source and has HasCondition to the
-alarm; the alarm stands where its element stands (HasComponent), and the
+alarm; the alarm hangs below it (HasComponent), which is where Create alarm…
+puts its element (an element moved elsewhere is served there all the same), and the
 events go up the hierarchy to its topmost folder, the root notifier below the
 Server object (HasNotifier along the way). One root notifier per path: two
 on one path would send each event twice.
@@ -365,7 +366,10 @@ is not its normal value. A value that is no number, or no boolean, leaves the
 alarm as it is. Becoming active makes it unacknowledged; Retain holds while it
 is active or not acknowledged. Acknowledge needs the EventId of the newest
 event of the alarm; an older one is refused with BadEventIdUnknown. Clients
-cannot write; only the server's own values move its alarms.
+cannot write; only the server's own values move its alarms. Like new or
+removed elements, changes of an alarm's limit, severity or text, and a value
+removed from the document, take effect at the next start; until then a
+removed value keeps its last value, or its simulation.
 
 With simulation, the values an alarm watches move slower (`SimulationPace.Watched`,
 a wave of 120 s, a change every 60 s instead of 30 s and 5 s), so an alarm

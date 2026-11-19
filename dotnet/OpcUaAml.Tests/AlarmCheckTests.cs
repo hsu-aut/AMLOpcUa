@@ -27,7 +27,11 @@ public class AlarmCheckTests(DiDocument di) : IClassFixture<DiDocument>
         return (ih, drill, speed, empty);
     }
 
-    private static readonly string[] AlarmRules = [Rules.AlarmWithoutInput, Rules.AlarmLimitNotNumber, Rules.StateAlarmNotBoolean];
+    private static readonly string[] AlarmRules =
+    [
+        Rules.AlarmWithoutInput, Rules.AlarmLimitNotNumber, Rules.StateAlarmNotBoolean,
+        Rules.AlarmValueNotNumber, Rules.AlarmSeverity, Rules.AlarmBothLimits,
+    ];
 
     [Fact]
     public void A_sound_alarm_has_no_finding()
@@ -61,6 +65,56 @@ public class AlarmCheckTests(DiDocument di) : IClassFixture<DiDocument>
         var finding = Assert.Single(di.FindingsIn(ih), f => f.Rule == Rules.AlarmLimitNotNumber);
         Assert.Equal(Severity.Error, finding.Severity);
         Assert.Contains("3,5", finding.Message);
+    }
+
+    /// <summary>Review 2026-11-19: a watched value that is no number left the alarm silent, and the check said nothing.</summary>
+    [Fact]
+    public void A_watched_value_that_is_no_number_is_found()
+    {
+        var (ih, _, speed, _) = Plant("TextValue");
+        AlarmElements.Create(speed, AlarmKind.High, 1200, null, 800, "Spindle overloaded", "SpindleSpeedHigh");
+        speed.Attribute["Value"]!.Value = "3,5";
+
+        var finding = Assert.Single(di.FindingsIn(ih), f => f.Rule == Rules.AlarmValueNotNumber);
+        Assert.Equal(Severity.Warning, finding.Severity);
+        Assert.Contains("3,5", finding.Message);
+    }
+
+    [Fact]
+    public void An_empty_watched_value_is_no_finding()
+    {
+        var (ih, _, speed, _) = Plant("EmptyValue");
+        AlarmElements.Create(speed, AlarmKind.High, 1200, null, 800, "Spindle overloaded", "SpindleSpeedHigh");
+        speed.Attribute["Value"]!.Value = "";
+
+        Assert.DoesNotContain(di.FindingsIn(ih), f => f.Rule == Rules.AlarmValueNotNumber);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("1001")]
+    [InlineData("")]
+    public void A_severity_outside_1_to_1000_is_found(string severity)
+    {
+        var (ih, _, speed, _) = Plant("Severity" + severity.Length + severity);
+        var alarm = AlarmElements.Create(speed, AlarmKind.High, 1200, null, 800, "Spindle overloaded", "SpindleSpeedHigh");
+        alarm.InternalElement["Severity"]!.Attribute["Value"]!.Value = severity;
+
+        Assert.Equal(Severity.Error, Assert.Single(di.FindingsIn(ih), f => f.Rule == Rules.AlarmSeverity).Severity);
+    }
+
+    [Fact]
+    public void A_limit_alarm_with_both_limits_is_found()
+    {
+        var (ih, _, speed, _) = Plant("BothLimits");
+        var high = AlarmElements.Create(speed, AlarmKind.High, 1200, null, 800, "Spindle overloaded", "SpindleSpeedHigh");
+        var low = AlarmElements.Create(speed, AlarmKind.Low, 900, null, 800, "Spindle too slow", "SpindleSpeedLow");
+        // A LowLimit beside the HighLimit, as another tool may write it.
+        high.InternalElement.Insert((InternalElementType)low.InternalElement["LowLimit"]!.Copy(deepCopy: true, assignNewIDs: true), asFirst: false);
+
+        var finding = Assert.Single(di.FindingsIn(ih), f => f.Rule == Rules.AlarmBothLimits);
+        Assert.Equal(Severity.Warning, finding.Severity);
+        Assert.EndsWith("SpindleSpeedHigh", finding.ElementPath);
     }
 
     [Fact]

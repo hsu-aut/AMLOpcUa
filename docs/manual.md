@@ -614,7 +614,7 @@ selected the button is grey, and its tooltip says why.
 | Field | What it means |
 |---|---|
 | **Kind** | **Above a limit** or **Below a limit** for a number (class ExclusiveLevelAlarmType, with HighLimit or LowLimit); **State (true/false)** for a boolean (class OffNormalAlarmType) |
-| **Limit** | the limit, a number, with a point or a comma |
+| **Limit** | the limit, a number of the value's type, with a point or a comma: a whole number within its range for a whole-number value |
 | **Normal is** | for a state alarm: the value that is no alarm (`false` for "Magazine empty", `true` for "Online") |
 | **Severity** | Info (200), Warning (500), Fault (800), or one of your own from 1 to 1000 |
 | **Text** | the alarm's message, proposed from the value's name |
@@ -645,7 +645,12 @@ in InputNode's `Value` too. A state alarm's normal value is a property
 A document without the OPC UA base library is offered to import it first: the
 libraries of the base model come in, nothing else changes. Ctrl+Z does not
 take the alarm back; delete the element instead. A document being served gets
-the alarm after **Stop serving** and **Serve**.
+the alarm after **Stop serving** and **Serve**; so do changes of its limit,
+severity or text, and a value removed from the document.
+
+The document server hangs the alarm below the object above its value, which is
+where **Create alarm…** puts its element; an alarm element moved elsewhere is
+still served there.
 
 ## Checking instances
 
@@ -674,6 +679,9 @@ its element in the editor.
 | UA009 | Error | An alarm watches no value: its InputNode names no element with a `Value`. |
 | UA010 | Error | The limit of a limit alarm is no number. |
 | UA011 | Error | A state alarm watches a value that is no boolean. |
+| UA012 | Warning | The value a limit alarm watches is no number (`3,5`); the alarm does not come. An empty value is no finding. |
+| UA013 | Error | An alarm's severity is not 1 to 1000. |
+| UA014 | Warning | A limit alarm has both HighLimit and LowLimit; the servers watch HighLimit only. |
 
 ![The Check tab after Check with one finding: an error UA002 for Plant/Device1, an instance of the abstract DeviceType](manual/check.png)
 
@@ -1133,7 +1141,9 @@ says "event". The source's tooltip is its NodeId; the message's tooltip is the
 comment of an acknowledgement, with the user who gave it.
 
 - **Only open alarms** shows each alarm once, in its last state, while the
-  server retains it: while it is active or not acknowledged.
+  server retains it: while it is active or not acknowledged. Only the alarms
+  of the current connection count: one seen before may have closed meanwhile,
+  or belong to another server.
 - **Severity from** hides the events below 200, 500 or 800.
 - The list keeps 10000 rows; older ones go, and the status line says so once.
 - Disconnecting ends receiving, not the list: connecting again, to the same
@@ -1146,7 +1156,9 @@ comment of an acknowledgement, with the user who gave it.
 **Acknowledge…** acknowledges the selected alarm. It is offered for the newest
 state of an alarm that is not acknowledged. The dialog names the alarm, its
 source, since when and its severity, and warns that the controller gets the
-acknowledgement at once; the comment is optional, Escape cancels. The
+acknowledgement at once; the comment is optional, Escape cancels. For an
+active alarm it says since when it is active, for another when it last
+changed. The
 acknowledged state comes from the server as a new row. When the alarm changed
 meanwhile, the server refuses, and the status line says "The alarm has
 changed; select it again."

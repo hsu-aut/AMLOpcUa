@@ -51,13 +51,16 @@ public static class FindingTexts
     public const string AlarmWithoutInput = "watches no value: its InputNode names no element with a Value.";
     public const string AlarmLimitNotNumber = "its limit '{0}' is no number.";
     public const string StateAlarmNotBoolean = "watches '{0}', which holds {1}, not a boolean.";
+    public const string AlarmValueNotNumber = "watches '{0}', whose value '{1}' is no number; the alarm does not come.";
+    public const string AlarmSeverity = "has the severity '{0}'; a severity is 1 to 1000.";
+    public const string AlarmBothLimits = "has HighLimit and LowLimit; the servers watch HighLimit only.";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
         BrokenVdi3682Link, PlaceholderInInstance, UnknownType, AbstractType, MissingMandatory,
         MissingMandatoryPlaceholder, MissingMandatoryPlaceholderOfType, DanglingLink, WrongLinkPair,
         NoTypeDefinition, WrongNodeClass, WrongTypeDefinition, WrongDataType,
-        AlarmWithoutInput, AlarmLimitNotNumber, StateAlarmNotBoolean,
+        AlarmWithoutInput, AlarmLimitNotNumber, StateAlarmNotBoolean, AlarmValueNotNumber, AlarmSeverity, AlarmBothLimits,
     };
 }
 
@@ -75,6 +78,9 @@ public static class Rules
     public const string AlarmWithoutInput = "UA009";
     public const string AlarmLimitNotNumber = "UA010";
     public const string StateAlarmNotBoolean = "UA011";
+    public const string AlarmValueNotNumber = "UA012";
+    public const string AlarmSeverity = "UA013";
+    public const string AlarmBothLimits = "UA014";
 
     // A running server checked against its types (ServerChecker).
     public const string ServerNoTypeDefinition = "SV001";
@@ -98,6 +104,9 @@ public static class Rules
         [AlarmWithoutInput] = "An alarm watches no value (InputNode).",
         [AlarmLimitNotNumber] = "The limit of a limit alarm is no number.",
         [StateAlarmNotBoolean] = "A state alarm watches a value that is no boolean.",
+        [AlarmValueNotNumber] = "The value a limit alarm watches is no number.",
+        [AlarmSeverity] = "An alarm's severity is not 1 to 1000.",
+        [AlarmBothLimits] = "A limit alarm has both limits; only HighLimit is watched.",
         [ServerNoTypeDefinition] = "A node of the server has no type definition.",
         [ServerAbstractType] = "A node of the server is an instance of an abstract type.",
         [ServerMissingMandatory] = "A Mandatory child its type declares is missing on the server.",
@@ -160,6 +169,15 @@ public static class AnnexAChecker
             }
             if (alarm.Kind == Server.AlarmKind.State && alarm.Input?.Attribute["Value"]?.AttributeDataType is { } type && type != "xs:boolean")
                 findings.Add(Finding.Of(Rules.StateAlarmNotBoolean, Severity.Error, path, id, FindingTexts.StateAlarmNotBoolean, alarm.Input.Name, type));
+            // An empty value is no finding, as anywhere in the check: a model may have no value yet.
+            if (alarm.Kind != Server.AlarmKind.State && alarm.Input?.Attribute["Value"]?.Value is { Length: > 0 } value
+                && !double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out _))
+                findings.Add(Finding.Of(Rules.AlarmValueNotNumber, Severity.Warning, path, id, FindingTexts.AlarmValueNotNumber, alarm.Input.Name, value));
+            if (alarm.Severity is < 1 or > 1000)
+                findings.Add(Finding.Of(Rules.AlarmSeverity, Severity.Error, path, id, FindingTexts.AlarmSeverity,
+                    alarm.Element.InternalElement["Severity"]?.Attribute["Value"]?.Value ?? ""));
+            if (alarm.Element.InternalElement["HighLimit"] != null && alarm.Element.InternalElement["LowLimit"] != null)
+                findings.Add(Finding.Of(Rules.AlarmBothLimits, Severity.Warning, path, id, FindingTexts.AlarmBothLimits));
         }
     }
 

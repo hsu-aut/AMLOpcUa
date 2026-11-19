@@ -13,7 +13,8 @@ minor versions.
   space, beside the watched values: each change a row of its own, the newest
   first, with time, source, severity, message and state. "Only open alarms"
   shows each alarm once, in its last state, while it is active or not
-  acknowledged; "Severity from" hides the lesser ones. Events are received
+  acknowledged, the alarms of the current connection only; "Severity from"
+  hides the lesser ones. New rows go on top without moving the list. Events are received
   from connecting on (a setting leaves that to More ▾ › Receive events), the
   alarms already active come at once (ConditionRefresh), the rows stay across
   connections with a row for each, and the list holds at most 10 000 rows. A
@@ -29,8 +30,8 @@ minor versions.
   element that is an instance of ExclusiveLevelAlarmType (with HighLimit or
   LowLimit) or OffNormalAlarmType from the UA base library, as OPC 10000-83
   Annex A writes it. The object above the watched value is the event source,
-  the alarm stands where its element stands, and both the simulation and
-  edits of the document move it. Its InputNode and NormalState name their
+  the alarm hangs below it, where Create alarm… puts its element, and both the
+  simulation and edits of the document move it. Its InputNode and NormalState name their
   elements by ID as well (an attribute `refNode` of the AutomationML object
   reference types), so renaming or moving the value keeps the alarm working.
   Alarms of other classes are served as objects, as before, and the log says
@@ -46,8 +47,11 @@ minor versions.
   normal value for a boolean, with a severity (Info 200, Warning 500, Fault
   800 or one of one's own) and a text. The name and the text are proposed.
   A document without the OPC UA base library is offered to import it first.
-  The Check tab finds alarms that watch no value (UA009), whose limit is no
-  number (UA010), or state alarms on a value that is no boolean (UA011).
+  The limit is a number of the value's type. The Check tab finds alarms that
+  watch no value (UA009), whose limit is no number (UA010), state alarms on a
+  value that is no boolean (UA011), a watched value that is no number (UA012),
+  a severity outside 1 to 1000 (UA013), and a limit alarm with both limits, of
+  which the servers watch HighLimit only (UA014).
 - **Export NodeSet** (Annex A, inverse) writes the InputNode and NormalState
   of an alarm as the NodeIds the export gives the elements they name, so an
   alarm on a value of one's own model points to that value in the NodeSet too.
