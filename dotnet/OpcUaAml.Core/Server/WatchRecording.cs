@@ -55,33 +55,16 @@ public sealed class WatchRecording(int limit = 100_000)
     public string ToCsv(CultureInfo? culture = null)
     {
         culture ??= CultureInfo.CurrentCulture;
-        var separator = string.IsNullOrEmpty(culture.TextInfo.ListSeparator) ? ";" : culture.TextInfo.ListSeparator;
+        var separator = Csv.Separator(culture);
         var text = new StringBuilder();
-        void Line(params (string Text, bool Number)[] cells) =>
-            text.Append(string.Join(separator, cells.Select(c => Cell(c.Text, c.Number, separator)))).Append(Environment.NewLine);
         static (string, bool) T(string s) => (s, false);
-        Line(T("Time"), T("Node"), T("NodeId"), T("Value"), T("Unit"), T("Status"));
+        Csv.Line(text, separator, T("Time"), T("Node"), T("NodeId"), T("Value"), T("Unit"), T("Status"));
         foreach (var e in Entries)
         {
-            var number = Number(e.Raw, culture);
-            Line((e.Time.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture), true), T(e.Node), T(e.Address.ToString()),
+            var number = Csv.Number(e.Raw, culture);
+            Csv.Line(text, separator, (e.Time.ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture), true), T(e.Node), T(e.Address.ToString()),
                 number != null ? (number, true) : T(e.Value), T(e.Unit), T(e.Status));
         }
         return text.ToString();
-    }
-
-    /// <summary>A number in the culture's notation; null for anything else (arrays too, which stay text).</summary>
-    private static string? Number(object? raw, CultureInfo culture) => raw switch
-    {
-        float f => f.ToString("R", culture),
-        double d => d.ToString("R", culture),
-        decimal or sbyte or byte or short or ushort or int or uint or long or ulong => ((IFormattable)raw).ToString(null, culture),
-        _ => null,
-    };
-
-    private static string Cell(string s, bool number, string separator)
-    {
-        if (!number && s.Length > 0 && "=+-@\t\r".Contains(s[0])) s = "'" + s;
-        return s.Contains(separator) || s.IndexOfAny(['"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
     }
 }
