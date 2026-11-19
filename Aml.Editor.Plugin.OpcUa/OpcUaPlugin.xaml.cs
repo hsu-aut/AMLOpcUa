@@ -211,6 +211,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         base.ChangeAMLFilePath(amlFilePath);
         _documentPath = string.IsNullOrEmpty(amlFilePath) ? null : amlFilePath;
+        // A file of its own: no longer the container the editor had open.
+        if (_documentPath != null) { _containerOpen = false; _containerPart = null; }
     }
 
     public void DocumentLoaded(CAEXDocument document)

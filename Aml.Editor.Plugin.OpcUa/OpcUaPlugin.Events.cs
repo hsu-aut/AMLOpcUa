@@ -18,9 +18,30 @@ using OpcUaAml.Server;
 
 namespace Aml.Editor.Plugin.OpcUa;
 
-public partial class OpcUaPlugin
+public partial class OpcUaPlugin : Aml.Editor.Plugin.Contracts.ISupportsAMLContainer
 {
     private readonly EventHistory _events = new();
+
+    /// <summary>
+    /// A container (.amlx) is open. The editor gives a plugin no path for it,
+    /// only the folder of its working copy and the root part, so an attachment
+    /// cannot go beside it; the editor takes the file in when it saves the container.
+    /// </summary>
+    private bool _containerOpen;
+
+    /// <summary>The root part of the open container ("/Plant.aml"), which names an attachment's file.</summary>
+    private string? _containerPart;
+
+    /// <summary>Where the attachments of a container wait until the editor takes them in (tests change it).</summary>
+    internal static string AttachmentsFolder { get; set; } =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "attachments");
+
+    /// <summary>The editor opened a container; <paramref name="containerDirectory"/> is that of its working copy.</summary>
+    public void PublishAutomationMLContainer(string containerDirectory, string filePath, CAEXBasicObject selectedObject)
+    {
+        _containerOpen = true;
+        _containerPart = filePath;
+    }
     private readonly ConcurrentQueue<(UaEvent Event, string Server)> _inbox = new();
     private IAsyncDisposable? _eventSubscription;
     private System.Windows.Threading.DispatcherTimer? _eventFlush;
@@ -324,7 +345,8 @@ public partial class OpcUaPlugin
         if (_events.Count == 0) return;
         var document = _document;
         var owner = AttachmentOwner();
-        var window = new SaveEventsWindow(document != null && owner != null ? _documentPath : null, owner?.Name ?? "", () =>
+        var window = new SaveEventsWindow(document != null && owner != null ? _documentPath : null,
+            document != null && owner != null && _containerOpen, owner?.Name ?? "", () =>
         {
             if (document == null) return null;
             var picker = new ElementPickerWindow(document, L.T("Attach the events to")) { Owner = Window.GetWindow(this) };
@@ -345,15 +367,41 @@ public partial class OpcUaPlugin
     /// <summary>The events as a CSV file beside the document, attached to <paramref name="owner"/>.</summary>
     internal void SaveEventsAsAttachment(InternalElementType owner, DateTime now)
     {
-        if (_documentPath is not { } documentPath) return;
-        var file = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(documentPath)) ?? "", Attachments.FileName(documentPath, now));
+        if (_documentPath == null && !_containerOpen) return;
+        // Beside a document whose path is known; for a container without one, in the
+        // plugin's folder, named by its full path until the editor takes it in.
+        string file, uri;
+        bool container;
+        try
+        {
+            if (_documentPath is { } documentPath)
+            {
+                file = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(documentPath)) ?? "", Attachments.FileName(documentPath, now));
+                uri = Attachments.UriFor(documentPath, file);
+                container = AmlContainers.IsContainerPath(documentPath);
+            }
+            else
+            {
+                var name = _containerPart is { Length: > 0 } part ? Path.GetFileName(part) : "Document.aml";
+                Directory.CreateDirectory(AttachmentsFolder);
+                file = Path.Combine(AttachmentsFolder, Attachments.FileName(name, now));
+                uri = new Uri(file).AbsoluteUri;
+                container = true;
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            PluginLog.Error("Saving the events failed", ex);
+            SetStatus(L.T("Saving the events failed: {0}", ex.Message));
+            return;
+        }
         try
         {
             File.WriteAllText(file, _events.ToCsv(), new System.Text.UTF8Encoding(true));
-            Attachments.Attach(owner, Attachments.UriFor(documentPath, file), "text/csv",
+            Attachments.Attach(owner, uri, "text/csv",
                 L.T("Events {0}", now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)));
             var text = L.T("Saved {0} event(s) to {1} and attached it to '{2}'.", _events.Count, Path.GetFileName(file), owner.Name);
-            text += AmlContainers.IsContainerPath(documentPath)
+            text += container
                 ? L.T(" When you save the container (Ctrl+S), the editor offers to take the file in; keep it ticked there.")
                 : L.T(" Press Ctrl+S to save.");
             if (_events.Dropped > 0) text += L.T(" The {0} oldest were dropped to keep the list small.", _events.Dropped);

@@ -16,26 +16,28 @@ public sealed class SaveEventsWindow : Window
     public RadioButton AttachmentChoice { get; } = new() { GroupName = "Where", Margin = new Thickness(0, 6, 0, 0) };
     private readonly TextBlock _hint = new() { TextWrapping = TextWrapping.Wrap, Foreground = DialogKit.Muted, Margin = new Thickness(20, 3, 0, 0) };
 
-    /// <param name="documentPath">Where the document is saved; null while it is not, and no attachment can go beside it.</param>
+    /// <param name="documentPath">Where the document is saved; null while it is not, and for a container the editor gives no path for.</param>
+    /// <param name="containerOpen">A container is open, whose path the editor does not give.</param>
     /// <param name="elementName">The element the attachment goes to.</param>
     /// <param name="pickElement">Lets the user choose another element; returns its name, or null when the choice was cancelled.</param>
-    public SaveEventsWindow(string? documentPath, string elementName, Func<string?>? pickElement = null)
+    public SaveEventsWindow(string? documentPath, bool containerOpen, string elementName, Func<string?>? pickElement = null)
     {
         Width = 520;
         SizeToContent = SizeToContent.Height;
         ResizeMode = ResizeMode.NoResize;
         SetElement(elementName);
-        var container = documentPath != null && AmlContainers.IsContainerPath(documentPath);
-        AttachmentChoice.IsEnabled = documentPath != null;
+        var container = containerOpen || (documentPath != null && AmlContainers.IsContainerPath(documentPath));
+        var possible = documentPath != null || containerOpen;
+        AttachmentChoice.IsEnabled = possible;
         (container ? AttachmentChoice : CsvChoice).IsChecked = true;
-        _hint.Text = documentPath == null ? L.T("Save the document first: an attachment is a file beside it.")
-            : container ? L.T("The attachment is a file beside the container. When you save the container (Ctrl+S), the editor offers to take it in; keep it ticked there.")
+        _hint.Text = !possible ? L.T("Save the document first: an attachment is a file beside it.")
+            : container ? L.T("When you save the container (Ctrl+S), the editor offers to take the file into it; keep it ticked there. Until then the file waits outside the container.")
             : L.T("The attachment is a file beside the document; pass it on with the document.");
 
         var body = new StackPanel();
         body.Children.Add(CsvChoice);
         var attachment = new DockPanel();
-        if (pickElement != null && documentPath != null)
+        if (pickElement != null && possible)
         {
             var other = new Button { Content = L.T("Element…"), Margin = new Thickness(8, 6, 0, 0), Padding = new Thickness(8, 1, 8, 1) };
             other.Click += (_, _) =>

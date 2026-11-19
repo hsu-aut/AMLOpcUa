@@ -28,11 +28,11 @@ public class SaveEventsTests
         string[] documentTexts = [];
         OnUiThread(() =>
         {
-            container = new SaveEventsWindow(@"C:\plant\Plant.amlx", "Line").AttachmentChoice.IsChecked == true;
-            var forDocument = new SaveEventsWindow(@"C:\plant\Plant.aml", "Line");
+            container = new SaveEventsWindow(@"C:\plant\Plant.amlx", false, "Line").AttachmentChoice.IsChecked == true;
+            var forDocument = new SaveEventsWindow(@"C:\plant\Plant.aml", false, "Line");
             document = forDocument.AttachmentChoice.IsChecked == true;
             documentTexts = Texts(forDocument);
-            unsaved = new SaveEventsWindow(null, "Line").AttachmentChoice.IsEnabled;
+            unsaved = new SaveEventsWindow(null, false, "Line").AttachmentChoice.IsEnabled;
             return Task.CompletedTask;
         });
 
@@ -40,6 +40,69 @@ public class SaveEventsTests
         Assert.False(document);
         Assert.Contains(documentTexts, t => t.Contains("a file beside the document"));
         Assert.False(unsaved);
+    }
+
+    /// <summary>
+    /// Editor round 2026-11-19: for a container the editor gives a plugin no
+    /// path (only that a container is open, and the folder of its working copy),
+    /// so the attachment was offered only after "save the document first".
+    /// </summary>
+    [Fact]
+    public void A_container_without_a_path_preselects_the_attachment()
+    {
+        bool enabled = false, chosen = false;
+        string[] texts = [];
+        OnUiThread(() =>
+        {
+            var window = new SaveEventsWindow(null, true, "Line");
+            enabled = window.AttachmentChoice.IsEnabled;
+            chosen = window.AttachmentChoice.IsChecked == true;
+            texts = Texts(window);
+            return Task.CompletedTask;
+        });
+
+        Assert.True(enabled);
+        Assert.True(chosen);
+        Assert.Contains(texts, t => t.Contains("When you save the container"));
+    }
+
+    [Fact]
+    public void In_a_container_the_attachment_names_its_file_by_its_full_path()
+    {
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-events-container-").FullName;
+        string? uri = null;
+        string status = "";
+        var before = OpcUaPlugin.AttachmentsFolder;
+        try
+        {
+            OpcUaPlugin.AttachmentsFolder = folder;
+            OnUiThread(async () =>
+            {
+                var doc = CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0);
+                var line = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Line");
+                var plugin = new OpcUaPlugin();
+                plugin.DocumentLoaded(doc);
+                // What the editor tells a plugin when it opens a container: the folder of its working copy and the part.
+                plugin.PublishAutomationMLContainer(Path.GetTempPath(), "/AlarmPlant.aml", null!);
+                plugin.DeliverEvents([Event(1)]);
+                await Until(() => plugin.EventList.Items.Count == 1, 5);
+
+                plugin.SaveEventsAsAttachment(line, new DateTime(2026, 11, 19, 10, 41, 12));
+
+                uri = line.ExternalInterface.FirstOrDefault()?.Attribute["refURI"]?.Value;
+                status = plugin.StatusText.Text;
+            });
+
+            var file = Path.Combine(folder, "AlarmPlant.events-20261119-104112.csv");
+            Assert.True(File.Exists(file));
+            Assert.Equal(new Uri(file).AbsoluteUri, uri);
+            Assert.Contains("When you save the container", status);
+        }
+        finally
+        {
+            OpcUaPlugin.AttachmentsFolder = before;
+            try { Directory.Delete(folder, recursive: true); } catch (IOException) { }
+        }
     }
 
     [Fact]
