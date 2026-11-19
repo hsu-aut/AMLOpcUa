@@ -8,7 +8,7 @@ index b6836d8..60c45da 100644
      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
 -    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.375.443" />
 +    <!-- AMLOpcUa patch 0002: 1.5.378 is the first stack release under MIT; 1.5.375 was under the OPC Foundation dual license (RCL/GPL 2.0). -->
-+    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.378.176" />
++    <PackageReference Include="OPCFoundation.NetStandard.Opc.Ua" Version="1.5.378.196" />
    </ItemGroup>
  
    <ItemGroup>

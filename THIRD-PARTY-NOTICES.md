@@ -33,7 +33,7 @@ MIT, Copyright 2021 AutomationML e.V. They are not part of the plugin package.
 
 | Component | Version | License | Copyright |
 |---|---|---|---|
-| [OPC UA .NET Standard](https://github.com/OPCFoundation/UA-.NETStandard) (Opc.Ua.Core, .Types, .Client, .Server, .Configuration, .Security.Certificates, .Gds.Client.Common, .Gds.Server.Common) | 1.5.378.176 | OPC Foundation MIT License 1.00 | 2005-2025 OPC Foundation, Inc. |
+| [OPC UA .NET Standard](https://github.com/OPCFoundation/UA-.NETStandard) (Opc.Ua.Core, .Types, .Client, .Server, .Configuration, .Security.Certificates, .Gds.Client.Common, .Gds.Server.Common) | 1.5.378.196 | OPC Foundation MIT License 1.00 | 2005-2025 OPC Foundation, Inc. |
 | [BitFaster.Caching](https://github.com/bitfaster/BitFaster.Caching) | 2.6.0 | MIT | 2020 Alex Peck |
 | [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) | 13.0.4 | MIT | 2007 James Newton-King |
 | Microsoft.Extensions.Configuration, .Binder, .Json, .FileExtensions, .Abstractions, FileProviders, FileSystemGlobbing, Primitives, Logging, Options, DependencyInjection | 9.0.1 and 10.0.8 | MIT | .NET Foundation and Contributors |

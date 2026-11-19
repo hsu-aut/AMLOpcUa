@@ -138,6 +138,8 @@ minor versions.
 
 ### Changed
 
+- The OPC UA .NET Standard stack is 1.5.378.196 (from 1.5.378.176), the
+  newest fixes of the same release line, still under the MIT license.
 - **The tool bars wrap, and commands used now and then are behind More ▾.** A
   narrow pane put the last commands of a tool bar behind a small arrow, which
   the editor's theme does not show to a screen reader, and a menu button there
