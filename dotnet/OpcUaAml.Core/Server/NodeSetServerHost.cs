@@ -51,6 +51,16 @@ public sealed class NodeSetServerOptions
 
     /// <summary>Folders searched for the models a NodeSet requires, besides the bundled ones.</summary>
     public IReadOnlyList<string> Folders { get; init; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Alarms on variables of the served NodeSets (OPC 10000-9), raised as
+    /// the simulated values cross their limits. Each hangs off the object above
+    /// its variable by HasCondition only, so the model's hierarchy stays as it is.
+    /// </summary>
+    public IReadOnlyList<AlarmDefinition> Alarms { get; init; } = [];
+
+    /// <summary>How fast the values an alarm watches move with <see cref="Simulate"/>.</summary>
+    public SimulationPace WatchedPace { get; init; } = SimulationPace.Watched;
 }
 
 public sealed class NodeSetServerHost : IAsyncDisposable
@@ -77,6 +87,12 @@ public sealed class NodeSetServerHost : IAsyncDisposable
 
     public bool Simulating => _server.NodeManager?.Simulating == true;
 
+    /// <summary>How many of the alarms given are served.</summary>
+    public int Alarms => _server.NodeManager?.Alarms ?? 0;
+
+    /// <summary>The alarms given whose variable the served NodeSets do not have, by name.</summary>
+    public IReadOnlyList<string> SkippedAlarms => _server.NodeManager?.SkippedAlarms ?? [];
+
     /// <summary>
     /// Starts a server for the NodeSets given, with the models they require.
     /// A path may name a file or a model URI the catalog knows.
@@ -91,7 +107,7 @@ public sealed class NodeSetServerHost : IAsyncDisposable
             "AMLOpcUa NodeSet server", "NodeSetServer", "CN=AMLOpcUa NodeSet server, O=AMLOpcUa",
             options.Port, options.Network, options.PkiRoot, ct).ConfigureAwait(false);
 
-        var server = new PlantServer(files, options.PublishNodeSets, options.Simulate);
+        var server = new PlantServer(files, options.PublishNodeSets, options.Simulate, options.Alarms, options.WatchedPace);
         try
         {
             await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
@@ -189,13 +205,13 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         _server.Dispose();
     }
 
-    private sealed class PlantServer(IReadOnlyList<ServedSet> sets, bool publish, bool simulate) : StandardServer
+    private sealed class PlantServer(IReadOnlyList<ServedSet> sets, bool publish, bool simulate, IReadOnlyList<AlarmDefinition> alarms, SimulationPace watchedPace) : StandardServer
     {
         public PlantNodeManager? NodeManager { get; private set; }
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
-            NodeManager = new PlantNodeManager(server, configuration, sets, publish, simulate);
+            NodeManager = new PlantNodeManager(server, configuration, sets, publish, simulate) { AlarmDefinitions = alarms, WatchedPace = watchedPace };
             return new(server, configuration, null, NodeManager);
         }
     }
@@ -216,8 +232,19 @@ public sealed class NodeSetServerHost : IAsyncDisposable
         private readonly Dictionary<BaseDataVariableState, object?> _middle = new();
         private Timer? _simulation;
         private readonly DateTime _started = DateTime.UtcNow;
+        private ServedAlarms? _alarms;
+        private readonly List<string> _skippedAlarms = new();
 
         public int Nodes { get; private set; }
+
+        /// <summary>The alarms to raise on the served variables.</summary>
+        public IReadOnlyList<AlarmDefinition> AlarmDefinitions { get; init; } = [];
+
+        public SimulationPace WatchedPace { get; init; } = SimulationPace.Watched;
+
+        public int Alarms => _alarms?.Count ?? 0;
+
+        public IReadOnlyList<string> SkippedAlarms => _skippedAlarms;
 
         public bool Simulating => _simulation != null;
 
@@ -249,7 +276,51 @@ public sealed class NodeSetServerHost : IAsyncDisposable
                     if (publish) Publish(set, own);
                 }
                 AddReverseReferences(externalReferences);
+                AddAlarms();
             }
+        }
+
+        /// <summary>The alarms given, on the variables the NodeSets declare; one whose variable is missing is skipped.</summary>
+        private void AddAlarms()
+        {
+            if (AlarmDefinitions.Count == 0) return;
+            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier);
+            foreach (var d in AlarmDefinitions)
+            {
+                var id = ServedAlarms.ToNodeId(d.Input, Server.NamespaceUris);
+                if (id == null || Find(id) is not BaseDataVariableState input || ParentOf(input) is not { } source)
+                {
+                    _skippedAlarms.Add(d.Name);
+                    continue;
+                }
+                var ns = (ushort)Server.NamespaceUris.GetIndex(d.Input.NamespaceUri);
+                _alarms.Add(d, source, input, new NodeId("Alarms/" + d.Name, ns), asComponent: false);
+            }
+        }
+
+        /// <summary>The node that holds a node of a flat import: its ParentNodeId, or else an inverse HasComponent or HasProperty.</summary>
+        private NodeState? ParentOf(NodeState node)
+        {
+            if (node is BaseInstanceState { Parent: { } parent }) return parent;
+            if (node is BaseInstanceState { Handle: NodeId handle } && Find(handle) is { } byHandle) return byHandle;
+            var references = new List<IReference>();
+            node.GetReferences(SystemContext, references);
+            foreach (var r in references)
+                if (r.IsInverse && Hierarchical.Contains(r.ReferenceTypeId) && Find(ExpandedNodeId.ToNodeId(r.TargetId, Server.NamespaceUris)) is { } held)
+                    return held;
+            return null;
+        }
+
+        /// <summary>The states of the alarms still open, to every event item that asked (ConditionRefresh).</summary>
+        public override ServiceResult ConditionRefresh(OperationContext context, IList<IEventMonitoredItem> monitoredItems)
+        {
+            if (_alarms == null) return base.ConditionRefresh(context, monitoredItems);
+            var events = new List<IFilterTarget>();
+            lock (Lock) _alarms.ConditionRefresh(events);
+            foreach (var item in monitoredItems)
+                foreach (var e in events)
+                    item.QueueEvent(e);
+            return ServiceResult.Good;
         }
 
         /// <summary>Instances that describe types rather than being a part of the plant.</summary>
@@ -400,12 +471,14 @@ public sealed class NodeSetServerHost : IAsyncDisposable
                 {
                     var phase = i++ * 0.7;
                     _middle.TryGetValue(state, out var middle);
-                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name);
+                    var watched = _alarms?.Watches(state) == true;
+                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name, watched ? WatchedPace : null);
                     if (next == null || Equals(next, state.Value)) continue;
                     state.Value = next;
                     state.StatusCode = StatusCodes.Good;
                     state.Timestamp = DateTime.UtcNow;
                     state.ClearChangeMasks(SystemContext, false);
+                    if (watched) _alarms!.Evaluate(state);
                 }
             }
         }

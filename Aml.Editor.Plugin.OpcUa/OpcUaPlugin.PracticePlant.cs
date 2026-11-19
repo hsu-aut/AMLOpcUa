@@ -51,9 +51,10 @@ public partial class OpcUaPlugin
     /// <summary>
     /// Starts the practice plant on the first free port from <paramref name="firstPort"/>
     /// and puts its address into the endpoint box. <paramref name="pkiRoot"/> replaces
-    /// the server's certificate store (tests).
+    /// the server's certificate store (tests); <paramref name="watchedPace"/> how fast
+    /// the values its alarms watch move (tests, which do not wait minutes).
     /// </summary>
-    internal async Task StartPracticePlantAsync(int firstPort = 4840, string? pkiRoot = null)
+    internal async Task StartPracticePlantAsync(int firstPort = 4840, string? pkiRoot = null, SimulationPace? watchedPace = null)
     {
         if (_plant != null) return;
         if (!File.Exists(PracticePlantFile))
@@ -71,9 +72,15 @@ public partial class OpcUaPlugin
         try
         {
             var folders = KnownNodeSetFolders(_settings.NodeSetFolders, ModelsFolder, CloudCache, OpcfFolder, ServerNodeSetsFolder, ImportedFolder).ToList();
-            var options = pkiRoot == null
-                ? new NodeSetServerOptions { Port = port, Simulate = true, Folders = folders }
-                : new NodeSetServerOptions { Port = port, Simulate = true, Folders = folders, PkiRoot = pkiRoot };
+            var options = new NodeSetServerOptions
+            {
+                Port = port,
+                Simulate = true,
+                Folders = folders,
+                Alarms = PracticePlantAlarms.For(PracticePlantMessage),
+                WatchedPace = watchedPace ?? SimulationPace.Watched,
+                PkiRoot = pkiRoot ?? new NodeSetServerOptions().PkiRoot,
+            };
             var plant = await NodeSetServerHost.StartAsync(new[] { PracticePlantFile }, options);
             if (_released)
             {
@@ -82,7 +89,8 @@ public partial class OpcUaPlugin
             }
             _plant = plant;
             if (_client == null) EndpointBox.Text = plant.EndpointUrl;
-            var message = L.T("The practice plant runs: the MPS 500 learning factory, {0} node(s) with simulated values, at {1}. Connect to it.", plant.Nodes, plant.EndpointUrl);
+            foreach (var skipped in plant.SkippedAlarms) PluginLog.Warn($"The practice plant has no variable for its alarm {skipped}.");
+            var message = L.T("The practice plant runs: the MPS 500 learning factory, {0} node(s) with simulated values and {1} alarm(s), at {2}. Connect to it.", plant.Nodes, plant.Alarms, plant.EndpointUrl);
             PluginLog.Info(message);
             SetStatus(message);
         }
@@ -97,6 +105,16 @@ public partial class OpcUaPlugin
             UpdateServerState();
         }
     }
+
+    /// <summary>The message of an alarm of the practice plant in the plugin's language.</summary>
+    private static string PracticePlantMessage(string english) => english switch
+    {
+        "Drill spindle overloaded" => L.T("Drill spindle overloaded"),
+        "Magazine empty" => L.T("Magazine empty"),
+        "PLC load high" => L.T("PLC load high"),
+        "Robot controller offline" => L.T("Robot controller offline"),
+        _ => english,
+    };
 
     /// <summary>Stops the practice plant; a connection to it is closed first, since it would only be reported lost.</summary>
     internal async Task StopPracticePlantAsync()

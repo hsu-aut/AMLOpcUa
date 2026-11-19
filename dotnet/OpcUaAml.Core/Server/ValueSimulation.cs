@@ -9,6 +9,18 @@ using Opc.Ua;
 
 namespace OpcUaAml.Server;
 
+/// <summary>
+/// How fast simulated values move: numbers swing once in <paramref name="SwingSeconds"/>,
+/// booleans change every <paramref name="ToggleSeconds"/>. A value an alarm watches
+/// moves at <see cref="Watched"/>, so its alarm comes every minute or two, not
+/// every few seconds, and stays long enough to be acknowledged.
+/// </summary>
+public sealed record SimulationPace(double SwingSeconds, double ToggleSeconds)
+{
+    public static readonly SimulationPace Normal = new(30, 5);
+    public static readonly SimulationPace Watched = new(120, 60);
+}
+
 internal static class ValueSimulation
 {
     /// <summary>
@@ -29,17 +41,19 @@ internal static class ValueSimulation
     /// <param name="seconds">Seconds since the server started.</param>
     /// <param name="phase">The variable's own phase, so not everything moves together.</param>
     /// <param name="name">The variable's browse name: a counter counts up instead of swinging.</param>
-    public static object? Next(NodeId dataType, object? middle, double seconds, double phase, string? name = null)
+    /// <param name="pace">How fast it moves; <see cref="SimulationPace.Normal"/> without one.</param>
+    public static object? Next(NodeId dataType, object? middle, double seconds, double phase, string? name = null, SimulationPace? pace = null)
     {
+        pace ??= SimulationPace.Normal;
         if (dataType == DataTypeIds.Boolean)
-            return ((int)((seconds + phase * 3) / 5)) % 2 == 0 ? middle as bool? ?? false : !(middle as bool? ?? false);
+            return ((int)((seconds + phase * 3) / pace.ToggleSeconds)) % 2 == 0 ? middle as bool? ?? false : !(middle as bool? ?? false);
         double center;
         try { center = middle == null ? 0 : Convert.ToDouble(middle, CultureInfo.InvariantCulture); }
         catch (Exception ex) when (ex is InvalidCastException or FormatException) { return null; }
         // One more about every five seconds, each counter at its own moment.
         var x = IsCounter(dataType, name)
             ? center + Math.Floor((seconds + (phase * 3) % CountEvery) / CountEvery)
-            : center + (center == 0 ? 10 : Math.Abs(center) * 0.2) * Math.Sin(2 * Math.PI * seconds / 30 + phase);
+            : center + (center == 0 ? 10 : Math.Abs(center) * 0.2) * Math.Sin(2 * Math.PI * seconds / pace.SwingSeconds + phase);
         if (dataType == DataTypeIds.Double) return Math.Round(x, 3);
         if (dataType == DataTypeIds.Float) return (float)Math.Round(x, 3);
         if (dataType == DataTypeIds.Int16) return (short)Math.Clamp(Math.Round(x), short.MinValue, short.MaxValue);

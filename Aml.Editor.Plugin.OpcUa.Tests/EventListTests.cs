@@ -21,7 +21,7 @@ public class EventListTests
     private static readonly UaNodeAddress Spindle = new("urn:plant", UaIdType.String, "Drill/SpindleHigh");
 
     /// <summary>Runs <paramref name="body"/> with a plugin connected to the practice plant.</summary>
-    private static void WithPlant(Func<OpcUaPlugin, string, Func<Task<UaClient>>, Task> body)
+    private static void WithPlant(Func<OpcUaPlugin, string, Func<Task<UaClient>>, Task> body, SimulationPace? watchedPace = null)
     {
         ProvideConverter();
         var pki = Directory.CreateTempSubdirectory("opcuaaml-events-pki-").FullName;
@@ -33,7 +33,7 @@ public class EventListTests
                 try
                 {
                     plugin.DocumentLoaded(CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0));
-                    await plugin.StartPracticePlantAsync(FreePort(), Path.Combine(pki, "server"));
+                    await plugin.StartPracticePlantAsync(FreePort(), Path.Combine(pki, "server"), watchedPace);
                     var url = plugin.PracticePlant!.EndpointUrl;
                     Task<UaClient> Connect() => UaClient.ConnectAsync(new UaConnectOptions { EndpointUrl = url, UseSecurity = false, PkiRoot = Path.Combine(pki, "client") });
                     await body(plugin, url, Connect);
@@ -89,6 +89,23 @@ public class EventListTests
         var connection = Assert.Single(rows, r => r.Event == null);
         Assert.Equal("AMLOpcUa NodeSet server", connection.Server);
         Assert.Contains($"({rows.Count})", header);
+    }
+
+    [Fact]
+    public void The_alarms_of_the_practice_plant_reach_the_list()
+    {
+        int served = 0;
+        string? message = null;
+        WithReceiveEvents(true, () => WithPlant(async (plugin, url, connect) =>
+        {
+            served = plugin.PracticePlant!.Alarms;
+            await plugin.AttachClientAsync(await connect(), url);
+            await Until(() => plugin.Events.Rows.Any(r => r.Event?.ConditionName == "SpindleOverload"), 30);
+            message = plugin.Events.Rows.FirstOrDefault(r => r.Event?.ConditionName == "SpindleOverload")?.Event?.Message;
+        }, new SimulationPace(4, 1)));
+
+        Assert.Equal(4, served);
+        Assert.Equal("Drill spindle overloaded", message);
     }
 
     [Fact]

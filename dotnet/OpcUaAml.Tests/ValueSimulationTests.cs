@@ -50,4 +50,26 @@ public class ValueSimulationTests
 
         Assert.Contains(values, v => v < 5);
     }
+
+    /// <summary>
+    /// A value an alarm watches moves slower: a state alarm would otherwise come
+    /// every five seconds, and acknowledging would mostly meet a newer event.
+    /// </summary>
+    [Fact]
+    public void Watched_booleans_change_once_a_minute()
+    {
+        var watched = Enumerable.Range(0, 60).Select(s => ValueSimulation.Next(DataTypeIds.Boolean, false, s, 0, "Signal", SimulationPace.Watched)).ToList();
+
+        Assert.All(watched, v => Assert.Equal(false, v));
+        Assert.Equal(true, ValueSimulation.Next(DataTypeIds.Boolean, false, 60, 0, "Signal", SimulationPace.Watched));
+        Assert.Equal(true, ValueSimulation.Next(DataTypeIds.Boolean, false, 5, 0, "Signal"));
+    }
+
+    [Fact]
+    public void Watched_numbers_swing_in_two_minutes()
+    {
+        // A quarter of the wave: the top after 30 s when watched, back in the middle when not.
+        Assert.Equal(1296.0, ValueSimulation.Next(DataTypeIds.Double, 1080.0, 30, 0, "Speed", SimulationPace.Watched));
+        Assert.Equal(1080.0, (double)ValueSimulation.Next(DataTypeIds.Double, 1080.0, 30, 0, "Speed")!, 3);
+    }
 }

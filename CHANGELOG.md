@@ -18,6 +18,13 @@ minor versions.
   alarms already active come at once (ConditionRefresh), the rows stay across
   connections with a row for each, and the list holds at most 10 000 rows. A
   new alarm from severity 500 on is told in the status line.
+- **The practice plant raises alarms** (OPC 10000-9): the drill spindle
+  overloaded, the magazine empty, the PLC load high and the robot controller
+  offline, each about every one to two minutes. The values they watch move
+  slower than the others (a wave of two minutes, a change every minute), so
+  an alarm stays long enough to be read and acknowledged. The alarms hang off
+  their objects by HasCondition only; the plant's hierarchy, and what "Take
+  into document" takes, stay as they were.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the
