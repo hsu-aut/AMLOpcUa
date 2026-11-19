@@ -172,7 +172,9 @@ public class AddressTreeServerTests
         }
         finally { Directory.Delete(pki, recursive: true); }
 
-        Assert.StartsWith("Taking into the document failed", status);
+        // Receiving events, the client learns sooner that the server is gone: that
+        // message may come after the failure's, which the log keeps all the same.
+        Assert.True(status!.StartsWith("Taking into the document failed", StringComparison.Ordinal) || status.Contains("does not answer any more", StringComparison.Ordinal), status);
         Assert.Empty(hierarchies!);
     }
 

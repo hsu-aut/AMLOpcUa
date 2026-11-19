@@ -225,7 +225,8 @@
                                 <TextBlock Text="{l:T 'New instance…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="AlarmButton" Click="AlarmButton_Click" IsEnabled="False" ToolTipService.ShowOnDisabled="True">
+                        <Button x:Name="AlarmButton" Click="AlarmButton_Click" IsEnabled="False" ToolTipService.ShowOnDisabled="True"
+                                ToolTip="{l:T 'Select a value in the editor first: an element with a Value.'}">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource IconText}" Text="&#xE7BA;" Foreground="{DynamicResource Create}"/>
                                 <TextBlock Text="{l:T 'Create alarm…'}" Style="{StaticResource Label}"/>
@@ -897,13 +898,17 @@
                                               ToolTip="{l:T 'Show each alarm once, in its last state, while it is active or not acknowledged.'}"/>
                                     <Label Content="{l:T 'Se_verity from'}" Target="{Binding ElementName=SeverityBox}" Style="{StaticResource FieldLabel}" Margin="12,0,4,0"/>
                                     <ComboBox x:Name="SeverityBox" Width="60" SelectedIndex="0" SelectionChanged="EventFilter_Changed"
-                                              AutomationProperties.Name="{l:T 'Severity from'}">
+                                              AutomationProperties.Name="{l:T 'Severity from'}"
+                                              ToolTip="{l:T 'Hide the events of a lower severity.'}">
                                         <ComboBoxItem Content="0"/>
                                         <ComboBoxItem Content="200"/>
                                         <ComboBoxItem Content="500"/>
                                         <ComboBoxItem Content="800"/>
                                     </ComboBox>
                                 </WrapPanel>
+                                <!-- A new severe alarm is told here, not in the status line, which says what a command did. -->
+                                <TextBlock x:Name="AlarmAnnouncement" DockPanel.Dock="Bottom" Margin="0,4,0,0" TextWrapping="Wrap"
+                                           AutomationProperties.LiveSetting="Assertive" Visibility="Collapsed"/>
                                 <ListView x:Name="EventList" MaxHeight="160" BorderThickness="0" SelectionMode="Single" SelectionChanged="EventList_SelectionChanged">
                                     <ListView.View>
                                         <GridView>

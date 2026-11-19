@@ -62,6 +62,29 @@ public class AcknowledgeDialogTests
         Assert.Equal(expected, text);
     }
 
+    /// <summary>
+    /// Review 2026-11-19: the plugin acknowledged with the EventId of the newest
+    /// state when the dialog closed, which may be a state the dialog never showed.
+    /// </summary>
+    [Fact]
+    public void A_state_overtaken_while_the_dialog_was_open_is_not_acknowledged()
+    {
+        string status = "";
+        OnUiThread(async () =>
+        {
+            var plugin = new OpcUaPlugin();
+            var shown = Row();
+            plugin.DeliverEvents([shown.Event!, shown.Event! with { EventId = [9, 9], Time = shown.Event!.Time.AddSeconds(5) }]);
+            await Until(() => plugin.Events.Count == 2, 5);
+            var older = plugin.Events.Rows.Last();
+
+            await plugin.AcknowledgeRowAsync(older, "checked");
+            status = plugin.StatusText.Text;
+        });
+
+        Assert.Equal("The alarm has changed; select it again.", status);
+    }
+
     [Fact]
     public void Acknowledge_is_only_offered_for_the_newest_state_and_acknowledges_it()
     {

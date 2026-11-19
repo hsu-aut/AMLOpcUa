@@ -198,6 +198,7 @@ internal static class De
         ["Find servers: ask a discovery server (port 4840 of a computer) which servers it knows, and take an address from the list."] = "Server finden: einen Discovery-Server (Port 4840 eines Rechners) fragen, welche Server er kennt, und eine Adresse aus der Liste übernehmen.",
         ["Find servers…"] = "Server finden…",
         ["Give the alarm a name."] = "Gib dem Alarm einen Namen.",
+        ["Hide the events of a lower severity."] = "Ereignisse mit geringerer Schwere ausblenden.",
         ["Host, host:port or URL; empty for this computer"] = "Host, Host:Port oder URL; leer für diesen Rechner",
         ["From file…"] = "Aus Datei…",
         ["Give the version of OPC UA FX the Descriptor adheres to, such as 1.00.03."] = "Gib die Version von OPC UA FX an, der der Descriptor folgt, etwa 1.00.03.",

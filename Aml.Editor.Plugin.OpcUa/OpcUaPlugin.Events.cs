@@ -117,9 +117,13 @@ public partial class OpcUaPlugin
             _droppedNoted = true;
             SetStatus(L.T("The {0} oldest event(s) were dropped to keep the list small.", _events.Dropped));
         }
-        else if (announce?.Event is { } alarm)
+        // A new severe alarm is told beside the list, which a screen reader reads out;
+        // the status line keeps what the last command said.
+        if (announce?.Event is { } alarm)
         {
-            SetStatus(L.T("Alarm: {0} at {1}, severity {2}.", alarm.Message, alarm.SourceName, alarm.Severity));
+            AlarmAnnouncement.Text = L.T("Alarm: {0} at {1}, severity {2}.", alarm.Message, alarm.SourceName, alarm.Severity);
+            AlarmAnnouncement.Visibility = Visibility.Visible;
+            DialogKit.Announce(AlarmAnnouncement);
         }
     }
 
@@ -225,14 +229,22 @@ public partial class OpcUaPlugin
     /// </summary>
     internal async Task AcknowledgeRowAsync(EventRow row, string comment)
     {
+        if (row.Event?.ConditionId is not { } condition) return;
+        // The state the dialog showed, and only while it is the newest: one that came
+        // while the dialog was open was not seen, and is not acknowledged in its stead.
+        if (!ReferenceEquals(_events.LatestOf(condition), row))
+        {
+            SetStatus(L.T("The alarm has changed; select it again."));
+            return;
+        }
         var client = _client;
-        if (client == null || row.Event?.ConditionId is not { } condition) return;
-        var latest = _events.LatestOf(condition)?.Event ?? row.Event;
+        if (client == null) return;
+        var shown = row.Event;
         try
         {
-            var answer = await client.AcknowledgeAsync(condition, latest.EventId, comment);
-            PluginLog.Info($"Acknowledge {latest.ConditionName} ({condition}): {answer.Status}.");
-            SetStatus(AcknowledgeText(answer, latest));
+            var answer = await client.AcknowledgeAsync(condition, shown.EventId, comment);
+            PluginLog.Info($"Acknowledge {shown.ConditionName} ({condition}): {answer.Status}.");
+            SetStatus(AcknowledgeText(answer, shown));
         }
         catch (Exception) when (_released)
         {

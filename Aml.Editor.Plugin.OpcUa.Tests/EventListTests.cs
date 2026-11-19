@@ -182,6 +182,28 @@ public class EventListTests
         Assert.Equal(1, severe);
     }
 
+    /// <summary>
+    /// Full run 2026-11-19: telling a new alarm in the status line overwrote what
+    /// a command had just said there (Write value…), in tests and for users.
+    /// </summary>
+    [Fact]
+    public void A_severe_alarm_is_told_beside_the_list_not_in_the_status_line()
+    {
+        string before = "", after = "", told = "";
+        OnUiThread(async () =>
+        {
+            var plugin = new OpcUaPlugin();
+            before = plugin.StatusText.Text;
+            plugin.DeliverEvents([Alarm(1, active: true, acked: false, severity: 800)]);
+            await Until(() => plugin.EventList.Items.Count > 0, 5);
+            after = plugin.StatusText.Text;
+            told = plugin.AlarmAnnouncement.Text;
+        });
+
+        Assert.Equal(before, after);
+        Assert.Equal("Alarm: Spindle overloaded at Drill, severity 800.", told);
+    }
+
     [Fact]
     public void State_text_is_translated()
     {
