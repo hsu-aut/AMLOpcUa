@@ -375,6 +375,11 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
             _ = StopLiveAsync();
             _ = StopServingAsync(L.T("another document was opened"));
             Watch(document);
+            // The path of the document before is not this one's: the editor sends a file's
+            // path after loading it, a container's not at all.
+            _documentPath = null;
+            _containerOpen = false;
+            _containerPart = null;
         }
         _document = document;
         PluginLog.Debug($"Document attached: {document.CAEXFile?.FileName} (CAEX {document.CAEXFile?.SchemaVersion}).");

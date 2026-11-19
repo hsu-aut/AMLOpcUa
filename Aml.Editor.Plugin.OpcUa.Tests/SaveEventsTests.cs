@@ -105,6 +105,62 @@ public class SaveEventsTests
         }
     }
 
+    /// <summary>
+    /// Editor round 2026-11-19: the editor tells plugins nothing of a container
+    /// it opens (ChangeAMLFilePath is for files of their own, and it publishes the
+    /// container before it has set it up); its API names the .amlx all the same.
+    /// </summary>
+    [Fact]
+    public void The_editors_path_of_a_container_puts_the_attachment_beside_it()
+    {
+        var folder = Directory.CreateTempSubdirectory("opcuaaml-events-amlx-").FullName;
+        string? uri = null;
+        (string? Path, bool Container) place = (null, false);
+        try
+        {
+            OnUiThread(async () =>
+            {
+                var doc = CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0);
+                var line = doc.CAEXFile.InstanceHierarchy.Append("Plant").InternalElement.Append("Line");
+                var plugin = new OpcUaPlugin { EditorDocumentPath = () => Path.Combine(folder, "Plant.amlx") };
+                plugin.DocumentLoaded(doc);
+                place = plugin.AttachmentPlace();
+                plugin.DeliverEvents([Event(1)]);
+                await Until(() => plugin.EventList.Items.Count == 1, 5);
+
+                plugin.SaveEventsAsAttachment(line, new DateTime(2026, 11, 19, 10, 41, 12));
+                uri = line.ExternalInterface.FirstOrDefault()?.Attribute["refURI"]?.Value;
+            });
+
+            var file = Path.Combine(folder, "Plant.events-20261119-104112.csv");
+            Assert.Equal((Path.Combine(folder, "Plant.amlx"), true), place);
+            Assert.True(File.Exists(file));
+            Assert.Equal(new Uri(file).AbsoluteUri, uri);
+        }
+        finally
+        {
+            try { Directory.Delete(folder, recursive: true); } catch (IOException) { }
+        }
+    }
+
+    /// <summary>Editor round 2026-11-19: after a container, the path of the .aml opened before was kept, and an attachment would have gone beside it.</summary>
+    [Fact]
+    public void Another_document_forgets_the_path_of_the_one_before()
+    {
+        (string? Path, bool Container) place = ("x", true);
+        OnUiThread(() =>
+        {
+            var plugin = new OpcUaPlugin { EditorDocumentPath = () => null };
+            plugin.DocumentLoaded(CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0));
+            plugin.ChangeAMLFilePath(@"C:\plant\Before.aml");
+            plugin.DocumentLoaded(CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0));
+            place = plugin.AttachmentPlace();
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal((null, false), place);
+    }
+
     [Fact]
     public void Save_events_is_grey_for_an_empty_list()
     {

@@ -36,6 +36,37 @@ public partial class OpcUaPlugin : Aml.Editor.Plugin.Contracts.ISupportsAMLConta
     internal static string AttachmentsFolder { get; set; } =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "attachments");
 
+    /// <summary>
+    /// The open document's path as the editor's API has it: for a container its
+    /// .amlx file, which ChangeAMLFilePath does not give. Null outside the editor;
+    /// tests set their own.
+    /// </summary>
+    internal Func<string?> EditorDocumentPath { get; set; } = ReadEditorDocumentPath;
+
+    private static string? ReadEditorDocumentPath()
+    {
+        try
+        {
+            var path = ActiveDocumentPath();
+            return !string.IsNullOrEmpty(path) && Path.IsPathRooted(path) && File.Exists(path) ? path : null;
+        }
+        // Outside the editor its API's assembly is not there.
+        catch (Exception) { return null; }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static string? ActiveDocumentPath() => Aml.Editor.API.AMLEditor.AMLApplication?.ActiveDocument?.FilePath;
+
+    /// <summary>
+    /// Where an attachment goes: the document's path, the editor's API first,
+    /// and whether the document is a container, which the editor completes on saving.
+    /// </summary>
+    internal (string? Path, bool Container) AttachmentPlace()
+    {
+        var path = EditorDocumentPath() ?? _documentPath;
+        return (path, _containerOpen || (path != null && AmlContainers.IsContainerPath(path)));
+    }
+
     /// <summary>The editor opened a container; <paramref name="containerDirectory"/> is that of its working copy.</summary>
     public void PublishAutomationMLContainer(string containerDirectory, string filePath, CAEXBasicObject selectedObject)
     {
@@ -345,8 +376,9 @@ public partial class OpcUaPlugin : Aml.Editor.Plugin.Contracts.ISupportsAMLConta
         if (_events.Count == 0) return;
         var document = _document;
         var owner = AttachmentOwner();
-        var window = new SaveEventsWindow(document != null && owner != null ? _documentPath : null,
-            document != null && owner != null && _containerOpen, owner?.Name ?? "", () =>
+        var place = AttachmentPlace();
+        var window = new SaveEventsWindow(document != null && owner != null ? place.Path : null,
+            document != null && owner != null && place.Container, owner?.Name ?? "", () =>
         {
             if (document == null) return null;
             var picker = new ElementPickerWindow(document, L.T("Attach the events to")) { Owner = Window.GetWindow(this) };
@@ -367,14 +399,15 @@ public partial class OpcUaPlugin : Aml.Editor.Plugin.Contracts.ISupportsAMLConta
     /// <summary>The events as a CSV file beside the document, attached to <paramref name="owner"/>.</summary>
     internal void SaveEventsAsAttachment(InternalElementType owner, DateTime now)
     {
-        if (_documentPath == null && !_containerOpen) return;
+        var place = AttachmentPlace();
+        if (place.Path == null && !place.Container) return;
         // Beside a document whose path is known; for a container without one, in the
         // plugin's folder, named by its full path until the editor takes it in.
         string file, uri;
         bool container;
         try
         {
-            if (_documentPath is { } documentPath)
+            if (place.Path is { } documentPath)
             {
                 file = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(documentPath)) ?? "", Attachments.FileName(documentPath, now));
                 uri = Attachments.UriFor(documentPath, file);
