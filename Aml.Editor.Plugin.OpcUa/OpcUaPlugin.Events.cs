@@ -37,28 +37,14 @@ public partial class OpcUaPlugin : Aml.Editor.Plugin.Contracts.ISupportsAMLConta
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AMLOpcUa", "attachments");
 
     /// <summary>
-    /// The open document's path as the editor's API has it: for a container its
-    /// .amlx file, which ChangeAMLFilePath does not give. Null outside the editor;
-    /// tests set their own.
+    /// The open container's .amlx file as the editor's view model has it, which
+    /// ChangeAMLFilePath does not give (<see cref="Bridge.EditorDocument"/>).
+    /// Null outside the editor; tests set their own.
     /// </summary>
-    internal Func<string?> EditorDocumentPath { get; set; } = ReadEditorDocumentPath;
-
-    private static string? ReadEditorDocumentPath()
-    {
-        try
-        {
-            var path = ActiveDocumentPath();
-            return !string.IsNullOrEmpty(path) && Path.IsPathRooted(path) && File.Exists(path) ? path : null;
-        }
-        // Outside the editor its API's assembly is not there.
-        catch (Exception) { return null; }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private static string? ActiveDocumentPath() => Aml.Editor.API.AMLEditor.AMLApplication?.ActiveDocument?.FilePath;
+    internal Func<string?> EditorDocumentPath { get; set; } = Bridge.EditorDocument.ContainerPath;
 
     /// <summary>
-    /// Where an attachment goes: the document's path, the editor's API first,
+    /// Where an attachment goes: the document's path, an open container's first,
     /// and whether the document is a container, which the editor completes on saving.
     /// </summary>
     internal (string? Path, bool Container) AttachmentPlace()
