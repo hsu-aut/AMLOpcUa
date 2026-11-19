@@ -35,6 +35,12 @@ minor versions.
   reference types), so renaming or moving the value keeps the alarm working.
   Alarms of other classes are served as objects, as before, and the log says
   why.
+- **Acknowledge…** below the event list acknowledges the selected alarm
+  (OPC 10000-9 Acknowledge), after asking as Write value… does, with a
+  comment if one is given. It is offered for the newest state of an alarm
+  that is not acknowledged; when the alarm changed meanwhile, the status line
+  says so. The acknowledged state comes from the server as a row of its own.
+  Both servers of the plugin let their alarms be acknowledged.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

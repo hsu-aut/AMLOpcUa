@@ -206,10 +206,45 @@ public partial class OpcUaPlugin
 
     private async void ReceiveEventsItem_Click(object sender, RoutedEventArgs e) => await StartEventsAsync();
 
-    /// <summary>Acknowledge… (task 6).</summary>
-    private void AcknowledgeButton_Click(object sender, RoutedEventArgs e)
+    /// <summary>Acknowledge…: the selected alarm, after asking.</summary>
+    private async void AcknowledgeButton_Click(object sender, RoutedEventArgs e)
     {
+        if (_client == null || EventList.SelectedItem is not EventRowView view || !_events.CanAcknowledge(view.Row)) return;
+        var window = new AcknowledgeWindow(view.Row) { Owner = Window.GetWindow(this) };
+        if (window.ShowDialog() != true) return;
+        await AcknowledgeRowAsync(view.Row, window.Comment.Text);
     }
+
+    /// <summary>
+    /// Acknowledges the alarm of <paramref name="row"/> with the EventId of its
+    /// newest state; the new state comes from the server as a row of its own.
+    /// </summary>
+    internal async Task AcknowledgeRowAsync(EventRow row, string comment)
+    {
+        var client = _client;
+        if (client == null || row.Event?.ConditionId is not { } condition) return;
+        var latest = _events.LatestOf(condition)?.Event ?? row.Event;
+        try
+        {
+            var answer = await client.AcknowledgeAsync(condition, latest.EventId, comment);
+            PluginLog.Info($"Acknowledge {latest.ConditionName} ({condition}): {answer.Status}.");
+            SetStatus(AcknowledgeText(answer, latest));
+        }
+        catch (Exception) when (_released)
+        {
+        }
+        catch (Exception ex)
+        {
+            PluginLog.Error("Acknowledging failed", ex);
+            SetStatus(L.T("Acknowledging failed: {0}", ex.Message));
+        }
+    }
+
+    /// <summary>What the status line says of the server's answer to Acknowledge.</summary>
+    internal static string AcknowledgeText(UaWriteResult answer, UaEvent alarm) =>
+        answer.Good ? L.T("Acknowledged '{0}'.", alarm.Message)
+        : answer.Status == "BadEventIdUnknown" ? L.T("The alarm has changed; select it again.")
+        : L.T("Acknowledging failed: {0}", answer.Status);
 
     /// <summary>Save events… (task 9).</summary>
     private void SaveEventsButton_Click(object sender, RoutedEventArgs e)
@@ -221,6 +256,7 @@ public partial class OpcUaPlugin
     {
         ReceiveEventsItem.Visibility = _settings.ReceiveEvents ? Visibility.Collapsed : Visibility.Visible;
         ReceiveEventsItem.IsEnabled = connected && !ReceivingEvents && !_eventsStarting && !_busy;
+        AcknowledgeButton.IsEnabled = connected && EventList.SelectedItem is EventRowView view && _events.CanAcknowledge(view.Row);
     }
 
     /// <summary>The lists below the address space show while either has something or events are received.</summary>

@@ -140,6 +140,34 @@ public sealed partial class UaClient
     }
 
     /// <summary>
+    /// Acknowledges a condition (OPC 10000-9 Acknowledge) with the EventId of
+    /// the state acknowledged, which must be its newest, and a comment. The
+    /// server's answer is returned, also when the server is gone: BadEventIdUnknown
+    /// says the alarm changed meanwhile.
+    /// </summary>
+    public async Task<UaWriteResult> AcknowledgeAsync(UaNodeAddress condition, byte[] eventId, string comment, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new CallMethodRequestCollection
+            {
+                new CallMethodRequest
+                {
+                    ObjectId = ToNodeId(condition),
+                    MethodId = MethodIds.AcknowledgeableConditionType_Acknowledge,
+                    InputArguments = new VariantCollection { new Variant(eventId), new Variant(new LocalizedText(comment)) },
+                },
+            };
+            var result = (await _session.CallAsync(null, request, ct).ConfigureAwait(false)).Results[0];
+            return new UaWriteResult(StatusCode.IsGood(result.StatusCode), Symbol(result.StatusCode));
+        }
+        catch (ServiceResultException ex)
+        {
+            return new UaWriteResult(false, Symbol(ex.StatusCode));
+        }
+    }
+
+    /// <summary>
     /// The selected fields of an event (<see cref="EventFields"/>) as a
     /// <see cref="UaEvent"/>; null for the markers of a ConditionRefresh and
     /// for an event without an EventId.

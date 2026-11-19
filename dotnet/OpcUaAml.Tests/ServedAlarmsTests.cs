@@ -4,8 +4,11 @@ using OpcUaAml.Server;
 namespace OpcUaAml.Tests;
 
 /// <summary>The practice plant with its fixed alarms, its watched values moving fast so a test does not wait minutes.</summary>
-public sealed class AlarmPlantFixture : IAsyncLifetime
+public class AlarmPlantFixture : IAsyncLifetime
 {
+    /// <summary>How fast the watched values move: fast enough that a test sees an alarm come and go.</summary>
+    protected virtual SimulationPace Pace => new(4, 1);
+
     public NodeSetServerHost Host { get; private set; } = null!;
     public string PkiRoot { get; } = Path.Combine(Path.GetTempPath(), "amlopcua-alarm-pki-" + Guid.NewGuid().ToString("N")[..8]);
 
@@ -18,7 +21,7 @@ public sealed class AlarmPlantFixture : IAsyncLifetime
             PkiRoot = Path.Combine(PkiRoot, "server"),
             Simulate = true,
             Alarms = PracticePlantAlarms.For(),
-            WatchedPace = new SimulationPace(4, 1),
+            WatchedPace = Pace,
         });
 
     public async Task DisposeAsync()
@@ -34,6 +37,12 @@ public sealed class AlarmPlantFixture : IAsyncLifetime
         AcceptUntrustedServerCertificates = true,
         PkiRoot = Path.Combine(PkiRoot, "client"),
     });
+}
+
+/// <summary>The practice plant with alarms that stay ten seconds: long enough to acknowledge the newest state.</summary>
+public sealed class SlowAlarmPlantFixture : AlarmPlantFixture
+{
+    protected override SimulationPace Pace => new(20, 10);
 }
 
 [Trait("Speed", "Slow")]

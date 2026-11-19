@@ -107,6 +107,41 @@ public sealed class WriteValueWindow : Window
     }
 }
 
+/// <summary>The dialog of Acknowledge…: which alarm, a warning, and a comment if the user gives one.</summary>
+public sealed class AcknowledgeWindow : Window
+{
+    public TextBox Comment { get; } = new() { MinWidth = 320 };
+
+    public AcknowledgeWindow(EventRow row)
+    {
+        var e = row.Event ?? throw new ArgumentException("A connection row is no alarm.", nameof(row));
+        Width = 520;
+        SizeToContent = SizeToContent.Height;
+        ResizeMode = ResizeMode.NoResize;
+        AutomationProperties.SetName(Comment, L.T("Comment"));
+
+        var since = row.Time.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        var body = new StackPanel();
+        body.Children.Add(DialogKit.Facts(
+            (L.T("Alarm"), e.Message, false),
+            (L.T("Source"), e.SourceName, false),
+            (L.T("Since"), L.T("{0}, severity {1}", since, e.Severity), false)));
+        body.Children.Add(DialogKit.Label(L.T("Comment")));
+        body.Children.Add(Comment);
+        body.Children.Add(new TextBlock { Text = L.T("Optional. The server keeps it with the acknowledgement."), Foreground = DialogKit.Muted, Margin = new Thickness(0, 3, 0, 0) });
+
+        var acknowledge = DialogKit.Action(L.T("Acknowledge"), primary: true);
+        acknowledge.Click += (_, _) => { if (Accept()) DialogResult = true; };
+        DialogKit.Frame(this, "", DialogKit.Danger, L.T("Acknowledge the alarm"),
+            L.T("The controller gets the acknowledgement at once. Acknowledge only when you know the cause."),
+            body, null, acknowledge, DialogKit.Action(L.T("Cancel"), cancel: true));
+        Loaded += (_, _) => Comment.Focus();
+    }
+
+    /// <summary>The comment is optional: there is nothing to refuse.</summary>
+    public bool Accept() => true;
+}
+
 /// <summary>The dialog of Call method…: a field per input argument, the server's answer below.</summary>
 public sealed class CallMethodWindow : Window
 {
