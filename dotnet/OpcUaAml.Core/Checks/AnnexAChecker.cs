@@ -48,12 +48,16 @@ public static class FindingTexts
     public const string WrongNodeClass = "'{0}' is a {1}, but {2} declares a {3}.";
     public const string WrongTypeDefinition = "'{0}' is a {1}, but {2} declares a {3} or a subtype of it.";
     public const string WrongDataType = "'{0}' holds {1}, but {2} declares {3} or a subtype of it.";
+    public const string AlarmWithoutInput = "watches no value: its InputNode names no element with a Value.";
+    public const string AlarmLimitNotNumber = "its limit '{0}' is no number.";
+    public const string StateAlarmNotBoolean = "watches '{0}', which holds {1}, not a boolean.";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
         BrokenVdi3682Link, PlaceholderInInstance, UnknownType, AbstractType, MissingMandatory,
         MissingMandatoryPlaceholder, MissingMandatoryPlaceholderOfType, DanglingLink, WrongLinkPair,
         NoTypeDefinition, WrongNodeClass, WrongTypeDefinition, WrongDataType,
+        AlarmWithoutInput, AlarmLimitNotNumber, StateAlarmNotBoolean,
     };
 }
 
@@ -68,6 +72,9 @@ public static class Rules
     public const string WrongLinkPair = "UA006";
     public const string PlaceholderInInstance = "UA007";
     public const string BrokenVdi3682Link = "UA008";
+    public const string AlarmWithoutInput = "UA009";
+    public const string AlarmLimitNotNumber = "UA010";
+    public const string StateAlarmNotBoolean = "UA011";
 
     // A running server checked against its types (ServerChecker).
     public const string ServerNoTypeDefinition = "SV001";
@@ -88,6 +95,9 @@ public static class Rules
         [WrongLinkPair] = "An InternalLink connects reference interfaces that do not belong together (RefClassConnectsToPath).",
         [PlaceholderInInstance] = "A placeholder declaration (<Name>) was copied into an instance.",
         [BrokenVdi3682Link] = "A VDI 3682 element links to an OPC UA element that does not exist.",
+        [AlarmWithoutInput] = "An alarm watches no value (InputNode).",
+        [AlarmLimitNotNumber] = "The limit of a limit alarm is no number.",
+        [StateAlarmNotBoolean] = "A state alarm watches a value that is no boolean.",
         [ServerNoTypeDefinition] = "A node of the server has no type definition.",
         [ServerAbstractType] = "A node of the server is an instance of an abstract type.",
         [ServerMissingMandatory] = "A Mandatory child its type declares is missing on the server.",
@@ -116,6 +126,7 @@ public static class AnnexAChecker
         foreach (var link in Links.Vdi3682Links.Links(doc).Where(l => l.Target == null))
             findings.Add(Finding.Of(Rules.BrokenVdi3682Link, Severity.Warning, PathOf(link.Source), link.Source.ID,
                 FindingTexts.BrokenVdi3682Link, link.TargetId));
+        CheckAlarms(doc, findings);
         return findings;
 
         // Down the hierarchy, so that what a type declares below its children
@@ -126,6 +137,29 @@ public static class AnnexAChecker
             CheckLinks(doc, ie, interfaces, findings);
             foreach (var child in ie.InternalElement)
                 Walk(child, UaTypes.Below(applying, child));
+        }
+    }
+
+    /// <summary>
+    /// The alarms the servers raise (limit and state alarms of OPC 10000-9): each
+    /// watches a value, a limit alarm's limit is a number, a state alarm's value
+    /// a boolean. An alarm of another class is not the servers' to raise.
+    /// </summary>
+    private static void CheckAlarms(CAEXDocument doc, List<Finding> findings)
+    {
+        foreach (var alarm in Alarms.AlarmElements.In(doc).Where(a => a.Kind != null))
+        {
+            var path = PathOf(alarm.Element);
+            var id = alarm.Element.ID;
+            if (alarm.Input == null || !Server.AmlAddressSpace.IsServedVariable(alarm.Input))
+                findings.Add(Finding.Of(Rules.AlarmWithoutInput, Severity.Error, path, id, FindingTexts.AlarmWithoutInput));
+            if (alarm.Kind != Server.AlarmKind.State && alarm.Limit == null)
+            {
+                var limit = alarm.Element.InternalElement[alarm.Kind == Server.AlarmKind.High ? "HighLimit" : "LowLimit"]?.Attribute["Value"]?.Value ?? "";
+                findings.Add(Finding.Of(Rules.AlarmLimitNotNumber, Severity.Error, path, id, FindingTexts.AlarmLimitNotNumber, limit));
+            }
+            if (alarm.Kind == Server.AlarmKind.State && alarm.Input?.Attribute["Value"]?.AttributeDataType is { } type && type != "xs:boolean")
+                findings.Add(Finding.Of(Rules.StateAlarmNotBoolean, Severity.Error, path, id, FindingTexts.StateAlarmNotBoolean, alarm.Input.Name, type));
         }
     }
 

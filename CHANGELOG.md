@@ -41,6 +41,13 @@ minor versions.
   that is not acknowledged; when the alarm changed meanwhile, the status line
   says so. The acknowledged state comes from the server as a row of its own.
   Both servers of the plugin let their alarms be acknowledged.
+- **Create alarm…** beside New instance… creates an alarm for the value
+  selected in the editor: above or below a limit for a number, away from its
+  normal value for a boolean, with a severity (Info 200, Warning 500, Fault
+  800 or one of one's own) and a text. The name and the text are proposed.
+  A document without the OPC UA base library is offered to import it first.
+  The Check tab finds alarms that watch no value (UA009), whose limit is no
+  number (UA010), or state alarms on a value that is no boolean (UA011).
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

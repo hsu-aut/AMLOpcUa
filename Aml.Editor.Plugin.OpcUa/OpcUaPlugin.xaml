@@ -225,6 +225,12 @@
                                 <TextBlock Text="{l:T 'New instance…'}" Style="{StaticResource Label}"/>
                             </StackPanel>
                         </Button>
+                        <Button x:Name="AlarmButton" Click="AlarmButton_Click" IsEnabled="False" ToolTipService.ShowOnDisabled="True">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource IconText}" Text="&#xE7BA;" Foreground="{DynamicResource Create}"/>
+                                <TextBlock Text="{l:T 'Create alarm…'}" Style="{StaticResource Label}"/>
+                            </StackPanel>
+                        </Button>
                         <Button x:Name="CheckButton" Click="CheckButton_Click"
                                 ToolTip="{l:T 'Check the instance hierarchies against their UA types (Mandatory children, placeholders, reference pairs).'}">
                             <StackPanel Orientation="Horizontal">

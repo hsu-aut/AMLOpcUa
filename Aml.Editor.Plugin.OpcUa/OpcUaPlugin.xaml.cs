@@ -204,6 +204,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
     {
         base.ChangeSelectedObject(selectedObject);
         _editorSelection = selectedObject;
+        UpdateAlarmButton();
     }
 
     public override void ChangeAMLFilePath(string amlFilePath)
@@ -974,6 +975,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         CloudButton.IsEnabled = usable && !_busy;
         OpcfButton.IsEnabled = usable && !_busy;
         InstanceButton.IsEnabled = usable && !_busy;
+        UpdateAlarmButton();
         CheckButton.IsEnabled = doc != null && !_busy;
         CheckAgainButton.IsEnabled = doc != null && !_busy;
         UpgradeButton.IsEnabled = doc != null && !_busy;
