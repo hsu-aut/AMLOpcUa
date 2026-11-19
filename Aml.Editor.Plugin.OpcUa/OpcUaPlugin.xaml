@@ -831,7 +831,13 @@
 
                     <!-- Below the address space: the watched values and the server's events. -->
                     <TabControl x:Name="LiveTabs" Grid.Row="5" Margin="6,0,6,6" Visibility="Collapsed">
-                        <TabItem x:Name="WatchTab" Header="{l:T 'Watched'}">
+                        <TabControl.Resources>
+                            <!-- Headers the size of the controls around them, not of the plugin's own tabs. -->
+                            <DataTemplate x:Key="SmallTabHeader">
+                                <TextBlock Text="{Binding}" FontSize="13" FontWeight="SemiBold" Margin="0,2"/>
+                            </DataTemplate>
+                        </TabControl.Resources>
+                        <TabItem x:Name="WatchTab" Header="{l:T 'Watched'}" HeaderTemplate="{StaticResource SmallTabHeader}">
                             <ListView x:Name="WatchList" MaxHeight="160" BorderThickness="0">
                                 <ListView.View>
                                     <GridView>
@@ -876,7 +882,7 @@
                                 </ListView.View>
                             </ListView>
                         </TabItem>
-                        <TabItem x:Name="EventsTab" Header="{l:T 'Events'}">
+                        <TabItem x:Name="EventsTab" Header="{l:T 'Events'}" HeaderTemplate="{StaticResource SmallTabHeader}">
                             <DockPanel>
                                 <WrapPanel DockPanel.Dock="Bottom" Margin="0,4,0,0">
                                     <Button x:Name="AcknowledgeButton" Click="AcknowledgeButton_Click" IsEnabled="False"
@@ -928,14 +934,14 @@
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="{l:T 'Source'}" Width="140">
+                                            <GridViewColumn Header="{l:T 'Source'}" Width="190">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding Source}" ToolTip="{Binding SourceTip}"/>
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="{l:T 'Severity'}" Width="60" DisplayMemberBinding="{Binding Severity}"/>
+                                            <GridViewColumn Header="{l:T 'Severity'}" Width="80" DisplayMemberBinding="{Binding Severity}"/>
                                             <GridViewColumn Header="{l:T 'Message'}" Width="240">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>

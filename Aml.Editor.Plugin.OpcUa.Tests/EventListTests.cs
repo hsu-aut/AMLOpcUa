@@ -204,6 +204,31 @@ public class EventListTests
         Assert.Equal("Alarm: Spindle overloaded at Drill, severity 800.", told);
     }
 
+    /// <summary>
+    /// Editor round 2026-11-19: the tabs below the address space took the large
+    /// headers of the plugin's own tabs, and the columns cut "Schwere" and long sources.
+    /// </summary>
+    [Fact]
+    public void The_lists_below_the_address_space_have_small_tab_headers_and_room_in_their_columns()
+    {
+        double watched = 0, events = 0, severity = 0, source = 0;
+        OnUiThread(() =>
+        {
+            var plugin = new OpcUaPlugin();
+            watched = ((TextBlock)plugin.WatchTab.HeaderTemplate.LoadContent()).FontSize;
+            events = ((TextBlock)plugin.EventsTab.HeaderTemplate.LoadContent()).FontSize;
+            var columns = ((GridView)plugin.EventList.View).Columns;
+            severity = columns[2].Width;
+            source = columns[1].Width;
+            return Task.CompletedTask;
+        });
+
+        Assert.InRange(watched, 1, 14);
+        Assert.InRange(events, 1, 14);
+        Assert.True(severity >= 75, $"Severity {severity}");
+        Assert.True(source >= 180, $"Source {source}");
+    }
+
     /// <summary>Review 2026-11-19: a flood of severe alarms was read out up to four times a second.</summary>
     [Fact]
     public void Severe_alarms_in_quick_succession_are_read_out_once_showing_the_newest()
