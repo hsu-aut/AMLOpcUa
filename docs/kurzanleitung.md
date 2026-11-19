@@ -100,6 +100,22 @@ Zertifikat des Plugins:
 Keine Anlage zur Hand? **Übungsanlage** startet die MPS 500 mit simulierten
 Werten auf diesem Rechner.
 
+## Alarme
+
+- Unter dem Adressraum zeigt der Reiter **Ereignisse** die Ereignisse und
+  Alarme des verbundenen Servers, jede Änderung als eigene Zeile, die neueste
+  oben. **Nur offene Alarme** zeigt jeden Alarm einmal, solange er aktiv oder
+  nicht quittiert ist.
+- **Quittieren…** quittiert den gewählten Alarm nach Rückfrage, mit einem
+  Kommentar, wenn du einen gibst. Die Steuerung erhält die Quittierung sofort.
+- **Ereignisse speichern…** legt die Liste als CSV-Datei ab oder als Anhang an
+  ein Element. Bei einem .amlx bietet der Editor beim Speichern an, die Datei
+  in den Container aufzunehmen; lass sie dort angehakt.
+- **Alarm anlegen…** neben **Neue Instanz…** legt für den im Editor gewählten
+  Wert einen Alarm nach OPC UA Teil 9 an: Grenzwert oben oder unten bei einer
+  Zahl, Zustand bei true/false. Der Dokumentserver löst ihn aus.
+- Die Übungsanlage hat vier feste Alarme, etwa "Bohrspindel überlastet".
+
 ## Das Dokument als Server, das Dokument weitergeben
 
 - **Bereitstellen** macht die InstanceHierarchies des Dokuments zu einem

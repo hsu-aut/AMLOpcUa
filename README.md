@@ -151,6 +151,11 @@ command line does.
   connect to without a plant or a network.
 - A second import of a namespace replaces its libraries in place; a newer model
   is never replaced by an older one.
+- **Events** below the address space lists the events and alarms of the
+  connected server as a history; **Acknowledge…** acknowledges an alarm after
+  asking, **Save events…** saves the list as CSV or as an attachment of an
+  element. **Create alarm…** describes an alarm of OPC UA Part 9 in the
+  document, which the document server raises; the practice plant has four.
 - **New instance…** creates an instance of a UA type: every Mandatory child,
   the Optional children ticked in the dialog, and for each placeholder the
   children named there, of its type or a concrete subtype.

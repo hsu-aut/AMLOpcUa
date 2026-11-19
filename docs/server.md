@@ -344,6 +344,36 @@ A server's or the client's own certificate that expires within 30 days is
 made anew when the server starts or the client connects; peers that trusted
 the old one are asked again.
 
+### Alarms of the document
+
+An element that is an instance of ExclusiveLevelAlarmType (with HighLimit or
+LowLimit) or OffNormalAlarmType from the UA base library is served as an
+alarm, with the stack's condition state (`ExclusiveLevelAlarmState`,
+`OffNormalAlarmState`) instead of its children: the state machine, Acknowledge
+and ConditionRefresh are the stack's. Its InputNode names the value it watches
+(by `refNode`, else by NodeId), its NormalState the property NormalValue.
+The object above the value is the event source and has HasCondition to the
+alarm; the alarm stands where its element stands (HasComponent), and the
+events go up the hierarchy to its topmost folder, the root notifier below the
+Server object (HasNotifier along the way). One root notifier per path: two
+on one path would send each event twice.
+
+Every change of the value is evaluated: the simulation and edits of the
+document that reach the server. A limit alarm is active while the value is
+above (HighLimit) or below (LowLimit) its limit, a state alarm while the value
+is not its normal value. A value that is no number, or no boolean, leaves the
+alarm as it is. Becoming active makes it unacknowledged; Retain holds while it
+is active or not acknowledged. Acknowledge needs the EventId of the newest
+event of the alarm; an older one is refused with BadEventIdUnknown. Clients
+cannot write; only the server's own values move its alarms.
+
+With simulation, the values an alarm watches move slower (`SimulationPace.Watched`,
+a wave of 120 s, a change every 60 s instead of 30 s and 5 s), so an alarm
+stays long enough to be read and acknowledged. An alarm element of another
+class (DiscreteAlarmType and others), or one without a usable value or limit,
+is served as before, as an object with its children; `SkippedAlarms` and the
+plugin's log say why.
+
 ## A NodeSet as a server
 
 Where the document server serves the structure of a document, **`uaaml serve
@@ -377,6 +407,16 @@ not exist yet, or a companion specification to try a client against.
 stations, modules, devices and a state machine per station. Its README walks
 through serving it, taking its model into a document and mirroring the running
 instances.
+
+### Alarms of the practice plant
+
+`NodeSetServerOptions.Alarms` raises alarms on variables of the served
+NodeSets; the plugin gives the practice plant the four of
+`PracticePlantAlarms` (MPS500 `ns=1;i=1167`, `i=1066`, `i=1190`, `i=1219`). They
+hang off the object above their variable by HasCondition only, with NodeIds
+`Alarms/<name>` in the model's namespace, so the model's hierarchy stays as its
+NodeSet has it, and each such object is a root notifier. The NodeSet file is
+not changed.
 
 ## Passing a document on
 

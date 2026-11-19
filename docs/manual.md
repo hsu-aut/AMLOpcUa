@@ -51,7 +51,8 @@ between versions.
 4. [Instances of UA types](#instances-of-ua-types):
    [Create an instance](#create-an-instance) ·
    [What an instance contains](#what-an-instance-contains) ·
-   [After a newer version of the types](#after-a-newer-version-of-the-types)
+   [After a newer version of the types](#after-a-newer-version-of-the-types) ·
+   [Create an alarm](#create-an-alarm)
 5. [Checking instances](#checking-instances)
 6. [Working with a running server](#working-with-a-running-server):
    [Connect](#connect) ·
@@ -61,6 +62,7 @@ between versions.
    [Take the same part again](#take-the-same-part-again) ·
    [Bind a node to an element](#bind-a-node-to-an-element) ·
    [Read, keep and watch values](#read-keep-and-watch-values) ·
+   [Events and alarms](#events-and-alarms) ·
    [A plant to practise on](#a-plant-to-practise-on)
 7. [Serving the document as an OPC UA server](#serving-the-document-as-an-opc-ua-server)
 8. [Passing a document on](#passing-a-document-on)
@@ -257,7 +259,7 @@ no longer has, replacing a binding.
 
 Save with Ctrl+S, as always. With **Settings ▾** › **Save after import** the
 plugin triggers the editor's save command after each import and after **New
-instance…**.
+instance…** and **Create alarm…**.
 
 ## Bringing OPC UA models into a document
 
@@ -600,6 +602,51 @@ The same command puts back a Mandatory child that was deleted by hand, which
 
 Ctrl+Z does not take the added children back.
 
+### Create an alarm
+
+An alarm the document server raises, as OPC UA Part 9 (OPC 10000-9) describes
+it, is an element of the document like any other: an instance of an alarm
+class of the UA base library, beside the value it watches. Select the value in
+the editor's tree (an element with a `Value` that holds a number or a
+boolean) and click **Create alarm…** beside **New instance…**. Without a value
+selected the button is grey, and its tooltip says why.
+
+| Field | What it means |
+|---|---|
+| **Kind** | **Above a limit** or **Below a limit** for a number (class ExclusiveLevelAlarmType, with HighLimit or LowLimit); **State (true/false)** for a boolean (class OffNormalAlarmType) |
+| **Limit** | the limit, a number, with a point or a comma |
+| **Normal is** | for a state alarm: the value that is no alarm (`false` for "Magazine empty", `true` for "Online") |
+| **Severity** | Info (200), Warning (500), Fault (800), or one of your own from 1 to 1000 |
+| **Text** | the alarm's message, proposed from the value's name |
+| **Name** | the element's name, proposed as `<value>High`, `<value>Low` or `<value>Alarm` and free under the value's parent |
+
+The alarm comes beside the value, below the same parent, with every Mandatory
+child of its class:
+
+```
+Drill
+ ├ SpindleSpeed               Value 1080
+ └ SpindleSpeedHigh           ExclusiveLevelAlarmType
+      HighLimit  = 1200
+      Severity   = 800
+      Message    = Spindle overloaded
+      InputNode  → SpindleSpeed
+```
+
+InputNode, and a state alarm's NormalState, are properties of DataType NodeId.
+An element of your own model has no NodeId yet, so they name their element by
+its ID as well: an attribute `refNode` of the AutomationML object reference
+types (in the library `AMLOpcUa_ReferenceAttributeTypeLib`). Renaming or moving
+the value keeps the alarm working; the document server and **Export NodeSet…**
+put in the NodeId the value has there. A value with a NodeId of its own has it
+in InputNode's `Value` too. A state alarm's normal value is a property
+`NormalValue` below the alarm, which NormalState names.
+
+A document without the OPC UA base library is offered to import it first: the
+libraries of the base model come in, nothing else changes. Ctrl+Z does not
+take the alarm back; delete the element instead. A document being served gets
+the alarm after **Stop serving** and **Serve**.
+
 ## Checking instances
 
 **Check** on the **Namespaces** toolbar, or **Check again** on the **Check**
@@ -624,6 +671,9 @@ its element in the editor.
 | UA006 | Error | An InternalLink connects reference interfaces that do not belong together (RefClassConnectsToPath, Annex A). |
 | UA007 | Warning | An element named like a placeholder (`<Name>`) sits in an instance hierarchy. |
 | UA008 | Warning | A VDI 3682 element links to an OPC UA element that does not exist. |
+| UA009 | Error | An alarm watches no value: its InputNode names no element with a `Value`. |
+| UA010 | Error | The limit of a limit alarm is no number. |
+| UA011 | Error | A state alarm watches a value that is no boolean. |
 
 ![The Check tab after Check with one finding: an error UA002 for Plant/Device1, an instance of the abstract DeviceType](manual/check.png)
 
@@ -1059,6 +1109,73 @@ plant has no findings. On the command line: `uaaml check-server <endpoint>
 errors, for a script or a pipeline; a `--below` the server does not have, or
 one that is no object or variable, is an error too.
 
+### Events and alarms
+
+Below the address space, beside the watched values, the tab **Events** lists
+the events and alarms of the connected server. They are received from
+connecting on; **Settings ▾ › Receive events after connecting** turns that off,
+and **More ▾ › Receive events** starts it for one connection. When the plugin
+starts receiving, it asks the server for the alarms already active
+(ConditionRefresh), so they are in the list at once.
+
+```
+   Time      Source         Severity  Message              State
+ ● 10:41:12  DV_Drill_spindle   800  Drill spindle overloaded  active, unacknowledged
+ ● 10:40:55  DV_Magazine_…      500  Magazine empty            active, acknowledged
+ ○ 10:39:40  DV_Drill_spindle   800  Drill spindle overloaded  inactive, acknowledged
+             Connected to AMLOpcUa NodeSet server
+```
+
+Each change of an alarm is a row of its own, the newest first: the list is the
+history of the alarms. A full dot is an active alarm, an empty one an alarm
+that went; the dot's colour follows the severity. An event that is no alarm
+says "event". The source's tooltip is its NodeId; the message's tooltip is the
+comment of an acknowledgement, with the user who gave it.
+
+- **Only open alarms** shows each alarm once, in its last state, while the
+  server retains it: while it is active or not acknowledged.
+- **Severity from** hides the events below 200, 500 or 800.
+- The list keeps 10000 rows; older ones go, and the status line says so once.
+- Disconnecting ends receiving, not the list: connecting again, to the same
+  server or another, adds a row "Connected to …" with the server's name, and
+  the rows go on below it.
+- A new alarm from severity 500 on is told in the status line, which a screen
+  reader reads out.
+- A server that sends no events says so in the status line.
+
+**Acknowledge…** acknowledges the selected alarm. It is offered for the newest
+state of an alarm that is not acknowledged. The dialog names the alarm, its
+source, since when and its severity, and warns that the controller gets the
+acknowledgement at once; the comment is optional, Escape cancels. The
+acknowledged state comes from the server as a new row. When the alarm changed
+meanwhile, the server refuses, and the status line says "The alarm has
+changed; select it again."
+
+**Save events…** saves every row, the oldest first:
+
+```
+Time;Server;Source;Severity;Message;State;Comment;User;Condition;EventType;EventId
+2026-11-19T09:41:12.000Z;AMLOpcUa NodeSet server;DV_Drill_spindle;800;Drill spindle overloaded;active, unacknowledged;;;"nsu=http://hsu-hh.de/UA/MPS500/;s=Alarms/SpindleOverload";"nsu=http://opcfoundation.org/UA/;i=9482";…
+```
+
+Times are UTC. The server is named by its application name, never by its
+address, so a file passed on names no computer. The state is in fixed English
+words (`active, unacknowledged`, `event`, `connection`), whatever the language
+of the plugin. Separator, numbers and the guard against formulas are those of
+**Save values…**.
+
+- **As a CSV file**: where you choose.
+- **As an attachment of an element**: the file goes beside the document, named
+  `<document>.events-<yyyyMMdd-HHmmss>.csv`, and the element selected in the
+  editor (or the topmost one; **Element…** chooses another) gets an
+  ExternalInterface of the class ExternalDataReference
+  (AutomationMLInterfaceClassLib) that names the file, with MIMEType
+  `text/csv`. Each save adds a new one. Beside an `.aml` document the file is
+  named relative to it: pass it on with the document. For a container
+  (`.amlx`) this is preselected; when you save the container with Ctrl+S, the
+  AutomationML Editor offers to take the file in. Keep it ticked there, and
+  the container holds the history.
+
 ### A plant to practise on
 
 The plugin brings a plant to connect to: the MPS 500 learning factory of the
@@ -1079,6 +1196,15 @@ stops it, and so does closing the editor.
    spindle speeds move in the document. Select one in the editor's tree and
    click its attribute `Value`; the attribute details show it change.
 
+The plant raises four alarms: the drill spindle of ST30 overloaded (speed above
+1200, severity 800), the magazine of ST10 empty (its sensor true, 500), the PLC
+of ST30 loaded (above 57 %, 200) and the robot controller of ST40 offline (800).
+The values they watch move slower than the others (a wave of two minutes, a
+change every minute), so each alarm comes about every one to two minutes and
+stays long enough to be acknowledged. They hang off their objects by
+HasCondition, not in the plant's hierarchy: **Take into document** takes what it
+took before.
+
 No network and no command line is needed. The plant's NodeSet lies in the
 plugin's folder `examples` (see
 [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)), in the
@@ -1088,6 +1214,9 @@ document itself can serve as a plant too (next chapter); the tutorial's fifth
 lesson does that.
 
 ## Serving the document as an OPC UA server
+
+The document server also raises the alarms of the document
+([Create an alarm](#create-an-alarm)); see below.
 
 The band "This document as a server" on the **Server** tab starts an OPC UA
 server whose address space is the document's instance hierarchies. Clients can
