@@ -39,6 +39,12 @@ public static class Vdi3682Links
     public const string RefOpcUaObject = "refOpcUaObject";
     public const string RefOpcUaMethod = "refOpcUaMethod";
 
+    /// <summary>
+    /// On a property whose DataType is NodeId (an alarm's InputNode, an
+    /// OffNormalAlarm's NormalState): the element whose node the property names.
+    /// </summary>
+    public const string RefNode = "refNode";
+
 
     /// <summary>FPD elements of the given kind: by class path or role ending in FPD_TechnicalResource / FPD_ProcessOperator.</summary>
     public static IEnumerable<InternalElementType> FpdElements(CAEXDocument doc, FpdKind kind)
@@ -106,20 +112,25 @@ public static class Vdi3682Links
     public static void EnsureLibraries(CAEXFileType caex)
     {
         ObjectReferences.EnsureLibrary(caex);
-        if (caex.AttributeTypeLib[OwnLib] == null)
+        var own = caex.AttributeTypeLib[OwnLib];
+        if (own == null)
         {
-            var own = caex.AttributeTypeLib.Append(OwnLib);
-            own.Description = "Object references between a VDI 3682 process description and OPC UA (AMLOpcUa).";
+            own = caex.AttributeTypeLib.Append(OwnLib);
+            own.Description = "Object references of AMLOpcUa: between a VDI 3682 process description and OPC UA, and from a property of DataType NodeId to the element it names.";
             own.Version = "1.0.0";
-            Derived(own, RefOpcUaObject,
-                "Attached to a VDI 3682 TechnicalResource. Its value references the OPC UA object (an element typed by an OPC 10000-83 Annex A class) that represents the same resource.");
-            Derived(own, RefOpcUaMethod,
-                "Attached to a VDI 3682 ProcessOperator. Its value references the OPC UA method whose call executes the process operator.");
         }
+        Derived(own, RefOpcUaObject,
+            "Attached to a VDI 3682 TechnicalResource. Its value references the OPC UA object (an element typed by an OPC 10000-83 Annex A class) that represents the same resource.");
+        Derived(own, RefOpcUaMethod,
+            "Attached to a VDI 3682 ProcessOperator. Its value references the OPC UA method whose call executes the process operator.");
+        Derived(own, RefNode,
+            "Attached to a property of DataType NodeId (OPC 10000-83 Annex A), such as the InputNode of an alarm. Its value references the element whose node the property names; the NodeId is filled in where the element is served or exported, so the reference stays when the element is renamed or moved.");
     }
 
+    /// <summary>Adds the derived type to the library unless it holds it already (a library written by an older version lacks the newer ones).</summary>
     private static void Derived(AttributeTypeLibType lib, string name, string description)
     {
+        if (lib.AttributeType[name] != null) return;
         var t = lib.AttributeType.Append(name);
         t.AttributeDataType = "xs:IDREF";
         t.RefAttributeType = ObjectReferencesLib + "/refObj";

@@ -25,6 +25,16 @@ minor versions.
   an alarm stays long enough to be read and acknowledged. The alarms hang off
   their objects by HasCondition only; the plant's hierarchy, and what "Take
   into document" takes, stay as they were.
+- **The document server raises the alarms the document describes**: an
+  element that is an instance of ExclusiveLevelAlarmType (with HighLimit or
+  LowLimit) or OffNormalAlarmType from the UA base library, as OPC 10000-83
+  Annex A writes it. The object above the watched value is the event source,
+  the alarm stands where its element stands, and both the simulation and
+  edits of the document move it. Its InputNode and NormalState name their
+  elements by ID as well (an attribute `refNode` of the AutomationML object
+  reference types), so renaming or moving the value keeps the alarm working.
+  Alarms of other classes are served as objects, as before, and the log says
+  why.
 - **Bind model…** binds a whole model of one's own to a server at once,
   instead of one dialog per value. For each value of the model (an element
   without elements below it, or one with a `Value`) the plugin proposes the

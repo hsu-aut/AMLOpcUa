@@ -18,6 +18,7 @@ using Opc.Ua;
 using Opc.Ua.Configuration;
 using Opc.Ua.Server;
 using OpcUaAml.Addressing;
+using OpcUaAml.Alarms;
 using OpcUaAml.Types;
 
 namespace OpcUaAml.Server;
@@ -62,6 +63,9 @@ public sealed class AmlServerOptions
 
     /// <summary>Folders searched for the NodeSets of the types (<see cref="WithTypes"/>).</summary>
     public IReadOnlyList<string> Folders { get; init; } = [];
+
+    /// <summary>How fast the values an alarm of the document watches move with <see cref="Simulate"/>.</summary>
+    public SimulationPace WatchedPace { get; init; } = SimulationPace.Watched;
 }
 
 /// <summary>A client certificate the document server refused or trusts.</summary>
@@ -160,7 +164,7 @@ public sealed class AmlServerHost : IAsyncDisposable
 
         var missing = new List<string>();
         var types = options.WithTypes ? NodeSetServerHost.ResolveModels(model.TypeModels, options.Folders, missing) : [];
-        var server = new DocumentServer(model, options.Simulate, types, options.WithTypes);
+        var server = new DocumentServer(model, options.Simulate, types, options.WithTypes, options.WatchedPace);
         try
         {
             await ServerStartup.StartAsync(app, server, options.Port).ConfigureAwait(false);
@@ -230,6 +234,12 @@ public sealed class AmlServerHost : IAsyncDisposable
     /// <summary>Whether the served values are simulated (<see cref="AmlServerOptions.Simulate"/>).</summary>
     public bool Simulating => _server.NodeManager?.Simulating == true;
 
+    /// <summary>How many alarms of the document are raised (OPC 10000-9).</summary>
+    public int Alarms => _server.NodeManager?.Alarms ?? 0;
+
+    /// <summary>The alarms of the document that are not raised, each with why: served as plain objects, as before.</summary>
+    public IReadOnlyList<string> SkippedAlarms => [.. _server.Model.SkippedAlarms, .. _server.NodeManager?.SkippedAlarms ?? []];
+
     public async ValueTask DisposeAsync()
     {
         _server.NodeManager?.StopSimulation();
@@ -238,15 +248,18 @@ public sealed class AmlServerHost : IAsyncDisposable
         _server.Dispose();
     }
 
-    private sealed class DocumentServer(AmlAddressSpace model, bool simulate, IReadOnlyList<NodeSetServerHost.ServedSet> types, bool withTypes) : StandardServer
+    private sealed class DocumentServer(AmlAddressSpace model, bool simulate, IReadOnlyList<NodeSetServerHost.ServedSet> types, bool withTypes,
+        SimulationPace watchedPace) : StandardServer
     {
         public DocumentNodeManager? NodeManager { get; private set; }
+
+        public AmlAddressSpace Model => model;
 
         protected override MasterNodeManager CreateMasterNodeManager(IServerInternal server, ApplicationConfiguration configuration)
         {
             // The namespaces whose types are there: the base model's always, the others when loaded.
             var typed = withTypes ? types.SelectMany(s => s.Namespaces).Append(Opc.Ua.Namespaces.OpcUa).ToHashSet(StringComparer.Ordinal) : null;
-            NodeManager = new DocumentNodeManager(server, configuration, model, simulate, typed, withTypes ? types : []);
+            NodeManager = new DocumentNodeManager(server, configuration, model, simulate, typed, withTypes ? types : []) { WatchedPace = watchedPace };
             if (types.Count == 0) return new(server, configuration, null, NodeManager);
             var typeManager = new NodeSetServerHost.PlantNodeManager(server, configuration, types, publish: true, simulate: false, typesOnly: true);
             return new(server, configuration, null, typeManager, NodeManager);
@@ -267,7 +280,18 @@ public sealed class AmlServerHost : IAsyncDisposable
         private Timer? _simulation;
         private readonly DateTime _started = DateTime.UtcNow;
 
+        // Alarms: their nodes are made after the rest, when their values have states.
+        private readonly List<AmlNode> _alarmNodes = new();
+        private ServedAlarms? _alarms;
+        private readonly List<string> _skippedAlarms = new();
+
         public bool Simulating => _simulation != null;
+
+        public SimulationPace WatchedPace { get; init; } = SimulationPace.Watched;
+
+        public int Alarms => _alarms?.Count ?? 0;
+
+        public IReadOnlyList<string> SkippedAlarms => _skippedAlarms;
 
         public void StartSimulation(TimeSpan every)
         {
@@ -295,12 +319,14 @@ public sealed class AmlServerHost : IAsyncDisposable
                 {
                     var phase = i++ * 0.7;
                     _middle.TryGetValue(state, out var middle);
-                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name);
+                    var watched = _alarms?.Watches(state) == true;
+                    var next = ValueSimulation.Next(state.DataType, middle, seconds, phase, state.BrowseName?.Name, watched ? WatchedPace : null);
                     if (next == null || Equals(next, state.Value)) continue;
                     state.Value = next;
                     state.StatusCode = StatusCodes.Good;
                     state.Timestamp = DateTime.UtcNow;
                     state.ClearChangeMasks(SystemContext, false);
+                    if (watched) _alarms!.Evaluate(state);
                 }
             }
         }
@@ -328,10 +354,45 @@ public sealed class AmlServerHost : IAsyncDisposable
                     state.StatusCode = value == null ? StatusCodes.UncertainInitialValue : StatusCodes.Good;
                     state.Timestamp = DateTime.UtcNow;
                     state.ClearChangeMasks(SystemContext, false);
+                    _alarms?.Evaluate(state);
                     changed++;
                 }
             }
             return changed;
+        }
+
+        /// <summary>
+        /// The alarms of the document, once every value has its state: each on
+        /// the object above its value, where its element stands in the document.
+        /// </summary>
+        private void AddAlarms()
+        {
+            if (_alarmNodes.Count == 0) return;
+            _alarms = new ServedAlarms(SystemContext, NamespaceIndexes[0], n => AddPredefinedNode(SystemContext, n), AddRootNotifier);
+            foreach (var node in _alarmNodes)
+            {
+                var alarm = node.Alarm!;
+                var (input, inputNode) = _variables.FirstOrDefault(v => v.Node.Source?.Node == alarm.Input?.Node);
+                if (input?.Parent is not { } source)
+                {
+                    _skippedAlarms.Add($"'{node.Name}': its value '{alarm.Input?.Name}' is not served as a variable.");
+                    continue;
+                }
+                var definition = new AlarmDefinition(node.Name, inputNode.Address, alarm.Kind!.Value, alarm.Limit ?? 0, alarm.Normal ?? false, alarm.Severity, alarm.Message);
+                _alarms.Add(definition, source, input, Id(node.Address), asComponent: true);
+            }
+        }
+
+        /// <summary>The states of the alarms still open, to every event item that asked (ConditionRefresh).</summary>
+        public override ServiceResult ConditionRefresh(OperationContext context, IList<IEventMonitoredItem> monitoredItems)
+        {
+            if (_alarms == null) return base.ConditionRefresh(context, monitoredItems);
+            var events = new List<IFilterTarget>();
+            lock (Lock) _alarms.ConditionRefresh(events);
+            foreach (var item in monitoredItems)
+                foreach (var e in events)
+                    item.QueueEvent(e);
+            return ServiceResult.Good;
         }
 
         public override void CreateAddressSpace(IDictionary<NodeId, IList<IReference>> externalReferences)
@@ -357,6 +418,7 @@ public sealed class AmlServerHost : IAsyncDisposable
                     refs.Add(new NodeStateReference(ReferenceTypeIds.Organizes, false, state.NodeId));
                     AddPredefinedNode(SystemContext, state);
                 }
+                AddAlarms();
             }
         }
 
@@ -400,6 +462,12 @@ public sealed class AmlServerHost : IAsyncDisposable
         /// <summary>A node of the document; <paramref name="declared"/> the declarations its parent's type and declaration hold.</summary>
         private NodeState Create(AmlNode node, NodeState? parent, IReadOnlyList<BaseInstanceState>? declared)
         {
+            // An alarm is made with the stack's condition state once its value has a node (AddAlarms).
+            if (node.Alarm != null && parent != null)
+            {
+                _alarmNodes.Add(node);
+                return parent;
+            }
             var declaration = declared?.FirstOrDefault(d => d.BrowseName?.Name == node.Name);
             var ns = (ushort)Server.NamespaceUris.GetIndex(node.Address.NamespaceUri);
             var nodeId = Id(node.Address);
@@ -548,6 +616,9 @@ public sealed record AmlNode(string Name, UaNodeAddress Address, bool IsFolder, 
 
     /// <summary>The NodeId of the element's UA type (its class's Annex A NodeId), if it is an instance of one.</summary>
     public UaNodeAddress? TypeDefinition { get; init; }
+
+    /// <summary>The alarm the element describes, which the server raises; its children are the stack's.</summary>
+    public AlarmElement? Alarm { get; init; }
 }
 
 public sealed class AmlAddressSpace
@@ -558,6 +629,19 @@ public sealed class AmlAddressSpace
 
     /// <summary>The models of the UA types the elements are instances of, the base model left out.</summary>
     public HashSet<string> TypeModels { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Alarm elements the server does not raise, each with why; they are served as plain objects.</summary>
+    public List<string> SkippedAlarms { get; } = new();
+
+    /// <summary>
+    /// Whether the server makes the element a variable: an instance of a
+    /// VariableType, or without a UA class an element with a Value attribute.
+    /// </summary>
+    public static bool IsServedVariable(InternalElementType ie)
+    {
+        var type = UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath) ? UaTypes.TypeOf(ie) : null;
+        return type != null ? UaTypes.Chain(type).Any(t => t.Name == "BaseVariableType") : ie.Attribute["Value"] != null;
+    }
 
     public static AmlAddressSpace From(CAEXDocument doc, string documentNamespace)
     {
@@ -587,13 +671,24 @@ public sealed class AmlAddressSpace
             address = new UaNodeAddress(documentNamespace, UaIdType.String, path);
         address = Unique(address, used);
 
+        if (AlarmElements.IsAlarm(ie))
+        {
+            var alarm = AlarmElements.Read(ie);
+            if (AlarmElements.Problem(alarm) is { } problem) SkippedAlarms.Add(problem);
+            else
+            {
+                // Its children are the condition's own, which the stack makes; counted all the same,
+                // so the document and the server agree on how many elements there are.
+                Count += 1 + ie.Node.Descendants(ie.Node.Name.Namespace + "InternalElement").Count();
+                return new AmlNode(ie.Name, address, false, false, null, null, []) { Source = ie, Alarm = alarm };
+            }
+        }
+
         var children = ie.InternalElement.Select(c => Build(c, path, documentNamespace, used)).ToList();
         var type = UaTypes.IsUaLibraryPath(ie.RefBaseSystemUnitPath) ? UaTypes.TypeOf(ie) : null;
         // Without a UA class, a Value makes a variable, children or not: a variable
         // taken from a server whose type the document lacks keeps its EURange and value.
-        var isVariable = type != null
-            ? UaTypes.Chain(type).Any(t => t.Name == "BaseVariableType")
-            : ie.Attribute["Value"] != null;
+        var isVariable = IsServedVariable(ie);
         var value = ie.Attribute["Value"];
         UaNodeAddress? typeId = null;
         if (type != null)

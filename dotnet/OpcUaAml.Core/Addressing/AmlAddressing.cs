@@ -131,6 +131,20 @@ public static class AnnexANodeId
         if (owner.Attribute[AttributeName] is { } old) owner.Attribute.RemoveElement(old);
         var nodeId = owner.Attribute.Append(AttributeName);
         nodeId.RefAttributeType = NodeIdType;
+        Fill(nodeId, address);
+        return nodeId;
+    }
+
+    /// <summary>
+    /// Writes the address into an attribute of type NodeId that exists already,
+    /// such as the Value of a property whose DataType is NodeId. What it held is
+    /// replaced, the indirect forms too: a class gives such a Value empty Alias
+    /// and BrowsePath templates, and a BrowsePath with elements would make it a path.
+    /// </summary>
+    public static void Fill(AttributeType nodeId, UaNodeAddress address)
+    {
+        foreach (var part in new[] { "RootNodeId", "ServerInstanceUri", "Alias", "BrowsePath" })
+            if (nodeId.Attribute[part] is { } old) nodeId.Attribute.RemoveElement(old);
         if (address.ServerUri != null)
             Set(nodeId.Attribute.Append("ServerInstanceUri"), "xs:anyURI", address.ServerUri);
 
@@ -147,7 +161,6 @@ public static class AnnexANodeId
             _ => ("OpaqueId", "xs:base64Binary"),
         };
         Set(root.Attribute.Append(name), xsType, address.Identifier);
-        return nodeId;
     }
 
     internal static AttributeType? Sub(IObjectWithAttributes? owner, string name) => owner?.Attribute[name];
