@@ -7,6 +7,15 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-20
+
+### Security
+
+- System.Security.Cryptography.Xml, which signs and checks UAFX Descriptors,
+  from 8.0.2 to 8.0.5: CVE-2026-96222 (spoofing), CVE-2026-96958 and
+  CVE-2026-26171 (denial of service). The package's third-party notices name
+  it and System.Security.Cryptography.Pkcs now.
+
 ## [0.5.0] - 2026-11-20
 
 ### Added
