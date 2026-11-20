@@ -893,6 +893,8 @@ attribute in the editor; its `Value` keeps the last value read.
 
 **Bind model…** binds all values of a model of your own at once:
 
+![A plant model of one's own without any OPC UA in it, connected to the practice plant: Bind model proposes MPS500/ST30_Processing/MD_Drilling_unit/DV_Drill_spindle/Speed for SpindleSpeed and ParameterSet/PartsProduced for PartsProduced, both sure, and none for Running, Temperature and the turntable; binding gives SpindleSpeed the attributes NodeId and Value, and with document values kept live its Value follows the plant](manual/bindmodel.gif)
+
 1. Connect to the server. To search only a part of it, select an object in
    the address space (a station, say); otherwise the whole server is read.
 2. Select your model's element in the editor, or pick an InstanceHierarchy in
@@ -1125,6 +1127,8 @@ connecting on; **Settings ▾ › Receive events after connecting** turns that o
 and **More ▾ › Receive events** starts it for one connection. When the plugin
 starts receiving, it asks the server for the alarms already active
 (ConditionRefresh), so they are in the list at once.
+
+![The practice plant connected: the tab Events lists its alarms, drill spindle overloaded, robot controller offline and magazine empty, each with time, source, severity, message and state; one is selected and acknowledged with the comment "Spindle checked, load back to normal", and its row turns to active, acknowledged](manual/alarms.gif)
 
 ```
    Time      Source         Severity  Message              State
@@ -1380,6 +1384,8 @@ AutomationComponent from one engineering tool to the next: an AML container
 with the document, a manifest that names it, the files you attach, and your
 digital signature. The receiver sees whether anything changed after you
 signed, and decides whether to trust you.
+
+![An OPC UA FX AutomationComponent saved as a UAFX Descriptor: identifier urn:hsu:mps500:processingstation, version 1.0.0.0, OPC UA FX 1.00.04 read from the document, the manual attached, a new certificate HSU Institute of Automation; the check finds it valid and trusted, the receiver's check too, and after a line of the manual is changed it reports DX009: the file was changed after it was signed](descriptor.gif)
 
 **Save as a Descriptor.** On the **Namespaces** tab, **More ▾ › Save as
 UAFX Descriptor…** asks for:

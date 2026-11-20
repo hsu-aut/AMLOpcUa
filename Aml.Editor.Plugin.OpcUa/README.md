@@ -10,9 +10,15 @@ OPC UA for the [AutomationML Editor](https://www.automationml.org/).
 - **Instances:** instances of UA types with their Mandatory children, chosen
   Optional children and named children for placeholders, and a check of
   instances against their types.
-- **Servers:** connect to an OPC UA server, import its types, take its nodes
-  into the document with their NodeIds and UA types, read values once or keep
-  them live in the document; serve the open document as an OPC UA server.
+- **UAFX Descriptors** (OPC 10000-83): save the document as a signed AML
+  container with the files you attach, and check a Descriptor you receive:
+  manifest, files, signature and signer.
+- **Servers:** find a server through a discovery server, import its types,
+  take its nodes into the document with their NodeIds and UA types, bind a
+  model of your own at once, read values once or keep them live in the
+  document, write values and call methods, receive events and acknowledge
+  alarms; serve the open document as an OPC UA server, with its types and
+  alarms.
 - **Practice plant:** the MPS 500 learning factory as an OPC UA server on this
   computer, with moving values, to try all of this without a plant.
 - **Export:** AML documents (CAEX 2.15 and 3.0) as OPC UA NodeSets by the
@@ -22,6 +28,8 @@ OPC UA for the [AutomationML Editor](https://www.automationml.org/).
   graphical modeler [NodeSet.js](https://github.com/HamiedNabizada/NodeSet.js)
   in a tab of its own.
 - English and German.
+
+![A UAFX Descriptor in the AutomationML Editor: an OPC UA FX AutomationComponent saved as a signed Descriptor with the manual attached, checked as valid and trusted, and after the manual is changed the check reports that the file was changed after signing](https://raw.githubusercontent.com/hsu-aut/AMLOpcUa/main/docs/descriptor.gif)
 
 ![Modeling in the AutomationML Editor: a new model with an ObjectType ConveyorType and its Mandatory children, applied to the document as AutomationML libraries, and an instance created with every Mandatory child](https://raw.githubusercontent.com/hsu-aut/AMLOpcUa/main/docs/modeler.gif)
 

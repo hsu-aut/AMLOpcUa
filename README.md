@@ -9,9 +9,15 @@ OPC UA information models in AutomationML.
 - Instances of UA types with their Mandatory children, chosen Optional
   children and named children for placeholders, and a check of instances
   against their types
-- Running servers: browse, import the server's types (its published NodeSet,
-  or rebuilt by browsing), take nodes into the document, bind, read and watch
-  values, and serve the document itself as an OPC UA server
+- UAFX Descriptors (OPC 10000-83): the document saved as a signed AML
+  container with the files you attach, and a Descriptor you receive checked:
+  manifest, files, signature, and whom it was signed by
+- Running servers: find them through a discovery server, browse, import the
+  server's types (its published NodeSet, or rebuilt by browsing), take nodes
+  into the document, bind a model of your own at once, read, watch, write
+  values and call methods, receive events and acknowledge alarms, check the
+  server against its types, and serve the document itself as an OPC UA server,
+  with its types and the alarms it describes
 - Diagrams of UA types and instances (OPC 10000-3 notation, SVG export), state
   charts of finite state machines,
   UA Cloud Library import, instance updates after a type change, and links
@@ -26,6 +32,8 @@ OPC UA information models in AutomationML.
 - Structural comparison of AML class libraries and of NodeSets, used as test oracles
 - A graphical modeler ([NodeSet.js](https://github.com/HamiedNabizada/NodeSet.js))
   for OPC UA types of your own, applied to the document as AML libraries
+
+![A UAFX Descriptor in the AutomationML Editor: an OPC UA FX AutomationComponent saved as a Descriptor with identifier, version, the manual attached and a new certificate to sign with; the check finds it signed, valid and trusted; after a line of the manual is changed, the check reports DX009, the file was changed after it was signed](docs/descriptor.gif)
 
 ![Modeling in the AutomationML Editor: a new model with a namespace URI of its own, an ObjectType ConveyorType with the children Speed, Running and Motor, each Mandatory, applied to the document as AutomationML libraries, and an instance Conveyor created with every Mandatory child](docs/modeler.gif)
 
