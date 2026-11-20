@@ -424,8 +424,14 @@ public static class ModelBinder
 
     // ── Scoring ──
 
-    private static List<(string Word, int Level, double Weight)> Weighted(IReadOnlyList<string> path, double[] levels)
+    // The folders OPC UA DI keeps a device's parameters and methods in say nothing of
+    // what a value is: PartsProduced in ST30_Processing/ParameterSet is the station's,
+    // as near to it as its RevisionCounter, and "parameter set" no word it lacks.
+    private static readonly HashSet<string> Containers = new(StringComparer.Ordinal) { "ParameterSet", "MethodSet" };
+
+    private static List<(string Word, int Level, double Weight)> Weighted(IReadOnlyList<string> full, double[] levels)
     {
+        IReadOnlyList<string> path = full.Where((p, k) => k == full.Count - 1 || !Containers.Contains(p)).ToList();
         var best = new Dictionary<string, (int Level, double Weight)>(StringComparer.Ordinal);
         for (var k = 0; k < path.Count; k++)
         {

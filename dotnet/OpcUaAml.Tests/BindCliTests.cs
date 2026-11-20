@@ -43,6 +43,28 @@ public class BindCliTests
         Assert.Null(unchanged.Attribute["NodeId"]);
     }
 
+    /// <summary>
+    /// Video round 2026-11-20: against the whole practice plant, PartsCounter was
+    /// proposed as likely, and so bound, for the station's RevisionCounter. The DI
+    /// folder ParameterSet between the station and PartsProduced counted as words
+    /// the model does not have, and as one level more away from the station. The
+    /// names stay ambiguous ("counter" against "parts", and ST20_PartsDistributing
+    /// makes "parts" a common word), so it is left to the user, not bound.
+    /// </summary>
+    [Fact]
+    public async Task PartsCounter_is_not_bound_to_the_revision_counter_of_the_station()
+    {
+        using var uaaml = new Uaaml();
+        await using var plant = await PracticePlantAsync(uaaml.Folder);
+        var doc = uaaml.Save(LessonModel());
+
+        var run = await uaaml.RunAsync("bind", plant.EndpointUrl, doc, "--insecure", "--accept");
+
+        Assert.True(run.Exit == 0, run.Out + run.Error);
+        Assert.DoesNotMatch(@"PartsCounter\s+->\s+\S*RevisionCounter\s+(sure|likely)", run.Out);
+        Assert.Matches(@"Plant/ProcessingStation/PartsCounter\s+->\s+(MPS500/ST30_Processing/ParameterSet/PartsProduced|\S+\s+check)\s", run.Out);
+    }
+
     [Fact]
     public async Task With_apply_the_sure_and_likely_ones_are_bound_and_saved()
     {
