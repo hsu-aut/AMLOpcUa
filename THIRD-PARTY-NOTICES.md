@@ -37,6 +37,7 @@ MIT, Copyright 2021 AutomationML e.V. They are not part of the plugin package.
 | [BitFaster.Caching](https://github.com/bitfaster/BitFaster.Caching) | 2.6.0 | MIT | 2020 Alex Peck |
 | [Newtonsoft.Json](https://github.com/JamesNK/Newtonsoft.Json) | 13.0.4 | MIT | 2007 James Newton-King |
 | Microsoft.Extensions.Configuration, .Binder, .Json, .FileExtensions, .Abstractions, FileProviders, FileSystemGlobbing, Primitives, Logging, Options, DependencyInjection | 9.0.1 and 10.0.8 | MIT | .NET Foundation and Contributors |
+| System.Security.Cryptography.Xml, System.Security.Cryptography.Pkcs (signing and checking UAFX Descriptors) | 8.0.5 and 8.0.2 | MIT | .NET Foundation and Contributors |
 | System.Text.Json, System.Text.Encodings.Web, System.IO.Pipelines, System.IO.Packaging, System.Collections.Immutable, System.Diagnostics.DiagnosticSource, System.Formats.Asn1 | 10.0.x | MIT | .NET Foundation and Contributors |
 
 Version 1.5.378 is the first release of the OPC UA .NET Standard stack under

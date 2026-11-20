@@ -11,7 +11,7 @@
     <PackageReference Include="Aml.Engine" Version="[4.5.2, 5.0.0)" />
     <PackageReference Include="Aml.Engine.Services" Version="4.3.1" />
     <!-- XML signatures of UAFX Descriptors (OPC 10000-83 7.8, ISO/IEC 29500-2 clause 13). -->
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.2" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
