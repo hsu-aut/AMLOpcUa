@@ -459,6 +459,8 @@ public partial class OpcUaPlugin : ISupportsSelection
             var client = _client;
             if (client == null || _watchRows.Count == 0) return;
             var rows = _watchRows.ToDictionary(r => r.Address);
+            // The server sends every watched value once more; the recording keeps it once.
+            _recording.Restarted();
             var watch = await client.WatchAsync(rows.Keys.ToList(), r =>
                 Dispatcher.BeginInvoke(() =>
                 {

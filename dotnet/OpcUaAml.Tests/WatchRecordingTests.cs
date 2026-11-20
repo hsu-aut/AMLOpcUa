@@ -27,6 +27,41 @@ public class WatchRecordingTests
     private static UaReadResult Read(UaNodeAddress a, object? value, bool good = true, string status = "Good") =>
         new(a, value, value?.GetType().Name, good, status);
 
+    /// <summary>
+    /// Video round 2026-11-20: watching one more variable starts the watch again,
+    /// and the server sends the current value of every watched variable once
+    /// more. Each stood in the CSV once more, the first one four times after
+    /// four variables were added.
+    /// </summary>
+    [Fact]
+    public void A_value_sent_again_after_a_restart_is_kept_once()
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, "Speed", "", Read(Speed, 1200.5));
+
+        recording.Restarted();
+        recording.Add(T0.AddSeconds(5), "Speed", "", Read(Speed, 1200.5));
+        recording.Add(T0.AddSeconds(5), "Running", "", Read(Running, true));
+
+        Assert.Equal(["1200.5", "true"], recording.Entries.Select(e => e.Value));
+    }
+
+    [Fact]
+    public void After_a_restart_a_changed_value_and_later_repeats_are_kept()
+    {
+        var recording = new WatchRecording();
+        recording.Add(T0, "Speed", "", Read(Speed, 1200.5));
+        recording.Add(T0, "Running", "", Read(Running, true));
+
+        recording.Restarted();
+        recording.Add(T0.AddSeconds(5), "Speed", "", Read(Speed, 1300.0));
+        recording.Add(T0.AddSeconds(5), "Running", "", Read(Running, true));
+        // The server sent it on its own: the same value again is kept.
+        recording.Add(T0.AddSeconds(6), "Running", "", Read(Running, true));
+
+        Assert.Equal(["1200.5", "true", "1300", "true"], recording.Entries.Select(e => e.Value));
+    }
+
     [Fact]
     public void Every_value_received_is_kept_with_its_time()
     {

@@ -157,6 +157,15 @@ minor versions.
 
 ### Fixed
 
+- **Bind model…** proposed the practice plant's PartsCounter, as likely and so
+  ticked, for the station's RevisionCounter. The folders ParameterSet and
+  MethodSet that OPC UA DI keeps a device's parameters and methods in no
+  longer count as words of a variable, nor as a level between it and its
+  device. Where the names stay ambiguous, the proposal is left to check.
+- **Save values…** had a value once more for every variable already watched
+  each time one more was added: watching it starts the watch again, and the
+  server sends the current values again. Such a value is kept once now; one
+  that changed meanwhile is kept.
 - **A node reached by several references was listed several times** below
   its parent in the address space, and Take into document saw it as often: a
   server's notifier hierarchy puts a HasNotifier beside the HasComponent that

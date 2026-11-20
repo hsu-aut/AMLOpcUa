@@ -26,6 +26,19 @@ public sealed class WatchRecording(int limit = 100_000)
 
     public IReadOnlyList<WatchEntry> Entries { get { lock (_lock) return _entries.ToList(); } }
 
+    private readonly Dictionary<UaNodeAddress, WatchEntry> _last = new();
+    private readonly HashSet<UaNodeAddress> _resent = new();
+
+    /// <summary>
+    /// The watch starts again (a variable was added to it): the server sends the
+    /// current value of every watched variable once more. That first value is
+    /// not kept again where it is the one kept last; a changed one is.
+    /// </summary>
+    public void Restarted()
+    {
+        lock (_lock) _resent.UnionWith(_last.Keys);
+    }
+
     public void Add(DateTimeOffset time, string node, string unit, UaReadResult read)
     {
         // An Uncertain value (beyond its engineering range, say) is kept: that is when it matters.
@@ -33,6 +46,9 @@ public sealed class WatchRecording(int limit = 100_000)
         var entry = new WatchEntry(time, node, read.Address, keep ? read.ValueText ?? "" : "", unit, read.Good ? "Good" : read.Status, keep ? read.Value : null);
         lock (_lock)
         {
+            if (_resent.Remove(entry.Address) && _last.TryGetValue(entry.Address, out var last)
+                && last.Value == entry.Value && last.Status == entry.Status) return;
+            _last[entry.Address] = entry;
             _entries.Enqueue(entry);
             while (_entries.Count > limit)
             {
@@ -47,6 +63,8 @@ public sealed class WatchRecording(int limit = 100_000)
         lock (_lock)
         {
             _entries.Clear();
+            _last.Clear();
+            _resent.Clear();
             Dropped = 0;
         }
     }
