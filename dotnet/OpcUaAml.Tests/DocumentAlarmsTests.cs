@@ -96,6 +96,28 @@ public class DocumentAlarmsTests(DiDocument di) : IClassFixture<DiDocument>
         finally { await Close(served, pki); }
     }
 
+    /// <summary>
+    /// Video round 2026-11-20: the notifier hierarchy an alarm needs puts a
+    /// HasNotifier beside each HasComponent up to the root, and browsing listed
+    /// the alarm's source twice below its parent (in the address space, and
+    /// for Take into document).
+    /// </summary>
+    [Fact]
+    public async Task A_parent_lists_the_source_of_an_alarm_once()
+    {
+        var (doc, _, _, _) = Drill();
+        var pki = TempPki();
+        var served = await Serve(doc, simulate: false, pki);
+        try
+        {
+            var plant = new UaNodeAddress("urn:amlopcua:document", UaIdType.String, "Plant");
+            var children = await served.Client.BrowseAsync(plant);
+            var drill = Assert.Single(children, c => c.BrowseName == "Drill");
+            Assert.NotEqual("HasNotifier", drill.ReferenceType);
+        }
+        finally { await Close(served, pki); }
+    }
+
     [Fact]
     public async Task An_edited_value_raises_it_without_simulation()
     {

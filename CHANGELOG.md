@@ -157,6 +157,11 @@ minor versions.
 
 ### Fixed
 
+- **A node reached by several references was listed several times** below
+  its parent in the address space, and Take into document saw it as often: a
+  server's notifier hierarchy puts a HasNotifier beside the HasComponent that
+  holds a node, as the document server does for the alarms of the document.
+  It is listed once now, by the reference that holds it.
 - **Bind model…** and `uaaml bind --apply` replaced a binding by a browse
   path, an alias, a BPR DataVariable or the older aml-opcua-variable with the
   NodeId of another variable; such an element counts as bound now, and where

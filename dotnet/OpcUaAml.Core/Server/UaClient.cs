@@ -376,6 +376,7 @@ public sealed partial class UaClient : IAsyncDisposable
         };
         var viewDescription = view == null ? null : new ViewDescription { ViewId = ToNodeId(view) };
         var items = new List<UaBrowseItem>();
+        var seen = new Dictionary<UaNodeAddress, int>();
         var response = await _session.BrowseAsync(null, viewDescription, 0, new BrowseDescriptionCollection { browser }, ct).ConfigureAwait(false);
         var result = response.Results[0];
         if (StatusCode.IsBad(result.StatusCode)) throw new UaConnectionException($"Browsing {start} failed: {result.StatusCode}.");
@@ -397,16 +398,28 @@ public sealed partial class UaClient : IAsyncDisposable
             {
                 // Another server's node, or one in a namespace the server's own table lacks.
                 if (r.NodeId.ServerIndex != 0 || ExpandedNodeId.ToNodeId(r.NodeId, _session.NamespaceUris) == null) continue;
-                items.Add(new UaBrowseItem(
+                var item = new UaBrowseItem(
                     FromExpanded(r.NodeId),
                     r.BrowseName.Name,
                     r.DisplayName.Text,
                     r.NodeClass.ToString(),
                     r.TypeDefinition != null && !NodeId.IsNull(r.TypeDefinition) ? FromExpanded(r.TypeDefinition) : null,
-                    ReferenceName(r.ReferenceTypeId)) { BrowseNameIndex = r.BrowseName.NamespaceIndex });
+                    ReferenceName(r.ReferenceTypeId)) { BrowseNameIndex = r.BrowseName.NamespaceIndex };
+                // A node reached by several references is one node: a notifier hierarchy
+                // puts a HasNotifier beside the HasComponent that holds it, and the node
+                // is listed once, by the reference that holds it.
+                if (seen.TryGetValue(item.Address, out var at))
+                {
+                    if (EventReference(items[at].ReferenceType) && !EventReference(item.ReferenceType)) items[at] = item;
+                    continue;
+                }
+                seen[item.Address] = items.Count;
+                items.Add(item);
             }
         }
     }
+
+    private static bool EventReference(string referenceType) => referenceType is "HasEventSource" or "HasNotifier";
 
     /// <summary>
     /// The node a text names: a path of BrowseNames from the Objects folder
