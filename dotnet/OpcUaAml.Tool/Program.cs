@@ -1560,7 +1560,17 @@ public static class Program
 /// <summary>Loading and saving .aml and .amlx the same way.</summary>
 public static class Documents
 {
-    public static CAEXDocument Load(string path) => AmlFiles.Load(path);
+    /// <summary>
+    /// A document of AutomationML Edition 2, or of Edition 1, which the commands that
+    /// need CAEX 3.0 convert or refuse themselves; another edition is refused here,
+    /// for every command (AmlEditions).
+    /// </summary>
+    public static CAEXDocument Load(string path)
+    {
+        var document = AmlFiles.Load(path);
+        if (AmlEditions.Of(document).Edition == AmlEdition.Other) AmlEditions.Require(document);
+        return document;
+    }
 
     public static void Save(CAEXDocument doc, string path) => AmlFiles.Save(doc, path);
 }

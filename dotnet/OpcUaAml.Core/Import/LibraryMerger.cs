@@ -80,11 +80,9 @@ public static class LibraryMerger
     public static MergeReport Merge(CAEXDocument target, CAEXDocument source, MergeOptions? options = null)
     {
         options ??= new MergeOptions();
-        var version = target.CAEXFile.SchemaVersion;
-        if (version != RequiredSchemaVersion)
-            throw new ImportException(
-                $"The document uses CAEX {version}. The OPC UA libraries (OPC 10000-83 Annex A) need CAEX 3.0 " +
-                "(AutomationML 2.10). Convert the document first, e.g. with the AutomationML Editor.");
+        // CAEX 3.0 of AutomationML Edition 2 only: Edition 1 cannot hold the libraries,
+        // and another edition references otherwise than they do (AmlEditions).
+        AmlEditions.Require(target);
 
         var changes = new List<LibraryChange>();
         var s = source.CAEXFile;

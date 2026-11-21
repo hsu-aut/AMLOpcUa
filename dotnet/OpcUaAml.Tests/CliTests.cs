@@ -187,6 +187,27 @@ public class CliTests(TestServer server) : IClassFixture<TestServer>
         Assert.Equal("42", AmlFiles.Load(file).CAEXFile.InstanceHierarchy["Line"]!.InternalElement["Machine"]!.Attribute["Temperature"]!.Value);
     }
 
+    /// <summary>
+    /// Rainer Drath, 2026-11-20: the command line works with AutomationML
+    /// Edition 2 only, as the plugin does, and says so for another edition.
+    /// </summary>
+    [Fact]
+    public async Task A_document_of_another_AutomationML_edition_is_refused()
+    {
+        using var uaaml = new Uaaml();
+        var doc = CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0);
+        var file = doc.CAEXFile.Node;
+        foreach (var old in file.Elements().Where(e => e.Name.LocalName == "SuperiorStandardVersion").ToList()) old.Remove();
+        file.AddFirst(new System.Xml.Linq.XElement(file.Name.Namespace + "SuperiorStandardVersion", "AutomationML 3.0"));
+        var path = uaaml.Save(doc, "edition3.aml");
+
+        var run = await uaaml.RunAsync("check", path);
+
+        Assert.NotEqual(0, run.Exit);
+        Assert.Contains("AutomationML 3.0", run.Error);
+        Assert.Contains("Edition 2", run.Error);
+    }
+
     [Fact]
     public async Task The_types_of_a_server_go_into_a_CAEX_2_15_document_converted_first()
     {
