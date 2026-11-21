@@ -880,7 +880,9 @@ To give an element of your own model the address of a server node:
 
 1. Select the node in the tree.
 2. Click **Bind to element…**.
-3. Search the element by name or path, select it and click **Bind**.
+3. Search the element by name or path, select it and click **Bind**. The
+   element selected in the editor is chosen already: its name is in the search
+   field, so **Bind** or Enter binds it.
 
 Or drag the element from the editor's InstanceHierarchy onto the node in the
 address space. The node the element would be bound to is marked while you
@@ -1630,7 +1632,9 @@ names the edition of the open document, for instance "AutomationML Edition 2
 - **Edition 1** (CAEX 2.15): the line names it, and the plugin offers a CAEX
   3.0 copy (see [CAEX 2.15 documents](#caex-215-documents)).
 - **Another edition**, such as Edition 3, which references by ID: the line
-  becomes a warning, and the plugin leaves the document alone. None of its
+  becomes a warning, "AutomationML Edition 3.0 (currently not supported)" (a
+  CAEX version of no edition is named by it, "CAEX 3.1 (currently not
+  supported)"), and the plugin leaves the document alone. None of its
   commands reads or changes it; connecting to a server, browsing, watching,
   writing values and calling methods still work. Open a document of Edition 2
   to work with it. Live values and the document server of the document opened

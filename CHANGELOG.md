@@ -14,6 +14,14 @@ minor versions.
   it, as with **Bind to element…**: the node's address as its NodeId attribute
   and, for a variable, a Value attribute; asking first when the element is
   bound to another node. The node is marked while the element is dragged over it.
+- **Bind to element…** chooses the element selected in the editor: its name is
+  in the search field, and Bind or Enter binds it (Rainer Drath).
+
+### Changed
+
+- **The line for a document of another AutomationML edition** is short:
+  "AutomationML Edition 3.0 (currently not supported)"; a CAEX version of no
+  edition is named by it, "CAEX 3.1 (currently not supported)" (Rainer Drath).
 
 ## [0.5.2] - 2026-11-21
 
