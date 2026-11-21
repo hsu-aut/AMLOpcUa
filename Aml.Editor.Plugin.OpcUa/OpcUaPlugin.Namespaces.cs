@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
+using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
@@ -434,6 +435,8 @@ public partial class OpcUaPlugin
 
     private void Plugin_PreviewDragOver(object sender, DragEventArgs e)
     {
+        // An element from the editor's tree: bound when dropped on a node of the address space.
+        if (EditorDrag.IsEditorNode(e.Data)) { EditorDragOver(e); return; }
         if (DroppedNodeSets(e).Length == 0) return;
         e.Effects = CanImport ? DragDropEffects.Copy : DragDropEffects.None;
         DropOverlay.Visibility = CanImport ? Visibility.Visible : Visibility.Collapsed;
@@ -442,6 +445,7 @@ public partial class OpcUaPlugin
 
     private void Plugin_PreviewDragLeave(object sender, DragEventArgs e)
     {
+        MarkDropTarget(null);
         // Leaving a child raises this too; only leaving the plugin hides the hint.
         var p = e.GetPosition(this);
         if (p.X <= 0 || p.Y <= 0 || p.X >= ActualWidth || p.Y >= ActualHeight) DropOverlay.Visibility = Visibility.Collapsed;
@@ -450,6 +454,7 @@ public partial class OpcUaPlugin
     private async void Plugin_PreviewDrop(object sender, DragEventArgs e)
     {
         DropOverlay.Visibility = Visibility.Collapsed;
+        if (EditorDrag.IsEditorNode(e.Data)) { EditorDrop(e); return; }
         var files = DroppedNodeSets(e);
         if (files.Length == 0 || !CanImport || _document is not { } document) return;
         e.Handled = true;

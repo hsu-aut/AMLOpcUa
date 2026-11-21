@@ -9,6 +9,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using Aml.Editor.Plugin.Contracts;
+using Aml.Editor.Plugin.OpcUa.Bridge;
 using Aml.Editor.Plugin.OpcUa.Diagnostics;
 using Aml.Editor.Plugin.OpcUa.Localization;
 using Aml.Engine.CAEX;
@@ -915,11 +916,22 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         var node = SelectedNode;
         var document = _document;
-        var client = _client;
-        if (node == null || document == null || client == null) return;
+        if (node == null || document == null || _client == null) return;
 
         var picker = new ElementPickerWindow(document, L.T("Bind {0} to", node.DisplayName)) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } element) return;
+        BindTo(node, element);
+    });
+
+    /// <summary>
+    /// Bind to element… and an element dropped on a node: the element gets the node's address
+    /// as its NodeId attribute (after asking, when it is bound to another node) and, for a
+    /// variable, a Value attribute.
+    /// </summary>
+    private void BindTo(UaBrowseItem node, InternalElementType element) => Guard(L.T("Binding"), () =>
+    {
+        var client = _client;
+        if (client == null || _document == null) return;
 
         var bound = node.Address with { ServerUri = client.ServerUri };
         UaNodeAddress? before = null;
@@ -1111,6 +1123,74 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         AnnexANodeId.Write(element, bound);
         if (nodeClass == "Variable" && element.Attribute["Value"] == null) element.Attribute.Append("Value");
+    }
+
+    // ── binding by dragging an element of the editor onto a node ────────────
+
+    /// <summary>The node of the address space marked as the target of a drag.</summary>
+    private TreeViewItem? _dropTarget;
+
+    /// <summary>
+    /// What a drag from the editor's tree may do over <paramref name="item"/> of the address
+    /// space: Move (the only effect the editor allows) over an object or a variable, when an
+    /// InternalElement of the open document is dragged and a server is connected; else None.
+    /// </summary>
+    internal DragDropEffects DragEffect(TreeViewItem? item, IDataObject data) =>
+        item?.Tag is UaBrowseItem { NodeClass: not "Method" } && _client != null && !_busy
+        && EditorDrag.ElementOf(data, _document) != null
+            ? DragDropEffects.Move
+            : DragDropEffects.None;
+
+    /// <summary>
+    /// A drop on <paramref name="item"/>: selects the node and returns the binding, to be run once
+    /// the drag has ended (it may ask before replacing a binding); null when nothing is to be bound.
+    /// </summary>
+    internal Action? DropOn(TreeViewItem? item, IDataObject data)
+    {
+        if (DragEffect(item, data) != DragDropEffects.Move || EditorDrag.ElementOf(data, _document) is not { } element) return null;
+        var node = (UaBrowseItem)item!.Tag;
+        item.IsSelected = true;
+        return () => BindTo(node, element);
+    }
+
+    /// <summary>The item of the address space under a drag, or null outside the address space.</summary>
+    private TreeViewItem? AddressItemAt(object? source)
+    {
+        TreeViewItem? item = null;
+        for (var d = source as DependencyObject; d != null;
+             d = d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+        {
+            if (item == null && d is TreeViewItem found) item = found;
+            if (ReferenceEquals(d, AddressTree)) return item;
+        }
+        return null;
+    }
+
+    /// <summary>Marks the node a drop would bind to; null takes the mark away.</summary>
+    private void MarkDropTarget(TreeViewItem? item)
+    {
+        if (ReferenceEquals(item, _dropTarget)) return;
+        _dropTarget?.ClearValue(Control.BackgroundProperty);
+        _dropTarget = item;
+        _dropTarget?.SetResourceReference(Control.BackgroundProperty, "Ua.CardHover");
+    }
+
+    private void EditorDragOver(DragEventArgs e)
+    {
+        var item = AddressItemAt(e.OriginalSource);
+        e.Effects = DragEffect(item, e.Data);
+        MarkDropTarget(e.Effects == DragDropEffects.Move ? item : null);
+        e.Handled = true;
+    }
+
+    private void EditorDrop(DragEventArgs e)
+    {
+        MarkDropTarget(null);
+        var bind = DropOn(AddressItemAt(e.OriginalSource), e.Data);
+        e.Effects = bind != null ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+        // Bound after the drag: the editor's drag loop still runs while Drop is handled.
+        if (bind != null) Dispatcher.BeginInvoke(bind);
     }
 
     private async void SnapshotButton_Click(object sender, RoutedEventArgs e)

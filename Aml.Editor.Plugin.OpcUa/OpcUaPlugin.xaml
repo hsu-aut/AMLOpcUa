@@ -793,7 +793,7 @@
                         </Grid.ColumnDefinitions>
                         <DockPanel Grid.Column="0">
                             <TextBlock DockPanel.Dock="Top" Margin="0,0,0,3" Style="{StaticResource Hint}"
-                                       Text="{l:T 'Address space: check the parts to take; right click for how much below them. ✓ marks nodes already in the document. F5 reloads.'}"/>
+                                       Text="{l:T 'Address space: check the parts to take; right click for how much below them. ✓ marks nodes already in the document. Drag an element from the editor onto a node to bind it. F5 reloads.'}"/>
                             <Grid>
                                 <TreeView x:Name="AddressTree" SelectedItemChanged="AddressTree_SelectedItemChanged" KeyDown="AddressTree_KeyDown"/>
                                 <TextBlock x:Name="AddressTreeEmpty" Style="{StaticResource Hint}" TextWrapping="Wrap" Margin="12" VerticalAlignment="Top" IsHitTestVisible="False"
