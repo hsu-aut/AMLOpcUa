@@ -239,6 +239,8 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         }
         Watch(null);
         _document = null;
+        _foreign = null;
+        _edition = null;
         _ = StopLiveAsync();
         // A closed document is not served on.
         _ = StopServingAsync(L.T("the document was closed"));
@@ -368,8 +370,34 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         _modeler = null;
     }
 
+    /// <summary>The AutomationML edition of the document the editor has open; null without one.</summary>
+    private AmlEditionInfo? _edition;
+
+    /// <summary>The open document when it is of another edition, which the plugin leaves alone.</summary>
+    private CAEXDocument? _foreign;
+
     private void Attach(CAEXDocument document)
     {
+        // Edition 2 is worked with, Edition 1 is named and offered a CAEX 3.0 copy;
+        // a document of another edition is left alone, as if none were open, and the
+        // plugin says why (Rainer Drath, 2026-11-20; docs/aml-editions.md).
+        var edition = AmlEditions.Of(document);
+        if (edition.Edition == AmlEdition.Other)
+        {
+            if (_document != null || !ReferenceEquals(_foreign, document))
+                PluginLog.Warn($"The open document is written for {edition.Describe()}; AMLOpcUa works with AutomationML Edition 2 only and leaves it alone.");
+            Watch(null);
+            _document = null;
+            _foreign = document;
+            _edition = edition;
+            _ = StopLiveAsync();
+            _ = StopServingAsync(L.T("a document of another AutomationML edition was opened"));
+            UpdateState();
+            UpdateServerState();
+            return;
+        }
+        _foreign = null;
+        _edition = edition;
         if (!ReferenceEquals(_document, document))
         {
             _ = StopLiveAsync();
@@ -996,17 +1024,41 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         FoldersButton.IsEnabled = !_busy;
     }
 
+    private static string EditionName(AmlEditionInfo e) => e.Standard ?? "CAEX " + e.CaexVersion;
+
+    /// <summary>The line above the tabs: the edition of the open document, a warning for one the plugin leaves alone.</summary>
+    private void UpdateEdition()
+    {
+        var e = _edition;
+        EditionBand.Visibility = e == null ? Visibility.Collapsed : Visibility.Visible;
+        if (e == null) return;
+        var warn = e.Edition == AmlEdition.Other;
+        EditionText.Text = e.Edition switch
+        {
+            AmlEdition.Edition2 => L.T("AutomationML Edition 2 ({0})", EditionName(e)),
+            AmlEdition.Edition1 => L.T("AutomationML Edition 1 (CAEX {0})", e.CaexVersion),
+            _ => L.T("This document is written for {0}. AMLOpcUa works with AutomationML Edition 2 (CAEX 3.0, AutomationML 2.10) only and leaves it alone.", EditionName(e)),
+        };
+        EditionText.FontSize = warn ? 12 : 11;
+        EditionText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, warn ? "Ua.Foreground" : "Ua.Muted");
+        if (warn) EditionBand.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "Ua.Warning");
+        else EditionBand.ClearValue(System.Windows.Controls.Border.BackgroundProperty);
+    }
+
     private void UpdateState()
     {
         var doc = _document;
         var usable = doc != null && doc.CAEXFile.SchemaVersion == LibraryMerger.RequiredSchemaVersion;
 
         UpdateCommands();
+        UpdateEdition();
         Placeholder.Visibility = usable ? Visibility.Collapsed : Visibility.Visible;
         Caex3Button.Visibility = doc != null && !usable ? Visibility.Visible : Visibility.Collapsed;
-        Placeholder.Text = doc == null
-            ? L.T("Open a CAEX 3.0 document to import OPC UA NodeSets.")
-            : L.T("This document uses CAEX {0}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).", doc.CAEXFile.SchemaVersion);
+        Placeholder.Text = doc != null
+            ? L.T("This document uses CAEX {0}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).", doc.CAEXFile.SchemaVersion)
+            : _edition is { Edition: AmlEdition.Other } other
+                ? L.T("This document is written for {0}. Open a document of AutomationML Edition 2 (CAEX 3.0, AutomationML 2.10) to import OPC UA NodeSets.", EditionName(other))
+                : L.T("Open a CAEX 3.0 document to import OPC UA NodeSets.");
 
         RefreshDiagramSources();
         var rows = usable

@@ -192,6 +192,13 @@
             </DockPanel>
         </Border>
 
+        <!-- Which AutomationML edition the open document is written for (AmlEditions);
+             a warning where the plugin does not work with it. Set in UpdateState. -->
+        <Border x:Name="EditionBand" DockPanel.Dock="Top" Visibility="Collapsed" Padding="8,2,8,3"
+                BorderBrush="{DynamicResource Ua.Line}" BorderThickness="0,0,0,1">
+            <TextBlock x:Name="EditionText" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Ua.Muted}"/>
+        </Border>
+
         <Grid>
         <TabControl x:Name="Tabs">
             <!-- ── OPC UA: the models in the document ─────────────────────── -->

@@ -72,6 +72,8 @@ internal sealed record ThemePalette(
         root.Resources["Ua.Line"] = Line;
         root.Resources["Ua.Muted"] = Muted;
         root.Resources["Ua.CardHover"] = CardHover;
+        // A band that warns: the background tinted with the orange of Verify.
+        root.Resources["Ua.Warning"] = Frozen(Mix(((SolidColorBrush)Surface).Color, ((SolidColorBrush)Verify).Color, Dark ? 0.28 : 0.18));
         root.Resources["Exchange"] = Exchange;
         root.Resources["Create"] = Create;
         root.Resources["Verify"] = Verify;
