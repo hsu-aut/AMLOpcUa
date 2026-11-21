@@ -919,7 +919,7 @@ public partial class OpcUaPlugin : ISupportsSelection
         if (node == null || document == null || _client == null) return;
 
         // The element selected in the editor is chosen already (Drath, 2026-11-21).
-        var inEditor = _editorSelection is InternalElementType selected && ReferenceEquals(selected.CAEXDocument, document) ? selected : null;
+        var inEditor = ElementSelectedInEditor(document);
         var picker = new ElementPickerWindow(document, L.T("Bind {0} to", node.DisplayName), inEditor) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } element) return;
         BindTo(node, element);
@@ -1125,6 +1125,21 @@ public partial class OpcUaPlugin : ISupportsSelection
     {
         AnnexANodeId.Write(element, bound);
         if (nodeClass == "Variable" && element.Attribute["Value"] == null) element.Attribute.Append("Value");
+    }
+
+    /// <summary>
+    /// The element selected in the editor, when it is one of <paramref name="document"/>. The editor
+    /// passes on what its attribute pane selects too (showing an element there selects one of its
+    /// attributes), so an attribute stands for the element that holds it.
+    /// </summary>
+    internal InternalElementType? ElementSelectedInEditor(CAEXDocument document)
+    {
+        for (var o = _editorSelection; o != null; o = o.CAEXParent as CAEXBasicObject)
+        {
+            if (o is InternalElementType element) return ReferenceEquals(element.CAEXDocument, document) ? element : null;
+            if (o is not AttributeType) return null;
+        }
+        return null;
     }
 
     // ── binding by dragging an element of the editor onto a node ────────────

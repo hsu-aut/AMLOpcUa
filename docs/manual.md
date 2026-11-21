@@ -881,8 +881,9 @@ To give an element of your own model the address of a server node:
 1. Select the node in the tree.
 2. Click **Bind to element…**.
 3. Search the element by name or path, select it and click **Bind**. The
-   element selected in the editor is chosen already: its name is in the search
-   field, so **Bind** or Enter binds it.
+   element selected in the editor is chosen already, also when one of its
+   attributes is selected: its name is in the search field, so **Bind** or
+   Enter binds it.
 
 Or drag the element from the editor's InstanceHierarchy onto the node in the
 address space. The node the element would be bound to is marked while you

@@ -14,8 +14,9 @@ minor versions.
   it, as with **Bind to element…**: the node's address as its NodeId attribute
   and, for a variable, a Value attribute; asking first when the element is
   bound to another node. The node is marked while the element is dragged over it.
-- **Bind to element…** chooses the element selected in the editor: its name is
-  in the search field, and Bind or Enter binds it (Rainer Drath).
+- **Bind to element…** chooses the element selected in the editor, also when
+  one of its attributes is selected: its name is in the search field, and Bind
+  or Enter binds it (Rainer Drath).
 
 ### Changed
 

@@ -39,6 +39,37 @@ public class ElementPickerTests
         Assert.Same(lamp.Node, chosen?.Node);
     }
 
+    // The editor passes on what its attribute pane selects too: showing an element there
+    // selects its first attribute, so the plugin is told "Value", not the element.
+    [Fact]
+    public void An_attribute_selected_in_the_editor_stands_for_its_element()
+    {
+        string? fromAttribute = null, fromNested = null, fromElement = null, fromClass = "x";
+        var document = Plant(out var lamp);
+        var value = lamp.Attribute.Append("Value");
+        var nested = value.Attribute.Append("Unit");
+        var lib = document.CAEXFile.SystemUnitClassLib.Append("Lib").SystemUnitClass.Append("LampClass");
+        OnUiThread(() =>
+        {
+            var plugin = new OpcUaPlugin();
+            plugin.DocumentLoaded(document);
+            plugin.ChangeSelectedObject(value);
+            fromAttribute = plugin.ElementSelectedInEditor(document)?.ID;
+            plugin.ChangeSelectedObject(nested);
+            fromNested = plugin.ElementSelectedInEditor(document)?.ID;
+            plugin.ChangeSelectedObject(lamp);
+            fromElement = plugin.ElementSelectedInEditor(document)?.ID;
+            plugin.ChangeSelectedObject(lib);
+            fromClass = plugin.ElementSelectedInEditor(document)?.ID;
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal(lamp.ID, fromAttribute);
+        Assert.Equal(lamp.ID, fromNested);
+        Assert.Equal(lamp.ID, fromElement);
+        Assert.Null(fromClass);
+    }
+
     [Fact]
     public void Without_a_selection_in_the_editor_nothing_is_chosen()
     {
