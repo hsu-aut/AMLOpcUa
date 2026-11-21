@@ -7,6 +7,18 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-21
+
+### Added
+
+- **The AutomationML edition of the open document** is named in a line above
+  the tabs. AMLOpcUa works with AutomationML Edition 2 (CAEX 3.0,
+  AutomationML 2.x). A document of another edition, such as Edition 3 with its
+  references by ID, is left alone: the line warns, no command reads or
+  changes it, and the commands for a server go on. `uaaml` refuses such a
+  document with exit code 1, and importing into one is refused. How it is
+  done, for other plugins: [docs/aml-editions.md](docs/aml-editions.md).
+
 ## [0.5.1] - 2026-11-20
 
 ### Security

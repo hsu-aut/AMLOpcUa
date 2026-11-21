@@ -21,7 +21,7 @@ Eine Kurzanleitung auf Deutsch steht in [kurzanleitung.md](kurzanleitung.md).
 
 The reference documents beside it explain the mappings and rules behind each
 step, and every chapter names the one that belongs to it. The manual
-describes version 0.5.1; the [changelog](../CHANGELOG.md) lists what changed
+describes version 0.5.2; the [changelog](../CHANGELOG.md) lists what changed
 between versions.
 
 ## Contents
@@ -74,12 +74,13 @@ between versions.
     [Apply the model to the document](#apply-the-model-to-the-document) ·
     [Save and unapplied changes](#save-and-unapplied-changes)
 12. [Exporting as a NodeSet](#exporting-as-a-nodeset)
-13. [CAEX 2.15 documents](#caex-215-documents)
-14. [Linking VDI 3682 process descriptions](#linking-vdi-3682-process-descriptions)
-15. [The command line tool uaaml](#the-command-line-tool-uaaml)
-16. [Language](#language)
-17. [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)
-18. [Troubleshooting](#troubleshooting)
+13. [AutomationML editions](#automationml-editions)
+14. [CAEX 2.15 documents](#caex-215-documents)
+15. [Linking VDI 3682 process descriptions](#linking-vdi-3682-process-descriptions)
+16. [The command line tool uaaml](#the-command-line-tool-uaaml)
+17. [Language](#language)
+18. [Where the plugin keeps its files](#where-the-plugin-keeps-its-files)
+19. [Troubleshooting](#troubleshooting)
 
 ## Installing
 
@@ -87,9 +88,11 @@ between versions.
 
 - Windows and the AutomationML Editor 6.4 or later. The package declares
   6.4.0.0 as the lowest editor version it runs in.
-- Documents in CAEX 3.0 (AutomationML 2.10). The OPC UA libraries of
-  OPC 10000-83 Annex A use CAEX 3.0 features; a CAEX 2.15 document can be
-  copied into CAEX 3.0 by the plugin (see [CAEX 2.15 documents](#caex-215-documents)).
+- Documents of AutomationML Edition 2: CAEX 3.0 (AutomationML 2.10). The OPC
+  UA libraries of OPC 10000-83 Annex A use CAEX 3.0 features; a CAEX 2.15
+  document can be copied into CAEX 3.0 by the plugin (see
+  [CAEX 2.15 documents](#caex-215-documents)). A document of another edition,
+  such as Edition 3, is left alone (see [AutomationML editions](#automationml-editions)).
 - For the **Modeler** tab: the Microsoft Edge WebView2 Runtime. Most Windows
   installations have it; when it is missing, the tab says so (see
   [Troubleshooting](#the-modeler-tab-stays-empty)).
@@ -1610,6 +1613,27 @@ Background: [export](export.md) for the rules and deviations,
 such as a fixed publication date or output identical to the stylesheets are
 available on the command line (`uaaml export`).
 
+## AutomationML editions
+
+The plugin works with documents of AutomationML Edition 2: CAEX 3.0 with the
+SuperiorStandardVersion "AutomationML 2.x" (the editor writes AutomationML
+2.10, a new document of Aml.Engine AutomationML 2.1). A line above the tabs
+names the edition of the open document, for instance "AutomationML Edition 2
+(AutomationML 2.10)".
+
+- **Edition 1** (CAEX 2.15): the line names it, and the plugin offers a CAEX
+  3.0 copy (see [CAEX 2.15 documents](#caex-215-documents)).
+- **Another edition**, such as Edition 3, which references by ID: the line
+  becomes a warning, and the plugin leaves the document alone. None of its
+  commands reads or changes it; connecting to a server, browsing, watching,
+  writing values and calling methods still work. Open a document of Edition 2
+  to work with it. Live values and the document server of the document opened
+  before stop.
+
+The command line refuses a document of another edition with exit code 1 and
+says which edition it is. How the plugin tells the editions apart, for authors
+of other plugins: [aml-editions.md](aml-editions.md).
+
 ## CAEX 2.15 documents
 
 The OPC UA libraries need CAEX 3.0. When the open document is CAEX 2.15, the
@@ -1665,7 +1689,7 @@ plugin's version, so it changes with every update, and it is not on the PATH.
 Call the tool by its full path, for instance in PowerShell:
 
 ```powershell
-& "$env:APPDATA\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.0.5.1\lib\net8.0-windows7.0\converter\uaaml.exe" help
+& "$env:APPDATA\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.0.5.2\lib\net8.0-windows7.0\converter\uaaml.exe" help
 ```
 
 or add that folder to the PATH. `dotnet <folder>\uaaml.dll` runs the same
