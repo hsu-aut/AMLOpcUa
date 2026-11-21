@@ -62,8 +62,8 @@ public class EditionTests
         });
 
         Assert.True(seen!.Band);
-        Assert.Contains("AutomationML 3.0", seen.Edition);
-        Assert.Contains("Edition 2", seen.Edition);
+        // Drath, 2026-11-21: short and precise.
+        Assert.Equal("AutomationML Edition 3.0 (currently not supported)", seen.Edition);
         Assert.False(seen.Import);
         Assert.False(seen.Instance);
         Assert.False(seen.Check);
@@ -71,7 +71,27 @@ public class EditionTests
         Assert.False(seen.Serve);
         // A server needs no document: connecting, browsing and watching go on.
         Assert.True(seen.Connect);
-        Assert.Contains("Edition 2", seen.Placeholder);
+        Assert.Equal("AutomationML Edition 3.0 is currently not supported. Open a document of AutomationML Edition 2 to import OPC UA NodeSets.", seen.Placeholder);
+    }
+
+    [Fact]
+    public void A_CAEX_version_of_no_edition_is_named_by_its_CAEX_version()
+    {
+        Seen? seen = null;
+        OnUiThread(() =>
+        {
+            var doc = CAEXDocument.New_CAEXDocument(CAEXDocument.CAEXSchema.CAEX3_0);
+            var file = doc.CAEXFile.Node;
+            foreach (var old in file.Elements().Where(e => e.Name.LocalName == "SuperiorStandardVersion").ToList()) old.Remove();
+            file.SetAttributeValue("SchemaVersion", "3.1");
+            var plugin = new OpcUaPlugin();
+            plugin.DocumentLoaded(doc);
+            seen = Look(plugin);
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal("CAEX 3.1 (currently not supported)", seen!.Edition);
+        Assert.False(seen.Import);
     }
 
     [Fact]

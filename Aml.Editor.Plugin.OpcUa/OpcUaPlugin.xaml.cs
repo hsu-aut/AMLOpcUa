@@ -1026,6 +1026,20 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
 
     private static string EditionName(AmlEditionInfo e) => e.Standard ?? "CAEX " + e.CaexVersion;
 
+    /// <summary>
+    /// A document the plugin leaves alone, short (Drath, 2026-11-21): "AutomationML Edition 3.0"
+    /// for "AutomationML 3.0"; otherwise its CAEX version, when that is neither 3.0 nor 2.15.
+    /// </summary>
+    internal static string OtherName(AmlEditionInfo e)
+    {
+        foreach (var v in e.StandardVersions)
+        {
+            var m = System.Text.RegularExpressions.Regex.Match(v.Trim(), @"^AutomationML\s+((\d+)\S*)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (m.Success && int.TryParse(m.Groups[2].Value, out var major) && major >= 3) return "AutomationML Edition " + m.Groups[1].Value;
+        }
+        return e.CaexVersion is "3.0" or "2.15" ? EditionName(e) : "CAEX " + e.CaexVersion;
+    }
+
     /// <summary>The line above the tabs: the edition of the open document, a warning for one the plugin leaves alone.</summary>
     private void UpdateEdition()
     {
@@ -1037,7 +1051,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         {
             AmlEdition.Edition2 => L.T("AutomationML Edition 2 ({0})", EditionName(e)),
             AmlEdition.Edition1 => L.T("AutomationML Edition 1 (CAEX {0})", e.CaexVersion),
-            _ => L.T("This document is written for {0}. AMLOpcUa works with AutomationML Edition 2 (CAEX 3.0, AutomationML 2.10) only and leaves it alone.", EditionName(e)),
+            _ => L.T("{0} (currently not supported)", OtherName(e)),
         };
         EditionText.FontSize = warn ? 12 : 11;
         EditionText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, warn ? "Ua.Foreground" : "Ua.Muted");
@@ -1057,7 +1071,7 @@ public partial class OpcUaPlugin : PluginViewBase, INotifyAMLDocumentLoad
         Placeholder.Text = doc != null
             ? L.T("This document uses CAEX {0}. The OPC UA libraries of OPC 10000-83 Annex A need CAEX 3.0 (AutomationML 2.10).", doc.CAEXFile.SchemaVersion)
             : _edition is { Edition: AmlEdition.Other } other
-                ? L.T("This document is written for {0}. Open a document of AutomationML Edition 2 (CAEX 3.0, AutomationML 2.10) to import OPC UA NodeSets.", EditionName(other))
+                ? L.T("{0} is currently not supported. Open a document of AutomationML Edition 2 to import OPC UA NodeSets.", OtherName(other))
                 : L.T("Open a CAEX 3.0 document to import OPC UA NodeSets.");
 
         RefreshDiagramSources();
