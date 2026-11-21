@@ -7,6 +7,8 @@ minor versions.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-21
+
 ### Added
 
 - **Bind by dragging**: an element dragged from the editor's InstanceHierarchy

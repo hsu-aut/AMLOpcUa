@@ -21,7 +21,7 @@ Eine Kurzanleitung auf Deutsch steht in [kurzanleitung.md](kurzanleitung.md).
 
 The reference documents beside it explain the mappings and rules behind each
 step, and every chapter names the one that belongs to it. The manual
-describes version 0.5.2; the [changelog](../CHANGELOG.md) lists what changed
+describes version 0.5.3; the [changelog](../CHANGELOG.md) lists what changed
 between versions.
 
 ## Contents
@@ -1700,7 +1700,7 @@ plugin's version, so it changes with every update, and it is not on the PATH.
 Call the tool by its full path, for instance in PowerShell:
 
 ```powershell
-& "$env:APPDATA\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.0.5.2\lib\net8.0-windows7.0\converter\uaaml.exe" help
+& "$env:APPDATA\AutomationMLEditor\PlugIns6\Aml.Editor.Plugin.OpcUa.0.5.3\lib\net8.0-windows7.0\converter\uaaml.exe" help
 ```
 
 or add that folder to the PATH. `dotnet <folder>\uaaml.dll` runs the same
