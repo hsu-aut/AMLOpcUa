@@ -1631,8 +1631,8 @@ names the edition of the open document, for instance "AutomationML Edition 2
   before stop.
 
 The command line refuses a document of another edition with exit code 1 and
-says which edition it is. How the plugin tells the editions apart, for authors
-of other plugins: [aml-editions.md](aml-editions.md).
+says which edition it is. How the plugin tells the editions apart:
+[aml-editions.md](aml-editions.md).
 
 ## CAEX 2.15 documents
 

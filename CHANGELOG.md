@@ -17,7 +17,7 @@ minor versions.
   references by ID, is left alone: the line warns, no command reads or
   changes it, and the commands for a server go on. `uaaml` refuses such a
   document with exit code 1, and importing into one is refused. How it is
-  done, for other plugins: [docs/aml-editions.md](docs/aml-editions.md).
+  done: [docs/aml-editions.md](docs/aml-editions.md).
 
 ## [0.5.1] - 2026-11-20
 
