@@ -882,6 +882,12 @@ To give an element of your own model the address of a server node:
 2. Click **Bind to element…**.
 3. Search the element by name or path, select it and click **Bind**.
 
+Or drag the element from the editor's InstanceHierarchy onto the node in the
+address space. The node the element would be bound to is marked while you
+drag; over a method, outside the address space or without a connection the
+pointer shows that nothing happens. Only an InternalElement of the open
+document can be bound so; a class from a library cannot.
+
 The element gets the node's address as its `NodeId` attribute (Annex A), with
 the server's URI; bound to a variable, it also gets a `Value` attribute, which
 reading and keeping values live fill in (before 0.3.1 it did not, and such an

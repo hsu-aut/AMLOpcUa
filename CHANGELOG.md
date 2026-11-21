@@ -7,6 +7,14 @@ minor versions.
 
 ## [Unreleased]
 
+### Added
+
+- **Bind by dragging**: an element dragged from the editor's InstanceHierarchy
+  onto an object or a variable in the address space (Server tab) is bound to
+  it, as with **Bind to element…**: the node's address as its NodeId attribute
+  and, for a variable, a Value attribute; asking first when the element is
+  bound to another node. The node is marked while the element is dragged over it.
+
 ## [0.5.2] - 2026-11-21
 
 ### Added
