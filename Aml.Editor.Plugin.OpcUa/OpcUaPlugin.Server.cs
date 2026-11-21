@@ -918,7 +918,9 @@ public partial class OpcUaPlugin : ISupportsSelection
         var document = _document;
         if (node == null || document == null || _client == null) return;
 
-        var picker = new ElementPickerWindow(document, L.T("Bind {0} to", node.DisplayName)) { Owner = Window.GetWindow(this) };
+        // The element selected in the editor is chosen already (Drath, 2026-11-21).
+        var inEditor = _editorSelection is InternalElementType selected && ReferenceEquals(selected.CAEXDocument, document) ? selected : null;
+        var picker = new ElementPickerWindow(document, L.T("Bind {0} to", node.DisplayName), inEditor) { Owner = Window.GetWindow(this) };
         if (picker.ShowDialog() != true || picker.Selected is not { } element) return;
         BindTo(node, element);
     });

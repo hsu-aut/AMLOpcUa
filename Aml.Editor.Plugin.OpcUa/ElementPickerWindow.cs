@@ -26,7 +26,14 @@ public sealed class ElementPickerWindow : Window
 
     public InternalElementType? Selected { get; private set; }
 
-    public ElementPickerWindow(CAEXDocument document, string title)
+    /// <summary>The text in the search field.</summary>
+    internal string SearchText => _search.Text;
+
+    /// <summary>The element chosen in the list, before Bind is clicked.</summary>
+    internal InternalElementType? Chosen => DialogKit.Selected<InternalElementType>(_list);
+
+    /// <param name="preselect">The element selected in the editor: searched for and chosen already, when it is one of the document's.</param>
+    public ElementPickerWindow(CAEXDocument document, string title, InternalElementType? preselect = null)
     {
         Width = 620;
         Height = 520;
@@ -50,7 +57,15 @@ public sealed class ElementPickerWindow : Window
             L.T("The element you choose gets the node's address as its NodeId attribute (OPC 10000-83 Annex A)."),
             body, null, ok, DialogKit.Action(L.T("Cancel"), cancel: true));
         Filter();
-        Loaded += (_, __) => _search.Focus();
+        if (preselect != null && _all.Any(x => ReferenceEquals(x.Element.Node, preselect.Node)))
+        {
+            _search.Text = preselect.Name;
+            _list.SelectedItem = _list.Items.OfType<ListBoxItem>()
+                .FirstOrDefault(i => i.Tag is InternalElementType e && ReferenceEquals(e.Node, preselect.Node));
+            if (_list.SelectedItem != null) _list.ScrollIntoView(_list.SelectedItem);
+        }
+        // Enter binds the chosen element; typing replaces the search.
+        Loaded += (_, __) => { _search.Focus(); _search.SelectAll(); };
     }
 
     private void Accept()
